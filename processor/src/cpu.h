@@ -3,24 +3,22 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "bus.h"
-
-#define REGISTERS 30
-#define REG_IP 0
-#define REG_SP 1
-#define REG_FP 2
-#define REG_FLAG 3
-#define REG_RET 4
-#define REG_ZERO 5
-#define REG_GPR 6
-#define REG_PGRP 22
+#include "registers.h"
 
 #define DEBUG_CPU  0x1
 #define DEBUG_DRAM 0x2
-#ifndef DEBUG
-#define DEBUG 0x00
-#endif
+
+// mask used to enable/disable debugging
+#define DEBUG 0xFF
+
+// write 64-bit word to word offset of `cpu_t *cpu`
+#define MEMWRITE(OFFSET, VALUE) dram_store(&cpu->bus.dram, 8 * (OFFSET), 64, VALUE)
+
+// get 64-bit word to word offset of `cpu_t *cpu`
+#define MEMREAD(OFFSET) dram_load(&cpu->bus.dram, 8 * (OFFSET), 64)
 
 // CPU data structure
 typedef struct cpu {
@@ -31,5 +29,15 @@ typedef struct cpu {
 } cpu_t;
 
 void cpu_init(cpu_t *cpu);
+
+// fetch next instruction, DO NOT increment ip
+uint64_t cpu_fetch(const cpu_t *cpu);
+
+// execute the given instruction, return `true` if error/stop
+// exit code stored in `REG_RET`
+bool cpu_execute(cpu_t *cpu, uint64_t inst);
+
+// commence fetch-execute cycle until halt or error
+void cpu_cycle(cpu_t *cpu);
 
 #endif

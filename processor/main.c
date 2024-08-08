@@ -1,12 +1,13 @@
-#define DEBUG 0xFF
-
 #include "cpu.h"
 
-static cpu_t cpu;
+static cpu_t _cpu;
+static cpu_t *cpu = &_cpu;
 
 int main() {
-  cpu_init(&cpu);
+  cpu_init(cpu);
 
-  printf("Hello, world!\n");
+  MEMWRITE(1, 0xf);
+  cpu_cycle(cpu);
+
   return 0;
 }

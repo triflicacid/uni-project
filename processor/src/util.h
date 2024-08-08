@@ -22,4 +22,11 @@
 // get flag for the Nth bit (starting from bit 0)
 #define BIT(N) (1 << (N))
 
+#define ANSI_YELLOW  "\x1b[33m"
+#define ANSI_RED     "\x1b[31m"
+#define ANSI_BLUE    "\x1b[34m"
+#define ANSI_RESET   "\x1b[0m"
+#define DEBUG_STR    ANSI_RESET "[" ANSI_BLUE "DEBUG" ANSI_RESET "]"
+#define ERROR_STR    ANSI_RESET "[" ANSI_RED "ERROR" ANSI_RESET "]"
+
 #endif
