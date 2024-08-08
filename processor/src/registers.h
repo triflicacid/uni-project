@@ -13,9 +13,7 @@
 #define REG_GPR 6
 #define REG_PGRP 22
 
-#define FLAG_CMP_EQ BIT0
-#define FLAG_CMP_MAG BIT1
-#define FLAG_ZERO BIT2
+#define FLAG_CMP_BITS (BIT0 | BIT1 | BIT2)
 #define FLAG_EXEC_STATUS BIT3
 
 // get instruction pointer from the cpu pointer

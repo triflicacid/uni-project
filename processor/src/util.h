@@ -1,6 +1,8 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#include <stdint.h>
+
 // set the bit in the given register
 #define SET_BIT(REG, BIT) ((REG) |= (BIT))
 
@@ -10,23 +12,31 @@
 // get the vit in the given register
 #define GET_BIT(REG, BIT) ((REG) & (BIT))
 
-#define BIT0 0x01
-#define BIT1 0x02
-#define BIT2 0x04
-#define BIT3 0x08
-#define BIT4 0x10
-#define BIT5 0x20
-#define BIT6 0x40
-#define BIT7 0x80
+#define BIT0  0x001
+#define BIT1  0x002
+#define BIT2  0x004
+#define BIT3  0x008
+#define BIT4  0x010
+#define BIT5  0x020
+#define BIT6  0x040
+#define BIT7  0x080
+#define BIT8  0x100
+#define BIT9  0x200
+#define BIT10 0x400
+#define BIT11 0x800
 
 // get flag for the Nth bit (starting from bit 0)
 #define BIT(N) (1 << (N))
 
 #define ANSI_YELLOW  "\x1b[33m"
 #define ANSI_RED     "\x1b[31m"
+#define ANSI_GREEN   "\x1b[32m"
 #define ANSI_BLUE    "\x1b[34m"
 #define ANSI_RESET   "\x1b[0m"
 #define DEBUG_STR    ANSI_RESET "[" ANSI_BLUE "DEBUG" ANSI_RESET "]"
 #define ERROR_STR    ANSI_RESET "[" ANSI_RED "ERROR" ANSI_RESET "]"
+
+// given three compare bits in binary form `0bXYZ` where X = eq, Y = mag, Z = zero
+char *cmp_bit_str(uint8_t bits);
 
 #endif

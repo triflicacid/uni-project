@@ -25,11 +25,38 @@ uint64_t cpu_fetch(const cpu_t *cpu) {
 }
 
 bool cpu_execute(cpu_t *cpu, uint64_t inst) {
-  uint16_t opcode = inst & OPCODE_MASK;
+  // extract opcode (bits 0-5)
+  uint16_t opcode = inst & 0x3f;
+
+  // switch on opcode prior to conditional test
+  switch (opcode) {
+    case OP_NOP:
+#ifdef HALT_ON_NOP
+      SET_BIT(REG(REG_FLAG), FLAG_EXEC_STATUS);
+#endif
+      return false;
+    default: ;
+  }
+
+  // is conditional test bit set?
+  // if so, compare flag register
+  if (GET_BIT(inst, BIT6)) {
+    uint8_t bits = inst & 0x40;
+    uint8_t flag_bits = REG(REG_FLAG) & FLAG_CMP_BITS;
+
+#if DEBUG & DEBUG_CPU
+    printf(DEBUG_STR "\tConditional test: %s... %s" ANSI_RESET "\n", cmp_bit_str(bits >> 4),
+      bits == flag_bits ? ANSI_GREEN "PASS" : ANSI_RED "FAIL");
+#endif
+
+    // if condition does not pass, skip
+    if (bits != flag_bits) {
+      return false;
+    }
+  }
 
   switch (opcode) {
-    case OP_NOP: break;
-    case 0xf: SET_BIT(REG(REG_FLAG), FLAG_EXEC_STATUS); break; // TODO delete
+    // TODO
     default: goto error;
   }
 

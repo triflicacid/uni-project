@@ -6,7 +6,7 @@ static cpu_t *cpu = &_cpu;
 int main() {
   cpu_init(cpu);
 
-  MEMWRITE(1, 0xf);
+  MEMWRITE(0, 0b0011000011);
   cpu_cycle(cpu);
 
   return 0;
