@@ -24,9 +24,27 @@ uint64_t cpu_fetch(const cpu_t *cpu) {
   return bus_load(&cpu->bus, REG(REG_IP), sizeof(uint64_t));
 }
 
+// given three compare bits in binary form `0bXYZ` where X = eq, Y = mag, Z = zero
+static char *cmp_bit_str(uint8_t bits) {
+  switch (bits) {
+    case CMP_NE: return "ne";
+    case CMP_EQ: return "eq";
+    case CMP_LT: return "lt";
+    case CMP_LE: return "le";
+    case CMP_Z:  return "z";
+    case CMP_GT: return "gt";
+    case CMP_GE: return "ge";
+    default:     return "?";
+  }
+}
+
 bool cpu_execute(cpu_t *cpu, uint64_t inst) {
   // extract opcode (bits 0-5)
   uint16_t opcode = inst & 0x3f;
+
+#if DEBUG & DEBUG_CPU
+  printf("inst=0x%x, opcode=0x%x \n", inst, opcode);
+#endif
 
   // switch on opcode prior to conditional test
   switch (opcode) {
@@ -41,11 +59,12 @@ bool cpu_execute(cpu_t *cpu, uint64_t inst) {
   // is conditional test bit set?
   // if so, compare flag register
   if (GET_BIT(inst, BIT6)) {
-    uint8_t bits = inst & 0x40;
+    // extract cmp bits from both the instruction and the flag register
+    uint8_t bits = inst & 0x380;
     uint8_t flag_bits = REG(REG_FLAG) & FLAG_CMP_BITS;
 
 #if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR "\tConditional test: %s... %s" ANSI_RESET "\n", cmp_bit_str(bits >> 4),
+    printf(DEBUG_STR "\tConditional test: %s (0x%x) ... %s" ANSI_RESET "\n", cmp_bit_str(bits >> 7), bits >> 7,
       bits == flag_bits ? ANSI_GREEN "PASS" : ANSI_RED "FAIL");
 #endif
 
@@ -85,7 +104,7 @@ void cpu_cycle(cpu_t *cpu) {
     inst = cpu_fetch(cpu);
 
 #if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR " Cycle #%i: ip=0x%x, inst=0x%x\n", counter++, REG(REG_IP), inst);
+    printf(DEBUG_STR " Cycle #%i: ip=0x%x, ", counter++, REG(REG_IP));
 #endif
 
     error = cpu_execute(cpu, inst);
@@ -98,3 +117,4 @@ void cpu_cycle(cpu_t *cpu) {
   printf(DEBUG_STR " Terminated after cycle %i due to %s\n", counter, error ? "execution error" : "halt bit set");
 #endif
 }
+

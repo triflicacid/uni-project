@@ -36,7 +36,4 @@
 #define DEBUG_STR    ANSI_RESET "[" ANSI_BLUE "DEBUG" ANSI_RESET "]"
 #define ERROR_STR    ANSI_RESET "[" ANSI_RED "ERROR" ANSI_RESET "]"
 
-// given three compare bits in binary form `0bXYZ` where X = eq, Y = mag, Z = zero
-char *cmp_bit_str(uint8_t bits);
-
 #endif
