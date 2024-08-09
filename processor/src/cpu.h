@@ -30,15 +30,21 @@ typedef struct cpu {
 
 void cpu_init(cpu_t *cpu);
 
+// return if CPU is currently executing code
+bool cpu_is_running(const cpu_t *cpu);
+
+// halt CPU execution by setting flag bit
+void cpu_stop(cpu_t *cpu);
+
 // fetch next instruction, DO NOT increment ip
 uint64_t cpu_fetch(const cpu_t *cpu);
 
-// execute the given instruction, return `true` if error/stop
-// exit code stored in `REG_RET`
-bool cpu_execute(cpu_t *cpu, uint64_t inst);
+// execute the given instruction
+void cpu_execute(cpu_t *cpu, uint64_t inst);
 
 // commence fetch-execute cycle until halt or error
-void cpu_cycle(cpu_t *cpu);
+// clears bit flag
+void cpu_start(cpu_t *cpu);
 
 // print contents of all registers as hexadecimal
 void print_registers(cpu_t *cpu);

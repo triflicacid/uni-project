@@ -38,6 +38,93 @@ static uint32_t arg_extract_addr(const cpu_t *cpu, uint64_t word, uint8_t pos) {
   }
 }
 
+// given three compare bits in binary form `0bXYZ` where X = eq, Y = mag, Z = zero
+static char *cmp_bit_str(uint8_t bits) {
+  switch (bits) {
+    case CMP_NE: return "ne";
+    case CMP_EQ: return "eq";
+    case CMP_LT: return "lt";
+    case CMP_LE: return "le";
+    case CMP_Z:  return "z";
+    case CMP_GT: return "gt";
+    case CMP_GE: return "ge";
+    default:     return "?";
+  }
+}
+
+// check: memory bounds
+static bool check_memory(const cpu_t *cpu, uint32_t address) {
+  bool ok = address < DRAM_SIZE;
+
+#if DEBUG & DEBUG_CPU
+  if (!ok) {
+    printf(ERROR_STR " SEGFAULT: address 0x%x is out of bounds\n", address);
+  }
+#endif
+
+  return ok;
+}
+
+// check: register bounds
+static bool check_register(const cpu_t *cpu, uint8_t reg) {
+  bool ok = reg < REGISTERS;
+
+#if DEBUG & DEBUG_CPU
+  if (!ok) {
+    printf(ERROR_STR " SEGFAULT: register %i is out of bounds\n", reg);
+  }
+#endif
+
+  return ok;
+}
+
+// load <reg> <value> -- load value into register
+static bool exec_load(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(cpu, reg)) return true;
+
+  uint32_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
+
+  REG(reg) = value;
+
+#if DEBUG & DEBUG_CPU
+  printf(DEBUG_STR " load: load value 0x%x into register %i\n", value, reg);
+#endif
+
+  return false;
+}
+
+// loadu <reg> <value> -- load value into upper register
+static bool exec_load_upper(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(cpu, reg)) return true;
+
+  uint32_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
+
+  ((uint32_t *) &REG(reg))[1] = value;
+
+#if DEBUG & DEBUG_CPU
+  printf(DEBUG_STR " loadu: load value 0x%x into register %i's upper half\n", value, reg);
+#endif
+
+  return false;
+}
+
+// store <addr> <reg> -- store value from register in memory
+static bool exec_store(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
+  uint32_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
+
+  ((uint32_t *) &REG(reg))[1] = value;
+
+#if DEBUG & DEBUG_CPU
+  printf(DEBUG_STR " loadu: load value 0x%x into register %i's upper half\n", value, reg);
+#endif
+
+  return false;
+}
+
+
 void cpu_init(cpu_t *cpu) {
   // set default file I/O handlers
   cpu->fp_out = stdout;
@@ -56,53 +143,19 @@ void cpu_init(cpu_t *cpu) {
 #endif
 }
 
+bool cpu_is_running(const cpu_t *cpu) {
+  return GET_BIT(REG(REG_FLAG), FLAG_EXEC_STATUS);
+}
+
+void cpu_stop(cpu_t *cpu) {
+  CLEAR_BIT(REG(REG_FLAG), FLAG_EXEC_STATUS);
+}
+
 uint64_t cpu_fetch(const cpu_t *cpu) {
   return bus_load(&cpu->bus, REG(REG_IP), 64);
 }
 
-// given three compare bits in binary form `0bXYZ` where X = eq, Y = mag, Z = zero
-static char *cmp_bit_str(uint8_t bits) {
-  switch (bits) {
-    case CMP_NE: return "ne";
-    case CMP_EQ: return "eq";
-    case CMP_LT: return "lt";
-    case CMP_LE: return "le";
-    case CMP_Z:  return "z";
-    case CMP_GT: return "gt";
-    case CMP_GE: return "ge";
-    default:     return "?";
-  }
-}
-
-// load <reg> <value> -- load value into register
-static bool exec_load(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
-  uint32_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
-
-  REG(reg) = value;
-
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " load: load value 0x%x into register %i\n", value, reg);
-#endif
-
-  return false;
-}
-
-// loadu <reg> <value> -- load value into upper register
-static bool exec_load_upper(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
-  uint32_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
-
-  ((uint32_t *) &REG(reg))[1] = value;
-
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " loadu: load value 0x%x into register %i's upper half\n", value, reg);
-#endif
-
-  return false;
-}
-
-bool cpu_execute(cpu_t *cpu, uint64_t inst) {
+void cpu_execute(cpu_t *cpu, uint64_t inst) {
   // extract opcode (bits 0-5)
   uint16_t opcode = inst & 0x3f;
 
@@ -110,14 +163,23 @@ bool cpu_execute(cpu_t *cpu, uint64_t inst) {
   printf("inst=0x%x, opcode=0x%x \n", inst, opcode);
 #endif
 
+  // store: should halt CPU?
+  bool should_halt = false;
+
   // switch on opcode prior to conditional test
   switch (opcode) {
     case OP_NOP:
 #ifdef HALT_ON_NOP
-      SET_BIT(REG(REG_FLAG), FLAG_EXEC_STATUS);
+      cpu_stop(cpu);
 #endif
-      return false;
+      return;
     default: ;
+  }
+
+  // check to see if halt
+  if (should_halt) {
+    cpu_stop(cpu);
+    return;
   }
 
   // is conditional test bit set?
@@ -134,52 +196,51 @@ bool cpu_execute(cpu_t *cpu, uint64_t inst) {
 
     // if condition does not pass, skip
     if (bits != flag_bits) {
-      return false;
+      cpu_stop(cpu);
+      return;
     }
   }
 
   switch (opcode) {
-    case OP_LOAD: return exec_load(cpu, inst);
-    case OP_LOAD_UPPER: return exec_load_upper(cpu, inst);
-    default: goto error;
+    case OP_LOAD: should_halt = exec_load(cpu, inst); break;
+    case OP_LOAD_UPPER: should_halt = exec_load_upper(cpu, inst); break;
+    case OP_STORE: should_halt = exec_store(cpu, inst); break;
+    default:
+#if DEBUG & DEBUG_CPU
+      printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%x)\n", opcode, inst);
+#endif
+    should_halt = true;
   }
 
-  // default end: no error
-  return false;
-
-  // error handler
-error:
-#if DEBUG & DEBUG_CPU
-    printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%x)\n", opcode, inst);
-#endif
-  return true;
+  // check to see if halt
+  if (should_halt) {
+    cpu_stop(cpu);
+  }
 }
 
-void cpu_cycle(cpu_t *cpu) {
-  uint64_t inst;
-  bool error = false;
+void cpu_start(cpu_t *cpu) {
+  // clear halt bit
+  SET_BIT(REG(REG_FLAG), FLAG_EXEC_STATUS);
 
 #if DEBUG & DEBUG_CPU
   uint32_t counter = 0;
-  printf(DEBUG_STR " Commencing fetch-execute cycle...\n");
+  printf(DEBUG_STR " Start CPU; Commencing fetch-execute cycle...\n");
 #endif
 
-  // fetch-execute unless encountered error or halt
-  while (!(error || GET_BIT(REG(REG_FLAG), FLAG_EXEC_STATUS))) {
-    inst = cpu_fetch(cpu);
-
+  // fetch-execute cycle until halt
+  while (cpu_is_running(cpu)) {
 #if DEBUG & DEBUG_CPU
     printf(DEBUG_STR " Cycle #%i: ip=0x%x, ", counter++, REG(REG_IP));
 #endif
 
-    error = cpu_execute(cpu, inst);
+    cpu_execute(cpu, cpu_fetch(cpu));
 
     // increment instruction pointer
-    REG(REG_IP) += sizeof(inst);
+    REG(REG_IP) += sizeof(uint64_t);
   }
 
 #if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " Terminated after cycle %i due to %s\n", counter, error ? "execution error" : "halt bit set");
+  printf(DEBUG_STR " Terminated during cycle %i\n", counter);
 #endif
 }
 

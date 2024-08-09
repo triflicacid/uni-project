@@ -25,7 +25,7 @@ void print_bin(uint64_t word) {
 int main() {
   cpu_init(cpu);
 
-  uint8_t reg = REG_GPR;
+  uint8_t reg = 69;
   uint64_t data = 0
             | ((uint64_t) 0 << (OP_HEADER_SIZE + ARG_REG_SIZE + 2))
             | (ARG_IMM << (OP_HEADER_SIZE + ARG_REG_SIZE))
@@ -40,7 +40,7 @@ int main() {
             | OP_LOAD_UPPER;
   MEMWRITE(1, data);
 
-  cpu_cycle(cpu);
+  cpu_start(cpu);
 
   printf("Reg %i: ", reg);
   print_bin(REG(reg));
