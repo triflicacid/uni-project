@@ -6,7 +6,7 @@ static cpu_t _cpu;
 static cpu_t *cpu = &_cpu;
 
 void print_bin(uint64_t word) {
-  uint8_t *ptr = &word;
+  uint8_t *ptr = (uint8_t *) &word;
 
   for (int i = 0, j = 0; i < 64; i++) {
     printf("%i", *ptr & (1 << j) ? 1 : 0);
@@ -25,25 +25,19 @@ void print_bin(uint64_t word) {
 int main() {
   cpu_init(cpu);
 
-  uint8_t reg = 69;
+  uint8_t reg1 = REG_GPR, reg2 = REG_GPR + 1;
+
+  REG(reg1) = 4;
+  REG(reg2) = 2;
+
   uint64_t data = 0
-            | ((uint64_t) 0 << (OP_HEADER_SIZE + ARG_REG_SIZE + 2))
-            | (ARG_IMM << (OP_HEADER_SIZE + ARG_REG_SIZE))
-            | (reg << OP_HEADER_SIZE)
-            | OP_LOAD;
+            | ((uint64_t) reg2 << (OP_HEADER_SIZE + DATATYPE_SIZE + ARG_REG_SIZE + 2))
+            | (ARG_REG << (OP_HEADER_SIZE + DATATYPE_SIZE + ARG_REG_SIZE))
+            | (reg1 << OP_HEADER_SIZE + DATATYPE_SIZE)
+            | (DATATYPE_U64 << OP_HEADER_SIZE)
+            | OP_COMPARE;
   MEMWRITE(0, data);
 
-  data = 0
-            | ((uint64_t) 0xffffffff << (OP_HEADER_SIZE + ARG_REG_SIZE + 2))
-            | (ARG_IMM << (OP_HEADER_SIZE + ARG_REG_SIZE))
-            | (reg << OP_HEADER_SIZE)
-            | OP_LOAD_UPPER;
-  MEMWRITE(1, data);
-
   cpu_start(cpu);
-
-  printf("Reg %i: ", reg);
-  print_bin(REG(reg));
-
   return 0;
 }

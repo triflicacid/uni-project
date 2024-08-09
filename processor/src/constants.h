@@ -16,16 +16,19 @@
 #define REG_PGPR 22
 
 // =============== FLAGS ===============
+#define FLAG_ZERO BIT3
+#define FLAG_EQ BIT0
 #define FLAG_CMP_BITS (BIT0 | BIT1 | BIT2)
 #define CMP_NE 0b000
 #define CMP_EQ 0b001
 #define CMP_LT 0b010
 #define CMP_LE 0b011
-#define CMP_Z  0b100
+#define CMP_NZ 0b100
 #define CMP_GT 0b110
 #define CMP_GE 0b111
 
-#define FLAG_EXEC_STATUS BIT3
+#define FLAG_IS_RUNNING BIT4
+#define FLAG_IS_ERROR BIT5
 
 // get instruction pointer from the cpu pointer
 #define IP(CPU) ((CPU)->regs[REG_IP])
@@ -48,10 +51,21 @@
 #define ARG_ADDR_SIZE 34
 #define OP_HEADER_SIZE 10
 
+#define DATATYPE_SIZE 3
+#define DATATYPE_U32 0b000
+#define DATATYPE_U64 0b001
+#define DATATYPE_S32 0b010
+#define DATATYPE_S64 0b011
+#define DATATYPE_F   0b100
+#define DATATYPE_D   0b101
+
+
 #define OP_NOP 0x00
 #define OP_LOAD 0x01
 #define OP_LOAD_UPPER 0x02
 #define OP_STORE 0x03
+
+#define OP_COMPARE 0x10
 
 // if defined, behaviour is to halt on NOP
 #define HALT_ON_NOP

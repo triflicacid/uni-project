@@ -32,6 +32,8 @@
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_GREEN   "\x1b[32m"
 #define ANSI_BLUE    "\x1b[34m"
+#define ANSI_VIOLET  "\x1b[1;35m"
+#define ANSI_CYAN    "\x1b[1;36m"
 #define ANSI_RESET   "\x1b[0m"
 #define DEBUG_STR    ANSI_RESET "[" ANSI_BLUE "DEBUG" ANSI_RESET "]"
 #define ERROR_STR    ANSI_RESET "[" ANSI_RED "ERROR" ANSI_RESET "]"

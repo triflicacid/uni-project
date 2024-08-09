@@ -36,6 +36,9 @@ bool cpu_is_running(const cpu_t *cpu);
 // halt CPU execution by setting flag bit
 void cpu_stop(cpu_t *cpu);
 
+// return if CPU encountered error
+bool cpu_is_error(const cpu_t *cpu);
+
 // fetch next instruction, DO NOT increment ip
 uint64_t cpu_fetch(const cpu_t *cpu);
 
