@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 #include "bus.h"
-#include "registers.h"
+#include "constants.h"
 
 #define DEBUG_CPU  0x1
 #define DEBUG_DRAM 0x2
@@ -39,5 +39,8 @@ bool cpu_execute(cpu_t *cpu, uint64_t inst);
 
 // commence fetch-execute cycle until halt or error
 void cpu_cycle(cpu_t *cpu);
+
+// print contents of all registers as hexadecimal
+void print_registers(cpu_t *cpu);
 
 #endif

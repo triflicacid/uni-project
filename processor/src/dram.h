@@ -17,4 +17,7 @@ uint64_t dram_load(const dram_t *dram, uint64_t addr, uint8_t size);
 // store size bits of fata at addr
 void dram_store(dram_t* dram, uint64_t addr, uint8_t size, uint64_t value);
 
+// clear DRAM memory
+void dram_clear(dram_t *dram);
+
 #endif

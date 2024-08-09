@@ -1,5 +1,7 @@
 #include "dram.h"
 
+#include <string.h>
+
 static inline uint64_t dram_load_8(const dram_t *dram, uint64_t addr) {
   return dram->mem[addr];
 }
@@ -72,4 +74,8 @@ void dram_store(dram_t *dram, uint64_t addr, uint8_t size, uint64_t value) {
     case 64: dram_store_64(dram, addr, value); break;
     default: ;
   }
+}
+
+void dram_clear(dram_t *dram) {
+  memset(dram->mem, 0, DRAM_SIZE);
 }
