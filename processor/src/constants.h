@@ -19,13 +19,14 @@
 #define FLAG_ZERO BIT3
 #define FLAG_EQ BIT0
 #define FLAG_CMP_BITS (BIT0 | BIT1 | BIT2)
-#define CMP_NE 0b000
-#define CMP_EQ 0b001
-#define CMP_LT 0b010
-#define CMP_LE 0b011
-#define CMP_NZ 0b100
-#define CMP_GT 0b110
-#define CMP_GE 0b111
+#define CMP_NE 0b0000
+#define CMP_EQ 0b0001
+#define CMP_LT 0b0010
+#define CMP_LE 0b0011
+#define CMP_NZ 0b0100
+#define CMP_GT 0b0110
+#define CMP_GE 0b0111
+#define CMP_Z  0b1000
 
 #define FLAG_IS_RUNNING BIT4
 #define FLAG_IS_ERROR BIT5
@@ -37,6 +38,9 @@
 #define REG(OFF) (cpu->regs[OFF])
 
 // =============== OPERATIONS ===============
+#define OPCODE_MASK 0x3f
+#define OPCODE_SIZE 6
+
 #define OP_TEST_BIT BIT6
 #define OP_CMP_BITS 0x380
 #define OP_CMP_BITS_OFF 7

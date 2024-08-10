@@ -53,7 +53,7 @@ static uint8_t arg_extract_reg(const cpu_t *cpu, uint64_t word, uint8_t pos) {
 static uint64_t arg_fetch_value(cpu_t *cpu, uint64_t word, uint8_t pos) {
   // switch on indicator bits, extract data after
   uint8_t indicator = (word >> pos) & 0x3;
-  uint32_t data = word >> (pos + 2);
+  uint64_t data = word >> (pos + 2);
 
   switch (indicator) {
     case ARG_IMM: return data;
@@ -65,7 +65,9 @@ static uint64_t arg_fetch_value(cpu_t *cpu, uint64_t word, uint8_t pos) {
       return REG(data);
     case ARG_REG_OFF:
       if (!check_register(cpu, data)) CPU_RAISE_ERROR(0)
-      return REG(data) + (int32_t) data;
+      data = REG(data) + (int32_t) data;
+      if (!check_memory(cpu, data)) CPU_RAISE_ERROR(0)
+      return bus_load(&cpu->bus, data, 64);
     default:
 #if DEBUG & DEBUG_CPU
       printf(ERROR_STR " resolve <value>: unknown indicator bit battern 0x%x\n", indicator);
@@ -94,7 +96,7 @@ static uint32_t arg_extract_addr(cpu_t *cpu, uint64_t word, uint8_t pos) {
 #if DEBUG & DEBUG_CPU
       printf(ERROR_STR " resolve <value>: unknown indicator bit battern 0x%x\n", indicator);
 #endif
-    CPU_RAISE_ERROR(0)
+      CPU_RAISE_ERROR(0)
   }
 }
 
@@ -108,7 +110,7 @@ static char *cmp_bit_str(uint8_t bits) {
     case CMP_NZ: return "nz"; // should never have Z set
     case CMP_GT: return bits & 0x8 ? "gt/z" : "gt";
     case CMP_GE: return bits & 0x8 ? "ge/z" : "ge";
-    default:     return '\0';
+    default: return '\0';
   }
 }
 
@@ -119,9 +121,9 @@ static char *datatype_bit_str(uint8_t bits) {
     case DATATYPE_U64: return "u";
     case DATATYPE_S32: return "hs";
     case DATATYPE_S64: return "s";
-    case DATATYPE_F  : return "f";
-    case DATATYPE_D  : return "d";
-    default          : return '\0';
+    case DATATYPE_F: return "f";
+    case DATATYPE_D: return "d";
+    default: return '\0';
   }
 }
 
@@ -132,7 +134,7 @@ static void update_zero_flag(cpu_t *cpu, uint8_t reg) {
 
 #if DEBUG & DEBUG_CPU
   printf(DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register %i (0x%llx) : %s\n" ANSI_RESET, reg, REG(reg),
-    GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR");
+         GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR");
 #endif
 }
 
@@ -227,27 +229,33 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
     case DATATYPE_U64: {
       uint64_t lhs = REG(reg);
       CALC_CMP_FLAG(lhs, value)
-    } break;
+    }
+    break;
     case DATATYPE_U32: {
       uint32_t *lhs = (uint32_t *) &REG(reg), *rhs = (uint32_t *) &value;
       CALC_CMP_FLAG(*lhs, *rhs)
-    } break;
+    }
+    break;
     case DATATYPE_S64: {
       int64_t *lhs = (int64_t *) &REG(reg), *rhs = (int64_t *) &value;
       CALC_CMP_FLAG(*lhs, *rhs)
-    } break;
+    }
+    break;
     case DATATYPE_S32: {
       int32_t *lhs = (int32_t *) &REG(reg), *rhs = (int32_t *) &value;
       CALC_CMP_FLAG(*lhs, *rhs)
-    } break;
+    }
+    break;
     case DATATYPE_F: {
       float *lhs = (float *) &REG(reg), *rhs = (float *) &value;
       CALC_CMP_FLAG(*lhs, *rhs)
-    } break;
+    }
+    break;
     case DATATYPE_D: {
       double *lhs = (double *) &REG(reg), *rhs = (double *) &value;
       CALC_CMP_FLAG(*lhs, *rhs)
-    } break;
+    }
+    break;
     default:
 #if DEBUG & DEBUG_CPU
       printf(ERROR_STR " Unknown data type indicator: 0x%llx\n", datatype);
@@ -262,7 +270,7 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_CPU
   printf(DEBUG_STR " cmp: datatype=%s (0x%x)\n", datatype_bit_str(datatype), datatype);
   printf(DEBUG_STR " cmp: register %i (0x%llx) vs 0x%llx = " ANSI_CYAN "%s\n" ANSI_RESET,
-    reg, REG(reg), value, cmp_bit_str(flag));
+         reg, REG(reg), value, cmp_bit_str(flag));
 #endif
 }
 
@@ -303,7 +311,7 @@ uint64_t cpu_fetch(const cpu_t *cpu) {
 
 void cpu_execute(cpu_t *cpu, uint64_t inst) {
   // extract opcode (bits 0-5)
-  uint16_t opcode = inst & 0x3f;
+  uint16_t opcode = inst & OPCODE_MASK;
 
 #if DEBUG & DEBUG_CPU
   printf("inst=0x%llx, opcode=0x%x \n", inst, opcode);
@@ -327,27 +335,47 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
     uint64_t flag_bits = REG(REG_FLAG) & FLAG_CMP_BITS;
 
 #if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR "\tConditional test: %s (0x%llx) ... %s" ANSI_RESET "\n", cmp_bit_str(bits >> OP_CMP_BITS_OFF),
-      bits >> OP_CMP_BITS_OFF, bits == flag_bits ? ANSI_GREEN "PASS" : ANSI_RED "FAIL");
+    printf(DEBUG_STR "\tConditional test: %s (0x%llx) ... ", cmp_bit_str(bits >> OP_CMP_BITS_OFF),
+           bits >> OP_CMP_BITS_OFF);
 #endif
 
+    // special case for NZ test
+    if (bits == CMP_NZ) {
+      if (GET_BIT(REG(REG_FLAG), FLAG_ZERO)) {
+#if DEBUG & DEBUG_CPU
+        printf(ANSI_RED "FAIL\n");
+#endif
+        return;
+      }
+    }
+
     // if condition does not pass, skip
-    if (bits != flag_bits) {
-      cpu_stop(cpu);
+    else if (bits != flag_bits) {
+#if DEBUG & DEBUG_CPU
+      printf(ANSI_RED "FAIL\n");
+#endif
       return;
     }
+
+#if DEBUG & DEBUG_CPU
+    printf(ANSI_GREEN "PASS\n");
+#endif
   }
 
   switch (opcode) {
-    case OP_LOAD: exec_load(cpu, inst); break;
-    case OP_LOAD_UPPER: exec_load_upper(cpu, inst); break;
-    case OP_STORE: exec_store(cpu, inst); break;
-    case OP_COMPARE: exec_compare(cpu, inst); break;
+    case OP_LOAD: exec_load(cpu, inst);
+      break;
+    case OP_LOAD_UPPER: exec_load_upper(cpu, inst);
+      break;
+    case OP_STORE: exec_store(cpu, inst);
+      break;
+    case OP_COMPARE: exec_compare(cpu, inst);
+      break;
     default:
 #if DEBUG & DEBUG_CPU
       printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst);
 #endif
-    cpu_stop(cpu);
+      cpu_stop(cpu);
   }
 }
 
