@@ -103,6 +103,10 @@ int main(int argc, char **argv) {
   // fetch exit code from REG_RET
   exit_code = cpu.regs[REG_RET];
 
+  print_registers(&cpu);
+
+  printf("Mem(0x400) = 0x%llx\n", bus_load(&cpu.bus, 0x400, 64));
+
 #if DEBUG & DEBUG_CPU
   printf(DEBUG_STR " process exiting with code 0x%d\n", exit_code);
 #endif

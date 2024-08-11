@@ -94,6 +94,10 @@ namespace assembler::instruction {
       return true;
     }
 
+    if (type == ArgumentType::Address) {
+      return target == ArgumentType::Value;
+    }
+
     if (type == ArgumentType::Immediate) {
       if (target == ArgumentType::Value || target == ArgumentType::ImmediateValue) {
         type = ArgumentType::ImmediateValue;

@@ -8,13 +8,6 @@
 #include "bus.h"
 #include "constants.h"
 
-#define DEBUG_CPU   0x1
-#define DEBUG_DRAM  0x2
-#define DEBUG_FLAGS 0x4
-
-// mask used to enable/disable debugging
-#define DEBUG 0xFF
-
 // write 64-bit word to word offset of `cpu_t *cpu`
 #define MEMWRITE(OFFSET, VALUE) dram_store(&cpu->bus.dram, 8 * (OFFSET), 64, VALUE)
 

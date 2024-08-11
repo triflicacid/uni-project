@@ -5,6 +5,6 @@ include_directories("src")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../bin)
 add_executable(assembler "../util/util.cpp" "src/assembler_data.cpp" "src/chunk.cpp" "src/parser.cpp"
-        "src/instructions/argument.cpp" "src/instructions/instruction.cpp" "src/messages/message.cpp"
-        "src/messages/error.cpp" "src/messages/list.cpp"
+        "src/instructions/argument.cpp" "src/instructions/instruction.cpp" "src/instructions/variables.cpp"
+        "src/messages/message.cpp" "src/messages/error.cpp" "src/messages/list.cpp"
         "src/pre-process/data.cpp" "src/pre-process/line.cpp" "src/pre-process/pre-processor.cpp" "assembler.cpp")

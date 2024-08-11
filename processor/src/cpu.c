@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "constants.h"
+#include "debug.h"
 
 // halt CPU, raise error, and return RET
 #define CPU_RAISE_ERROR(RET) { \
@@ -309,10 +310,6 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
   // extract opcode (bits 0-5)
   uint16_t opcode = inst & OPCODE_MASK;
 
-#if DEBUG & DEBUG_CPU
-  printf("inst=0x%llx, opcode=0x%x \n", inst, opcode);
-#endif
-
   // switch on opcode prior to conditional test
   switch (opcode) {
     case OP_NOP:
@@ -388,7 +385,8 @@ void cpu_start(cpu_t *cpu) {
   // fetch-execute cycle until halt
   while (cpu_is_running(cpu)) {
 #if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, ", counter++, REG(REG_IP));
+    uint64_t ip = REG(REG_IP), inst = cpu->bus.dram.mem[ip];
+    printf(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, inst=0x%llx, opcode=0x%llx\n", counter++, ip, inst, inst & OPCODE_MASK);
 #endif
 
     cpu_execute(cpu, cpu_fetch(cpu));
