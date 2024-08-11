@@ -179,17 +179,23 @@ namespace assembler::parser {
         std::stringstream stream;
         stream << (was_error ? "While parsing" : "Unknown arguments for")
             << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) *opcode << std::dec
-            << "), arguments\n";
+            << ")";
 
-        for (int j = 0; j < arguments.size(); j++) {
-          stream << '\t' << j + 1 << ": ";
-          arguments[j].print(stream);
+        if (arguments.empty()) {
+          stream << "\n";
+        } else {
+          stream << ", arguments\n";
 
-          if (j < arguments.size() - 1)
-            stream << '\n';
+          for (int j = 0; j < arguments.size(); j++) {
+            stream << '\t' << j + 1 << ": ";
+            arguments[j].print(stream);
+
+            if (j < arguments.size() - 1)
+              stream << '\n';
+          }
         }
 
-        auto msg = new message::Message(was_error ? message::Level::Error : message::Level::Note, data.file_path,
+        auto msg = new message::Message(was_error ? message::Level::Note : message::Level::Error, data.file_path,
                                         line.n, start);
         msg->set_message(stream);
         msgs.add(msg);

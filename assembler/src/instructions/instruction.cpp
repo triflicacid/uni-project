@@ -27,10 +27,11 @@ namespace assembler::instruction {
   };
 
   std::map<std::string, uint8_t> opcode_map = {
-    { "nop", OP_NOP },
+
   };
 
   std::map<std::string, Signature> signature_map = {
+    { "nop", { OP_NOP, false, false, { } } },
     { "load", { OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } } },
   };
 
