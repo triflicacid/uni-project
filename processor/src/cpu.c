@@ -132,7 +132,7 @@ static char *datatype_bit_str(uint8_t bits) {
 static void update_zero_flag(cpu_t *cpu, uint8_t reg) {
   CPU_SET_Z(REG(reg));
 
-#if DEBUG & DEBUG_CPU
+#if DEBUG & DEBUG_FLAGS
   printf(DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register %i (0x%llx) : %s\n" ANSI_RESET, reg, REG(reg),
          GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR");
 #endif
@@ -287,10 +287,6 @@ void cpu_init(cpu_t *cpu) {
 
   // clear memory
   dram_clear(&cpu->bus.dram);
-
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " Initialising CPU... Done.\n");
-#endif
 }
 
 bool cpu_is_running(const cpu_t *cpu) {
@@ -425,11 +421,11 @@ void print_registers(cpu_t *cpu) {
 
   // GPRs
   for (i = 0; i < 16; i++) {
-    fprintf(cpu->fp_out, "$r%02i     = %llx\n", i + 1, REG(REG_GPR + i));
+    fprintf(cpu->fp_out, "$r%02i     = 0x%llx\n", i + 1, REG(REG_GPR + i));
   }
 
   // PGPRs
   for (i = 0; i < 8; i++) {
-    fprintf(cpu->fp_out, "$s%i      = %llx\n", i + 1, REG(REG_PGPR + i));
+    fprintf(cpu->fp_out, "$s%i      = 0x%llx\n", i + 1, REG(REG_PGPR + i));
   }
 }

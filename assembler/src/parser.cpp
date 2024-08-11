@@ -615,6 +615,7 @@ namespace assembler::parser {
     // nothing else to parse ...
     // if found number, <imm>, else throw error
     if (found_number) {
+      argument.update(instruction::ArgumentType::Immediate, value);
       return;
     }
 

@@ -37,17 +37,8 @@ namespace assembler::instruction {
   void Argument::print(std::ostream &out) {
     switch (m_type) {
       case ArgumentType::Immediate:
-      case ArgumentType::ImmediateValue:
-        out << "immediate " << m_data << " {" << std::hex;
-
-        for (int off = 0; off < sizeof(m_data); ++off) {
-          out << std::setw(2) << std::setfill('0') << ((m_data >> (off * 8)) & 0xFF);
-
-          if (off < sizeof(m_data) - 1)
-            out << " ";
-        }
-
-        out << std::dec << "}";
+        case ArgumentType::ImmediateValue:
+        out << "immediate 0x" << std::hex << m_data << std::dec;
         break;
       case ArgumentType::Address:
         out << "address 0x" << std::hex << m_data << std::dec;

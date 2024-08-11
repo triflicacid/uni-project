@@ -1,43 +1,121 @@
-#include "cpu.h"
+#include <cpu.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "constants.h"
+int main(int argc, char **argv) {
+  // parse command-line arguments
+  char *file_in = NULL, *file_out = NULL;
 
-static cpu_t _cpu;
-static cpu_t *cpu = &_cpu;
+  for (int i = 1; i < argc; i++) {
+    // option?
+    if (argv[i][0] == '-') {
+      // next character determines type
+      switch (argv[i][1]) {
+        case 'o': // output file
+          if (++i >= argc) {
+            printf( ERROR_STR " -o: expected file path.\n");
+            return EXIT_FAILURE;
+          }
 
-void print_bin(uint64_t word) {
-  uint8_t *ptr = (uint8_t *) &word;
-
-  for (int i = 0, j = 0; i < 64; i++) {
-    printf("%i", *ptr & (1 << j) ? 1 : 0);
-
-    if (j == 7) {
-      j = 0;
-      ptr++;
+          file_out = argv[i];
+          break;
+        default:
+          printf(ERROR_STR " unknown flag '%s'.\n", argv[i]);
+          return EXIT_FAILURE;
+      }
+    } else if (file_in == NULL) {
+      file_in = argv[i];
     } else {
-      j++;
+      printf(ERROR_STR " unknown positional argument '%s'.\n", argv[i]);
+      return EXIT_FAILURE;
     }
   }
 
-  printf("\n");
-}
+  // check that an input file was provided
+  if (file_in == NULL) {
+    printf(ERROR_STR " expected input file as positional argument.\n");
+    return EXIT_FAILURE;
+  }
 
-int main() {
-  cpu_init(cpu);
+  // create and initialise CPU
+  cpu_t cpu;
+  cpu_init(&cpu);
 
-  uint8_t reg1 = REG_GPR, reg2 = REG_GPR + 1;
+  // was an output file specified?
+  if (file_out != NULL) {
+    cpu.fp_out = fopen(file_out, "w");
 
-  REG(reg1) = 4;
-  REG(reg2) = 2;
+#if DEBUG & DEBUG_CPU
+    printf(DEBUG_STR ANSI_BLUE " output file" ANSI_RESET " set to '%s' (descriptor %d)\n",
+      file_out, cpu.fp_out == NULL ? -1 : fileno(cpu.fp_out));
+#endif
 
-  uint64_t data = 0
-            | ((uint64_t) reg2 << (OP_HEADER_SIZE + DATATYPE_SIZE + ARG_REG_SIZE + 2))
-            | (ARG_REG << (OP_HEADER_SIZE + DATATYPE_SIZE + ARG_REG_SIZE))
-            | (reg1 << OP_HEADER_SIZE + DATATYPE_SIZE)
-            | (DATATYPE_U64 << OP_HEADER_SIZE)
-            | OP_COMPARE;
-  MEMWRITE(0, data);
+    if (cpu.fp_out == NULL) {
+      printf(ERROR_STR " -o: failed to open file '%s'.\n", file_out);
+      return EXIT_FAILURE;
+    }
+  }
 
-  cpu_start(cpu);
-  return 0;
+  // for exit code
+  int exit_code = EXIT_SUCCESS;
+
+  // read source file as binary
+  FILE *source = fopen(file_in, "rb");
+
+  if (source == NULL) {
+    printf(ERROR_STR " failed to read source file '%s'\n", file_in);
+    exit_code = EXIT_FAILURE;
+    goto cleanup;
+  }
+
+  // determine file size
+  fseek(source, 0, SEEK_END);
+  long file_size = ftell(source);
+  rewind(source);
+
+#if DEBUG & DEBUG_CPU
+  printf(DEBUG_STR " reading source file '%s'... %ld bytes read\n", file_in, file_size);
+#endif
+
+  // error if file size exceeds buffer size
+  if (file_size >= DRAM_SIZE) {
+    printf(ERROR_STR " source file size of %li bytes exceeds memory size of %d.\n", file_size, DRAM_SIZE);
+    exit_code = EXIT_FAILURE;
+    goto cleanup;
+  }
+
+  // get starting address
+  uint64_t *start_address = cpu.regs + REG_IP;
+  fread(start_address, sizeof(*start_address), 1, source);
+
+#if DEBUG & DEBUG_CPU
+  if (*start_address != 0) {
+    printf(DEBUG_STR " start address specified: 0x%llx\n", *start_address);
+  }
+#endif
+
+  // copy code into processor's memory
+  fread(cpu.bus.dram.mem, 1, file_size - sizeof(*start_address), source);
+
+  // start processor
+  cpu_start(&cpu);
+
+  // fetch exit code from REG_RET
+  exit_code = cpu.regs[REG_RET];
+
+#if DEBUG & DEBUG_CPU
+  printf(DEBUG_STR " process exiting with code 0x%d\n", exit_code);
+#endif
+
+cleanup:
+  // close file handles, if appropriate
+  if (file_out != NULL) {
+    fclose(cpu.fp_out);
+  }
+
+  if (source != NULL) {
+    fclose(source);
+  }
+
+  return exit_code;
 }

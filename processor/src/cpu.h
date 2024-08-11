@@ -8,8 +8,9 @@
 #include "bus.h"
 #include "constants.h"
 
-#define DEBUG_CPU  0x1
-#define DEBUG_DRAM 0x2
+#define DEBUG_CPU   0x1
+#define DEBUG_DRAM  0x2
+#define DEBUG_FLAGS 0x4
 
 // mask used to enable/disable debugging
 #define DEBUG 0xFF

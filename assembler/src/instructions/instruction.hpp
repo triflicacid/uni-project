@@ -79,7 +79,7 @@ namespace assembler::instruction {
     void opcode(uint8_t opcode);
 
     /** Write the given data of length bits raw. */
-    void write(uint64_t data, uint8_t length);
+    void write(uint8_t length, uint64_t data);
 
     /** Get instruction word. */
     [[nodiscard]] uint64_t get() const { return m_word; }

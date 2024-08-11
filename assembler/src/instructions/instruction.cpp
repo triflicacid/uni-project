@@ -59,7 +59,7 @@ namespace assembler::instruction {
   }
 
   void Instruction::print() {
-    std::cout << "Mnemonic \"" << *mnemonic << "\"; Opcode = " << std::hex << (int) opcode << std::dec << "; "
+    std::cout << "Mnemonic \"" << *mnemonic << "\"; Opcode = 0x" << std::hex << (int) opcode << std::dec << "; "
         << args.size() << " argument(s)\n";
 
     for (Argument arg : args) {
@@ -137,8 +137,9 @@ namespace assembler::instruction {
     write(OPCODE_SIZE, opcode & OPCODE_MASK);
   }
 
-  void InstructionBuilder::write(uint64_t data, uint8_t length) {
-    m_word = (m_word << length) | data;
+  void InstructionBuilder::write(uint8_t length, uint64_t data) {
+    // m_word = (m_word << length) | data;
+    m_word |= data << m_pos;
     m_pos += length;
   }
 

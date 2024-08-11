@@ -36,6 +36,7 @@ namespace assembler {
     } else {
       std::cout << " - instruction:\n\t";
       get_instruction()->print();
+      std::cout << "\tcompiled: 0x" << std::hex << get_instruction()->compile() << std::dec << "\n";
     }
   }
 
