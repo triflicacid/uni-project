@@ -27,9 +27,9 @@ namespace assembler::instruction {
   };
 
   std::map<std::string, Signature> signature_map = {
-    { "nop", { OP_NOP, false, false, { } } },
     { "load", { OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } } },
     { "loadu", { OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value } } },
+    { "nop", { OP_NOP, false, false, { } } },
     { "store", { OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address } } },
   };
 

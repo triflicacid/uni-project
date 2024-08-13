@@ -501,9 +501,7 @@ namespace assembler::parser {
       start = col;
 
       // parse number
-      double dbl;
-
-      if (parse_number(line.data, col, number_decimal, value, dbl)) {
+      if (parse_number(line.data, col, value, number_decimal)) {
         // mark as found... this could become a register indirect!
         found_number = true;
       } else {
@@ -560,10 +558,7 @@ namespace assembler::parser {
         col++;
 
         // update argument
-        auto *data = new instruction::ArgumentRegisterIndirect;
-        data->reg = reg;
-        data->offset = value;
-        argument.update(instruction::ArgumentType::RegisterIndirect, (uint64_t) data);
+        argument.set_reg_indirect(reg, (int32_t) value);
         return;
       }
 
@@ -578,10 +573,7 @@ namespace assembler::parser {
       }
 
       // parse as number
-      double dbl;
-      bool is_dbl;
-
-      if (!parse_number(line.data, col, is_dbl, value, dbl)) {
+      if (!parse_number(line.data, col, value, number_decimal)) {
         auto err = new class message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
         err->set_message("Expected memory address");
         msgs.add(err);
@@ -589,7 +581,7 @@ namespace assembler::parser {
       }
 
       // disallow decimals
-      if (is_dbl) {
+      if (number_decimal) {
         auto err = new class message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
         err->set_message("Memory address cannot be a decimal!");
         msgs.add(err);
@@ -670,31 +662,6 @@ namespace assembler::parser {
     }
 
     return -1;
-  }
-
-  bool parse_number(const std::string &string, int &i, bool &is_decimal, unsigned long long &v_int, double &v_dbl) {
-    int j = i;
-    int radix = get_radix(string.back());
-    is_decimal = scan_number(string, radix, j);
-
-    // So, do we have a literal?
-    if (j > 0) {
-      // Default to base-10
-      if (radix == -1) radix = 10;
-
-      // Set argument value
-      if (is_decimal) {
-        v_dbl = float_base_to_10(string, radix, i);
-        v_int = *(unsigned long long *) &v_dbl;
-      } else {
-        v_int = int_base_to_10(string, radix, i);
-        v_dbl = *(double *) &v_int;
-      }
-
-      return true;
-    }
-
-    return false;
   }
 
   void parse_character_literal(const Data &data, int line_idx, int &col, message::List &msgs, uint64_t &value) {

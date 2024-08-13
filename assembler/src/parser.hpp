@@ -35,9 +35,6 @@ namespace assembler::parser {
   /** Given a string, return register offset, or -1. */
   int parse_register(const std::string &string, int &index);
 
-  /** Parse numeric literal: int or float. Return if we did find a number. */
-  bool parse_number(const std::string &string, int &i, bool &is_decimal, unsigned long long &v_int, double &v_dbl);
-
   /** Parse character. String assumed to have started with an apostrophe, with <index> pointing after this. */
   void parse_character_literal(const Data &data, int line_idx, int &col, message::List &msgs, uint64_t &value);
 

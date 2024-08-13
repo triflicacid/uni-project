@@ -146,130 +146,96 @@ bool decode_escape_seq(const std::string &string, int &i, uint64_t &value) {
   return true;
 }
 
-int get_radix(char suffix) {
-  switch (suffix) {
-    case 'h':
-      return 16;
-    case 'o':
-    case 'q':
-      return 8;
-    case 'b':
-    case 'y':
-      return 2;
+/** Given character, return base and success. */
+static bool base_char(char ch, uint8_t &base) {
+  switch (ch) {
     case 'd':
-    case 't':
-      return 10;
+      base = 10;
+      return true;
+    case 'x':
+      base = 16;
+      return true;
+    case 'o':
+      base = 8;
+      return true;
     default:
-      return -1;
+      return false;
   }
 }
 
-bool scan_number(const std::string &string, int radix, int &i) {
-  if (radix == -1)
-    radix = 10;
-
-  bool found_dp = false;
-  if (string[i] == '-') ++i;
-
-  while (i < string.size() && (string[i] == '_' || (!found_dp && string[i] == '.') || is_base_char(string[i], radix))) {
-    if (string[i] == '.')
-      found_dp = true;
-
-    i++;
-  }
-
-  return found_dp;
-}
-
-uint64_t int_base_to_10(const std::string &string, int radix, int &index) {
-  uint64_t value = 0; // Base 10 value
-  int k = 1; // Multiplying factor
+bool parse_number(const std::string &string, int &index, uint64_t &value, bool &is_double) {
+  value = 0;
+  uint8_t base = 10;
+  double decimal_portion = 0; // decimal portion of double
+  is_double = false;
+  int decimal_denom = 1; // denominator value of float calculation
   bool neg = false;
-  int start = index;
+  uint8_t digit_count = 0;
 
+  // is the number negative?
   if (string[index] == '-') {
     neg = true;
-    start++;
+    index++;
   }
 
-  int i = start;
-  int length = 0;
+  // does the number start with a base indicator?
+  if (string[index] == '0') {
+    index++;
 
-  // Calculate integer exponent
-  while (i < string.size() && (string[i] == '_' || is_base_char(string[i], radix))) {
-    if (string[i] != '_' && i != start)
-      k *= radix;
-
-    ++i;
-    ++length;
-  }
-
-  index = i;
-
-  // Calculate number
-  i = start;
-
-  while (i - start < length) {
-    if (string[i] != '_') {
-      value += get_base_value(string[i], radix) * k;
-      k /= radix;
+    if (base_char(string[index], base)) {
+      index++;
+    } else if (string[index] == '0') {
+      return false;
+    } else {
+      digit_count++;
     }
-
-    ++i;
   }
 
-  if (neg)
+  // parse and calculate value
+  for (; index < string.length(); index++) {
+    if (string[index] == '.') {
+      if (is_double) {
+        break;
+      }
+
+      // found double!
+      is_double = true;
+      decimal_denom = base;
+    } else if (string[index] == '_') {
+      continue;
+    } else if (is_base_char(string[index], base)) {
+      int char_value = get_base_value(string[index], base);
+
+      if (is_double) {
+        decimal_portion += (double) char_value / decimal_denom;
+        decimal_denom *= base;
+      } else {
+        value = value * base + char_value;
+      }
+
+      digit_count++;
+    } else {
+      return false;
+    }
+  }
+
+  // check that we encountered some digits
+  if (digit_count == 0) {
+    return false;
+  }
+
+  // negate value if necessary
+  if (neg) {
     value *= -1;
-
-  return value;
-}
-
-double float_base_to_10(const std::string &string, int radix, int &index) {
-  double value = 0; // Base 10 value
-  double k = 1; // Multiplying factor
-  bool neg = false;
-  int start = index;
-
-  if (string[index] == '-') {
-    neg = true;
-    start++;
   }
 
-  // Calculate integer exponent
-  int i = start;
-  int length = 0;
-  bool found_dp = false;
-
-  while (i < string.size() && (string[i] == '_' || (!found_dp && string[i] == '.') || is_base_char(string[i], radix))) {
-    if (!found_dp) {
-      if (string[i] == '.')
-        found_dp = true;
-      else if (string[i] != '_' && i != start)
-        k *= radix;
-    }
-
-    ++i;
-    ++length;
+  // if double, add dp portion and transfer over
+  if (is_double) {
+    decimal_portion += (double) value;
+    value = *(uint64_t *) &decimal_portion;
   }
 
-  index = i;
-
-  // Calculate number
-  i = start;
-
-  while (i - start < length) {
-    if (string[i] != '_' && string[i] != '.') {
-      value += get_base_value(string[i], radix) * k;
-      k /= radix;
-    }
-
-    ++i;
-  }
-
-  if (neg)
-    value *= -1;
-
-  return value;
+  return true;
 }
 
 bool is_valid_label_name(const std::string &label) {

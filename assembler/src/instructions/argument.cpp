@@ -66,6 +66,7 @@ namespace assembler::instruction {
     data->offset = offset;
 
     m_data = (uint64_t) data;
+    m_type = ArgumentType::RegisterIndirect;
   }
 
   std::string Argument::type_to_string(const ArgumentType &type) {
