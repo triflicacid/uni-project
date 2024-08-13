@@ -26,14 +26,6 @@ namespace assembler::instruction {
 
   };
 
-  std::map<std::string, Signature> signature_map = {
-    { "load", { OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } } },
-    { "loadu", { OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value } } },
-    { "nop", { OP_NOP, false, false, { } } },
-    { "store", { OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address } } },
-    { "zero", { 0x00, true, false, { ArgumentType::Register } } },
-  };
-
   uint8_t *find_opcode(const std::string &mnemonic, std::string &options) {
     for (auto &pair : opcode_map) {
       if (starts_with(mnemonic, pair.first)) {
@@ -47,13 +39,24 @@ namespace assembler::instruction {
   }
 
   Signature *find_signature(const std::string &mnemonic, std::string &options) {
-    for (auto &pair : signature_map) {
-      if (starts_with(mnemonic, pair.first)) {
-        options = mnemonic.substr(pair.first.size());
-        return &pair.second;
+    for (auto &signature : signature_list) {
+      if (starts_with(mnemonic, signature.mnemonic)) {
+        options = mnemonic.substr(signature.mnemonic.size());
+        return &signature;
       }
     }
 
     return nullptr;
   }
+
+  std::vector<Signature> signature_list = {
+    { "loadl", 0x00, true, false, { ArgumentType::Register, ArgumentType::Value } },
+    { "loadu", OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value } },
+    { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
+    { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
+    { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
+    { "nop", OP_NOP, false, false, { } },
+    { "store", OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address } },
+    { "zero", 0x00, true, false, { ArgumentType::Register } },
+  };
 }

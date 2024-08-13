@@ -226,8 +226,8 @@ namespace assembler::parser {
             err->set_message("Unresolved label reference '" + *arg.get_label() + "'");
             msgs.add(err);
             return;
+            }
           }
-        }
       }
     }
   }
@@ -236,7 +236,7 @@ namespace assembler::parser {
                                               const std::string &mnemonic,
                                               std::vector<instruction::Argument> &arguments,
                                               std::vector<instruction::Instruction *> &instructions) {
-    auto *instruction = new instruction::Instruction(&mnemonic, opcode, arguments);
+    auto instruction = new instruction::Instruction(&mnemonic, opcode, arguments);
 
     // continue if standard, i.e., signature exists
     std::string options;
@@ -323,19 +323,26 @@ namespace assembler::parser {
     }
 
     // do anything else before adding it to the vector?
-    bool add_instruction = true;
-
-    if (starts_with(mnemonic, "zero")) {
-      // "zero $r" --> "load $r, 0"
+    if (starts_with(mnemonic, "zero")) { // "zero $r"
+      // "load $r, 0"
       instruction->opcode = OP_LOAD;
       instruction->args.emplace_back(-1, instruction::ArgumentType::Immediate, 0);
-    } else if (starts_with(mnemonic, "loadl")) {
-      // TODO loadl
+    } else if (starts_with(mnemonic, "loadl")) { // "loadl $r, $v"
+      // "load $r, $v"
+      instruction->opcode = OP_LOAD;
+      instructions.emplace_back(instruction);
+
+      // "loadu $r, $v[32:]"
+      instruction = new instruction::Instruction(*instruction);
+      instruction->opcode = OP_LOAD_UPPER;
+      instruction->args[1].set_data(instruction->args[1].get_data() >> 32);
+      instructions.emplace_back(instruction);
+
+      return true;
     }
 
-    if (add_instruction) {
-      instructions.push_back(instruction);
-    }
+    // add original to vector
+    instructions.push_back(instruction);
 
     return true;
   }

@@ -48,6 +48,8 @@ namespace assembler::instruction {
 
     [[nodiscard]] uint64_t get_data() const { return m_data; }
 
+    void set_data(uint64_t data) { m_data = data; }
+
     /** Interpret `data` as a label. */
     [[nodiscard]] std::string *get_label() const { return (std::string *) m_data; };
 

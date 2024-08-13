@@ -13,6 +13,7 @@ extern "C" {
 
 namespace assembler::instruction {
   struct Signature {
+    const std::string mnemonic;
     uint8_t opcode;
     bool expect_test;
     bool expect_datatype;
@@ -31,8 +32,8 @@ namespace assembler::instruction {
   /** Map data-type postfix to bits. */
   extern std::map<std::string, uint8_t> datatype_postfix_map;
 
-  /** Map of standard instruction signatures. */
-  extern std::map<std::string, Signature> signature_map;
+  /** List of all instruction signatures. Use list over map to preserve insertion order. */
+  extern std::vector<Signature> signature_list;
 
   /** Map mnemonic start to opcode; does not include those in `signature_map`. */
   extern std::map<std::string, uint8_t> opcode_map;
