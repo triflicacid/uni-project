@@ -36,7 +36,7 @@ namespace assembler::instruction {
 
   uint8_t *find_opcode(const std::string &mnemonic, std::string &options) {
     for (auto &pair : opcode_map) {
-      if (starts_with(pair.first, mnemonic)) {
+      if (starts_with(mnemonic, pair.first)) {
         options = mnemonic.substr(pair.first.size());
         return &pair.second;
       }
@@ -48,7 +48,7 @@ namespace assembler::instruction {
 
   Signature *find_signature(const std::string &mnemonic, std::string &options) {
     for (auto &pair : signature_map) {
-      if (starts_with(pair.first, mnemonic)) {
+      if (starts_with(mnemonic, pair.first)) {
         options = mnemonic.substr(pair.first.size());
         return &pair.second;
       }

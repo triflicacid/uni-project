@@ -329,6 +329,8 @@ namespace assembler::parser {
       // "zero $r" --> "load $r, 0"
       instruction->opcode = OP_LOAD;
       instruction->args.emplace_back(-1, instruction::ArgumentType::Immediate, 0);
+    } else if (starts_with(mnemonic, "loadl")) {
+      // TODO loadl
     }
 
     if (add_instruction) {
@@ -514,7 +516,7 @@ namespace assembler::parser {
 
     // if integer, parse it
     // this could be immediate, or register indirect
-    if (line.data[col] == '+' || line.data[col] == '-' || std::isdigit(line.data[col])) {
+    if (line.data[col] == '-' || std::isdigit(line.data[col])) {
       start = col;
 
       // parse number

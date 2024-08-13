@@ -5,6 +5,15 @@
 #include "constants.h"
 #include "debug.h"
 
+// check if CPU is running
+#define CPU_RUNNING GET_BIT(REG(REG_FLAG), FLAG_IS_RUNNING)
+
+// stop CPU
+#define CPU_STOP CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
+
+// check if CPU has error flag set
+#define CPU_IS_ERROR GET_BIT(REG(REG_FLAG), FLAG_IS_ERROR)
+
 // halt CPU, raise error, and return RET
 #define CPU_RAISE_ERROR(RET) { \
   CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING); \
@@ -20,85 +29,68 @@
   )
 
 // check: memory bounds
-static bool check_memory(const cpu_t *cpu, uint32_t address) {
+static bool check_memory(uint32_t address) {
+#if DEBUG & DEBUG_CPU
   bool ok = address < DRAM_SIZE;
 
-#if DEBUG & DEBUG_CPU
   if (!ok) {
     printf(ERROR_STR " SEGFAULT: address 0x%x is out of bounds\n", address);
   }
-#endif
 
   return ok;
+#else
+  return address < DRAM_SIZE;
+#endif
 }
 
 // check: register bounds
-static bool check_register(const cpu_t *cpu, uint8_t reg) {
+static bool check_register(uint8_t reg) {
+#if DEBUG & DEBUG_CPU
   bool ok = reg < REGISTERS;
 
-#if DEBUG & DEBUG_CPU
   if (!ok) {
     printf(ERROR_STR " SEGFAULT: register %i is out of bounds\n", reg);
   }
-#endif
 
   return ok;
+#else
+  return reg < REGISTERS;
+#endif
 }
 
 // extract `<reg>` argument from word, return offset
-static uint8_t arg_extract_reg(const cpu_t *cpu, uint64_t word, uint8_t pos) {
+static uint8_t get_arg_reg(const cpu_t *cpu, uint64_t word, uint8_t pos) {
   return word >> pos;
 }
 
-// extract `<value>` argument from word, fetch value
-static uint64_t arg_fetch_value(cpu_t *cpu, uint64_t word, uint8_t pos) {
+// extract `<value>` or `<addr>` argument from word, fetch value
+static uint64_t get_arg(cpu_t *cpu, uint64_t word, uint8_t pos, bool permit_imm) {
   // switch on indicator bits, extract data after
   uint8_t indicator = (word >> pos) & 0x3;
   uint64_t data = word >> (pos + 2);
 
   switch (indicator) {
-    case ARG_IMM: return data;
+    case ARG_IMM:
+      if (permit_imm) return data;
+      break;
     case ARG_MEM:
-      if (!check_memory(cpu, data)) CPU_RAISE_ERROR(0)
+      if (!check_memory(data)) CPU_RAISE_ERROR(0)
       return bus_load(&cpu->bus, data, 64);
     case ARG_REG:
-      if (!check_register(cpu, data)) CPU_RAISE_ERROR(0)
+      if (!check_register(data)) CPU_RAISE_ERROR(0)
       return REG(data);
-    case ARG_REG_OFF:
-      if (!check_register(cpu, data)) CPU_RAISE_ERROR(0)
+    case ARG_REG_INDIRECT:
+      if (!check_register(data)) CPU_RAISE_ERROR(0)
       data = REG(data) + (int32_t) data;
-      if (!check_memory(cpu, data)) CPU_RAISE_ERROR(0)
+      if (!check_memory(data)) CPU_RAISE_ERROR(0)
       return bus_load(&cpu->bus, data, 64);
-    default:
-#if DEBUG & DEBUG_CPU
-      printf(ERROR_STR " resolve <value>: unknown indicator bit battern 0x%x\n", indicator);
-#endif
-      CPU_RAISE_ERROR(0)
+    default: ;
   }
-}
 
-// extract `<addr>` argument from word, return address
-static uint32_t arg_extract_addr(cpu_t *cpu, uint64_t word, uint8_t pos) {
-  // switch on indicator bits, extract data after
-  uint8_t indicator = (word >> pos) & 0x3;
-  uint32_t data = word >> (pos + 2);
-
-  switch (indicator) {
-    case ARG_MEM:
-      if (!check_memory(cpu, data)) CPU_RAISE_ERROR(0)
-      return data;
-    case ARG_REG:
-      if (!check_register(cpu, data)) CPU_RAISE_ERROR(0)
-      return REG(data);
-    case ARG_REG_OFF:
-      if (!check_register(cpu, data)) CPU_RAISE_ERROR(0)
-      return REG(data) + (int32_t) data;
-    default:
 #if DEBUG & DEBUG_CPU
-      printf(ERROR_STR " resolve <value>: unknown indicator bit battern 0x%x\n", indicator);
+  printf(ERROR_STR " resolve <value>: unknown indicator bit battern 0x%x\n", indicator);
 #endif
-      CPU_RAISE_ERROR(0)
-  }
+  CPU_RAISE_ERROR(0)
 }
 
 // given four compare bits in binary form `0bABBB` A = zero, BBB = cmp flag, return string repr
@@ -142,12 +134,12 @@ static void update_zero_flag(cpu_t *cpu, uint8_t reg) {
 // load <reg> <value> -- load value into register
 static void exec_load(cpu_t *cpu, uint64_t inst) {
   // fetch register, check if in bounds
-  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
-  if (!check_register(cpu, reg)) CPU_RAISE_ERROR()
+  uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(reg)) CPU_RAISE_ERROR()
 
   // fetch and resolve value, check if OK
-  uint64_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
-  if (!cpu_is_running(cpu)) return;
+  uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE, true);
+  if (!CPU_RUNNING) return;
 
   // assign value to register
   REG(reg) = value;
@@ -162,12 +154,12 @@ static void exec_load(cpu_t *cpu, uint64_t inst) {
 // loadu <reg> <value> -- load value into upper register
 static void exec_load_upper(cpu_t *cpu, uint64_t inst) {
   // fetch register, check if in bounds
-  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
-  if (!check_register(cpu, reg)) CPU_RAISE_ERROR()
+  uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(reg)) CPU_RAISE_ERROR()
 
   // fetch and resolve value, check if OK
-  uint64_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
-  if (!cpu_is_running(cpu)) return;
+  uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE, true);
+  if (!CPU_RUNNING) return;
 
   // store value in register's upper 32 bits
   ((uint32_t *) &REG(reg))[1] = value;
@@ -182,12 +174,12 @@ static void exec_load_upper(cpu_t *cpu, uint64_t inst) {
 // store <addr> <reg> -- store value from register in memory
 static void exec_store(cpu_t *cpu, uint64_t inst) {
   // fetch register, check if in bounds
-  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE);
-  if (!check_register(cpu, reg)) CPU_RAISE_ERROR()
+  uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(reg)) CPU_RAISE_ERROR()
 
   // fetch address, check if OK
-  uint32_t addr = arg_extract_addr(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
-  if (!cpu_is_running(cpu)) return;
+  uint32_t addr = get_arg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE, true);
+  if (!CPU_RUNNING) return;
 
   // store in memory at address
   bus_store(&cpu->bus, addr, 64, REG(reg));
@@ -216,12 +208,12 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
   uint8_t datatype = (inst >> OP_HEADER_SIZE) & 0x7;
 
   // fetch register, check if OK
-  uint8_t reg = arg_extract_reg(cpu, inst, OP_HEADER_SIZE + DATATYPE_SIZE);
-  if (!check_register(cpu, reg)) CPU_RAISE_ERROR()
+  uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE + DATATYPE_SIZE);
+  if (!check_register(reg)) CPU_RAISE_ERROR()
 
   // fetch and resolve value, check if OK
-  uint64_t value = arg_fetch_value(cpu, inst, OP_HEADER_SIZE + DATATYPE_SIZE + ARG_REG_SIZE);
-  if (!cpu_is_running(cpu)) return;
+  uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE + DATATYPE_SIZE + ARG_REG_SIZE, true);
+  if (!CPU_RUNNING) return;
 
   // deduce comparison flag depending on datatype
   uint8_t flag;
@@ -259,7 +251,7 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
     break;
     default:
 #if DEBUG & DEBUG_CPU
-      printf(ERROR_STR " Unknown data type indicator: 0x%llx\n", datatype);
+      printf(ERROR_STR " Unknown data type indicator: 0x%x\n", datatype);
 #endif
       CPU_RAISE_ERROR()
   }
@@ -290,18 +282,6 @@ void cpu_init(cpu_t *cpu) {
   dram_clear(&cpu->bus.dram);
 }
 
-bool cpu_is_running(const cpu_t *cpu) {
-  return GET_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
-}
-
-bool cpu_is_error(const cpu_t *cpu) {
-  return GET_BIT(REG(REG_FLAG), FLAG_IS_ERROR);
-}
-
-void cpu_stop(cpu_t *cpu) {
-  CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
-}
-
 uint64_t cpu_fetch(const cpu_t *cpu) {
   return bus_load(&cpu->bus, REG(REG_IP), 64);
 }
@@ -314,7 +294,7 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
   switch (opcode) {
     case OP_NOP:
 #ifdef HALT_ON_NOP
-      cpu_stop(cpu);
+      CPU_STOP;
 #endif
       return;
     default: ;
@@ -322,21 +302,20 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
 
   // is conditional test bit set?
   // if so, compare flag register
-  if (GET_BIT(inst, BIT6)) {
+  if (GET_BIT(inst, OP_TEST_BIT)) {
     // extract cmp bits from both the instruction and the flag register
-    uint64_t bits = inst & OP_CMP_BITS;
-    uint64_t flag_bits = REG(REG_FLAG) & FLAG_CMP_BITS;
+    uint8_t bits = (inst >> OP_CMP_BITS_OFF) & 0x7;
+    uint8_t flag_bits = REG(REG_FLAG) & FLAG_CMP_BITS;
 
 #if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR "\tConditional test: %s (0x%llx) ... ", cmp_bit_str(bits >> OP_CMP_BITS_OFF),
-           bits >> OP_CMP_BITS_OFF);
+    printf(DEBUG_STR "\tConditional test: %s (0x%x) ... ", cmp_bit_str(bits), bits);
 #endif
 
     // special case for NZ test
-    if (bits == CMP_NZ) {
+    if (bits & CMP_NZ) {
       if (GET_BIT(REG(REG_FLAG), FLAG_ZERO)) {
 #if DEBUG & DEBUG_CPU
-        printf(ANSI_RED "FAIL\n");
+        printf(ANSI_RED "fail" ANSI_RESET " ($flag: 0x%x)\n", flag_bits);
 #endif
         return;
       }
@@ -345,30 +324,34 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
     // if condition does not pass, skip
     else if (bits != flag_bits) {
 #if DEBUG & DEBUG_CPU
-      printf(ANSI_RED "FAIL\n");
+      printf(ANSI_RED "fail" ANSI_RESET " ($flag: 0x%x)\n", flag_bits);
 #endif
       return;
     }
 
 #if DEBUG & DEBUG_CPU
-    printf(ANSI_GREEN "PASS\n");
+    printf(ANSI_GREEN "pass\n");
 #endif
   }
 
   switch (opcode) {
-    case OP_LOAD: exec_load(cpu, inst);
+    case OP_LOAD:
+      exec_load(cpu, inst);
       break;
-    case OP_LOAD_UPPER: exec_load_upper(cpu, inst);
+    case OP_LOAD_UPPER:
+      exec_load_upper(cpu, inst);
       break;
-    case OP_STORE: exec_store(cpu, inst);
+    case OP_STORE:
+      exec_store(cpu, inst);
       break;
-    case OP_COMPARE: exec_compare(cpu, inst);
+    case OP_COMPARE:
+      exec_compare(cpu, inst);
       break;
     default:
 #if DEBUG & DEBUG_CPU
       printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst);
 #endif
-      cpu_stop(cpu);
+      CPU_STOP;
   }
 }
 
@@ -383,10 +366,9 @@ void cpu_start(cpu_t *cpu) {
 #endif
 
   // fetch-execute cycle until halt
-  while (cpu_is_running(cpu)) {
+  while (CPU_RUNNING) {
 #if DEBUG & DEBUG_CPU
-    uint64_t ip = REG(REG_IP), inst = cpu->bus.dram.mem[ip];
-    printf(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, inst=0x%llx, opcode=0x%llx\n", counter++, ip, inst, inst & OPCODE_MASK);
+    printf(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx\n", counter++, REG(REG_IP));
 #endif
 
     cpu_execute(cpu, cpu_fetch(cpu));

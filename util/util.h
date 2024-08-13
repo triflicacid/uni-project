@@ -1,8 +1,6 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-#include <stdint.h>
-
 // set the bit in the given register
 #define SET_BIT(REG, BIT) ((REG) |= (BIT))
 

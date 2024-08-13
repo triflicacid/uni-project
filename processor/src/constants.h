@@ -42,13 +42,12 @@
 #define OPCODE_SIZE 6
 
 #define OP_TEST_BIT BIT6
-#define OP_CMP_BITS 0x380
 #define OP_CMP_BITS_OFF 7
 
 #define ARG_IMM 0b00
 #define ARG_MEM 0b01
 #define ARG_REG 0b10
-#define ARG_REG_OFF 0b11
+#define ARG_REG_INDIRECT 0b11
 
 #define ARG_REG_SIZE 8
 #define ARG_VALUE_SIZE 34

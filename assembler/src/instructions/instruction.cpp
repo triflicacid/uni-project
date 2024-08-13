@@ -94,7 +94,7 @@ namespace assembler::instruction {
   }
 
   void InstructionBuilder::conditional_test(uint8_t bits) {
-    write(4, 0x8 | (bits & 0x7));
+    write(4, ((bits & 0x7) << 1) | 1);
   }
 
   void InstructionBuilder::data_type(uint8_t bits) {
@@ -122,7 +122,7 @@ namespace assembler::instruction {
   }
 
   void InstructionBuilder::arg_reg_indirect(uint8_t reg, int32_t offset) {
-    write(2, ARG_REG_OFF);
+    write(2, ARG_REG_INDIRECT);
     write(8, reg);
     write(24, *(uint32_t *) &offset & 0xffffff);
   }

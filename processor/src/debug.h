@@ -6,6 +6,6 @@
 #define DEBUG_FLAGS 0x4
 
 // mask used to enable/disable debugging
-#define DEBUG DEBUG_CPU
+#define DEBUG (DEBUG_CPU | DEBUG_DRAM)
 
 #endif
