@@ -31,6 +31,7 @@ namespace assembler::instruction {
     { "loadu", { OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value } } },
     { "nop", { OP_NOP, false, false, { } } },
     { "store", { OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address } } },
+    { "zero", { 0x00, true, false, { ArgumentType::Register } } },
   };
 
   uint8_t *find_opcode(const std::string &mnemonic, std::string &options) {

@@ -168,14 +168,15 @@ namespace assembler::parser {
       }
 
       // parse instruction
-      auto instruction = parse_instruction(data, line_idx, start, msgs, *opcode, mnemonic, arguments);
+      std::vector<instruction::Instruction *> instructions;
+      bool ok = parse_instruction(data, line_idx, start, msgs, *opcode, mnemonic, arguments, instructions);
 
       // check if error occured
       // if so, add arguments as note
       // otherwise, if instruction is empty, generate error in place
       bool was_error = msgs.has_message_of(message::Error);
 
-      if (was_error || instruction == nullptr) {
+      if (was_error || !ok) {
         std::stringstream stream;
         stream << (was_error ? "While parsing" : "Unknown arguments for")
             << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) *opcode << std::dec
@@ -202,12 +203,14 @@ namespace assembler::parser {
         return;
       }
 
-      // insert into a Chunk
-      auto chunk = new Chunk(line_idx, offset);
-      chunk->set_instruction(instruction);
+      // insert each instruction into a Chunk
+      for (auto &instruction : instructions) {
+        auto chunk = new Chunk(line_idx, offset);
+        chunk->set_instruction(instruction);
 
-      data.buffer.push_back(chunk);
-      offset += chunk->get_bytes();
+        data.buffer.push_back(chunk);
+        offset += chunk->get_bytes();
+      }
     }
 
     // check if any labels left...
@@ -229,9 +232,10 @@ namespace assembler::parser {
     }
   }
 
-  instruction::Instruction *parse_instruction(Data &data, int line_idx, int &col, message::List &msgs, uint8_t opcode,
+  bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs, uint8_t opcode,
                                               const std::string &mnemonic,
-                                              std::vector<instruction::Argument> &arguments) {
+                                              std::vector<instruction::Argument> &arguments,
+                                              std::vector<instruction::Instruction *> &instructions) {
     auto *instruction = new instruction::Instruction(&mnemonic, opcode, arguments);
 
     // continue if standard, i.e., signature exists
@@ -240,7 +244,7 @@ namespace assembler::parser {
 
     if (signature == nullptr) {
       // TODO otherwise, parse separately
-      return nullptr;
+      return false;
     }
 
     // expect datatype and conditional strings
@@ -261,7 +265,7 @@ namespace assembler::parser {
           msgs.add(err);
 
           delete instruction;
-          return nullptr;
+          return false;
         }
 
         instruction->include_test_bits(entry->second);
@@ -281,7 +285,7 @@ namespace assembler::parser {
           msgs.add(err);
 
           delete instruction;
-          return nullptr;
+          return false;
         }
 
         instruction->include_datatype_specifier(entry->second);
@@ -298,7 +302,7 @@ namespace assembler::parser {
       msgs.add(err);
 
       delete instruction;
-      return nullptr;
+      return false;
     }
 
     for (int i = 0; i < arguments.size(); i++) {
@@ -314,11 +318,24 @@ namespace assembler::parser {
         msgs.add(err);
 
         delete instruction;
-        return nullptr;
+        return false;
       }
     }
 
-    return instruction;
+    // do anything else before adding it to the vector?
+    bool add_instruction = true;
+
+    if (starts_with(mnemonic, "zero")) {
+      // "zero $r" --> "load $r, 0"
+      instruction->opcode = OP_LOAD;
+      instruction->args.emplace_back(-1, instruction::ArgumentType::Immediate, 0);
+    }
+
+    if (add_instruction) {
+      instructions.push_back(instruction);
+    }
+
+    return true;
   }
 
   // /** Add byte sequence to new vector, cast all to integers (type #1). */
