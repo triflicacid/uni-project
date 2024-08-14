@@ -30,7 +30,7 @@
 
 // check: memory bounds
 static bool check_memory(uint32_t address) {
-#if DEBUG & DEBUG_CPU
+#if DEBUG & DEBUG_ERRS
   bool ok = address < DRAM_SIZE;
 
   if (!ok) {
@@ -45,7 +45,7 @@ static bool check_memory(uint32_t address) {
 
 // check: register bounds
 static bool check_register(uint8_t reg) {
-#if DEBUG & DEBUG_CPU
+#if DEBUG & DEBUG_ERRS
   bool ok = reg < REGISTERS;
 
   if (!ok) {
@@ -87,7 +87,7 @@ static uint64_t get_arg(cpu_t *cpu, uint64_t word, uint8_t pos, bool permit_imm)
     default: ;
   }
 
-#if DEBUG & DEBUG_CPU
+#if DEBUG & DEBUG_ERRS
   printf(ERROR_STR " resolve <value>: unknown indicator bit battern 0x%x\n", indicator);
 #endif
   CPU_RAISE_ERROR(0)
@@ -250,7 +250,7 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
     }
     break;
     default:
-#if DEBUG & DEBUG_CPU
+#if DEBUG & DEBUG_ERRS
       printf(ERROR_STR " Unknown data type indicator: 0x%x\n", datatype);
 #endif
       CPU_RAISE_ERROR()
@@ -267,6 +267,112 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
 #endif
 }
 
+// syscall <value>
+static void exec_syscall(cpu_t *cpu, uint64_t inst) {
+  // fetch and resolve value, check if OK
+  uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE, true);
+  if (!CPU_RUNNING) return;
+
+#if DEBUG & DEBUG_CPU
+  printf(DEBUG_STR " syscall: invoke operation %llu (", value);
+#endif
+
+  switch (value) {
+    case 1: // print_int
+#if DEBUG & DEBUG_CPU
+      printf("print_int)\n");
+#endif
+      fprintf(cpu->fp_out, "%llu", REG(REG_GPR));
+      break;
+    case 2: // print_float
+#if DEBUG & DEBUG_CPU
+      printf("print_float)\n");
+#endif
+      fprintf(cpu->fp_out, "%f", *(float *) &REG(REG_GPR));
+      break;
+    case 3: // print_double
+#if DEBUG & DEBUG_CPU
+      printf("print_double)\n");
+#endif
+      fprintf(cpu->fp_out, "%lf", *(double *) &REG(REG_GPR));
+      break;
+    case 4: // print_char
+#if DEBUG & DEBUG_CPU
+      printf("print_char)\n");
+#endif
+      fprintf(cpu->fp_out, "%c", *(char *) &REG(REG_GPR));
+      break;
+    case 5: {
+      // print_string
+#if DEBUG & DEBUG_CPU
+      printf("print_string)\n");
+#endif
+      uint32_t addr = bus_load(&cpu->bus, REG(REG_GPR), 64);
+      if (!check_memory(addr)) CPU_RAISE_ERROR()
+      fprintf(cpu->fp_out, "%s", (const char *) (cpu->bus.dram.mem + addr));
+      break;
+    }
+    case 6: // read_int
+#if DEBUG & DEBUG_CPU
+      printf("read_int)\n");
+#endif
+      fscanf(cpu->fp_in, "%lld", &REG(REG_RET));
+      break;
+    case 7: // read_float
+#if DEBUG & DEBUG_CPU
+      printf("read_float)\n");
+#endif
+      fscanf(cpu->fp_in, "%f", &REG(REG_RET));
+      break;
+    case 8: // read_double
+#if DEBUG & DEBUG_CPU
+      printf("read_double)\n");
+#endif
+      fscanf(cpu->fp_in, "%lf", &REG(REG_RET));
+      break;
+    case 9: // read_char
+#if DEBUG & DEBUG_CPU
+      printf("read_char)\n");
+#endif
+      REG(REG_RET) = fgetc(cpu->fp_in);
+      break;
+    case 10: {
+      // read_string
+#if DEBUG & DEBUG_CPU
+      printf("read_string)\n");
+#endif
+      uint32_t addr = bus_load(&cpu->bus, REG(REG_GPR), 64);
+      if (!check_memory(addr)) CPU_RAISE_ERROR()
+      fgets((char *) (cpu->bus.dram.mem + addr), REG(REG_GPR + 1), cpu->fp_in);
+#if DEBUG & DEBUG_CPU
+      printf("read_string: reading at most %llu bytes from 0x%x... read %lld bytes\n", REG(REG_GPR + 1), addr,
+             strlen((char *) (cpu->bus.dram.mem + addr)));
+#endif
+      break;
+    }
+    case 11: // exit
+#if DEBUG & DEBUG_CPU
+      printf("exit)\n");
+#endif
+      CPU_STOP;
+      break;
+    case 12: // exit2
+#if DEBUG & DEBUG_CPU
+      printf("exit2, code=0x%llx)\n", REG(REG_GPR));
+#endif
+      REG(REG_RET) = REG(REG_GPR);
+      CPU_STOP;
+      break;
+    default:
+#if DEBUG & DEBUG_CPU
+      printf("unknown)\n");
+#endif
+#if DEBUG & DEBUG_ERRS
+      printf(ERROR_STR " invokation of unknown syscall operation (%llu)\n", value);
+#endif
+      CPU_RAISE_ERROR()
+  }
+}
 
 void cpu_init(cpu_t *cpu) {
   // set default file I/O handlers
@@ -347,8 +453,11 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
     case OP_COMPARE:
       exec_compare(cpu, inst);
       break;
+    case OP_SYSCALL:
+      exec_syscall(cpu, inst);
+      break;
     default:
-#if DEBUG & DEBUG_CPU
+#if DEBUG & DEBUG_ERRS
       printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst);
 #endif
       CPU_STOP;
@@ -378,7 +487,13 @@ void cpu_start(cpu_t *cpu) {
   }
 
 #if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR ANSI_CYAN " halt bit set" ANSI_RESET "; terminating program after cycle %u\n", counter);
+  printf(
+    DEBUG_STR ANSI_CYAN " halt bit set" ANSI_RESET ": terminating program after cycle %u with code %lli (0x%llx)\n",
+    counter, REG(REG_RET), REG(REG_RET));
+
+  if (CPU_IS_ERROR) {
+    printf(DEBUG_STR ANSI_CYAN " error bit set" ANSI_RESET ": terminated with error\n");
+  }
 #endif
 }
 

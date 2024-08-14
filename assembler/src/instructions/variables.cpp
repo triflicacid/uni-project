@@ -57,6 +57,7 @@ namespace assembler::instruction {
     { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
     { "nop", OP_NOP, false, false, { } },
     { "store", OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address } },
+    { "syscall", OP_SYSCALL, true, false, { ArgumentType::Value } },
     { "zero", 0x00, true, false, { ArgumentType::Register } },
   };
 }

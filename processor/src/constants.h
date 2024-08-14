@@ -67,8 +67,8 @@
 #define OP_LOAD 0x01
 #define OP_LOAD_UPPER 0x02
 #define OP_STORE 0x03
-
 #define OP_COMPARE 0x10
+#define OP_SYSCALL 0x3f
 
 // if defined, behaviour is to halt on NOP
 #define HALT_ON_NOP

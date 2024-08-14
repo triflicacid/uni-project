@@ -100,9 +100,6 @@ int main(int argc, char **argv) {
   // start processor
   cpu_start(&cpu);
 
-  // fetch exit code from REG_RET
-  exit_code = cpu.regs[REG_RET];
-
   print_registers(&cpu);
 
 #if DEBUG & DEBUG_CPU
