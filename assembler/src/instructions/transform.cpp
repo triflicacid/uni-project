@@ -3,6 +3,14 @@
 #include <processor/src/constants.h>
 
 namespace assembler::instruction::transform {
+  void branch(std::vector<Instruction *> &instructions, Instruction *instruction) {
+    // original: "b $addr"
+    // "load $ip, $addr"
+    instruction->opcode = OP_LOAD;
+    instruction->args.emplace_front(-1, instruction::ArgumentType::Register, REG_IP);
+    instructions.push_back(instruction);
+  }
+
   void exit(std::vector<Instruction *> &instructions, Instruction *instruction) {
     // original: "exit"
     // "syscall <opcode: exit>"
@@ -12,11 +20,7 @@ namespace assembler::instruction::transform {
   }
 
   void jump(std::vector<Instruction *> &instructions, Instruction *instruction) {
-    // original: "jmp $addr"
-    // "load $ip, $addr"
-    instruction->opcode = OP_LOAD;
-    instruction->args.emplace_front(-1, instruction::ArgumentType::Register, REG_IP);
-    instructions.push_back(instruction);
+    branch(instructions, instruction);
   }
 
   void loadw(std::vector<Instruction *> &instructions, Instruction *instruction) {

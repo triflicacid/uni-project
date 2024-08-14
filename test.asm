@@ -1,5 +1,5 @@
 load $r1, 0x0
-jmpz end
+bz end
 
 load $ret, 0xdead
 exit

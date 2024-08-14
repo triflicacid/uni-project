@@ -267,6 +267,13 @@ namespace assembler::parser {
 
         instruction->include_test_bits(entry->second);
       }
+    } else if (!options.empty() && dot == std::string::npos) {
+      auto err = new class message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
+      err->set_message("Unexpected options after " + signature->mnemonic + ": '" + options + "'");
+      msgs.add(err);
+
+      delete instruction;
+      return false;
     }
 
     if (signature->expect_datatype) {
@@ -287,6 +294,13 @@ namespace assembler::parser {
 
         instruction->include_datatype_specifier(entry->second);
       }
+    } else if (dot != std::string::npos) {
+      auto err = new class message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
+      err->set_message("Unexpected dot-options after " + signature->mnemonic + ": '" + options.substr(dot) + "'");
+      msgs.add(err);
+
+      delete instruction;
+      return false;
     }
 
     // check if number of arguments match
