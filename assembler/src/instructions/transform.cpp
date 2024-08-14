@@ -3,6 +3,14 @@
 #include <processor/src/constants.h>
 
 namespace assembler::instruction::transform {
+  void exit(std::vector<Instruction *> &instructions, Instruction *instruction) {
+    // original: "exit"
+    // "syscall <opcode: exit>"
+    instruction->opcode = OP_SYSCALL;
+    instruction->args.emplace_back(-1, instruction::ArgumentType::Immediate, SYSCALL_EXIT);
+    instructions.push_back(instruction);
+  }
+
   void zero(std::vector<Instruction *> &instructions, Instruction *instruction) {
     // original: "zero $r"
     // "load $r, 0"

@@ -278,32 +278,31 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #endif
 
   switch (value) {
-    case 1: // print_int
+    case SYSCALL_PRINT_INT:
 #if DEBUG & DEBUG_CPU
       printf("print_int)\n");
 #endif
       fprintf(cpu->fp_out, "%llu", REG(REG_GPR));
       break;
-    case 2: // print_float
+    case SYSCALL_PRINT_FLOAT:
 #if DEBUG & DEBUG_CPU
       printf("print_float)\n");
 #endif
       fprintf(cpu->fp_out, "%f", *(float *) &REG(REG_GPR));
       break;
-    case 3: // print_double
+    case SYSCALL_PRINT_DOUBLE:
 #if DEBUG & DEBUG_CPU
       printf("print_double)\n");
 #endif
       fprintf(cpu->fp_out, "%lf", *(double *) &REG(REG_GPR));
       break;
-    case 4: // print_char
+    case SYSCALL_PRINT_CHAR:
 #if DEBUG & DEBUG_CPU
       printf("print_char)\n");
 #endif
       fprintf(cpu->fp_out, "%c", *(char *) &REG(REG_GPR));
       break;
-    case 5: {
-      // print_string
+    case SYSCALL_PRINT_STRING: {
 #if DEBUG & DEBUG_CPU
       printf("print_string)\n");
 #endif
@@ -312,32 +311,31 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       fprintf(cpu->fp_out, "%s", (const char *) (cpu->bus.dram.mem + addr));
       break;
     }
-    case 6: // read_int
+    case SYSCALL_READ_INT:
 #if DEBUG & DEBUG_CPU
       printf("read_int)\n");
 #endif
       fscanf(cpu->fp_in, "%lld", &REG(REG_RET));
       break;
-    case 7: // read_float
+    case SYSCALL_READ_FLOAT:
 #if DEBUG & DEBUG_CPU
       printf("read_float)\n");
 #endif
       fscanf(cpu->fp_in, "%f", &REG(REG_RET));
       break;
-    case 8: // read_double
+    case SYSCALL_READ_DOUBLE:
 #if DEBUG & DEBUG_CPU
       printf("read_double)\n");
 #endif
       fscanf(cpu->fp_in, "%lf", &REG(REG_RET));
       break;
-    case 9: // read_char
+    case SYSCALL_READ_CHAR:
 #if DEBUG & DEBUG_CPU
       printf("read_char)\n");
 #endif
       REG(REG_RET) = fgetc(cpu->fp_in);
       break;
-    case 10: {
-      // read_string
+    case SYSCALL_READ_STRING: {
 #if DEBUG & DEBUG_CPU
       printf("read_string)\n");
 #endif
@@ -350,13 +348,13 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #endif
       break;
     }
-    case 11: // exit
+    case SYSCALL_EXIT:
 #if DEBUG & DEBUG_CPU
       printf("exit)\n");
 #endif
       CPU_STOP;
       break;
-    case 12: // exit2
+    case SYSCALL_EXIT2:
 #if DEBUG & DEBUG_CPU
       printf("exit2, code=0x%llx)\n", REG(REG_GPR));
 #endif

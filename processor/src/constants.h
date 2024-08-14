@@ -37,13 +37,7 @@
 // get the given register from `cpu_t *cpu`
 #define REG(OFF) (cpu->regs[OFF])
 
-// =============== OPERATIONS ===============
-#define OPCODE_MASK 0x3f
-#define OPCODE_SIZE 6
-
-#define OP_TEST_BIT BIT6
-#define OP_CMP_BITS_OFF 7
-
+// =============== ARGUMENTS ===============
 #define ARG_IMM 0b00
 #define ARG_MEM 0b01
 #define ARG_REG 0b10
@@ -52,8 +46,8 @@
 #define ARG_REG_SIZE 8
 #define ARG_VALUE_SIZE 34
 #define ARG_ADDR_SIZE 34
-#define OP_HEADER_SIZE 10
 
+// =============== DATA TYPES ===============
 #define DATATYPE_SIZE 3
 #define DATATYPE_U32 0b000
 #define DATATYPE_U64 0b001
@@ -61,6 +55,31 @@
 #define DATATYPE_S64 0b011
 #define DATATYPE_F   0b100
 #define DATATYPE_D   0b101
+
+// =============== SYSTEM CALLS ===============
+#define SYSCALL_PRINT_INT    1
+#define SYSCALL_PRINT_FLOAT  2
+#define SYSCALL_PRINT_DOUBLE 3
+#define SYSCALL_PRINT_CHAR   4
+#define SYSCALL_PRINT_STRING 5
+
+#define SYSCALL_READ_INT     6
+#define SYSCALL_READ_FLOAT   7
+#define SYSCALL_READ_DOUBLE  8
+#define SYSCALL_READ_CHAR    9
+#define SYSCALL_READ_STRING  10
+
+#define SYSCALL_EXIT         11
+#define SYSCALL_EXIT2        12
+
+// =============== OPERATIONS ===============
+#define OPCODE_MASK 0x3f
+#define OPCODE_SIZE 6
+
+#define OP_TEST_BIT BIT6
+#define OP_CMP_BITS_OFF 7
+
+#define OP_HEADER_SIZE 10
 
 
 #define OP_NOP 0x00

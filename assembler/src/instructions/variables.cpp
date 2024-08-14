@@ -37,6 +37,7 @@ namespace assembler::instruction {
   }
 
   std::vector<Signature> signature_list = {
+    { "exit", 0x00, true, false, { }, false, transform::exit },
     { "loadu", OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value }, false, nullptr },
     { "loadw", 0x00, true, false, { ArgumentType::Register, ArgumentType::Value }, true, transform::loadw },
     { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value }, false, nullptr },

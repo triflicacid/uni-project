@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   // start processor
   cpu_start(&cpu);
 
-  print_registers(&cpu);
+  // print_registers(&cpu);
 
 #if DEBUG & DEBUG_CPU
   printf(DEBUG_STR " process exiting with code 0x%d\n", exit_code);
