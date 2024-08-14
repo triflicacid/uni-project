@@ -50,10 +50,8 @@ namespace assembler::instruction {
   }
 
   std::vector<Signature> signature_list = {
-    { "loadl", 0x00, true, false, { ArgumentType::Register, ArgumentType::Value } },
     { "loadu", OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value } },
-    { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
-    { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
+    { "loadw", 0x00, true, false, { ArgumentType::Register, ArgumentType::Value } },
     { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
     { "nop", OP_NOP, false, false, { } },
     { "store", OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address } },
