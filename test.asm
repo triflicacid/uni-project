@@ -1,5 +1,2 @@
-load $r1, 0x0
-bz end
-exit 0xdead
-end:
-exit 0xdad
+load $r1, 42
+syscall 100

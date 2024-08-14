@@ -70,6 +70,8 @@
 
 #define SYSCALL_EXIT         11
 
+#define SYSCALL_PRINT_REGS   100
+
 // =============== OPERATIONS ===============
 #define OPCODE_MASK 0x3f
 #define OPCODE_SIZE 6

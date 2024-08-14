@@ -355,6 +355,12 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #endif
       CPU_STOP;
       break;
+    case SYSCALL_PRINT_REGS:
+#if DEBUG & DEBUG_CPU
+      printf("debug: print_registers)\n");
+#endif
+    print_registers(cpu);
+    break;
     default:
 #if DEBUG & DEBUG_CPU
       printf("unknown)\n");
