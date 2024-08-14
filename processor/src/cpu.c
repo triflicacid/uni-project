@@ -340,7 +340,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_CPU
       printf("read_string)\n");
 #endif
-      uint32_t addr = bus_load(&cpu->bus, REG(REG_GPR), 64);
+      uint32_t addr = REG(REG_GPR);
       if (!check_memory(addr)) CPU_RAISE_ERROR()
       fgets((char *) (cpu->bus.dram.mem + addr), REG(REG_GPR + 1), cpu->fp_in);
 #if DEBUG & DEBUG_CPU
@@ -357,10 +357,25 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       break;
     case SYSCALL_PRINT_REGS:
 #if DEBUG & DEBUG_CPU
-      printf("debug: print_registers)\n");
+      printf("debug: print_regs)\n");
 #endif
-    print_registers(cpu);
-    break;
+      print_registers(cpu);
+      break;
+    case SYSCALL_PRINT_MEM: {
+#if DEBUG & DEBUG_CPU
+      printf("debug: print_mem)\n");
+#endif
+      uint64_t addr = REG(REG_GPR), size = REG(REG_GPR + 1);
+      if (!check_memory(addr) || !check_memory(addr + size - 1)) CPU_RAISE_ERROR()
+      fprintf(cpu->fp_out, "Mem(0x%llx:0x%llx) = { ", addr, addr + size - 1);
+
+      for (uint32_t i = 0; i < size; i++) {
+        fprintf(cpu->fp_out, "%02x ", *(cpu->bus.dram.mem + addr + i));
+      }
+
+      fprintf(cpu->fp_out, "}");
+      break;
+    }
     default:
 #if DEBUG & DEBUG_CPU
       printf("unknown)\n");

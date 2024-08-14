@@ -71,6 +71,7 @@
 #define SYSCALL_EXIT         11
 
 #define SYSCALL_PRINT_REGS   100
+#define SYSCALL_PRINT_MEM    101
 
 // =============== OPERATIONS ===============
 #define OPCODE_MASK 0x3f
