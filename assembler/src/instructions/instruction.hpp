@@ -7,21 +7,19 @@
 
 #include "argument.hpp"
 
-extern "C" {
-#include "processor/src/constants.h"
-}
-
 namespace assembler::instruction {
+  class Instruction;
+
   struct Signature {
     const std::string mnemonic;
     uint8_t opcode;
-    bool expect_test;
-    bool expect_datatype;
-    std::vector<ArgumentType> arguments;
+    bool expect_test; // expect conditional test?
+    bool expect_datatype; // expect datatype?
+    std::vector<ArgumentType> arguments; // vector of supplied args
+    bool is_full_word; // expect full-word immediates?
+    // custom function to intercept instruction. If called, instruction IS NOT added to instruction vector.
+    void (*intercept)(std::vector<Instruction *> &instructions, Instruction *instruction);
   };
-
-  /** Given mnemonic, return opcode. Extract options and assign to second argument. */
-  uint8_t *find_opcode(const std::string &mnemonic, std::string &options);
 
   /** Given mnemonic, return signature. Extract options and assign to second argument. */
   Signature *find_signature(const std::string &mnemonic, std::string &options);
@@ -35,14 +33,11 @@ namespace assembler::instruction {
   /** List of all instruction signatures. Use list over map to preserve insertion order. */
   extern std::vector<Signature> signature_list;
 
-  /** Map mnemonic start to opcode; does not include those in `signature_map`. */
-  extern std::map<std::string, uint8_t> opcode_map;
-
   class Instruction {
   public:
-    const std::string *mnemonic;
-    uint8_t opcode;
-    std::vector<Argument> args;
+    const Signature *signature; // signature of instruction we are representing
+    uint8_t opcode; // opcode; same as signature->opcode, but provided as it may be changed
+    std::vector<Argument> args; // list of supplied arguments
 
   private:
     // conditional test. upper 2 bits = (00 = exclude, 10 = include, no test, 11 = include, test), lower 6 bits are test bits
@@ -53,7 +48,7 @@ namespace assembler::instruction {
     uint8_t datatype;
 
   public:
-    Instruction(const std::string *mnemonic, uint8_t opcode, std::vector<Argument> arguments);
+    Instruction(const Signature *signature, std::vector<Argument> arguments);
 
     /** Include conditional test bits, but skip test. */
     void include_test_bits();
@@ -64,7 +59,7 @@ namespace assembler::instruction {
     /** Include datatype specifier. */
     void include_datatype_specifier(uint8_t mask);
 
-    uint64_t compile();
+    [[nodiscard]] uint64_t compile() const;
 
     void print();
   };

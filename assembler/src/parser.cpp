@@ -111,11 +111,11 @@ namespace assembler::parser {
       //   }
       // }
 
-      // check if operation exists: get opcode
+      // check if signature exists (i.e., mnemonic exists)
       std::string options;
-      uint8_t *opcode = instruction::find_opcode(mnemonic, options);
+      auto signature = instruction::find_signature(mnemonic, options);
 
-      if (opcode == nullptr) {
+      if (signature == nullptr) {
         auto err = new class message::Error(data.file_path, line.n, start, message::ErrorType::UnknownMnemonic);
         err->set_message("Unknown mnemonic '" + mnemonic + "'");
         msgs.add(err);
@@ -124,7 +124,6 @@ namespace assembler::parser {
 
       // parse arguments
       std::vector<instruction::Argument> arguments;
-      std::vector<instruction::ArgumentType> argument_types;
 
       while (i < line.data.size()) {
         skip_whitespace(line.data, i);
@@ -154,7 +153,6 @@ namespace assembler::parser {
 
         // add to argument list
         arguments.push_back(argument);
-        argument_types.push_back(argument.get_type());
 
         if (data.debug) {
           std::cout << "\tArg: ";
@@ -169,7 +167,7 @@ namespace assembler::parser {
 
       // parse instruction
       std::vector<instruction::Instruction *> instructions;
-      bool ok = parse_instruction(data, line_idx, start, msgs, *opcode, mnemonic, arguments, instructions);
+      bool ok = parse_instruction(data, line_idx, start, msgs, mnemonic, arguments, instructions);
 
       // check if error occured
       // if so, add arguments as note
@@ -179,7 +177,7 @@ namespace assembler::parser {
       if (was_error || !ok) {
         std::stringstream stream;
         stream << (was_error ? "While parsing" : "Unknown arguments for")
-            << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) *opcode << std::dec
+            << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) signature->opcode << std::dec
             << ")";
 
         if (arguments.empty()) {
@@ -204,7 +202,7 @@ namespace assembler::parser {
       }
 
       // insert each instruction into a Chunk
-      for (auto &instruction : instructions) {
+      for (auto &instruction: instructions) {
         auto chunk = new Chunk(line_idx, offset);
         chunk->set_instruction(instruction);
 
@@ -226,26 +224,25 @@ namespace assembler::parser {
             err->set_message("Unresolved label reference '" + *arg.get_label() + "'");
             msgs.add(err);
             return;
-            }
           }
+        }
       }
     }
   }
 
-  bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs, uint8_t opcode,
-                                              const std::string &mnemonic,
-                                              std::vector<instruction::Argument> &arguments,
-                                              std::vector<instruction::Instruction *> &instructions) {
-    auto instruction = new instruction::Instruction(&mnemonic, opcode, arguments);
-
-    // continue if standard, i.e., signature exists
+  bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs,
+                         const std::string &mnemonic,
+                         std::vector<instruction::Argument> &arguments,
+                         std::vector<instruction::Instruction *> &instructions) {
+    // lookup signature, create instruction from it with args probided
     std::string options;
     auto signature = instruction::find_signature(mnemonic, options);
 
     if (signature == nullptr) {
-      // TODO otherwise, parse separately
       return false;
     }
+
+    auto instruction = new instruction::Instruction(signature, arguments);
 
     // expect datatype and conditional strings
     // options = <cond>.<datatype>
@@ -322,27 +319,12 @@ namespace assembler::parser {
       }
     }
 
-    // do anything else before adding it to the vector?
-    if (starts_with(mnemonic, "zero")) { // "zero $r"
-      // "load $r, 0"
-      instruction->opcode = OP_LOAD;
-      instruction->args.emplace_back(-1, instruction::ArgumentType::Immediate, 0);
-    } else if (starts_with(mnemonic, "loadl")) { // "loadl $r, $v"
-      // "load $r, $v"
-      instruction->opcode = OP_LOAD;
-      instructions.emplace_back(instruction);
-
-      // "loadu $r, $v[32:]"
-      instruction = new instruction::Instruction(*instruction);
-      instruction->opcode = OP_LOAD_UPPER;
-      instruction->args[1].set_data(instruction->args[1].get_data() >> 32);
-      instructions.emplace_back(instruction);
-
-      return true;
+    // call custom handler if supplied
+    if (signature->intercept == nullptr) {
+      instructions.push_back(instruction);
+    } else {
+      signature->intercept(instructions, instruction);
     }
-
-    // add original to vector
-    instructions.push_back(instruction);
 
     return true;
   }
@@ -639,7 +621,9 @@ namespace assembler::parser {
     // nothing else to parse ...
     // if found number, <imm>, else throw error
     if (found_number) {
-      argument.update(instruction::ArgumentType::Immediate, value);
+      argument.update(number_decimal
+                        ? instruction::ArgumentType::DecimalImmediate
+                        : instruction::ArgumentType::Immediate, value);
       return;
     }
 

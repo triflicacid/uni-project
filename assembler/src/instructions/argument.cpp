@@ -30,21 +30,18 @@ namespace assembler::instruction {
     return type_accepts(target, m_type);
   }
 
-  bool Argument::is_label() {
-    return m_type == ArgumentType::Label;
-  }
-
   void Argument::print(std::ostream &out) {
     switch (m_type) {
       case ArgumentType::Immediate:
-        case ArgumentType::ImmediateValue:
+      case ArgumentType::DecimalImmediate:
         out << "immediate 0x" << std::hex << m_data << std::dec;
+        if (m_type == ArgumentType::DecimalImmediate)
+          out << " (double: " << *(double *) &m_data << ")";
         break;
       case ArgumentType::Address:
         out << "address 0x" << std::hex << m_data << std::dec;
         break;
       case ArgumentType::Register:
-      case ArgumentType::RegisterValue:
         out << "register " << m_data;
         break;
       case ArgumentType::RegisterIndirect:
@@ -53,8 +50,7 @@ namespace assembler::instruction {
       case ArgumentType::Label:
         out << "label \"" << *get_label() << "\"";
         break;
-      default:
-        out << "type " << (int) m_type;
+      default: ;
     }
   }
 
@@ -72,22 +68,17 @@ namespace assembler::instruction {
   std::string Argument::type_to_string(const ArgumentType &type) {
     switch (type) {
       case ArgumentType::Immediate:
-      case ArgumentType::ImmediateValue:
+      case ArgumentType::DecimalImmediate:
         return "<imm>";
       case ArgumentType::Address:
         return "<addr>";
-      case ArgumentType::Register:
-      case ArgumentType::RegisterValue:
-        return "<reg>";
-      case ArgumentType::RegisterIndirect:
-        return "<addr: reg>";
-      case ArgumentType::Label:
-        return "<addr: label>";
       case ArgumentType::Value:
         return "<value>";
+      case ArgumentType::Register:
+        return "<reg>";
+      default:
+        return "";
     }
-
-    return "";
   }
 
   bool Argument::type_accepts(const ArgumentType &target, ArgumentType &type) {
@@ -100,12 +91,16 @@ namespace assembler::instruction {
     }
 
     if (type == ArgumentType::Immediate) {
-      if (target == ArgumentType::Value || target == ArgumentType::ImmediateValue) {
-        type = ArgumentType::ImmediateValue;
+      if (target == ArgumentType::Value) {
+        type = ArgumentType::Immediate;
         return true;
       }
 
-      return false;
+      return target == ArgumentType::DecimalImmediate;
+    }
+
+    if (type == ArgumentType::DecimalImmediate) {
+      return target == ArgumentType::Value;
     }
 
     if (type == ArgumentType::Register) {
@@ -127,26 +122,24 @@ namespace assembler::instruction {
     return false;
   }
 
+  void Argument::update(ArgumentType type, uint64_t data) {
+    destroy();
+    m_type = type;
+    m_data = data;
+  }
+
   void Argument::set_label(const std::string &label) {
     destroy();
-
     m_type = ArgumentType::Label;
     auto ptr = new std::string(label);
-    m_data = (uint64_t ) ptr;
+    m_data = (uint64_t) ptr;
   }
 
   void Argument::transform_label(uint64_t value) {
-    if (m_type == ArgumentType::Label) {
+    if (is_label()) {
       destroy();
       m_type = ArgumentType::Address;
       m_data = value;
     }
-  }
-
-  void Argument::update(ArgumentType type, uint64_t data) {
-    destroy();
-
-    m_type = type;
-    m_data = data;
   }
 }

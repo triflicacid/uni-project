@@ -1,3 +1,2 @@
-load $r1, 1024
-syscall 12
-load $r1, 100000
+load $r1, 3.14
+syscall 2

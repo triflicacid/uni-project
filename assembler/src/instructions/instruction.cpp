@@ -3,9 +3,11 @@
 
 #include "instruction.hpp"
 
+#include <processor/src/constants.h>
+
 namespace assembler::instruction {
   void Instruction::print() {
-    std::cout << "Mnemonic \"" << *mnemonic << "\"; Opcode = 0x" << std::hex << (int) opcode << std::dec << "; "
+    std::cout << "Mnemonic '" << signature->mnemonic << "'; Opcode = 0x" << std::hex << (int) opcode << std::dec << "; "
         << args.size() << " argument(s)\n";
 
     for (Argument arg : args) {
@@ -15,9 +17,9 @@ namespace assembler::instruction {
     }
   }
 
-  Instruction::Instruction(const std::string *mnemonic, uint8_t opcode, std::vector<Argument> arguments) {
-    this->mnemonic = mnemonic;
-    this->opcode = opcode;
+  Instruction::Instruction(const Signature *signature, std::vector<Argument> arguments) {
+    this->signature = signature;
+    opcode = signature->opcode;
     args = std::move(arguments);
     test = 0x0;
     datatype = 0x0;
@@ -35,7 +37,7 @@ namespace assembler::instruction {
     datatype = 0x80 | (mask & 0x7f); // enable specifier with mask
   }
 
-  uint64_t Instruction::compile() {
+  uint64_t Instruction::compile() const {
     InstructionBuilder builder;
 
     // add opcode
@@ -62,8 +64,17 @@ namespace assembler::instruction {
           builder.arg_addr(arg.get_data());
           break;
         case ArgumentType::Immediate:
-        case ArgumentType::ImmediateValue:
           builder.arg_imm(arg.get_data());
+          break;
+        case ArgumentType::DecimalImmediate:
+          if (signature->is_full_word) {
+            builder.arg_imm(arg.get_data());
+          } else {
+            // data is a double, so convert to float before insertion
+            uint64_t data = arg.get_data();
+            auto decimal = (float) *(double *) &data;
+            builder.arg_imm(*(uint32_t *) &decimal);
+          }
           break;
         case ArgumentType::Register:
         case ArgumentType::RegisterValue:
@@ -84,7 +95,6 @@ namespace assembler::instruction {
   }
 
   void InstructionBuilder::write(uint8_t length, uint64_t data) {
-    // m_word = (m_word << length) | data;
     m_word |= data << m_pos;
     m_pos += length;
   }

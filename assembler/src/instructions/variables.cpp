@@ -1,4 +1,7 @@
+#include <processor/src/constants.h>
+
 #include "instruction.hpp"
+#include "transform.hpp"
 #include "util.hpp"
 
 namespace assembler::instruction {
@@ -22,22 +25,6 @@ namespace assembler::instruction {
     { "d", DATATYPE_D }
   };
 
-  std::map<std::string, uint8_t> opcode_map = {
-
-  };
-
-  uint8_t *find_opcode(const std::string &mnemonic, std::string &options) {
-    for (auto &pair : opcode_map) {
-      if (starts_with(mnemonic, pair.first)) {
-        options = mnemonic.substr(pair.first.size());
-        return &pair.second;
-      }
-    }
-
-    auto signature = find_signature(mnemonic, options);
-    return signature == nullptr ? nullptr : &signature->opcode;
-  }
-
   Signature *find_signature(const std::string &mnemonic, std::string &options) {
     for (auto &signature : signature_list) {
       if (starts_with(mnemonic, signature.mnemonic)) {
@@ -50,12 +37,12 @@ namespace assembler::instruction {
   }
 
   std::vector<Signature> signature_list = {
-    { "loadu", OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value } },
-    { "loadw", 0x00, true, false, { ArgumentType::Register, ArgumentType::Value } },
-    { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value } },
-    { "nop", OP_NOP, false, false, { } },
-    { "store", OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address } },
-    { "syscall", OP_SYSCALL, true, false, { ArgumentType::Value } },
-    { "zero", 0x00, true, false, { ArgumentType::Register } },
+    { "loadu", OP_LOAD_UPPER, true, false, { ArgumentType::Register, ArgumentType::Value }, false, nullptr },
+    { "loadw", 0x00, true, false, { ArgumentType::Register, ArgumentType::Value }, true, transform::loadw },
+    { "load", OP_LOAD, true, false, { ArgumentType::Register, ArgumentType::Value }, false, nullptr },
+    { "nop", OP_NOP, false, false, { }, false, nullptr },
+    { "store", OP_STORE, true, false, { ArgumentType::Register, ArgumentType::Address }, false, nullptr },
+    { "syscall", OP_SYSCALL, true, false, { ArgumentType::Value }, false, nullptr },
+    { "zero", 0x00, true, false, { ArgumentType::Register }, false, transform::zero },
   };
 }

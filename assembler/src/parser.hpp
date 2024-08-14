@@ -16,10 +16,8 @@ namespace assembler::parser {
   /** Parse lines into chunks. */
   void parse(Data &data, message::List &msgs);
 
-  /** Parse a given instruction given options (mnemonic minus base) and arguments. Assume mnemonic exists.
-   * Return success. This may add multiple instructions.
-   */
-  bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs, uint8_t opcode,
+  /** Parse a given instruction given mnemonic and parsed arguments. May add multiple instructions. */
+  bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs,
                                               const std::string &mnemonic,
                                               std::vector<instruction::Argument> &arguments,
                                               std::vector<instruction::Instruction *> &instructions);
