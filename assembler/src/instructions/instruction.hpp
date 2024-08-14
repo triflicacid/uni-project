@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <deque>
 
 #include "argument.hpp"
 
@@ -15,7 +16,7 @@ namespace assembler::instruction {
     uint8_t opcode;
     bool expect_test; // expect conditional test?
     bool expect_datatype; // expect datatype?
-    std::vector<ArgumentType> arguments; // vector of supplied args
+    std::deque<ArgumentType> arguments; // list of supplied args
     bool is_full_word; // expect full-word immediates?
     // custom function to intercept instruction. If called, instruction IS NOT added to instruction vector.
     void (*intercept)(std::vector<Instruction *> &instructions, Instruction *instruction);
@@ -37,7 +38,7 @@ namespace assembler::instruction {
   public:
     const Signature *signature; // signature of instruction we are representing
     uint8_t opcode; // opcode; same as signature->opcode, but provided as it may be changed
-    std::vector<Argument> args; // list of supplied arguments
+    std::deque<Argument> args; // list of supplied arguments
 
   private:
     // conditional test. upper 2 bits = (00 = exclude, 10 = include, no test, 11 = include, test), lower 6 bits are test bits
@@ -48,7 +49,7 @@ namespace assembler::instruction {
     uint8_t datatype;
 
   public:
-    Instruction(const Signature *signature, std::vector<Argument> arguments);
+    Instruction(const Signature *signature, std::deque<Argument> arguments);
 
     /** Include conditional test bits, but skip test. */
     void include_test_bits();

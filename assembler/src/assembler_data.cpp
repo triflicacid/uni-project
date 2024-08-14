@@ -1,12 +1,12 @@
 #include "assembler_data.hpp"
 
 namespace assembler {
-  void Data::replace_label(const std::string &label, int address) {
+  void Data::replace_label(const std::string &label, uint32_t address) {
     for (const auto &chunk: buffer) {
       if (!chunk->is_data()) {
         for (auto &arg: chunk->get_instruction()->args) {
           if (arg.is_label() && *arg.get_label() == label) {
-            arg.transform_label(address);
+            arg.update(instruction::ArgumentType::Immediate, address);
           }
         }
       }

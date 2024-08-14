@@ -6,15 +6,15 @@ namespace assembler {
   class Chunk {
   private:
     bool m_is_data; // Is data or an instruction?
-    int m_offset; // Byte offset
-    int m_bytes; // Byte length
+    uint32_t m_offset; // Byte offset
+    uint16_t m_bytes; // Byte length
     void *m_ptr; // Internal data, either std::string* or std::vector<unsigned char>*
     int m_source_line; // Index of source line
 
     void free_ptr() const;
 
   public:
-    Chunk(int line_idx, int offset) {
+    Chunk(int line_idx, uint32_t offset) {
       m_offset = offset;
       m_source_line = line_idx;
       m_is_data = false;
@@ -29,9 +29,9 @@ namespace assembler {
     /** Are we representing data? */
     [[nodiscard]] bool is_data() const { return m_is_data; }
 
-    [[nodiscard]] int get_offset() const { return m_offset; }
+    [[nodiscard]] uint32_t get_offset() const { return m_offset; }
 
-    [[nodiscard]] int get_bytes() const { return m_bytes; }
+    [[nodiscard]] uint16_t get_bytes() const { return m_bytes; }
 
     [[nodiscard]] int get_source_line() const { return m_source_line; }
 
@@ -44,7 +44,7 @@ namespace assembler {
     /** Interpret data as data. */
     [[nodiscard]] std::vector<unsigned char> *get_data() const { return (std::vector<unsigned char> *) m_ptr; }
 
-    /** Set data as instruction. */
+    /** Set data as data buffer. */
     void set_data(std::vector<unsigned char> *data);
 
     void write(std::ostream &out) const;

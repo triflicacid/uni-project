@@ -28,7 +28,7 @@ namespace assembler {
     }
 
     /** Replace all instances of <label> with the given <address>. */
-    void replace_label(const std::string &label, int address);
+    void replace_label(const std::string &label, uint32_t address);
 
     /** Get size in bytes. */
     int get_bytes();

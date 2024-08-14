@@ -1,2 +1,9 @@
+load $r1, 0x0
+jmpz end
+
+load $ret, 0xdead
 exit
-load $r1, -1
+
+end:
+load $ret, 0xdad
+exit

@@ -1,4 +1,5 @@
 #include <cpu.h>
+#include <debug.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -103,7 +104,7 @@ int main(int argc, char **argv) {
   // print_registers(&cpu);
 
 #if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " process exiting with code 0x%d\n", exit_code);
+  printf(DEBUG_STR " process exited with code $ret=0x%llx\n", cpu.regs[REG_RET]);
 #endif
 
 cleanup:

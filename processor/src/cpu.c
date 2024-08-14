@@ -94,15 +94,16 @@ static uint64_t get_arg(cpu_t *cpu, uint64_t word, uint8_t pos, bool permit_imm)
 }
 
 // given four compare bits in binary form `0bABBB` A = zero, BBB = cmp flag, return string repr
-static char *cmp_bit_str(uint8_t bits) {
-  switch (bits & 0x7) {
-    case CMP_NE: return bits & 0x8 ? "ne/z" : "ne";
-    case CMP_EQ: return bits & 0x8 ? "eq/z" : "eq";
-    case CMP_LT: return bits & 0x8 ? "lt/z" : "lt";
-    case CMP_LE: return bits & 0x8 ? "le/z" : "le";
-    case CMP_NZ: return "nz"; // should never have Z set
-    case CMP_GT: return bits & 0x8 ? "gt/z" : "gt";
-    case CMP_GE: return bits & 0x8 ? "ge/z" : "ge";
+static const char *cmp_bit_str(uint8_t bits) {
+  switch (bits & 0xf) {
+    case CMP_Z: return "z";
+    case CMP_NZ: return "nz";
+    case CMP_NE: return "ne";
+    case CMP_EQ: return "eq";
+    case CMP_LT: return "lt";
+    case CMP_LE: return "le";
+    case CMP_GT: return "gt";
+    case CMP_GE: return "ge";
     default: return '\0';
   }
 }
@@ -386,7 +387,8 @@ void cpu_init(cpu_t *cpu) {
   dram_clear(&cpu->bus.dram);
 }
 
-uint64_t cpu_fetch(const cpu_t *cpu) {
+uint64_t cpu_fetch(cpu_t *cpu) {
+  if (!check_memory(REG(REG_IP))) CPU_RAISE_ERROR(0)
   return bus_load(&cpu->bus, REG(REG_IP), 64);
 }
 
@@ -404,20 +406,23 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
     default: ;
   }
 
-  // is conditional test bit set?
-  // if so, compare flag register
-  if (GET_BIT(inst, OP_TEST_BIT)) {
+  // extract conditional test bits
+  uint8_t test_bits = (inst >> OP_CMP_BITS_OFF) & OP_CMP_MASK;
+
+  // test??
+  if (test_bits != CMP_NA) {
     // extract cmp bits from both the instruction and the flag register
-    uint8_t bits = (inst >> OP_CMP_BITS_OFF) & 0x7;
     uint8_t flag_bits = REG(REG_FLAG) & FLAG_CMP_BITS;
 
 #if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR "\tConditional test: %s (0x%x) ... ", cmp_bit_str(bits), bits);
+    printf(DEBUG_STR "\tConditional test: %s (0x%x) ... ", cmp_bit_str(test_bits), test_bits);
 #endif
 
-    // special case for NZ test
-    if (bits & CMP_NZ) {
-      if (GET_BIT(REG(REG_FLAG), FLAG_ZERO)) {
+    // special case for [N]Z test
+    if (test_bits & FLAG_ZERO) {
+      bool zero_flag = GET_BIT(REG(REG_FLAG), FLAG_ZERO);
+
+      if ((test_bits == CMP_NZ && zero_flag) || (test_bits == CMP_Z && !zero_flag)) {
 #if DEBUG & DEBUG_CPU
         printf(ANSI_RED "fail" ANSI_RESET " ($flag: 0x%x)\n", flag_bits);
 #endif
@@ -425,8 +430,8 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
       }
     }
 
-    // if condition does not pass, skip
-    else if (bits != flag_bits) {
+    // otherwise, compare directly
+    else if ((test_bits & FLAG_CMP_BITS) != flag_bits) {
 #if DEBUG & DEBUG_CPU
       printf(ANSI_RED "fail" ANSI_RESET " ($flag: 0x%x)\n", flag_bits);
 #endif
@@ -473,15 +478,26 @@ void cpu_start(cpu_t *cpu) {
 #endif
 
   // fetch-execute cycle until halt
+  uint64_t inst;
+
   while (CPU_RUNNING) {
 #if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx\n", counter++, REG(REG_IP));
+    printf(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, inst=", counter++, REG(REG_IP));
 #endif
 
-    cpu_execute(cpu, cpu_fetch(cpu));
+    // fetch instruction at instruction pointer
+    inst = cpu_fetch(cpu);
+    if (CPU_IS_ERROR) break;
+
+#if (DEBUG & DEBUG_CPU) && !(DEBUG & DEBUG_DRAM)
+    printf("0x%llx\n", inst);
+#endif
 
     // increment instruction pointer
-    REG(REG_IP) += sizeof(uint64_t);
+    REG(REG_IP) += sizeof(inst);
+
+    // execute the instruction
+    cpu_execute(cpu, inst);
   }
 
 #if DEBUG & DEBUG_CPU

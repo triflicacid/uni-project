@@ -62,9 +62,6 @@ namespace assembler::instruction {
     /** Set value to a label. */
     void set_label(const std::string &label);
 
-    /** Transform label to constant with the given value. */
-    void transform_label(uint64_t value);
-
     void print(std::ostream &out = std::cout);
 
     void set_reg_indirect(uint8_t reg, int32_t offset);

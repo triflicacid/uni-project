@@ -4,7 +4,6 @@
 #include "util.h"
 
 // =============== REGISTERS ===============
-
 #define REGISTERS 30
 #define REG_IP 0
 #define REG_SP 1
@@ -17,16 +16,16 @@
 
 // =============== FLAGS ===============
 #define FLAG_ZERO BIT3
-#define FLAG_EQ BIT0
-#define FLAG_CMP_BITS (BIT0 | BIT1 | BIT2)
+#define FLAG_CMP_BITS 0x7
 #define CMP_NE 0b0000
 #define CMP_EQ 0b0001
 #define CMP_LT 0b0010
 #define CMP_LE 0b0011
-#define CMP_NZ 0b0100
+#define CMP_NZ 0b1000
 #define CMP_GT 0b0110
 #define CMP_GE 0b0111
-#define CMP_Z  0b1000
+#define CMP_Z  0b1001
+#define CMP_NA 0b1111
 
 #define FLAG_IS_RUNNING BIT4
 #define FLAG_IS_ERROR BIT5
@@ -77,7 +76,9 @@
 #define OPCODE_SIZE 6
 
 #define OP_TEST_BIT BIT6
-#define OP_CMP_BITS_OFF 7
+#define OP_CMP_BITS_OFF 6
+#define OP_CMP_MASK 0xf
+#define OP_CMP_SIZE 4
 
 #define OP_HEADER_SIZE 10
 

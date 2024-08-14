@@ -17,7 +17,7 @@ namespace assembler::instruction {
     }
   }
 
-  Instruction::Instruction(const Signature *signature, std::vector<Argument> arguments) {
+  Instruction::Instruction(const Signature *signature, std::deque<Argument> arguments) {
     this->signature = signature;
     opcode = signature->opcode;
     args = std::move(arguments);
@@ -100,11 +100,11 @@ namespace assembler::instruction {
   }
 
   void InstructionBuilder::no_conditional_test() {
-    write(4, 0x0);
+    write(4, CMP_NA);
   }
 
   void InstructionBuilder::conditional_test(uint8_t bits) {
-    write(4, ((bits & 0x7) << 1) | 1);
+    write(4, bits & 0xf);
   }
 
   void InstructionBuilder::data_type(uint8_t bits) {

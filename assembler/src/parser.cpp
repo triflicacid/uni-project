@@ -12,7 +12,7 @@ extern "C" {
 namespace assembler::parser {
   void parse(Data &data, message::List &msgs) {
     // Track byte offset
-    int offset = 0;
+    uint32_t offset = 0;
 
     for (int line_idx = 0; line_idx < data.lines.size(); line_idx++) {
       const auto &line = data.lines[line_idx];
@@ -122,8 +122,8 @@ namespace assembler::parser {
         return;
       }
 
-      // parse arguments
-      std::vector<instruction::Argument> arguments;
+      // structure to accumulate parsed arguments
+      std::deque<instruction::Argument> arguments;
 
       while (i < line.data.size()) {
         skip_whitespace(line.data, i);
@@ -232,7 +232,7 @@ namespace assembler::parser {
 
   bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs,
                          const std::string &mnemonic,
-                         std::vector<instruction::Argument> &arguments,
+                         std::deque<instruction::Argument> &arguments,
                          std::vector<instruction::Instruction *> &instructions) {
     // lookup signature, create instruction from it with args probided
     std::string options;
@@ -642,6 +642,23 @@ namespace assembler::parser {
     {"ret", REG_RET},
     {"zero", REG_ZERO}
   };
+
+  std::string register_to_string(uint8_t offset) {
+    // is a special register?
+    for (auto &pair : register_map) {
+      if (offset == pair.second) {
+        return pair.first;
+      }
+    }
+
+    // is a GPR?
+    if (offset >= REG_GPR && offset < REG_PGPR) {
+      return "r" + std::to_string(offset - REG_GPR + 1);
+    }
+
+    // must be an RGPR
+    return "s" + std::to_string(offset - REG_PGPR + 1);
+  }
 
   int parse_register(const std::string &s, int &i) {
     // general ourpose registers

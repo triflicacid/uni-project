@@ -1,8 +1,6 @@
 #include "argument.hpp"
 
-extern "C" {
-#include "util.h"
-}
+#include <parser.hpp>
 
 #include <string>
 #include <iomanip>
@@ -42,10 +40,11 @@ namespace assembler::instruction {
         out << "address 0x" << std::hex << m_data << std::dec;
         break;
       case ArgumentType::Register:
-        out << "register " << m_data;
+        out << "register $" << parser::register_to_string(m_data);
         break;
       case ArgumentType::RegisterIndirect:
-        out << "register indirect " << get_reg_indirect()->offset << "(" << (int) get_reg_indirect()->reg << ")";
+        out << "register indirect " << get_reg_indirect()->offset << "($" << parser::register_to_string(
+          get_reg_indirect()->reg) << ")";
         break;
       case ArgumentType::Label:
         out << "label \"" << *get_label() << "\"";
@@ -133,13 +132,5 @@ namespace assembler::instruction {
     m_type = ArgumentType::Label;
     auto ptr = new std::string(label);
     m_data = (uint64_t) ptr;
-  }
-
-  void Argument::transform_label(uint64_t value) {
-    if (is_label()) {
-      destroy();
-      m_type = ArgumentType::Address;
-      m_data = value;
-    }
   }
 }

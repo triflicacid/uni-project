@@ -19,7 +19,7 @@ namespace assembler::parser {
   /** Parse a given instruction given mnemonic and parsed arguments. May add multiple instructions. */
   bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs,
                                               const std::string &mnemonic,
-                                              std::vector<instruction::Argument> &arguments,
+                                              std::deque<instruction::Argument> &arguments,
                                               std::vector<instruction::Instruction *> &instructions);
 
   /** Parse constant "<type>: <sequence>". Create byte vector on heap. Return if success. */
@@ -35,6 +35,9 @@ namespace assembler::parser {
 
   /** Given a string, return register offset, or -1. */
   int parse_register(const std::string &string, int &index);
+
+  /** Given register offset, return string. */
+  std::string register_to_string(uint8_t offset);
 
   /** Parse character. String assumed to have started with an apostrophe, with <index> pointing after this. */
   void parse_character_literal(const Data &data, int line_idx, int &col, message::List &msgs, uint64_t &value);

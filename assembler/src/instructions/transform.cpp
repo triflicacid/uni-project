@@ -11,11 +11,11 @@ namespace assembler::instruction::transform {
     instructions.push_back(instruction);
   }
 
-  void zero(std::vector<Instruction *> &instructions, Instruction *instruction) {
-    // original: "zero $r"
-    // "load $r, 0"
+  void jump(std::vector<Instruction *> &instructions, Instruction *instruction) {
+    // original: "jmp $addr"
+    // "load $ip, $addr"
     instruction->opcode = OP_LOAD;
-    instruction->args.emplace_back(-1, instruction::ArgumentType::Immediate, 0);
+    instruction->args.emplace_front(-1, instruction::ArgumentType::Register, REG_IP);
     instructions.push_back(instruction);
   }
 
@@ -29,6 +29,14 @@ namespace assembler::instruction::transform {
     instruction = new Instruction(*instruction);
     instruction->opcode = OP_LOAD_UPPER;
     instruction->args[1].set_data(instruction->args[1].get_data() >> 32);
+    instructions.push_back(instruction);
+  }
+
+  void zero(std::vector<Instruction *> &instructions, Instruction *instruction) {
+    // original: "zero $r"
+    // "load $r, 0"
+    instruction->opcode = OP_LOAD;
+    instruction->args.emplace_back(-1, instruction::ArgumentType::Immediate, 0);
     instructions.push_back(instruction);
   }
 }

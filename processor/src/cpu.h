@@ -25,7 +25,7 @@ typedef struct cpu {
 void cpu_init(cpu_t *cpu);
 
 // fetch next instruction, DO NOT increment ip
-uint64_t cpu_fetch(const cpu_t *cpu);
+uint64_t cpu_fetch(cpu_t *cpu);
 
 // execute the given instruction
 void cpu_execute(cpu_t *cpu, uint64_t inst);
