@@ -69,7 +69,6 @@
 #define SYSCALL_READ_STRING  10
 
 #define SYSCALL_EXIT         11
-#define SYSCALL_EXIT2        12
 
 // =============== OPERATIONS ===============
 #define OPCODE_MASK 0x3f

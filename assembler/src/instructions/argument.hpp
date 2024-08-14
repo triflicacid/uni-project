@@ -27,24 +27,21 @@ namespace assembler::instruction {
   private:
     ArgumentType m_type;
     uint64_t m_data;
-    int m_col;
 
     void destroy();
 
   public:
-    explicit Argument(int col) : m_col(col) {
+    Argument() {
       m_type = ArgumentType::Immediate;
       m_data = 0;
     }
 
-    Argument(int col, ArgumentType type, uint64_t data);
+    Argument(ArgumentType type, uint64_t data);
 
     [[nodiscard]] ArgumentType get_type() const { return m_type; }
 
     /** Match type against given type; return if success, may update m_type. */
     bool type_match(const ArgumentType &target);
-
-    [[nodiscard]] int get_col() const { return m_col; }
 
     [[nodiscard]] uint64_t get_data() const { return m_data; }
 

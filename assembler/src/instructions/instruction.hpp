@@ -16,10 +16,11 @@ namespace assembler::instruction {
     uint8_t opcode;
     bool expect_test; // expect conditional test?
     bool expect_datatype; // expect datatype?
-    std::deque<ArgumentType> arguments; // list of supplied args
+    std::vector<std::deque<ArgumentType>> arguments; // list of supplied args overloads
     bool is_full_word; // expect full-word immediates?
     // custom function to intercept instruction. If called, instruction IS NOT added to instruction vector.
-    void (*intercept)(std::vector<Instruction *> &instructions, Instruction *instruction);
+    // Provide index of matched overload
+    void (*intercept)(std::vector<Instruction *> &instructions, Instruction *instruction, int overload_index);
   };
 
   /** Given mnemonic, return signature. Extract options and assign to second argument. */

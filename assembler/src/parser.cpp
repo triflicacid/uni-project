@@ -129,7 +129,7 @@ namespace assembler::parser {
         skip_whitespace(line.data, i);
 
         // parse argument
-        instruction::Argument argument(i);
+        instruction::Argument argument;
         parse_arg(data, line_idx, i, msgs, argument);
 
         // tell user which argument it was if error was encountered
@@ -303,12 +303,49 @@ namespace assembler::parser {
       return false;
     }
 
-    // check if number of arguments match
-    if (arguments.size() != signature->arguments.size()) {
-      std::stringstream stream;
-      stream << "Expected " << signature->arguments.size() << " argument(s), got " << arguments.size();
+    // find index of a valid overload
+    int overload = -1;
 
-      auto err = new class message::Error(data.file_path, line_idx, col, message::ErrorType::BadArguments);
+    for (int k = 0; k < signature->arguments.size(); k++) {
+      // check that arg count match
+      if (signature->arguments[k].size() != arguments.size()) continue;
+
+      // check that each type matches
+      bool ok = true;
+
+      for (int i = 0; i < signature->arguments[k].size(); i++) {
+        if (!instruction->args[i].type_match(signature->arguments[k][i])) {
+          ok = false;
+          break;
+        }
+      }
+
+      if (ok) {
+        overload = k;
+        break;
+      }
+    }
+
+    if (overload == -1) {
+      std::stringstream stream;
+      stream << "No match for mnemonic " << signature->mnemonic << " with arguments ";
+
+      for (auto &arg : arguments)
+        stream << instruction::Argument::type_to_string(arg.get_type()) << " ";
+
+      stream << "\nAvailable overloads:";
+
+      for (auto &args : signature->arguments) {
+        stream << "\n\t- " << signature->mnemonic;
+
+        if (!args.empty()) {
+          for (auto &arg : args)
+            stream << instruction::Argument::type_to_string(arg) << " ";
+        }
+      }
+
+      auto err = new class message::Error(data.file_path, line_idx, col,
+                                          message::ErrorType::BadArguments);
       err->set_message(stream);
       msgs.add(err);
 
@@ -316,28 +353,11 @@ namespace assembler::parser {
       return false;
     }
 
-    for (int i = 0; i < arguments.size(); i++) {
-      // check if argument matches signature type
-      if (!instruction->args[i].type_match(signature->arguments[i])) {
-        std::stringstream stream;
-        stream << "Expected argument " << i + 1 << " to be " << instruction::Argument::type_to_string(
-          signature->arguments[i]) << ", got " << instruction::Argument::type_to_string(arguments[i].get_type());
-
-        auto err = new class message::Error(data.file_path, line_idx, arguments[i].get_col(),
-                                            message::ErrorType::BadArguments);
-        err->set_message(stream);
-        msgs.add(err);
-
-        delete instruction;
-        return false;
-      }
-    }
-
     // call custom handler if supplied
     if (signature->intercept == nullptr) {
       instructions.push_back(instruction);
     } else {
-      signature->intercept(instructions, instruction);
+      signature->intercept(instructions, instruction, overload);
     }
 
     return true;

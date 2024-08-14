@@ -18,8 +18,7 @@ namespace assembler::instruction {
     m_data = 0x00;
   }
 
-  Argument::Argument(int col, ArgumentType type, uint64_t data) {
-    m_col = col;
+  Argument::Argument(ArgumentType type, uint64_t data) {
     m_type = type;
     m_data = data;
   }

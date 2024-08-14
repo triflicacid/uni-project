@@ -355,13 +355,6 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #endif
       CPU_STOP;
       break;
-    case SYSCALL_EXIT2:
-#if DEBUG & DEBUG_CPU
-      printf("exit2, code=0x%llx)\n", REG(REG_GPR));
-#endif
-      REG(REG_RET) = REG(REG_GPR);
-      CPU_STOP;
-      break;
     default:
 #if DEBUG & DEBUG_CPU
       printf("unknown)\n");
