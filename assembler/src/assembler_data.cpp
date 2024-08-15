@@ -34,8 +34,16 @@ namespace assembler {
   }
 
   void Data::write_chunks(std::ostream &stream) {
+    uint32_t offset = 0;
+
     for (auto chunk: buffer) {
+      while (chunk->get_offset() > offset) {
+        stream << 0x00;
+        offset++;
+      }
+
       chunk->write(stream);
+      offset += chunk->get_bytes();
     }
   }
 }

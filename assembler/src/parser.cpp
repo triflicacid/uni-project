@@ -270,6 +270,33 @@ namespace assembler::parser {
       return true;
     }
 
+    auto &line = data.lines[line_idx];
+
+    if (directive == "space") {
+      skip_whitespace(line.data, col);
+
+      uint64_t value;
+      bool is_double;
+      if (!parse_number(line.data, col, value, is_double)) {
+        auto err = new class message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
+        err->set_message("Expected number");
+        msgs.add(err);
+        return false;
+      }
+
+      if (is_double) {
+        auto err = new class message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
+        err->set_message("Number of bytes cannot be decimal!");
+        msgs.add(err);
+        return false;
+      }
+
+      // increment offset as desired
+      data.offset += value;
+
+      return true;
+    }
+
     return false;
   }
 
