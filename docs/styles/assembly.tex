@@ -1,0 +1,43 @@
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinelanguage{assembly}{
+  alsoletter={.}, % allow dots in keywords
+  alsodigit={0x}, % hex numbers are numbers too!
+  morekeywords=[1]{ % instructions
+    load, loadu, loadw, zero, store,
+    add, sub, mul, div, idiv,
+    cmp, jmp, b, beq, bne, bge, bgt, ble, blt, bz, bnz,
+    not, and, or, xnor, shr, shl,
+    push, pushw, pop, popw,
+    call, syscall, ret,
+    nop, exit
+  },
+  morekeywords=[2]{
+    \%define, \%end, \%include, \%macro, \%rm, \%stop
+  },
+  morekeywords=[3]{
+    \$ip, \$sp, \$fp, \$flag, \$ret, \$zero,
+    r1, \$r2, \$r3, \$r4, \$r5, \$r6, \$r7, \$r8, \$r9, \$r10, \$r11, \$r12, \$r13, \$r14, \$r15, \$r16,
+    \$s1, \$s2, \$s3, \$s4, \$s5, \$s6, \$s7, \$s8
+  },
+  commentstyle=,
+  morecomment=[l]{;},   % mark ; as line comment start
+  morestring=[b]",      % mark " as string start/end
+  morestring=[b]'       % also mark ' as string start/end
+  % listings sonderzeichen (for german weirdness)
+}
+
+\lstdefinestyle{assembly}{
+  language=assembly,
+  basicstyle=\ttfamily,
+  breaklines=true,
+  commentstyle=\itshape\color{green!50!black},
+  keywordstyle=[1]\color{blue!80!black},
+  keywordstyle=[2]\color{orange!80!black},
+  keywordstyle=[3]\color{red!50!black},
+  stringstyle=\color{mauve},
+  identifierstyle=\color{teal},
+  frame=l,
+  tabsize=2,
+  showstringspaces=false
+}
