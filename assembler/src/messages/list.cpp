@@ -2,7 +2,7 @@
 
 namespace message {
   void List::clear() {
-    for (auto message: messages) {
+    for (const auto message: messages) {
       delete message;
     }
 
@@ -10,13 +10,13 @@ namespace message {
   }
 
   bool List::has_message_of(Level level) {
-    return std::any_of(messages.begin(), messages.end(), [&level](Message *message) {
+    return std::any_of(messages.begin(), messages.end(), [&level](const Message *message) {
       return message->get_level() == level;
     });
   }
 
   Message *List::get_message(Level level) {
-    auto it = std::find_if(messages.begin(), messages.end(), [&level](Message *message) {
+    const auto it = std::ranges::find_if(messages.begin(), messages.end(), [&level](const Message *message) {
       return message->get_level() == level;
     });
 

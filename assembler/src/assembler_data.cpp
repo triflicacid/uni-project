@@ -1,7 +1,7 @@
 #include "assembler_data.hpp"
 
 namespace assembler {
-  void Data::replace_label(const std::string &label, uint32_t address) {
+  void Data::replace_label(const std::string &label, uint32_t address) const {
     for (const auto &chunk: buffer) {
       if (!chunk->is_data()) {
         for (auto &arg: chunk->get_instruction()->args) {
@@ -13,30 +13,30 @@ namespace assembler {
     }
   }
 
-  uint32_t Data::get_bytes() {
+  uint32_t Data::get_bytes() const {
     if (buffer.empty())
       return 0;
 
-    auto last = buffer.back();
+    const auto last = buffer.back();
     return last->get_offset() + last->get_bytes();
   }
 
-  void Data::write_headers(std::ostream &stream) {
+  void Data::write_headers(std::ostream &stream) const {
     if (buffer.empty())
       return;
 
     // Write start address
-    auto start_label = labels.find(main_label);
+    const auto start_label = labels.find(main_label);
     uint64_t start_addr = start_label == labels.end()
                             ? 0
                             : start_label->second.addr;
     stream.write((const char *) &start_addr, sizeof(start_addr));
   }
 
-  void Data::write_chunks(std::ostream &stream) {
+  void Data::write_chunks(std::ostream &stream) const {
     uint32_t offset = 0;
 
-    for (auto chunk: buffer) {
+    for (const auto chunk: buffer) {
       while (chunk->get_offset() > offset) {
         stream << 0x00;
         offset++;

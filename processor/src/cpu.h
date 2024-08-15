@@ -35,6 +35,6 @@ void cpu_execute(cpu_t *cpu, uint64_t inst);
 void cpu_start(cpu_t *cpu);
 
 // print contents of all registers as hexadecimal
-void print_registers(cpu_t *cpu);
+void print_registers(const cpu_t *cpu);
 
 #endif

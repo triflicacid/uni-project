@@ -5,7 +5,7 @@
 #include "../pre-process/location-info.hpp"
 
 namespace message {
-  enum Level {
+  enum class Level {
     Note,
     Warning,
     Error
@@ -39,7 +39,7 @@ namespace message {
 
     void set_message(const std::stringstream &stream);
 
-    Level get_level() { return m_type; }
+    [[nodiscard]] Level get_level() const { return m_type; }
 
     void print();
   };

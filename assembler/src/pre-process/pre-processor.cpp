@@ -12,7 +12,7 @@ namespace assembler {
 
     // Check if the file exists
     if (!file.good()) {
-      message::Message *msg = new class message::Error(data.file_path, -1, -1, message::ErrorType::FileNotFound);
+      message::Message *msg = new message::Error(data.file_path, -1, -1, message::ErrorType::FileNotFound);
       msg->set_message("Cannot read file " + filename);
       msgs.add(msg);
 
@@ -102,7 +102,7 @@ namespace assembler {
 
             current_macro = nullptr;
           } else {
-            auto error = new class message::Error(data.file_path, line.n, 0, message::ErrorType::UnknownDirective);
+            auto error = new message::Error(data.file_path, line.n, 0, message::ErrorType::UnknownDirective);
             error->set_message("Unknown/invalid directive in %macro body: %" + directive);
             msgs.add(error);
             return;
@@ -209,7 +209,7 @@ namespace assembler {
             auto circular_include = data.included_files.find(canonical_path);
 
             if (circular_include != data.included_files.end()) {
-              message::Message *msg = new class message::Error(data.file_path, line.n, i,
+              message::Message *msg = new message::Error(data.file_path, line.n, i,
                                                                message::ErrorType::CircularInclude);
               msg->set_message("Circular %include: " + full_path.string());
               msgs.add(msg);
@@ -252,7 +252,7 @@ namespace assembler {
 
             // Check if name is valid
             if (!is_valid_label_name(macro_name)) {
-              auto error = new class message::Error(data.file_path, line.n, 0, message::ErrorType::InvalidLabel);
+              auto error = new message::Error(data.file_path, line.n, 0, message::ErrorType::InvalidLabel);
               error->set_message("Invalid macro name \"" + macro_name + "\"");
               msgs.add(error);
               return;
@@ -290,7 +290,7 @@ namespace assembler {
 
               // Check if name is valid
               if (!is_valid_label_name(parameter)) {
-                message::Message *msg = new class message::Error(data.file_path, line.n, 0,
+                message::Message *msg = new message::Error(data.file_path, line.n, 0,
                                                                  message::ErrorType::InvalidLabel);
                 msg->set_message("Invalid parameter name \"" + parameter + "\"");
                 msgs.add(msg);
@@ -303,10 +303,10 @@ namespace assembler {
               }
 
               // Duplicate parameter?
-              auto param_exists = std::find(macro_params.begin(), macro_params.end(), parameter);
+              auto param_exists = std::ranges::find(macro_params.begin(), macro_params.end(), parameter);
 
               if (param_exists != macro_params.end()) {
-                message::Message *msg = new class message::Error(data.file_path, line.n, j,
+                message::Message *msg = new message::Error(data.file_path, line.n, j,
                                                                  message::ErrorType::InvalidLabel);
                 msg->set_message("Duplicate parameter \"" + parameter + "\"");
                 msgs.add(msg);
@@ -360,7 +360,7 @@ namespace assembler {
 
             break;
           } else {
-            auto error = new class message::Error(data.file_path, line.n, 0, message::ErrorType::UnknownDirective);
+            auto error = new message::Error(data.file_path, line.n, 0, message::ErrorType::UnknownDirective);
             error->set_message("Unknown directive %" + directive);
             msgs.add(error);
             return;
@@ -453,7 +453,7 @@ namespace assembler {
 
         // Check that argument sizes match
         if (macro_exists->second.params.size() != arguments.size()) {
-          message::Message *msg = new class message::Error(data.file_path, line.n, (int) mnemonic.size(),
+          message::Message *msg = new message::Error(data.file_path, line.n, (int) mnemonic.size(),
                                                            message::ErrorType::BadArguments);
           msg->set_message("Macro " + mnemonic + " expects " + std::to_string(macro_exists->second.params.size())
                            + " argument(s), received " + std::to_string(arguments.size()));
@@ -500,7 +500,6 @@ namespace assembler {
 
         // We have inserted the macro's body now, so we continue
         lines_idx--;
-        continue;
       }
     }
   }

@@ -17,17 +17,18 @@ namespace assembler::parser {
   void parse(Data &data, message::List &msgs);
 
   /** Parse a given instruction given mnemonic and parsed arguments. May add multiple instructions. */
-  bool parse_instruction(Data &data, int line_idx, int &col, message::List &msgs,
-                                              const std::string &mnemonic,
-                                              std::deque<instruction::Argument> &arguments,
-                                              std::vector<instruction::Instruction *> &instructions);
+  bool parse_instruction(const Data &data, int line_idx, int &col, message::List &msgs,
+                         const std::string &mnemonic,
+                         const std::deque<instruction::Argument> &arguments,
+                         std::vector<instruction::Instruction *> &instructions);
 
   /** Parse a directive ".<directive> ...". Provide directive name, col should point to end of directive name. */
   bool parse_directive(Data &data, int line_idx, int &col, const std::string &directive, message::List &msgs);
 
   /** Parse a sequence of data. Give size of each element in bits: 8, 32, or 64.
    * Allocate vector on heap and fill with bytes. */
-  bool parse_data(const Data &data, int line_idx, int &col, uint8_t size, message::List &msgs, std::vector<uint8_t> *&bytes);
+  bool parse_data(const Data &data, int line_idx, int &col, uint8_t size, message::List &msgs,
+                  std::vector<uint8_t> *&bytes);
 
   /** Parse an argument, populate <argument>.
    * Provide argtype: one of Immediate, Register, Value, Address.

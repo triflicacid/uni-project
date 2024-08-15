@@ -2,23 +2,23 @@
 
 #include <string.h>
 
-static inline uint64_t dram_load_8(const dram_t *dram, uint64_t addr) {
+static uint64_t dram_load_8(const dram_t *dram, uint64_t addr) {
   return dram->mem[addr];
 }
 
-static inline uint64_t dram_load_16(const dram_t *dram, uint64_t addr) {
+static uint64_t dram_load_16(const dram_t *dram, uint64_t addr) {
   return (uint64_t) dram->mem[addr]
       |  (uint64_t) dram->mem[addr + 1] << 8;
 }
 
-static inline uint64_t dram_load_32(const dram_t *dram, uint64_t addr) {
+static uint64_t dram_load_32(const dram_t *dram, uint64_t addr) {
   return (uint64_t) dram->mem[addr]
       |  (uint64_t) dram->mem[addr + 1] << 8
       |  (uint64_t) dram->mem[addr + 2] << 16
       |  (uint64_t) dram->mem[addr + 3] << 24;
 }
 
-static inline uint64_t dram_load_64(const dram_t *dram, uint64_t addr) {
+static uint64_t dram_load_64(const dram_t *dram, uint64_t addr) {
   return (uint64_t) dram->mem[addr]
       |  (uint64_t) dram->mem[addr + 1] << 8
       |  (uint64_t) dram->mem[addr + 2] << 16
@@ -39,23 +39,23 @@ uint64_t dram_load(const dram_t *dram, uint64_t addr, uint8_t size) {
   }
 }
 
-static inline void dram_store_8(dram_t *dram, uint64_t addr, uint64_t value) {
+static void dram_store_8(dram_t *dram, uint64_t addr, uint64_t value) {
   dram->mem[addr] = (uint8_t) (value & 0xff);
 }
 
-static inline void dram_store_16(dram_t *dram, uint64_t addr, uint64_t value) {
+static void dram_store_16(dram_t *dram, uint64_t addr, uint64_t value) {
   dram->mem[addr] = (uint8_t) (value & 0xff);
   dram->mem[addr + 1] = (uint8_t) (value >> 8 & 0xff);
 }
 
-static inline void dram_store_32(dram_t *dram, uint64_t addr, uint64_t value) {
+static void dram_store_32(dram_t *dram, uint64_t addr, uint64_t value) {
   dram->mem[addr] = (uint8_t) (value & 0xff);
   dram->mem[addr + 1] = (uint8_t) (value >> 8  & 0xff);
   dram->mem[addr + 2] = (uint8_t) (value >> 16 & 0xff);
   dram->mem[addr + 3] = (uint8_t) (value >> 24 & 0xff);
 }
 
-static inline void dram_store_64(dram_t *dram, uint64_t addr, uint64_t value) {
+static void dram_store_64(dram_t *dram, uint64_t addr, uint64_t value) {
   dram->mem[addr] = (uint8_t) (value & 0xff);
   dram->mem[addr + 1] = (uint8_t) (value >> 8  & 0xff);
   dram->mem[addr + 2] = (uint8_t) (value >> 16 & 0xff);

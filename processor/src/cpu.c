@@ -534,7 +534,7 @@ static char register_strings[][6] = {
   "$zero"
 };
 
-void print_registers(cpu_t *cpu) {
+void print_registers(const cpu_t *cpu) {
   uint8_t i;
 
   // special registers

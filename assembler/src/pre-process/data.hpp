@@ -35,6 +35,6 @@ namespace assembler::pre_processor {
     std::string write_lines();
 
     /** Merge given data with this. Insert lines starting at `index`. */
-    void merge(struct Data &other, int line_index = -1);
+    void merge(Data &other, int line_index = -1);
   };
 }

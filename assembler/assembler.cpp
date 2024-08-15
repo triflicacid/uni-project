@@ -105,7 +105,7 @@ int parse_arguments(int argc, char **argv, Options &opts) {
 }
 
 /** Pre-process the given data, write to file if not NULL. */
-int pre_process_data(assembler::pre_processor::Data &data, message::List &messages, char *output_file) {
+int pre_process_data(assembler::pre_processor::Data &data, message::List &messages, const char *output_file) {
   if (data.debug)
     std::cout << ANSI_GREEN "=== PRE-PROCESSING ===\n" ANSI_RESET;
 
@@ -180,7 +180,7 @@ int parse_data(assembler::Data &data, message::List &messages) {
 }
 
 /** Compile data to given file. */
-int compile_result(assembler::Data &data, char *output_file) {
+int compile_result(const assembler::Data &data, const char *output_file) {
   if (data.debug) {
     // Print chunks
     std::cout << ANSI_GREEN "=== COMPILATION ===\n" ANSI_RESET;
@@ -206,7 +206,7 @@ int compile_result(assembler::Data &data, char *output_file) {
   auto after = file.tellp();
 
   if (data.debug)
-    std::cout << "Written " << (after - before + 1) << " bytes to file " << output_file << "\n";
+    std::cout << "Written " << after - before + 1 << " bytes to file " << output_file << "\n";
 
   file.close();
 

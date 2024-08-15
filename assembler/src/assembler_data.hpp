@@ -26,15 +26,15 @@ namespace assembler {
     }
 
     /** Replace all instances of <label> with the given <address>. */
-    void replace_label(const std::string &label, uint32_t address);
+    void replace_label(const std::string &label, uint32_t address) const;
 
     /** Get size in bytes. */
-    uint32_t get_bytes();
+    [[nodiscard]] uint32_t get_bytes() const;
 
     /** Write headers to stream. */
-    void write_headers(std::ostream &stream);
+    void write_headers(std::ostream &stream) const;
 
     /** Write chunks to output stream. */
-    void write_chunks(std::ostream &stream);
+    void write_chunks(std::ostream &stream) const;
   };
 }

@@ -63,7 +63,7 @@ namespace assembler::instruction {
 
     [[nodiscard]] uint64_t compile() const;
 
-    void print();
+    void print() const;
   };
 
   /** Builder class to construct an instruction word. */

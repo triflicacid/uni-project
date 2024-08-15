@@ -6,7 +6,7 @@
 #include <processor/src/constants.h>
 
 namespace assembler::instruction {
-  void Instruction::print() {
+  void Instruction::print() const {
     std::cout << "Mnemonic '" << signature->mnemonic << "'; Opcode = 0x" << std::hex << (int) opcode << std::dec << "; "
         << args.size() << " argument(s)\n";
 
