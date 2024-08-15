@@ -13,7 +13,7 @@ namespace assembler {
     }
   }
 
-  int Data::get_bytes() {
+  uint32_t Data::get_bytes() {
     if (buffer.empty())
       return 0;
 
@@ -28,9 +28,9 @@ namespace assembler {
     // Write start address
     auto start_label = labels.find(main_label);
     uint64_t start_addr = start_label == labels.end()
-                          ? (section_text == -1 ? 0 : section_text)
-                          : start_label->second.addr;
-    stream.write((char *) &start_addr, sizeof(start_addr));
+                            ? 0
+                            : start_label->second.addr;
+    stream.write((const char *) &start_addr, sizeof(start_addr));
   }
 
   void Data::write_chunks(std::ostream &stream) {

@@ -1,3 +1,6 @@
-load $r1, 1024
-load $r2, 16
-syscall 101
+load $r1, string
+syscall 5
+exit
+
+string:
+.byte "Hello, World!"

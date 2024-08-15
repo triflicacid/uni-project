@@ -307,7 +307,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_CPU
       printf("print_string)\n");
 #endif
-      uint32_t addr = bus_load(&cpu->bus, REG(REG_GPR), 64);
+      uint32_t addr = REG(REG_GPR);
       if (!check_memory(addr)) CPU_RAISE_ERROR()
       fprintf(cpu->fp_out, "%s", (const char *) (cpu->bus.dram.mem + addr));
       break;

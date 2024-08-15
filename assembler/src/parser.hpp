@@ -22,8 +22,12 @@ namespace assembler::parser {
                                               std::deque<instruction::Argument> &arguments,
                                               std::vector<instruction::Instruction *> &instructions);
 
-  /** Parse constant "<type>: <sequence>". Create byte vector on heap. Return if success. */
-  bool parse_data(const Data &data, int line_idx, int &col, message::List &msgs, std::vector<unsigned char> **bytes);
+  /** Parse a directive ".<directive> ...". Provide directive name, col should point to end of directive name. */
+  bool parse_directive(Data &data, int line_idx, int &col, const std::string &directive, message::List &msgs);
+
+  /** Parse a sequence of data. Give size of each element in bits: 8, 32, or 64.
+   * Allocate vector on heap and fill with bytes. */
+  bool parse_data(const Data &data, int line_idx, int &col, uint8_t size, message::List &msgs, std::vector<uint8_t> *&bytes);
 
   /** Parse an argument, populate <argument>.
    * Provide argtype: one of Immediate, Register, Value, Address.
@@ -45,8 +49,4 @@ namespace assembler::parser {
   /** Given a string, add bytes to data that it represents. Parse only a single data item e.g. '42'. */
   void parse_byte_item(const Data &data, int line_idx, int &col, message::List &msgs,
                        const AddBytesFunction &add_bytes);
-
-  /** Given a string, add bytes to data that it represents. Parse an entire data string e.g., '42 0 '\0'' */
-  void parse_byte_sequence(const Data &data, int line_idx, int &col, message::List &msgs,
-                           const AddBytesFunction &add_bytes);
 }

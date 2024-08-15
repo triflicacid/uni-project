@@ -8,21 +8,19 @@ namespace assembler {
   struct Data {
     std::filesystem::path file_path; // Name of source file
     bool debug; // Print debug comments?
-    bool strict_sections; // Mnemonics must line up with section type
     std::vector<Line> lines; // List of source file lines
     std::map<std::string, Label> labels;
+    uint16_t offset; // byte offset into source
     std::string main_label; // Contain "main" label name
     std::vector<Chunk *> buffer; // List of compiled chunks
-    int section_text;
 
     explicit Data(bool debug) {
       this->debug = debug;
-      strict_sections = false;
       main_label = "main";
-      section_text = -1;
+      offset = 0;
     }
 
-    explicit Data(pre_processor::Data &data) : Data(data.debug) {
+    explicit Data(const pre_processor::Data &data) : Data(data.debug) {
       file_path = data.file_path;
       lines = data.lines;
     }
@@ -31,7 +29,7 @@ namespace assembler {
     void replace_label(const std::string &label, uint32_t address);
 
     /** Get size in bytes. */
-    int get_bytes();
+    uint32_t get_bytes();
 
     /** Write headers to stream. */
     void write_headers(std::ostream &stream);

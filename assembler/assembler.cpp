@@ -19,7 +19,6 @@ struct Options {
   char *output_file;
   char *post_processing_file;
   bool debug;
-  bool strict_sections;
   bool do_compilation;
   bool do_pre_processing;
 
@@ -28,7 +27,6 @@ struct Options {
     output_file = nullptr;
     post_processing_file = nullptr;
     debug = false;
-    strict_sections = false;
     do_compilation = true;
     do_pre_processing = true;
   }
@@ -80,8 +78,6 @@ int parse_arguments(int argc, char **argv, Options &opts) {
       } else if (opts.do_compilation && strcmp(argv[i] + 1, "-no-compile") == 0) {
         // Skip compilation
         opts.do_compilation = false;
-      } else if (!opts.strict_sections && strcmp(argv[i] + 1, "-strict-sections") == 0) {
-        opts.strict_sections = true;
       } else {
         std::cout << "Unknown/repeated flag " << argv[i] << "\n";
         return EXIT_FAILURE;
@@ -247,7 +243,6 @@ int main(int argc, char **argv) {
 
   // Construct data structure for parsing
   assembler::Data data(pre_data);
-  data.strict_sections = opts.strict_sections;
 
   if (parse_data(data, messages) == EXIT_FAILURE) {
     return EXIT_FAILURE;

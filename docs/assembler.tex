@@ -165,19 +165,94 @@ The most common syntax is:
 [label:] <mnemonic>[conditional][.datatype] [args ...] [; comment]
 \end{lstlisting}
 
-Alternatively, the following is used to load data:
-
-\begin{lstlisting}[style=assembly]
-.<type> <data ...>
-\end{lstlisting}
-
-Each sub-section will go over the key components identifier in each.
+Alternatively, the line may start with a directive.
+Note, this is different from a pre-processor directive; see below for more information.
 
 \subsection{Labels}
 
 Labels are defined at start of a line, starting with an alphabetic character or an underscore and any number of alphanumeric characters or underscores, and finally a colon.
 
 A label is a symbol name tied to a memory address; when defined, a label adopts the value of the byte offset in memory.
-When refenced, 
+A label may be redefined, in which case its address value will be updated.
+
+A label is referenced in an argument by stating its name.
+How a reference is handles depends on if the label is defined:
+\begin{itemize}
+    \item If it has been defined, the label is directly substituted by its address as an immediate, \texttt{<imm>}.
+    \item Otherwise, this is known as a forward-reference.
+    This reference is noted and, when the label is defined in the future, this reference will be replaced by the address.
+    All forward-references must be resolved by the end of compilation, or an error will be raised.
+\end{itemize}
+
+\textbf{Note} the special label ``\texttt{main}''.
+By default, code execution starts from the top of the file but, if present, execution will start from \texttt{main}.
+
+\subsection{Mnemonics}
+
+Mnemonics are used to introduce instructions, and define the desired function to be taken.
+Any arguments supplied provide necessary data for the function to carry out its operation.
+The processor documentation document details all legal instructions.
+
+The mnemonic itself consists of three parts.
+\begin{itemize}
+    \item The base: this is the operation listed in the ISA table, and is the function name.
+    \item Conditional test: this is a string such as ``z'', ``eq``, etc. that may be optionally suffixed to most instructions.
+    \item Datatype: declared as a suffixed dot followed by a type string, this determines the type of data to be operated on in the case of some instructions.
+\end{itemize}
+
+Again, the above table only lists brief description; see the ISA table for more information on each part.
+
+\subsection{Arguments}
+
+The argument types are detailed in the process documentation document, but syntax will be detailed here.
+\begin{itemize}
+    \item Immediate: a numeric value, e.g., \texttt{42}.
+    \item Memory Address: a parenthesised numeric value, e.g., \texttt{(42)}.
+    \item Register: a register name suffixed by a dollar `\$', e.g., \texttt{\$r1}.
+    \item Register Indirect: a parenthesised register, optionally prefixed by a numeric value, e.g., \texttt{2(\$sp))}.
+\end{itemize}
+
+The following list the possible forms of a numeric literal.
+
+\begin{itemize}
+    \item Integer: a sequence of digits of a given base.
+    A base can be specified with a 0\(b\) prefix, where \(b\) is a base specifier, one of:
+    \begin{itemize}
+        \item \texttt{b}: binary, base-2.
+        \item \texttt{d}: decimal, base-10, the default.
+        \item \texttt{o}: octal, base-8.
+        \item \texttt{t}: trinary, base-3.
+        \item \texttt{x}: hexadecimal, base-16.
+    \end{itemize}
+    E.g., \texttt{42}, \texttt{0xf5}.
+    \item Decimal integer: same as above, but contains a decimal point.
+    Bytes are inserted as either a float (32-bit) or double (64-bit).
+    E.g., \texttt{3.14}, \texttt{0xf2.e}.
+    \item Character literal: a character enclosed in apostrophes yields the character's ASCII value.
+    Escape sequences are also supported by using a backslash prefix.
+    E.g., \texttt{'a'}, \texttt{'\symbol{92}0'}, \texttt{'\symbol{92}n'}.
+\end{itemize}
+
+\subsection{Directives}
+
+Similar to pre-processor directives, these give commands to the compiler and do not relate to actual instructions.
+A directive is prefixed with a dot, and must be at the start of a line.
+
+\begin{longtable}{|c|l|l|}
+    \hline
+    \textbf{Directive} & \textbf{Syntax} & \textbf{Description} \\
+    \hline
+    \multicolumn{3}{|c|}{\makecell[c]{\textbf{Loading Data}\\%
+    These directives are for inserting data into memory in-place.\\%
+    Arguments have the same syntax as an \texttt{<imm>}, but may also be strings.\\%
+    Strings automatically insert a null character after it is closed.}} \\
+    \hline
+    Load Byte(s) & \texttt{.byte ...} & Load a sequence of 8-bit bytes into memory.  \\
+    \hline
+    Load Data & \texttt{.data ...} & Load a sequence of half-words (32-bit) into memory. \\
+    \hline
+    Load Word(s) & \texttt{.word ...} & Load a sequence of words (64-bit) into memory. \\
+    \hline
+\end{longtable}
 
 \end{document}
