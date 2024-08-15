@@ -14,6 +14,15 @@
 // get 64-bit word to word offset of `cpu_t *cpu`
 #define MEMREAD(OFFSET) dram_load(&cpu->bus.dram, 8 * (OFFSET), 64)
 
+// check if CPU is running
+#define CPU_RUNNING GET_BIT(REG(REG_FLAG), FLAG_IS_RUNNING)
+
+// stop CPU
+#define CPU_STOP CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
+
+// get error flag
+#define CPU_GET_ERROR ((REG(REG_FLAG) >> FLAG_ERR_OFFSET) & FLAG_ERR_MASK)
+
 // CPU data structure
 typedef struct cpu {
   uint64_t regs[REGISTERS];  // register store
@@ -34,7 +43,13 @@ void cpu_execute(cpu_t *cpu, uint64_t inst);
 // clears bit flag
 void cpu_start(cpu_t *cpu);
 
+// get the CPUs exit code
+uint32_t cpu_exit_code(const cpu_t *cpu);
+
 // print contents of all registers as hexadecimal
 void print_registers(const cpu_t *cpu);
+
+// print error details (doesn't print if no error)
+void print_error(const cpu_t *cpu, bool prefix);
 
 #endif

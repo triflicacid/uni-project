@@ -101,10 +101,12 @@ int main(int argc, char **argv) {
   // start processor
   cpu_start(&cpu);
 
+  print_error(&cpu, true);
+
   // print_registers(&cpu);
 
 #if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " process exited with code $ret=0x%llx\n", cpu.regs[REG_RET]);
+  printf(DEBUG_STR " process exited with code 0x%x\n", cpu_exit_code(&cpu));
 #endif
 
 cleanup:

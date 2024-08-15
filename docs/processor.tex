@@ -33,7 +33,7 @@ All registers are 64-bit.
 Register names are preceded by a dollar `\$' sign.
 
 \bigskip
-\begin{tabular}{|c|l|l|l|}
+\begin{longtable}{|c|l|l|l|}
     \hline
     \textbf{Symbol} & \textbf{Name} & \textbf{Bit} & \textbf{Description} \\
     \hline
@@ -45,12 +45,18 @@ Register names are preceded by a dollar `\$' sign.
     \hline
     \$fp & Frame Pointer &  & Point to the next byte beyond the last stack frame. \\
     \hline
-    \$flag & Flag Register & 6-64 & \\
+    \$flag & Flag Register & 8-64 & \\
     \cline{3-4}
-    & & 5 & \makecell[l]{Error status: 1=error, 0=ok.\\%
-    Indicates if exited gracefully.} \\
+    & & 5-7 & \makecell[l]{Error flag.\\%
+    \(\bullet\;\) 000: no error.\\%
+    \(\bullet\;\) 001: invalid opcode, opcode in \$ret.\\%
+    \(\bullet\;\) 010: segfault, address in \$ret.\\%
+    \(\bullet\;\) 011: register segfault, register offset in \$ret.\\%
+    \(\bullet\;\) 100: invalid syscall, opcode in \$ret.\\%
+    } \\
     \cline{3-4}
-    & & 4 & Execution status: 1=executing, 0=halted. \\
+    & & 4 & \makecell[l]{Execution status: 1=executing, 0=halted.\\%
+    Can be used to halt the processor.} \\
     \cline{3-4}
     & & 3 & \makecell[l]{Zero flag.\\%
     Indicates if register is zero.\\%
@@ -76,7 +82,7 @@ Register names are preceded by a dollar `\$' sign.
     \hline
     \$s1 -- \$s8 & Preserved GPRs &  & \makecell[l]{Register for general use.\\Values are preserved in stack frame.} \\
     \hline
-\end{tabular}
+\end{longtable}
 
 \section{Addressing Modes}
 

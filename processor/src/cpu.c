@@ -5,28 +5,30 @@
 #include "constants.h"
 #include "debug.h"
 
-// check if CPU is running
-#define CPU_RUNNING GET_BIT(REG(REG_FLAG), FLAG_IS_RUNNING)
-
-// stop CPU
-#define CPU_STOP CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
-
-// check if CPU has error flag set
-#define CPU_IS_ERROR GET_BIT(REG(REG_FLAG), FLAG_IS_ERROR)
-
-// halt CPU, raise error, and return RET
-#define CPU_RAISE_ERROR(RET) { \
-  CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING); \
-  SET_BIT(REG(REG_FLAG), FLAG_IS_ERROR); \
-  return RET; \
-}
-
 // set or clear zero flag given value
 #define CPU_SET_Z(VALUE) \
   ((VALUE) == 0 \
     ? SET_BIT(REG(REG_FLAG), FLAG_ZERO) \
     : CLEAR_BIT(REG(REG_FLAG), FLAG_ZERO) \
   )
+
+// calculate CMP flag (zero + 3), in local `uint8_t flag`
+// Z flag depends on RHS
+#define CALC_CMP_FLAG(LHS, RHS) { \
+    if ((LHS) < (RHS)) flag = CMP_LT; \
+    else if ((LHS) > (RHS)) flag = CMP_GT; \
+    else flag = CMP_NE; \
+    if ((LHS) == (RHS)) flag |= 0x1; \
+    if ((RHS) == 0) flag |= 0x8; \
+  }
+
+// halt CPU, raise error with CODE, write VAL to $ret, and return RET
+#define CPU_RAISE_ERROR(CODE, VAL, RET) { \
+  CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING); \
+  REG(REG_FLAG) |= (CODE & FLAG_ERR_MASK) << FLAG_ERR_OFFSET; \
+  REG(REG_RET) = VAL; \
+  return RET; \
+}
 
 // check: memory bounds
 static bool check_memory(uint32_t address) {
@@ -74,15 +76,15 @@ static uint64_t get_arg(cpu_t *cpu, uint64_t word, uint8_t pos, bool permit_imm)
       if (permit_imm) return data;
       break;
     case ARG_MEM:
-      if (!check_memory(data)) CPU_RAISE_ERROR(0)
+      if (!check_memory(data)) CPU_RAISE_ERROR(ERR_SEGFAULT, data, 0)
       return bus_load(&cpu->bus, data, 64);
     case ARG_REG:
-      if (!check_register(data)) CPU_RAISE_ERROR(0)
+      if (!check_register(data)) CPU_RAISE_ERROR(ERR_REG, data, 0)
       return REG(data);
     case ARG_REG_INDIRECT:
-      if (!check_register(data)) CPU_RAISE_ERROR(0)
+      if (!check_register(data)) CPU_RAISE_ERROR(ERR_REG, data, 0)
       data = REG(data) + (int32_t) data;
-      if (!check_memory(data)) CPU_RAISE_ERROR(0)
+      if (!check_memory(data)) CPU_RAISE_ERROR(ERR_SEGFAULT, data, 0)
       return bus_load(&cpu->bus, data, 64);
     default: ;
   }
@@ -90,7 +92,7 @@ static uint64_t get_arg(cpu_t *cpu, uint64_t word, uint8_t pos, bool permit_imm)
 #if DEBUG & DEBUG_ERRS
   printf(ERROR_STR " resolve <value>: unknown indicator bit battern 0x%x\n", indicator);
 #endif
-  CPU_RAISE_ERROR(0)
+  CPU_RAISE_ERROR(ERR_UNKNOWN, indicator, 0)
 }
 
 // given four compare bits in binary form `0bABBB` A = zero, BBB = cmp flag, return string repr
@@ -136,7 +138,7 @@ static void update_zero_flag(cpu_t *cpu, uint8_t reg) {
 static void exec_load(cpu_t *cpu, uint64_t inst) {
   // fetch register, check if in bounds
   uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
-  if (!check_register(reg)) CPU_RAISE_ERROR()
+  if (!check_register(reg)) CPU_RAISE_ERROR(ERR_REG, reg,)
 
   // fetch and resolve value, check if OK
   uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE, true);
@@ -156,7 +158,7 @@ static void exec_load(cpu_t *cpu, uint64_t inst) {
 static void exec_load_upper(cpu_t *cpu, uint64_t inst) {
   // fetch register, check if in bounds
   uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
-  if (!check_register(reg)) CPU_RAISE_ERROR()
+  if (!check_register(reg)) CPU_RAISE_ERROR(ERR_REG, reg,)
 
   // fetch and resolve value, check if OK
   uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE, true);
@@ -176,7 +178,7 @@ static void exec_load_upper(cpu_t *cpu, uint64_t inst) {
 static void exec_store(cpu_t *cpu, uint64_t inst) {
   // fetch register, check if in bounds
   uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
-  if (!check_register(reg)) CPU_RAISE_ERROR()
+  if (!check_register(reg)) CPU_RAISE_ERROR(ERR_REG, reg,)
 
   // fetch address, check if OK
   uint32_t addr = get_arg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE, true);
@@ -192,16 +194,6 @@ static void exec_store(cpu_t *cpu, uint64_t inst) {
   update_zero_flag(cpu, reg);
 }
 
-// calculate CMP flag (zero + 3), in local `uint8_t flag`
-// Z flag depends on RHS
-#define CALC_CMP_FLAG(LHS, RHS) { \
-    if ((LHS) < (RHS)) flag = CMP_LT; \
-    else if ((LHS) > (RHS)) flag = CMP_GT; \
-    else flag = CMP_NE; \
-    if ((LHS) == (RHS)) flag |= 0x1; \
-    if ((RHS) == 0) flag |= 0x8; \
-  }
-
 // cmp <reg> <value> -- compare register with value
 // e.g., `reg < value`
 static void exec_compare(cpu_t *cpu, uint64_t inst) {
@@ -210,7 +202,7 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
 
   // fetch register, check if OK
   uint8_t reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE + DATATYPE_SIZE);
-  if (!check_register(reg)) CPU_RAISE_ERROR()
+  if (!check_register(reg)) CPU_RAISE_ERROR(ERR_REG, reg,)
 
   // fetch and resolve value, check if OK
   uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE + DATATYPE_SIZE + ARG_REG_SIZE, true);
@@ -254,7 +246,7 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_ERRS
       printf(ERROR_STR " Unknown data type indicator: 0x%x\n", datatype);
 #endif
-      CPU_RAISE_ERROR()
+      CPU_RAISE_ERROR(ERR_UNKNOWN, datatype,)
   }
 
   // update flag bits in register
@@ -308,7 +300,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       printf("print_string)\n");
 #endif
       uint32_t addr = REG(REG_GPR);
-      if (!check_memory(addr)) CPU_RAISE_ERROR()
+      if (!check_memory(addr)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr,)
       fprintf(cpu->fp_out, "%s", (const char *) (cpu->bus.dram.mem + addr));
       break;
     }
@@ -341,7 +333,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       printf("read_string)\n");
 #endif
       uint32_t addr = REG(REG_GPR);
-      if (!check_memory(addr)) CPU_RAISE_ERROR()
+      if (!check_memory(addr)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr,)
       fgets((char *) (cpu->bus.dram.mem + addr), REG(REG_GPR + 1), cpu->fp_in);
 #if DEBUG & DEBUG_CPU
       printf("read_string: reading at most %llu bytes from 0x%x... read %lld bytes\n", REG(REG_GPR + 1), addr,
@@ -366,7 +358,8 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       printf("debug: print_mem)\n");
 #endif
       uint64_t addr = REG(REG_GPR), size = REG(REG_GPR + 1);
-      if (!check_memory(addr) || !check_memory(addr + size - 1)) CPU_RAISE_ERROR()
+      if (!check_memory(addr)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr,)
+      if (!check_memory(addr + size - 1)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr + size - 1,)
       fprintf(cpu->fp_out, "Mem(0x%llx:0x%llx) = { ", addr, addr + size - 1);
 
       for (uint32_t i = 0; i < size; i++) {
@@ -383,7 +376,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_ERRS
       printf(ERROR_STR " invokation of unknown syscall operation (%llu)\n", value);
 #endif
-      CPU_RAISE_ERROR()
+      CPU_RAISE_ERROR(ERR_SYSCALL, value,)
   }
 }
 
@@ -402,7 +395,7 @@ void cpu_init(cpu_t *cpu) {
 }
 
 uint64_t cpu_fetch(cpu_t *cpu) {
-  if (!check_memory(REG(REG_IP))) CPU_RAISE_ERROR(0)
+  if (!check_memory(REG(REG_IP))) CPU_RAISE_ERROR(ERR_SEGFAULT, REG(REG_IP), 0)
   return bus_load(&cpu->bus, REG(REG_IP), 64);
 }
 
@@ -477,14 +470,15 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_ERRS
       printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst);
 #endif
-      CPU_STOP;
+      CPU_RAISE_ERROR(ERR_OPCODE, opcode,)
   }
 }
 
 void cpu_start(cpu_t *cpu) {
-  // set running bit, clear error bit
+  // set running bit, clear error flag
   SET_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
-  CLEAR_BIT(REG(REG_FLAG), FLAG_IS_ERROR);
+  REG(REG_FLAG) &= ~(FLAG_ERR_MASK << FLAG_ERR_OFFSET);
+  print_registers(cpu);
 
 #if DEBUG & DEBUG_CPU
   uint32_t counter = 0;
@@ -501,7 +495,7 @@ void cpu_start(cpu_t *cpu) {
 
     // fetch instruction at instruction pointer
     inst = cpu_fetch(cpu);
-    if (CPU_IS_ERROR) break;
+    if (CPU_GET_ERROR) break;
 
 #if (DEBUG & DEBUG_CPU) && !(DEBUG & DEBUG_DRAM)
     printf("0x%llx\n", inst);
@@ -515,14 +509,13 @@ void cpu_start(cpu_t *cpu) {
   }
 
 #if DEBUG & DEBUG_CPU
-  printf(
-    DEBUG_STR ANSI_CYAN " halt bit set" ANSI_RESET ": terminating program after cycle %u with code %lli (0x%llx)\n",
-    counter, REG(REG_RET), REG(REG_RET));
-
-  if (CPU_IS_ERROR) {
-    printf(DEBUG_STR ANSI_CYAN " error bit set" ANSI_RESET ": terminated with error\n");
-  }
+  printf(DEBUG_STR ANSI_CYAN " halt bit set" ANSI_RESET ": terminating program after cycle %u\n", counter);
 #endif
+}
+
+uint32_t cpu_exit_code(const cpu_t *cpu) {
+  uint8_t error = CPU_GET_ERROR;
+  return error ? error : REG(REG_RET);
 }
 
 static char register_strings[][6] = {
@@ -550,5 +543,34 @@ void print_registers(const cpu_t *cpu) {
   // PGPRs
   for (i = 0; i < 8; i++) {
     fprintf(cpu->fp_out, "$s%i      = 0x%llx\n", i + 1, REG(REG_PGPR + i));
+  }
+}
+
+void print_error(const cpu_t *cpu, bool prefix) {
+  uint8_t error = CPU_GET_ERROR;
+
+  if (error == ERR_OK) {
+    return;
+  }
+
+  if (prefix) {
+    fprintf(cpu->fp_out, ERROR_STR " ");
+  }
+
+  switch (CPU_GET_ERROR) {
+    case ERR_OPCODE:
+      fprintf(cpu->fp_out, "E-OPCODE: invalid opcode 0x%llx (at $ip=%llx)\n", REG(REG_RET), REG(REG_IP));
+      break;
+    case ERR_SEGFAULT:
+      fprintf(cpu->fp_out, "E-SEGSEGV: segfault on access of 0x%llx\n", REG(REG_RET));
+      break;
+    case ERR_REG:
+      fprintf(cpu->fp_out, "E-UREG: segfault on access of register at +0x%llx\n", REG(REG_RET));
+      break;
+    case ERR_SYSCALL:
+      fprintf(cpu->fp_out, "E-SYSCALL: system call with unknown opcode 0x%llx\n", REG(REG_RET));
+      break;
+    default:
+      fprintf(cpu->fp_out, "E-UNKNOWN: unknown error, supplied data 0x%llx\n", REG(REG_RET));
   }
 }

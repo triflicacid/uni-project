@@ -28,13 +28,22 @@
 #define CMP_NA 0b1111
 
 #define FLAG_IS_RUNNING BIT4
-#define FLAG_IS_ERROR BIT5
 
 // get instruction pointer from the cpu pointer
 #define IP(CPU) ((CPU)->regs[REG_IP])
 
 // get the given register from `cpu_t *cpu`
 #define REG(OFF) (cpu->regs[OFF])
+
+// =============== ERROR FLAGS ===============
+#define FLAG_ERR_OFFSET 5
+#define FLAG_ERR_MASK 0x7
+#define ERR_OK 0b000
+#define ERR_OPCODE   0b001
+#define ERR_SEGFAULT 0b010
+#define ERR_REG      0b011
+#define ERR_SYSCALL  0b100
+#define ERR_UNKNOWN  0b111
 
 // =============== ARGUMENTS ===============
 #define ARG_IMM 0b00
