@@ -3,6 +3,14 @@
 #include <processor/src/constants.h>
 
 namespace assembler::instruction::transform {
+  void duplicate_reg(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
+    if (!instruction->args.empty() && instruction->args[1].get_type() != ArgumentType::Register) {
+      instruction->args.emplace_front(ArgumentType::Register, instruction->args[0].get_data());
+    }
+
+    instructions.push_back(instruction);
+  }
+
   void branch(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
     // original: "b $addr"
     // "load $ip, $addr"

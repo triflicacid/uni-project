@@ -95,6 +95,20 @@ static uint64_t get_arg(cpu_t *cpu, uint64_t word, uint8_t pos, bool permit_imm)
   CPU_RAISE_ERROR(ERR_UNKNOWN, indicator, 0)
 }
 
+// fetch `<reg> <reg> <value>`, return if OK
+static bool fetch_reg_reg_value(cpu_t *cpu, uint64_t inst, uint8_t *reg1, uint8_t *reg2, uint64_t *value) {
+  *reg1 = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(*reg1)) CPU_RAISE_ERROR(ERR_REG, *reg1, false)
+
+  *reg2 = get_arg_reg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
+  if (!check_register(*reg2)) CPU_RAISE_ERROR(ERR_REG, *reg2, false)
+
+  // fetch and resolve value, check if OK
+  *value = get_arg(cpu, inst, OP_HEADER_SIZE + 2 * ARG_REG_SIZE, true);
+
+  return CPU_RUNNING;
+}
+
 // given four compare bits in binary form `0bABBB` A = zero, BBB = cmp flag, return string repr
 static const char *cmp_bit_str(uint8_t bits) {
   switch (bits & 0xf) {
@@ -259,6 +273,75 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
 #endif
 }
 
+// not <reg> <reg>
+static void exec_not(cpu_t *cpu, uint64_t inst) {
+  // fetch register, check if OK
+  uint8_t reg_dest = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(reg_dest)) CPU_RAISE_ERROR(ERR_REG, reg_dest,)
+
+  uint8_t reg_src = get_arg_reg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
+  if (!check_register(reg_src)) CPU_RAISE_ERROR(ERR_REG, reg_src,)
+
+  // inverse source register, update flag
+  REG(reg_dest) = ~REG(reg_src);
+  update_zero_flag(cpu, reg_dest);
+}
+
+// and <reg> <reg> <value>
+static void exec_and(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
+
+  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value)) return;
+
+  REG(reg_dst) = REG(reg_src) & value;
+  update_zero_flag(cpu, reg_dst);
+}
+
+// or <reg> <reg> <value>
+static void exec_or(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
+
+  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value)) return;
+
+  REG(reg_dst) = REG(reg_src) | value;
+  update_zero_flag(cpu, reg_dst);
+}
+
+// xor <reg> <reg> <value>
+static void exec_xor(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
+
+  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value)) return;
+
+  REG(reg_dst) = REG(reg_src) ^ value;
+  update_zero_flag(cpu, reg_dst);
+}
+
+// shr <reg> <reg> <value>
+static void exec_shift_left(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
+
+  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value)) return;
+
+  REG(reg_dst) = REG(reg_src) << value;
+  update_zero_flag(cpu, reg_dst);
+}
+
+// shr <reg> <reg> <value>
+static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
+
+  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value)) return;
+
+  REG(reg_dst) = REG(reg_src) >> value;
+  update_zero_flag(cpu, reg_dst);
+}
+
 // syscall <value>
 static void exec_syscall(cpu_t *cpu, uint64_t inst) {
   // fetch and resolve value, check if OK
@@ -388,6 +471,12 @@ static void init_exec_map(void) {
   exec_map[OP_LOAD_UPPER] = exec_load_upper;
   exec_map[OP_STORE] = exec_store;
   exec_map[OP_COMPARE] = exec_compare;
+  exec_map[OP_NOT] = exec_not;
+  exec_map[OP_AND] = exec_and;
+  exec_map[OP_OR] = exec_or;
+  exec_map[OP_XOR] = exec_xor;
+  exec_map[OP_SHL] = exec_shift_left;
+  exec_map[OP_SHR] = exec_shift_right;
   exec_map[OP_SYSCALL] = exec_syscall;
 }
 
@@ -484,7 +573,6 @@ void cpu_start(cpu_t *cpu) {
   // set running bit, clear error flag
   SET_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
   REG(REG_FLAG) &= ~(FLAG_ERR_MASK << FLAG_ERR_OFFSET);
-  print_registers(cpu);
 
 #if DEBUG & DEBUG_CPU
   uint32_t counter = 0;

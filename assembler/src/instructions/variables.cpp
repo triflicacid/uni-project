@@ -36,16 +36,25 @@ namespace assembler::instruction {
     return nullptr;
   }
 
+  const std::deque reg_val = { ArgumentType::Register, ArgumentType::Value };
+  const std::deque reg_reg_val = { ArgumentType::Register, ArgumentType::Register, ArgumentType::Value };
+
   std::vector<Signature> signature_list = {
+    { "and", OP_AND, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
     { "b", 0x00, true, false, { { ArgumentType::Value } }, false, transform::branch },
     { "exit", 0x00, true, false, { { }, { ArgumentType::Value } }, false, transform::exit },
     { "jmp", 0x00, false, false, { { ArgumentType::Value } }, false, transform::jump },
-    { "loadu", OP_LOAD_UPPER, true, false, { { ArgumentType::Register, ArgumentType::Value } }, false, nullptr },
-    { "loadw", 0x00, true, false, { { ArgumentType::Register, ArgumentType::Value } }, true, transform::loadw },
-    { "load", OP_LOAD, true, false, { { ArgumentType::Register, ArgumentType::Value } }, false, nullptr },
+    { "loadu", OP_LOAD_UPPER, true, false, { reg_val }, false, nullptr },
+    { "loadw", 0x00, true, false, { reg_val }, true, transform::loadw },
+    { "load", OP_LOAD, true, false, { reg_val }, false, nullptr },
     { "nop", OP_NOP, false, false, { { } }, false, nullptr },
+    { "not", OP_NOT, true, false, { { ArgumentType::Register }, { ArgumentType::Register, ArgumentType::Register } }, false, transform::duplicate_reg },
+    { "or", OP_OR, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
+    { "shl", OP_SHL, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
+    { "shr", OP_SHR, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
     { "store", OP_STORE, true, false, { { ArgumentType::Register, ArgumentType::Address } }, false, nullptr },
     { "syscall", OP_SYSCALL, true, false, { { ArgumentType::Value } }, false, nullptr },
+    { "xor", OP_XOR, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
     { "zero", 0x00, true, false, { { ArgumentType::Register } }, false, transform::zero },
   };
 }

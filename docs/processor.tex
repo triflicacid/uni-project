@@ -261,6 +261,10 @@ Optional arguments are listed using square brackets \texttt{[optional]} versus m
     \hline
 \end{longtable}
 
+\textbf{Note} for all arithmetic and logical instructions with signature \texttt{<reg> <reg> <value>}, the first register is optional.
+If omitted, the supplied register is duplicated.
+That is \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
+
 \subsection{Pseudo-Instructions}
 
 These are instructions which are not necessary for full functionality, but are provided for usefulness.

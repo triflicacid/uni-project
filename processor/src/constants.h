@@ -99,6 +99,12 @@
 #define OP_LOAD_UPPER 0x02
 #define OP_STORE 0x03
 #define OP_COMPARE 0x4
+#define OP_NOT 0x10
+#define OP_AND 0x11
+#define OP_OR  0x12
+#define OP_XOR 0x13
+#define OP_SHR 0x14
+#define OP_SHL 0x15
 #define OP_SYSCALL 0x3f
 
 // if defined, behaviour is to halt on NOP
