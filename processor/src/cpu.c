@@ -252,7 +252,6 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
   // update flag bits in register
   REG(REG_FLAG) = (REG(REG_FLAG) & ~0xf) | (flag & 0xf);
 
-
 #if DEBUG & DEBUG_CPU
   printf(DEBUG_STR " cmp: datatype=%s (0x%x)\n", datatype_bit_str(datatype), datatype);
   printf(DEBUG_STR " cmp: register %i (0x%llx) vs 0x%llx = " ANSI_CYAN "%s\n" ANSI_RESET,
@@ -380,6 +379,18 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
   }
 }
 
+// map opcode to handler, which takes CPU and instruction word
+typedef void (*exec_t)(cpu_t *, uint64_t);
+static exec_t exec_map[OPCODE_MASK + 1] = {NULL};
+
+static void init_exec_map(void) {
+  exec_map[OP_LOAD] = exec_load;
+  exec_map[OP_LOAD_UPPER] = exec_load_upper;
+  exec_map[OP_STORE] = exec_store;
+  exec_map[OP_COMPARE] = exec_compare;
+  exec_map[OP_SYSCALL] = exec_syscall;
+}
+
 void cpu_init(cpu_t *cpu) {
   // set default file I/O handlers
   cpu->fp_out = stdout;
@@ -392,6 +403,11 @@ void cpu_init(cpu_t *cpu) {
 
   // clear memory
   dram_clear(&cpu->bus.dram);
+
+  // initialise execution map?
+  if (exec_map[OP_LOAD] == NULL) {
+    init_exec_map();
+  }
 }
 
 uint64_t cpu_fetch(cpu_t *cpu) {
@@ -411,6 +427,16 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
 #endif
       return;
     default: ;
+  }
+
+  // check that opcode exists
+  const exec_t handler = exec_map[opcode];
+
+  if (handler == NULL) {
+#if DEBUG & DEBUG_ERRS
+    printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst);
+#endif
+    CPU_RAISE_ERROR(ERR_OPCODE, opcode,)
   }
 
   // extract conditional test bits
@@ -450,28 +476,8 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
 #endif
   }
 
-  switch (opcode) {
-    case OP_LOAD:
-      exec_load(cpu, inst);
-      break;
-    case OP_LOAD_UPPER:
-      exec_load_upper(cpu, inst);
-      break;
-    case OP_STORE:
-      exec_store(cpu, inst);
-      break;
-    case OP_COMPARE:
-      exec_compare(cpu, inst);
-      break;
-    case OP_SYSCALL:
-      exec_syscall(cpu, inst);
-      break;
-    default:
-#if DEBUG & DEBUG_ERRS
-      printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst);
-#endif
-      CPU_RAISE_ERROR(ERR_OPCODE, opcode,)
-  }
+  // invoke instruction handle
+  handler(cpu, inst);
 }
 
 void cpu_start(cpu_t *cpu) {
