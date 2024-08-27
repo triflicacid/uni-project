@@ -4,7 +4,7 @@
 #include <util.hpp>
 
 int main() {
-  std::string str = "0";
+  std::string str = "-0.14";
   int i = 0;
   bool is_double;
   uint64_t value;

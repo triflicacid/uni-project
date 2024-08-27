@@ -317,7 +317,7 @@ namespace assembler::parser {
     auto dot = options.find('.');
 
     if (signature->expect_test) {
-      std::string str = dot == std::string::npos ? options.substr(0, dot) : options;
+      std::string str = dot == std::string::npos ? options : options.substr(0, dot);
 
       if (str.empty()) {
         instruction->include_test_bits();

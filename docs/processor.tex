@@ -126,6 +126,12 @@ The following values are used on the ISA specification:
 That is, the same mnemonic can have many argument signatures.
 Optional arguments are listed using square brackets \texttt{[optional]} versus mandatory arguments \texttt{<mandatory>}.
 
+\textbf{Note} for all arithmetic and logical instructions with signature \texttt{<reg> <reg> <value>}, the first register is optional.
+If omitted, the supplied register is duplicated.
+That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
+
+\textbf{Note} all arithmetic operations and the compare operation take a datatype.
+
 \begin{longtable}{|c|l|l|}
     \hline
     \textbf{Instruction} & \textbf{Syntax} & \textbf{Operation/Comments} \\
@@ -147,7 +153,8 @@ Optional arguments are listed using square brackets \texttt{[optional]} versus m
     \hline
     Store & \texttt{store <reg> <addr>} & \makecell[l]{Copy from register to memory.\\\texttt{Mem[\$addr] = Reg[\$reg]}} \\
     \hline \hline
-    \multicolumn{3}{|c|}{\textbf{Arithmetic}} \\
+    \multicolumn{3}{|c|}{\makecell[c]{\textbf{Arithmetic}\\%
+    All arithmmetic operations expect a datatype.}} \\
     \hline
     Add & \texttt{add <reg> <reg> <value>} & \makecell[l]{Add value to a register.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] + \$value}} \\
@@ -158,10 +165,10 @@ Optional arguments are listed using square brackets \texttt{[optional]} versus m
     Multiply & \texttt{mul <reg> <reg> <value>} & \makecell[l]{Multiply register by a value.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\times\) \$value}} \\
     \hline
-    Division & \texttt{div <reg> <reg> <value>} & \makecell[l]{Divide a register by a value.\\%
+    Division & \texttt{div <reg> <reg> <value>} & \makecell[l]{Divide a register by a value, store as double.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\div\) \$value}} \\
     \hline
-    Integer division & \texttt{idiv <reg> <reg> <value>} & \makecell[l]{Divide a register by a value, cast result to integer.\\%
+    Integer division & \texttt{idiv <reg> <reg> <value>} & \makecell[l]{Divide a register by a value, store as integer word.\\%
     \texttt{Reg[\$reg1] = \(\lfloor\) Reg[\$reg2] \(\div\) \$value \(\rfloor\)}} \\
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Branching}} \\
@@ -261,10 +268,6 @@ Optional arguments are listed using square brackets \texttt{[optional]} versus m
     \hline
 \end{longtable}
 
-\textbf{Note} for all arithmetic and logical instructions with signature \texttt{<reg> <reg> <value>}, the first register is optional.
-If omitted, the supplied register is duplicated.
-That is \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
-
 \subsection{Pseudo-Instructions}
 
 These are instructions which are not necessary for full functionality, but are provided for usefulness.
@@ -304,7 +307,7 @@ The first section of the table refers to the `header'.
     \hline
 \end{tabular}
 
-\paragraph{Data-Type Inidicator}
+\paragraph{Data-Type Indicator}
 Some instructions have a field to specify the data-type of the data being operated on.
 These bits are after the ordinary header, and are as follows:
 
@@ -326,6 +329,10 @@ These bits are after the ordinary header, and are as follows:
     1 & 0 & 1 & d & 64-bit double. \\
     \hline
 \end{tabular}
+
+\bigskip
+\textbf{Note} for arithmetic operations, the last argument is always considered a 32-bit signed integer or float.
+That is, in `add.u \$r1, -75`, `\$r1` is assumed to hold an unsigned 64-bit integer, but `-75` is a 32-bit signed integer, while the result also be an unsigned 64-bit integer.
 
 \section{Calling Convention}
 

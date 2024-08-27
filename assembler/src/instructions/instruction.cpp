@@ -108,7 +108,7 @@ namespace assembler::instruction {
   }
 
   void InstructionBuilder::data_type(uint8_t bits) {
-    write(3, bits & 0x3);
+    write(3, bits & 0x7);
   }
 
   void InstructionBuilder::arg_reg(uint8_t reg, bool as_value) {

@@ -154,6 +154,7 @@ static bool base_char(char ch, uint8_t &base) {
       return true;
     case 't':
       base = 3;
+      return true;
     case 'd':
       base = 10;
       return true;
@@ -229,15 +230,14 @@ bool parse_number(const std::string &string, int &index, uint64_t &value, bool &
     return false;
   }
 
-  // negate value if necessary
-  if (neg) {
-    value *= -1;
-  }
-
-  // if double, add dp portion and transfer over
+  // negate value if required
+  // also: if double, add dp portion and transfer over
   if (is_double) {
     decimal_portion += (double) value;
+    if (neg) decimal_portion *= -1;
     value = *(uint64_t *) &decimal_portion;
+  } else if (neg) {
+    value *= -1;
   }
 
   return true;

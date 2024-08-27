@@ -105,6 +105,11 @@
 #define OP_XOR 0x13
 #define OP_SHR 0x14
 #define OP_SHL 0x15
+#define OP_ADD 0x20
+#define OP_SUB 0x21
+#define OP_MUL 0x22
+#define OP_DIV 0x23
+#define OP_IDIV 0x24
 #define OP_SYSCALL 0x3f
 
 // if defined, behaviour is to halt on NOP
