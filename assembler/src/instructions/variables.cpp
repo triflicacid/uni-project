@@ -19,8 +19,8 @@ namespace assembler::instruction {
   std::map<std::string, uint8_t> datatype_postfix_map = {
     { "hu", DATATYPE_U32 },
     { "u", DATATYPE_U64 },
-    { "hs", DATATYPE_S32 },
-    { "s", DATATYPE_S64 },
+    { "hi", DATATYPE_S32 },
+    { "i", DATATYPE_S64 },
     { "f", DATATYPE_F },
     { "d", DATATYPE_D }
   };

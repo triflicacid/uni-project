@@ -139,8 +139,8 @@ static char *datatype_bit_str(uint8_t bits) {
   switch (bits) {
     case DATATYPE_U32: return "hu";
     case DATATYPE_U64: return "u";
-    case DATATYPE_S32: return "hs";
-    case DATATYPE_S64: return "s";
+    case DATATYPE_S32: return "hi";
+    case DATATYPE_S64: return "i";
     case DATATYPE_F: return "f";
     case DATATYPE_D: return "d";
     default: return '\0';
