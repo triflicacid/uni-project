@@ -1,4 +1,4 @@
-load $r1, 10
-mul $r1, 3
+load $r1, 5
+mod $r1, 2
 syscall 1
 exit

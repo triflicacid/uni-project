@@ -342,7 +342,7 @@ static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
   uint64_t value, result;\
   if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, DATATYPE_SIZE, datatype == DATATYPE_D))\
     return;\
-  DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: ", datatype_bit_str(datatype), datatype)\
+  DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: ")\
   switch (datatype) {\
     case DATATYPE_U64: {\
       int32_t *rhs = (int32_t *) &value;\
@@ -409,6 +409,23 @@ static void exec_mul(cpu_t *cpu, uint64_t inst) {
 // div <reg> <reg> <value>
 static void exec_div(cpu_t *cpu, uint64_t inst) {
   ARITH_OPERATION(/,)
+}
+
+// mod <reg> <reg> <value>
+static void exec_mod(cpu_t *cpu, uint64_t inst) {
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
+
+  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, 0, false))
+    return;
+
+  int64_t *lhs = (int64_t *) &REG(reg_src);
+  int32_t *rhs = (int32_t *) &value;
+  int64_t result = *lhs % *rhs;
+
+  DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: %lli mod %i = %lli\n", *lhs, *rhs, result);
+  REG(reg_dst) = result;
+  update_zero_flag(cpu, reg_dst);
 }
 
 // syscall <value>
@@ -544,6 +561,7 @@ static void init_exec_map(void) {
   exec_map[OP_SUB] = exec_sub;
   exec_map[OP_MUL] = exec_mul;
   exec_map[OP_DIV] = exec_div;
+  exec_map[OP_MOD] = exec_mod;
   exec_map[OP_SYSCALL] = exec_syscall;
 }
 

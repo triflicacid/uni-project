@@ -169,6 +169,7 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\div\) \$value}} \\
     \hline
     Modulo & \texttt{mod <reg> <reg> <value>} & \makecell[l]{Calculate the remainder when dividing a register by a value.\\%
+    The register is treated as a signed word, the value as a signed half-word.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\mod\) \$value}} \\
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Branching}} \\
