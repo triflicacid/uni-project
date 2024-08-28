@@ -154,7 +154,7 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     Store & \texttt{store <reg> <addr>} & \makecell[l]{Copy from register to memory.\\\texttt{Mem[\$addr] = Reg[\$reg]}} \\
     \hline \hline
     \multicolumn{3}{|c|}{\makecell[c]{\textbf{Arithmetic}\\%
-    All arithmmetic operations expect a datatype.}} \\
+    All arithmmetic operations, bar \texttt{mod}, expect a datatype.}} \\
     \hline
     Add & \texttt{add <reg> <reg> <value>} & \makecell[l]{Add value to a register.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] + \$value}} \\
@@ -168,8 +168,8 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     Division & \texttt{div <reg> <reg> <value>} & \makecell[l]{Divide a register by a value, store as double.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\div\) \$value}} \\
     \hline
-    Integer division & \texttt{idiv <reg> <reg> <value>} & \makecell[l]{Divide a register by a value, store as integer word.\\%
-    \texttt{Reg[\$reg1] = \(\lfloor\) Reg[\$reg2] \(\div\) \$value \(\rfloor\)}} \\
+    Modulo & \texttt{mod <reg> <reg> <value>} & \makecell[l]{Calculate the remainder when dividing a register by a value.\\%
+    \texttt{Reg[\$reg1] = Reg[\$reg2] \(\mod\) \$value}} \\
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Branching}} \\
     \hline
@@ -331,8 +331,14 @@ These bits are after the ordinary header, and are as follows:
 \end{tabular}
 
 \bigskip
-\textbf{Note} for arithmetic operations, the last argument is always considered a 32-bit signed integer or float.
-That is, in `add.u \$r1, -75`, `\$r1` is assumed to hold an unsigned 64-bit integer, but `-75` is a 32-bit signed integer, while the result also be an unsigned 64-bit integer.
+Datatypes may be interpreted slightly differently, depending on the instruction.
+
+\begin{itemize}
+    \item Arithmetic operations: the datatype refers to the type of the first data to be operated on.
+    The last argument is always considered a 32-bit signed integer or float.
+    That is, in \texttt{add.u \$r1, -75}, \texttt{\$r1} is assumed to hold an unsigned 64-bit integer, but \texttt{-75} is a 32-bit signed integer, while the result also be an unsigned 64-bit integer.
+
+\end{itemize}
 
 \section{Calling Convention}
 
