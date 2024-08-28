@@ -1,4 +1,3 @@
-load $r1, 5
-mod $r1, 2
-syscall 1
+sub $sp, 16
+syscall 102
 exit

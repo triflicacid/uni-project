@@ -52,4 +52,7 @@ void print_registers(const cpu_t *cpu);
 // print error details (doesn't print if no error)
 void print_error(const cpu_t *cpu, bool prefix);
 
+// print contents of stack as hexadecimal bytes
+void print_stack(const cpu_t *cpu);
+
 #endif

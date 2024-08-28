@@ -211,8 +211,8 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     \texttt{Mem[Reg[sp]] = \$value}\\%
     \texttt{Reg[sp] += 4}} \\
     \hline
-    Push Long & \texttt{pushl <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Push a 64-bit value onto the stack.\\%
+    Push Word & \texttt{pushw <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
+    Push a 64-bit word onto the stack.\\%
     \texttt{push \$value[:32]}\\%
     \texttt{push \$value[32:]}} \\
     \hline
@@ -221,8 +221,8 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     \texttt{sub sp, 4}\\%
     If register: \texttt{load \$reg, (sp)}} \\
     \hline
-    Pop Long & \texttt{popl [reg]} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Pop a 64-bit value from the stack, load into register if provided.\\%
+    Pop Word & \texttt{popw [reg]} & \makecell[l]{\textit{Pseudo-instruction}\\%
+    Pop a 64-bit word from the stack, load into register if provided.\\%
     \texttt{sub sp, 8}\\%
     If register: \texttt{loadl \$reg, (sp)}} \\
     \hline \hline
@@ -449,6 +449,8 @@ Optionally, each read arguments from general-purpose registers \texttt{r1} onwar
     \hline
     print\_mem & 101 & \makecell[l]{\texttt{\$r1} = start address\\%
     \texttt{\$r2} = segment length} & Print hexadecimal bytes of memory segment. & \textit{None} \\
+    \hline
+    print\_stack & 102 & \textit{None} & Print bytes of the stack. & \textit{None} \\
     \hline
 \end{longtable}
 

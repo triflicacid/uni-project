@@ -81,6 +81,7 @@
 
 #define SYSCALL_PRINT_REGS   100
 #define SYSCALL_PRINT_MEM    101
+#define SYSCALL_PRINT_STACK  102
 
 // =============== OPERATIONS ===============
 #define OPCODE_MASK 0x3f

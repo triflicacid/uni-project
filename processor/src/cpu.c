@@ -533,11 +533,17 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       fprintf(cpu->fp_out, "}");
       break;
     }
+    case SYSCALL_PRINT_STACK:
+#if DEBUG & DEBUG_CPU
+      printf("debug: print_stack)\n");
+#endif
+      print_stack(cpu);
+      break;
     default:
 #if DEBUG & DEBUG_CPU
       printf("unknown)\n");
 #endif
-      ERR_PRINT(ERROR_STR " invocation of unknown syscall operation (%llu)\n", value)
+      ERR_PRINT("invocation of unknown syscall operation (%llu)\n", value)
       CPU_RAISE_ERROR(ERR_SYSCALL, value,)
   }
 }
@@ -715,6 +721,21 @@ void print_registers(const cpu_t *cpu) {
   for (i = 0; i < 8; i++) {
     fprintf(cpu->fp_out, "$s%i      = 0x%llx\n", i + 1, REG(REG_PGPR + i));
   }
+}
+
+void print_stack(const cpu_t *cpu) {
+  uint64_t size = DRAM_SIZE - REG(REG_SP);
+  fprintf(cpu->fp_out, "----- STACK : %llu bytes -----\nbottom = 0x%llx = $sp\n", size, REG(REG_SP));
+
+  for (uint64_t addr = REG(REG_SP); addr < DRAM_SIZE;) {
+    for (; addr < DRAM_SIZE; addr += sizeof(uint64_t)) {
+      fprintf(cpu->fp_out, "0x%02x ", cpu->bus.dram.mem[addr]);
+    }
+
+    fprintf(cpu->fp_out, "\n");
+  }
+
+  fprintf(cpu->fp_out, "top = 0x%x\n", DRAM_SIZE - 1);
 }
 
 void print_error(const cpu_t *cpu, bool prefix) {
