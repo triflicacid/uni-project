@@ -1,4 +1,4 @@
-loadw $r1, 3.14159
-add.d $r1, 1.0
-syscall 3
+load $r1, 10
+mul $r1, 3
+syscall 1
 exit

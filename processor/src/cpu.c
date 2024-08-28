@@ -36,7 +36,7 @@ static bool check_memory(uint32_t address) {
   bool ok = address < DRAM_SIZE;
 
   if (!ok) {
-    printf(ERROR_STR " SEGFAULT: address 0x%x is out of bounds\n", address);
+    ERR_PRINT("SEGFAULT: address 0x%x is out of bounds\n", address)
   }
 
   return ok;
@@ -51,7 +51,7 @@ static bool check_register(uint8_t reg) {
   bool ok = reg < REGISTERS;
 
   if (!ok) {
-    printf(ERROR_STR " SEGFAULT: register %i is out of bounds\n", reg);
+    ERR_PRINT("SEGFAULT: register %i is out of bounds\n", reg)
   }
 
   return ok;
@@ -97,9 +97,7 @@ static uint64_t get_arg(cpu_t *cpu, uint64_t word, uint8_t pos, bool permit_imm,
     default: ;
   }
 
-#if DEBUG & DEBUG_ERRS
-  printf(ERROR_STR " resolve <value>: unknown indicator bit pattern 0x%x\n", indicator);
-#endif
+  ERR_PRINT("resolve <value>: unknown indicator bit pattern 0x%x\n", indicator)
   CPU_RAISE_ERROR(ERR_UNKNOWN, indicator, 0)
 }
 
@@ -152,10 +150,8 @@ static char *datatype_bit_str(uint8_t bits) {
 static void update_zero_flag(cpu_t *cpu, uint8_t reg) {
   CPU_SET_Z(REG(reg));
 
-#if DEBUG & DEBUG_FLAGS
-  printf(DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register %i (0x%llx) : %s\n" ANSI_RESET, reg, REG(reg),
-         GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR");
-#endif
+  DEBUG_FLAGS_PRINT(DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register %i (0x%llx) : %s\n" ANSI_RESET, reg, REG(reg),
+         GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR")
 }
 
 // load <reg> <value> -- load value into register
@@ -171,10 +167,7 @@ static void exec_load(cpu_t *cpu, uint64_t inst) {
   // assign value to register
   REG(reg) = value;
 
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " load: load value 0x%llx into register %i\n", value, reg);
-#endif
-
+  DEBUG_CPU_PRINT(DEBUG_STR " load: load value 0x%llx into register %i\n", value, reg)
   update_zero_flag(cpu, reg);
 }
 
@@ -191,10 +184,7 @@ static void exec_load_upper(cpu_t *cpu, uint64_t inst) {
   // store value in register's upper 32 bits
   ((uint32_t *) &REG(reg))[1] = value;
 
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " loadu: load value 0x%llx into register %i's upper half\n", value, reg);
-#endif
-
+  DEBUG_CPU_PRINT(DEBUG_STR " loadu: load value 0x%llx into register %i's upper half\n", value, reg)
   update_zero_flag(cpu, reg);
 }
 
@@ -211,10 +201,7 @@ static void exec_store(cpu_t *cpu, uint64_t inst) {
   // store in memory at address
   bus_store(&cpu->bus, addr, 64, REG(reg));
 
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " store: copy register %i (0x%llx) to address 0x%x\n", reg, REG(reg), addr);
-#endif
-
+  DEBUG_CPU_PRINT(DEBUG_STR " store: copy register %i (0x%llx) to address 0x%x\n", reg, REG(reg), addr)
   update_zero_flag(cpu, reg);
 }
 
@@ -267,20 +254,16 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
     }
     break;
     default:
-#if DEBUG & DEBUG_ERRS
-      printf(ERROR_STR " Unknown data type indicator: 0x%x\n", datatype);
-#endif
+      ERR_PRINT("unknown data type indicator: 0x%x\n", datatype)
       CPU_RAISE_ERROR(ERR_UNKNOWN, datatype,)
   }
 
   // update flag bits in register
   REG(REG_FLAG) = (REG(REG_FLAG) & ~0xf) | (flag & 0xf);
 
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " cmp: datatype=%s (0x%x)\n", datatype_bit_str(datatype), datatype);
-  printf(DEBUG_STR " cmp: register %i (0x%llx) vs 0x%llx = " ANSI_CYAN "%s\n" ANSI_RESET,
+  DEBUG_CPU_PRINT(DEBUG_STR " cmp: datatype=%s (0x%x)\n", datatype_bit_str(datatype), datatype);
+  DEBUG_CPU_PRINT(DEBUG_STR " cmp: register %i (0x%llx) vs 0x%llx = " ANSI_CYAN "%s\n" ANSI_RESET,
          reg, REG(reg), value, cmp_bit_str(flag));
-#endif
 }
 
 // not <reg> <reg>
@@ -352,85 +335,80 @@ static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
   update_zero_flag(cpu, reg_dst);
 }
 
+// macro for arithmetic operation
+#define ARITH_OPERATION(OPERATOR, INJECT) \
+  uint8_t datatype = (inst >> OP_HEADER_SIZE) & 0x7;\
+  uint8_t reg_src, reg_dst;\
+  uint64_t value, result;\
+  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, DATATYPE_SIZE, datatype == DATATYPE_D))\
+    return;\
+  DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: ", datatype_bit_str(datatype), datatype)\
+  switch (datatype) {\
+    case DATATYPE_U64: {\
+      int32_t *rhs = (int32_t *) &value;\
+      result = REG(reg_src) OPERATOR *rhs;\
+      DEBUG_CPU_PRINT("%llu " #OPERATOR " %i = %llu\n", value, *rhs, result)\
+      break;\
+    }\
+    case DATATYPE_U32: {\
+      uint32_t *lhs = (uint32_t *) &REG(reg_src);\
+      int32_t *rhs = (int32_t *) &value;\
+      result = *lhs OPERATOR *rhs;\
+      DEBUG_CPU_PRINT("%u " #OPERATOR " %i = %llu\n", *lhs, *rhs, result)\
+    }\
+    break;\
+    case DATATYPE_S64: {\
+      int64_t *lhs = (int64_t *) &REG(reg_src);\
+      int32_t *rhs = (int32_t *) &value;\
+      int64_t res = *lhs OPERATOR *rhs;\
+      result = *(uint64_t *) &res;\
+      DEBUG_CPU_PRINT("%lli " #OPERATOR " %i = %lli\n", *lhs, *rhs, res)\
+    }\
+    break;\
+    case DATATYPE_S32: {\
+      int32_t *lhs = (int32_t *) &REG(reg_dst), *rhs = (int32_t *) &value, res = *lhs + *rhs;\
+      result = *(uint64_t *) &res;\
+      DEBUG_CPU_PRINT("%i " #OPERATOR " %i = %i\n", *lhs, *rhs, res)\
+    }\
+    break;\
+    case DATATYPE_F: {\
+      float *lhs = (float *) &REG(reg_dst), *rhs = (float *) &value, res = *lhs OPERATOR *rhs;\
+      result = *(uint64_t *) &res;\
+      DEBUG_CPU_PRINT("%f " #OPERATOR " %f = %f\n", *lhs, *rhs, res)\
+    }\
+    break;\
+    case DATATYPE_D: {\
+      double *lhs = (double *) &REG(reg_dst), *rhs = (double *) &value, res = *lhs OPERATOR *rhs;\
+      result = *(uint64_t *) &res;\
+      DEBUG_CPU_PRINT("%lf " #OPERATOR " %lf = %lf\n", *lhs, *rhs, res)\
+    }\
+    break;\
+    default:\
+      ERR_PRINT("unknown data type indicator: 0x%x\n", datatype)\
+      CPU_RAISE_ERROR(ERR_UNKNOWN, datatype,)\
+  }\
+  INJECT\
+  REG(reg_dst) = result;\
+  update_zero_flag(cpu, reg_dst);
+
 // add <reg> <reg> <value>
 static void exec_add(cpu_t *cpu, uint64_t inst) {
-  // fetch data type bits
-  uint8_t datatype = (inst >> OP_HEADER_SIZE) & 0x7;
-
-  uint8_t reg_src, reg_dst;
-  uint64_t value;
-
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, DATATYPE_SIZE, datatype == DATATYPE_D))
-    return;
-
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR "Datatype: %s (0x%x)\nOperation: ", datatype_bit_str(datatype), datatype);
-#endif
-
-  uint64_t result;
-
-  switch (datatype) {
-    case DATATYPE_U64: {
-      int32_t *rhs = (int32_t *) &value;
-      result = REG(reg_src) + *rhs;
-#if DEBUG & DEBUG_CPU
-      printf("%llu + %i = %llu\n", value, *rhs, result);
-#endif
-      break;
-    }
-    case DATATYPE_U32: {
-      uint32_t *lhs = (uint32_t *) &REG(reg_src);
-      int32_t *rhs = (int32_t *) &value;
-      result = *lhs + *rhs;
-#if DEBUG & DEBUG_CPU
-      printf("%u + %i = %llu\n", *lhs, *rhs, result);
-#endif
-    }
-    break;
-    case DATATYPE_S64: {
-      int64_t *lhs = (int64_t *) &REG(reg_src);
-      int32_t *rhs = (int32_t *) &value;
-      int64_t res = *lhs + *rhs;
-      result = *(uint64_t *) &res;
-#if DEBUG & DEBUG_CPU
-      printf("%lli + %i = %lli\n", *lhs, *rhs, res);
-#endif
-    }
-    break;
-    case DATATYPE_S32: {
-      int32_t *lhs = (int32_t *) &REG(reg_dst), *rhs = (int32_t *) &value, res = *lhs + *rhs;
-      value = *(uint64_t *) &res;
-#if DEBUG & DEBUG_CPU
-      printf("%i + %i = %i\n", *lhs, *rhs, res);
-#endif
-    }
-    break;
-    case DATATYPE_F: {
-      float *lhs = (float *) &REG(reg_dst), *rhs = (float *) &value, res = *lhs + *rhs;
-      value = *(uint64_t *) &res;
-#if DEBUG & DEBUG_CPU
-      printf("%f + %f = %f\n", *lhs, *rhs, res);
-#endif
-    }
-    break;
-    case DATATYPE_D: {
-      double *lhs = (double *) &REG(reg_dst), *rhs = (double *) &value, res = *lhs + *rhs;
-      value = *(uint64_t *) &res;
-#if DEBUG & DEBUG_CPU
-      printf("%lf + %lf = %lf\n", *lhs, *rhs, res);
-#endif
-    }
-    break;
-    default:
-#if DEBUG & DEBUG_ERRS
-      printf(ERROR_STR " Unknown data type indicator: 0x%x\n", datatype);
-#endif
-    CPU_RAISE_ERROR(ERR_UNKNOWN, datatype,)
+  ARITH_OPERATION(+,)
 }
 
-  // store result in destination register and update zero flag
-  REG(reg_dst) = value;
-  update_zero_flag(cpu, reg_dst);
+// sub <reg> <reg> <value>
+static void exec_sub(cpu_t *cpu, uint64_t inst) {
+  ARITH_OPERATION(-,)
+}
+
+// mul <reg> <reg> <value>
+static void exec_mul(cpu_t *cpu, uint64_t inst) {
+  ARITH_OPERATION(*,)
+}
+
+// div <reg> <reg> <value>
+static void exec_div(cpu_t *cpu, uint64_t inst) {
+  ARITH_OPERATION(/,)
 }
 
 // syscall <value>
@@ -439,9 +417,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
   uint64_t value = get_arg(cpu, inst, OP_HEADER_SIZE, true, false);
   if (!CPU_RUNNING) return;
 
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " syscall: invoke operation %llu (", value);
-#endif
+  DEBUG_CPU_PRINT(DEBUG_STR " syscall: invoke operation %llu (", value)
 
   switch (value) {
     case SYSCALL_PRINT_INT:
@@ -508,10 +484,8 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       uint32_t addr = REG(REG_GPR);
       if (!check_memory(addr)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr,)
       fgets((char *) (cpu->bus.dram.mem + addr), REG(REG_GPR + 1), cpu->fp_in);
-#if DEBUG & DEBUG_CPU
-      printf("read_string: reading at most %llu bytes from 0x%x... read %lld bytes\n", REG(REG_GPR + 1), addr,
-             strlen((char *) (cpu->bus.dram.mem + addr)));
-#endif
+      DEBUG_CPU_PRINT(DEBUG_STR " read_string: reading at most %llu bytes from 0x%x... read %lld bytes\n", REG(REG_GPR + 1), addr,
+             strlen((char *) (cpu->bus.dram.mem + addr)))
       break;
     }
     case SYSCALL_EXIT:
@@ -546,9 +520,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_CPU
       printf("unknown)\n");
 #endif
-#if DEBUG & DEBUG_ERRS
-      printf(ERROR_STR " invokation of unknown syscall operation (%llu)\n", value);
-#endif
+      ERR_PRINT(ERROR_STR " invocation of unknown syscall operation (%llu)\n", value)
       CPU_RAISE_ERROR(ERR_SYSCALL, value,)
   }
 }
@@ -569,6 +541,9 @@ static void init_exec_map(void) {
   exec_map[OP_SHL] = exec_shift_left;
   exec_map[OP_SHR] = exec_shift_right;
   exec_map[OP_ADD] = exec_add;
+  exec_map[OP_SUB] = exec_sub;
+  exec_map[OP_MUL] = exec_mul;
+  exec_map[OP_DIV] = exec_div;
   exec_map[OP_SYSCALL] = exec_syscall;
 }
 
@@ -604,7 +579,7 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
   switch (opcode) {
     case OP_NOP:
 #ifdef HALT_ON_NOP
-      CPU_STOP;
+      CPU_STOP
 #endif
       return;
     default: ;
@@ -614,9 +589,7 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
   const exec_t handler = exec_map[opcode];
 
   if (handler == NULL) {
-#if DEBUG & DEBUG_ERRS
-    printf(ERROR_STR " Unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst);
-#endif
+    ERR_PRINT("unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst)
     CPU_RAISE_ERROR(ERR_OPCODE, opcode,)
   }
 
@@ -628,9 +601,7 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
     // extract cmp bits from both the instruction and the flag register
     uint8_t flag_bits = REG(REG_FLAG) & FLAG_CMP_BITS;
 
-#if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR "\tConditional test: %s (0x%x) ... ", cmp_bit_str(test_bits), test_bits);
-#endif
+    DEBUG_CPU_PRINT(DEBUG_STR " conditional test: %s (0x%x) ... ", cmp_bit_str(test_bits), test_bits)
 
     // special case for [N]Z test
     if (test_bits & FLAG_ZERO) {
@@ -668,16 +639,14 @@ void cpu_start(cpu_t *cpu) {
 
 #if DEBUG & DEBUG_CPU
   uint32_t counter = 0;
-  printf(DEBUG_STR " start cpu; commencing fetch-execute cycle...\n");
+  DEBUG_CPU_PRINT(DEBUG_STR " start cpu; commencing fetch-execute cycle...\n");
 #endif
 
   // fetch-execute cycle until halt
   uint64_t inst;
 
   while (CPU_RUNNING) {
-#if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, inst=", counter++, REG(REG_IP));
-#endif
+    DEBUG_CPU_PRINT(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, inst=", counter++, REG(REG_IP));
 
     // fetch instruction at instruction pointer
     inst = cpu_fetch(cpu);
@@ -694,9 +663,7 @@ void cpu_start(cpu_t *cpu) {
     cpu_execute(cpu, inst);
   }
 
-#if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR ANSI_CYAN " halt bit set" ANSI_RESET ": terminating program after cycle %u\n", counter);
-#endif
+  DEBUG_CPU_PRINT(DEBUG_STR ANSI_CYAN " halt bit set" ANSI_RESET ": terminating program after cycle %u\n", counter)
 }
 
 uint32_t cpu_exit_code(const cpu_t *cpu) {
