@@ -26,6 +26,8 @@ namespace assembler::instruction {
   /** Given mnemonic, return signature. Extract options and assign to second argument. */
   Signature *find_signature(const std::string &mnemonic, std::string &options);
 
+  Signature *find_signature(const std::string &mnemonic);
+
   /** Map conditional postfix to bits. */
   extern std::map<std::string, uint8_t> conditional_postfix_map;
 

@@ -36,6 +36,16 @@ namespace assembler::instruction {
     return nullptr;
   }
 
+  Signature *find_signature(const std::string &mnemonic) {
+    for (auto &signature : signature_list) {
+      if (starts_with(mnemonic, signature.mnemonic)) {
+        return &signature;
+      }
+    }
+
+    return nullptr;
+  }
+
   const std::deque reg_val = { ArgumentType::Register, ArgumentType::Value };
   const std::deque reg_reg_val = { ArgumentType::Register, ArgumentType::Register, ArgumentType::Value };
   std::vector<Signature> signature_list = {

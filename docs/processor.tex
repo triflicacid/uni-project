@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[10pt]{article}
 \usepackage[margin=0.75in]{geometry}
 \usepackage{makecell}
 \usepackage{longtable}
@@ -200,10 +200,10 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     Exclusive Or & \texttt{xor <reg> <reg> <value>} & \makecell[l]{Bitwise exclusive-OR between register and value.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\oplus\) \$value}} \\
     \hline
-    Logical Right Shift & \texttt{shr <reg> <reg> <value>} & \makecell[l]{Logically shift the register right an amount.\\%
+    Right Shift & \texttt{shr <reg> <reg> <value>} & \makecell[l]{Logically shift the register right an amount.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\gg\) \$value}} \\
     \hline
-    Logical Left Shift & \texttt{shl <reg> <reg> <value>} & \makecell[l]{Logically shift the register left an amount.\\%
+    Left Shift & \texttt{shl <reg> <reg> <value>} & \makecell[l]{Logically shift the register left an amount.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\ll\) \$value}} \\
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Stack}} \\
@@ -222,7 +222,7 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     \texttt{loadw \$r1, <value>}\\%
     \texttt{store \$r1, (\$sp)}} \\
     \hline
-    Pop & \multicolumn{2}{|l|}{\makecell[l]{The pop operation is not implemented due to its simplistic nature.\\%
+    Pop & \multicolumn{2}{l|}{\makecell[l]{The pop operation is not implemented due to its simplistic nature.\\%
     I.e., to pop a word from the stack:\\%
     \texttt{sub \$sp, 8}\\%
     And to store it in a register:\\%
@@ -233,27 +233,8 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     Function Call & \texttt{call <value>} & \makecell[l]{Call procedure at location \texttt{value}.\\%
     More complex than \texttt{load ip, \$value} as pushes stack frame.} \\
     \hline
-    Store Arguments & \texttt{stargs <value> <value> ...} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Push all argument values onto the stack.\\%
-    Useful shorthand for function call.\\%
-    \texttt{push \$value1}\\%
-    ...\\%
-    \texttt{push \$value\(n\)}\\%
-    \texttt{push \(n\)}\\%
-    \textbf{Note} assembler caches this \(n\).} \\
-    \hline
-    No Arguments & \texttt{noargs} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Tells assembler that the next function call expects no arguments.\\%
-    \texttt{push 0}\\%
-    \textbf{Note} caches \(n = 0\).} \\
-    \hline
-    Load Argument & \texttt{ldarg <reg> \(i\)} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Load the \(i\)th argument (assuming all 32-bit) into the register.\\%
-    \texttt{load \$reg, \(off\)(fp)}\\%
-    \textbf{Note} see ``retrieving arguments'' for \(off\) calculation.\\%
-    \textbf{Note} number of arguments, \(n\), is cached by the assembler.} \\
-    \hline
-    Return & \texttt{ret} & Return from function call. \\
+    Return & \texttt{ret} & \makecell[l]{Return from function call.\\%
+    Restores key registers (undoes \texttt{call}).} \\
     \hline
     System Call & \texttt{syscall <value>} & \makecell[l]{Invoke the system call mapped to the given value.\\%
     See the respective section for mappings.} \\
@@ -262,11 +243,11 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     \hline
     No-Operation \(\square\) & \texttt{nop} & \makecell[l]{Useless operation; do nothing.\\%
     Equivalent to \texttt{or r1, 0}.\\%
-    Implemented as actual operation for efficiency.} \\
+    \textbf{Note} For efficiency, implemented as instruction.} \\
     \hline
     Exit & \texttt{exit [value]} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Exit the program, optionally with an exit code.\\%
-    If exit code provided: \texttt{load \$ret, \$value}\\%
+    Exit the program, optionally with an exit code in \$ret.\\%
+    If code provided: \texttt{load \$ret, <value>}\\%
     \texttt{syscall <opcode: exit>}} \\
     \hline
 \end{longtable}
