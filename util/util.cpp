@@ -208,7 +208,6 @@ bool parse_number(const std::string &string, int &index, uint64_t &value, bool &
       is_double = true;
       decimal_denom = base;
     } else if (string[index] == '_') {
-      continue;
     } else if (is_base_char(string[index], base)) {
       int char_value = get_base_value(string[index], base);
 
@@ -221,7 +220,7 @@ bool parse_number(const std::string &string, int &index, uint64_t &value, bool &
 
       digit_count++;
     } else {
-      return false;
+      break;
     }
   }
 

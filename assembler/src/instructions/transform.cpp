@@ -60,6 +60,19 @@ namespace assembler::instruction::transform {
     instructions.push_back(instruction);
   }
 
+  void pushw(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
+    // original: "pushw $v"
+    // "push $r, $v"
+    instruction->opcode = OP_PUSH;
+    instructions.push_back(instruction);
+
+    // "push $v[32:]"
+    instruction = new Instruction(*instruction);
+    instruction->opcode = OP_PUSH;
+    instruction->args[0].set_data(instruction->args[0].get_data() >> 32);
+    instructions.push_back(instruction);
+  }
+
   void zero(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
     // original: "zero $r"
     // "load $r, 0"

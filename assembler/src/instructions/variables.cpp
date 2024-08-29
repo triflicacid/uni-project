@@ -38,7 +38,6 @@ namespace assembler::instruction {
 
   const std::deque reg_val = { ArgumentType::Register, ArgumentType::Value };
   const std::deque reg_reg_val = { ArgumentType::Register, ArgumentType::Register, ArgumentType::Value };
-
   std::vector<Signature> signature_list = {
     { "add", OP_ADD, true, true, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
     { "and", OP_AND, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
@@ -54,6 +53,8 @@ namespace assembler::instruction {
     { "nop", OP_NOP, false, false, { { } }, false, nullptr },
     { "not", OP_NOT, true, false, { { ArgumentType::Register }, { ArgumentType::Register, ArgumentType::Register } }, false, transform::duplicate_reg },
     { "or", OP_OR, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
+    { "pushw", 0, true, false, { { ArgumentType::Value } }, true, transform::pushw },
+    { "push", OP_PUSH, true, false, { { ArgumentType::Value } }, false, nullptr },
     { "shl", OP_SHL, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
     { "shr", OP_SHR, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
     { "store", OP_STORE, true, false, { { ArgumentType::Register, ArgumentType::Address } }, false, nullptr },
@@ -62,4 +63,5 @@ namespace assembler::instruction {
     { "xor", OP_XOR, true, false, { reg_val, reg_reg_val }, false, transform::duplicate_reg },
     { "zero", 0x00, true, false, { { ArgumentType::Register } }, false, transform::zero },
   };
+
 }

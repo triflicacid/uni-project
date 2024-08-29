@@ -169,7 +169,8 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\div\) \$value}} \\
     \hline
     Modulo & \texttt{mod <reg> <reg> <value>} & \makecell[l]{Calculate the remainder when dividing a register by a value.\\%
-    The register is treated as a signed word, the value as a signed half-word.\\%
+    The register is treated as a signed word,\\%
+    the value as a signed half-word.\\%
     \texttt{Reg[\$reg1] = Reg[\$reg2] \(\mod\) \$value}} \\
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Branching}} \\
@@ -207,24 +208,25 @@ That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Stack}} \\
     \hline
-    Push & \texttt{push <value>} & \makecell[l]{Push a value onto the stack.\\%
-    \texttt{Mem[Reg[sp]] = \$value}\\%
-    \texttt{Reg[sp] += 4}} \\
+    Push & \texttt{push <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
+    Push a 32-bit value onto the stack.\\%
+    \texttt{sub \$sp, 8}\\%
+    \texttt{loadu \$r1, <value>}\\%
+    \texttt{store \$r1, (\$sp)}\\%
+    \texttt{add \$sp, 4}\\%
+    \textbf{Note} for efficiency, this is implemented as an instruction.} \\
     \hline
     Push Word & \texttt{pushw <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
     Push a 64-bit word onto the stack.\\%
-    \texttt{push \$value[:32]}\\%
-    \texttt{push \$value[32:]}} \\
+    \texttt{sub \$sp, 8}\\%
+    \texttt{loadw \$r1, <value>}\\%
+    \texttt{store \$r1, (\$sp)}} \\
     \hline
-    Pop & \texttt{pop [reg]} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Pop value from the stack, load into register if provided.\\%
-    \texttt{sub sp, 4}\\%
-    If register: \texttt{load \$reg, (sp)}} \\
-    \hline
-    Pop Word & \texttt{popw [reg]} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Pop a 64-bit word from the stack, load into register if provided.\\%
-    \texttt{sub sp, 8}\\%
-    If register: \texttt{loadl \$reg, (sp)}} \\
+    Pop & \multicolumn{2}{|l|}{\makecell[l]{The pop operation is not implemented due to its simplistic nature.\\%
+    I.e., to pop a word from the stack:\\%
+    \texttt{sub \$sp, 8}\\%
+    And to store it in a register:\\%
+    \texttt{load \$r1, (\$sp)}}} \\
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Functions}} \\
     \hline

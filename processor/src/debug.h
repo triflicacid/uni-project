@@ -7,7 +7,7 @@
 #define DEBUG_ERRS  0x80
 
 // mask used to enable/disable debugging
-#define DEBUG (DEBUG_ERRS | DEBUG_CPU)
+#define DEBUG (DEBUG_ERRS | DEBUG_CPU | DEBUG_DRAM)
 
 #if DEBUG & DEBUG_CPU
     #define DEBUG_CPU_PRINT(...) printf(__VA_ARGS__);

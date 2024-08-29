@@ -1,13 +1,15 @@
 #include <constants.h>
+#include <cpu.h>
 #include <stdio.h>
 #include <stdint.h>
 
-int main() {
-  uint64_t data = 0x1fcccccd00c0c3e0;
-  printf("Data: 0x%llx\n", data);
+cpu_t cpu;
 
-  uint8_t datatype = (data >> OP_HEADER_SIZE) & 0x7;
-  printf("Data Type: 0x%x\n", datatype);
+int main() {
+  cpu_init(&cpu);
+
+  printf("$sp = 0x%llx\n", cpu.regs[REG_SP]);
+  printf("$sp - 8 = 0x%llx\n", cpu.regs[REG_SP] - 8);
 
   return 0;
 }

@@ -70,10 +70,14 @@ namespace assembler::instruction {
         return "<imm>";
       case ArgumentType::Address:
         return "<addr>";
+      case ArgumentType::Label:
+        return "<addr: label>";
       case ArgumentType::Value:
         return "<value>";
       case ArgumentType::Register:
         return "<reg>";
+      case ArgumentType::RegisterIndirect:
+        return "<addr: reg>";
       default:
         return "";
     }
@@ -113,8 +117,8 @@ namespace assembler::instruction {
       }
     }
 
-    if (type == ArgumentType::Label && (target == ArgumentType::Address || target == ArgumentType::Value)) {
-      return true;
+    if (type == ArgumentType::RegisterIndirect || type == ArgumentType::Label) {
+      return target == ArgumentType::Address || target == ArgumentType::Value;
     }
 
     return false;

@@ -4,7 +4,7 @@
 #include <util.hpp>
 
 int main() {
-  std::string str = "-0.14";
+  std::string str = "1, 2";
   int i = 0;
   bool is_double;
   uint64_t value;
@@ -26,6 +26,7 @@ int main() {
   } else {
     std::cout << "failure\n";
   }
+  std::cout << "remainder: '" << str.substr(i) << "'\n";
 
   return EXIT_SUCCESS;
 }

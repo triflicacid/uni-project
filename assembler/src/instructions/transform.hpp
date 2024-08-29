@@ -15,5 +15,7 @@ namespace assembler::instruction::transform {
 
   void loadw(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
+  void pushw(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
+
   void zero(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 }

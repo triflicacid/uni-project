@@ -45,16 +45,15 @@ int main(int argc, char **argv) {
   // was an output file specified?
   if (file_out != NULL) {
     cpu.fp_out = fopen(file_out, "w");
-
-#if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR ANSI_BLUE " output file" ANSI_RESET " set to '%s' (descriptor %d)\n",
-      file_out, cpu.fp_out == NULL ? -1 : fileno(cpu.fp_out));
-#endif
+    DEBUG_CPU_PRINT(DEBUG_STR ANSI_BLUE " output file" ANSI_RESET " set to '%s' (descriptor %d)\n",
+      file_out, cpu.fp_out == NULL ? -1 : fileno(cpu.fp_out))
 
     if (cpu.fp_out == NULL) {
       printf(ERROR_STR " -o: failed to open file '%s'.\n", file_out);
       return EXIT_FAILURE;
     }
+  } else {
+    DEBUG_CPU_PRINT(DEBUG_STR ANSI_BLUE " output file" ANSI_RESET " set to <stdout> (descriptor %d)\n", fileno(cpu.fp_out))
   }
 
   // for exit code

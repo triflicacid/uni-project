@@ -732,8 +732,10 @@ namespace assembler::parser {
 
       // parse as number
       if (!parse_number(line.data, col, value, number_decimal)) {
+        std::string ch(1, line.data[col]);
+
         auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
-        err->set_message("Expected memory address");
+        err->set_message("Expected memory address, found '" + ch + "' after '('");
         msgs.add(err);
         return;
       }
