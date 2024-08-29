@@ -18,7 +18,7 @@ namespace assembler {
   }
 
   void Chunk::print() const {
-    std::cout << "Chunk at +" << m_offset << " of " << m_bytes << " bytes";
+    std::cout << "Chunk at +" << offset << " of " << m_bytes << " bytes";
 
     if (m_is_data) {
       std::cout << " - data:\n\t" << std::uppercase << std::hex;

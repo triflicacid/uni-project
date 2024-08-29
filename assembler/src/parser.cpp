@@ -319,9 +319,7 @@ namespace assembler::parser {
     if (signature->expect_test) {
       std::string str = dot == std::string::npos ? options : options.substr(0, dot);
 
-      if (str.empty()) {
-        instruction->include_test_bits();
-      } else {
+      if (!str.empty()) {
         auto entry = instruction::conditional_postfix_map.find(str);
 
         if (entry == instruction::conditional_postfix_map.end()) {
@@ -333,7 +331,7 @@ namespace assembler::parser {
           return false;
         }
 
-        instruction->include_test_bits(entry->second);
+        instruction->set_conditional_test(entry->second);
       }
     } else if (!options.empty() && dot == std::string::npos) {
       auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
@@ -346,7 +344,7 @@ namespace assembler::parser {
 
     if (signature->expect_datatype) {
       if (dot == std::string::npos) {
-        instruction->include_datatype_specifier(DATATYPE_U64);
+        instruction->set_datatype_specifier(DATATYPE_U64);
       } else {
         std::string str = options.substr(dot + 1);
         auto entry = instruction::datatype_postfix_map.find(str);
@@ -360,7 +358,7 @@ namespace assembler::parser {
           return false;
         }
 
-        instruction->include_datatype_specifier(entry->second);
+        instruction->set_datatype_specifier(entry->second);
       }
     } else if (dot != std::string::npos) {
       auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);

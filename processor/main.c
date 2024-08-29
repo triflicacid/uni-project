@@ -84,18 +84,8 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-  // get starting address
-  uint64_t *start_address = cpu.regs + REG_IP;
-  fread(start_address, sizeof(*start_address), 1, source);
-
-#if DEBUG & DEBUG_CPU
-  if (*start_address != 0) {
-    printf(DEBUG_STR " start address specified: 0x%llx\n", *start_address);
-  }
-#endif
-
   // copy code into processor's memory
-  fread(cpu.bus.dram.mem, 1, file_size - sizeof(*start_address), source);
+  fread(cpu.bus.dram.mem, 1, file_size, source);
 
   // start processor
   cpu_start(&cpu);

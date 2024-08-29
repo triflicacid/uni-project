@@ -42,24 +42,21 @@ namespace assembler::instruction {
     std::deque<Argument> args; // list of supplied arguments
 
   private:
-    // conditional test. upper 2 bits = (00 = exclude, 10 = include, no test, 11 = include, test), lower 6 bits are test bits
-    // default: exclude
+    // conditional test bits, only included if signature.expect_test
+    // MSB - perform test, or skip?
     uint8_t test;
-    // datatype specifier. upper bit = include, lower bits = mask
-    // default: exclude
+    // datatype specifier, only included if signature.expect_datatype
     uint8_t datatype;
 
   public:
     Instruction(const Signature *signature, std::deque<Argument> arguments);
 
-    /** Include conditional test bits, but skip test. */
-    void include_test_bits();
+    void set_conditional_test(uint8_t mask);
 
-    /** Include conditional test bits, provide test mask. */
-    void include_test_bits(uint8_t mask);
+    void set_datatype_specifier(uint8_t mask);
 
-    /** Include datatype specifier. */
-    void include_datatype_specifier(uint8_t mask);
+    /** Offset addresses by the given amount. */
+    void offset_addresses(uint16_t offset);
 
     [[nodiscard]] uint64_t compile() const;
 

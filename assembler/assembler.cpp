@@ -180,7 +180,9 @@ int parse_data(assembler::Data &data, message::List &messages) {
 }
 
 /** Compile data to given file. */
-int compile_result(const assembler::Data &data, const char *output_file) {
+int compile_result(assembler::Data &data, const char *output_file) {
+  data.add_start_label_jump();
+
   if (data.debug) {
     // Print chunks
     std::cout << ANSI_GREEN "=== COMPILATION ===\n" ANSI_RESET;
@@ -201,8 +203,7 @@ int compile_result(const assembler::Data &data, const char *output_file) {
 
   // Write compiled chunks to output file
   auto before = file.tellp();
-  data.write_headers(file);
-  data.write_chunks(file);
+  data.write(file);
   auto after = file.tellp();
 
   if (data.debug)

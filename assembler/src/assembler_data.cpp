@@ -1,5 +1,7 @@
 #include "assembler_data.hpp"
 
+#include <processor/src/constants.h>
+
 namespace assembler {
   void Data::replace_label(const std::string &label, uint32_t address) const {
     for (const auto &chunk: buffer) {
@@ -13,31 +15,48 @@ namespace assembler {
     }
   }
 
+  void Data::add_start_label_jump() {
+    const auto start_label = labels.find(main_label);
+    if (start_label == labels.end()) return;
+
+    // create jump instruction
+    std::string opts;
+    auto signature = instruction::find_signature("load", opts);
+
+    auto jump = new instruction::Instruction(signature, {
+      instruction::Argument(instruction::ArgumentType::Register, REG_IP),
+      instruction::Argument(instruction::ArgumentType::Immediate, start_label->second.addr + 8),
+    });
+
+    // increase all existing chunks' offsets and offset address references
+    for (auto &chunk : buffer) {
+      chunk->offset += 8;
+
+      if (!chunk->is_data()) {
+        chunk->get_instruction()->offset_addresses(1);
+      }
+    }
+
+    // add jmp instruction to buffer
+    auto chunk = new Chunk(-1, 0);
+    chunk->set_instruction(jump);
+    buffer.push_front(chunk);
+  }
+
   uint32_t Data::get_bytes() const {
     if (buffer.empty())
       return 0;
 
     const auto last = buffer.back();
-    return last->get_offset() + last->get_bytes();
+    return last->offset + last->get_bytes();
   }
 
-  void Data::write_headers(std::ostream &stream) const {
-    if (buffer.empty())
-      return;
+  void Data::write(std::ostream &stream) const {
+    uint32_t offset = 0; // current position in stream
 
-    // Write start address
-    const auto start_label = labels.find(main_label);
-    uint64_t start_addr = start_label == labels.end()
-                            ? 0
-                            : start_label->second.addr;
-    stream.write((const char *) &start_addr, sizeof(start_addr));
-  }
-
-  void Data::write_chunks(std::ostream &stream) const {
-    uint32_t offset = 0;
-
+    // write chunks, filling in gaps between chunks as required for contiguous layout
     for (const auto chunk: buffer) {
-      while (chunk->get_offset() > offset) {
+      while (chunk->offset > offset) {
         stream << 0x00;
         offset++;
       }

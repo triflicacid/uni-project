@@ -25,16 +25,20 @@ namespace assembler::instruction {
     datatype = 0x0;
   }
 
-  void Instruction::include_test_bits() {
-    test = 0x80; // include, no test
+  void Instruction::set_conditional_test(uint8_t mask) {
+    test = 0x80 | mask; // indicate test is provided
   }
 
-  void Instruction::include_test_bits(uint8_t mask) {
-    test = 0xc0 | (mask & 0x3f); // include, perform test with given mask
+  void Instruction::set_datatype_specifier(uint8_t mask) {
+    datatype = mask;
   }
 
-  void Instruction::include_datatype_specifier(uint8_t mask) {
-    datatype = 0x80 | (mask & 0x7f); // enable specifier with mask
+  void Instruction::offset_addresses(uint16_t offset) {
+    for (auto &arg : args) {
+      if (arg.get_type() == ArgumentType::Address) {
+        arg.set_data(arg.get_data() + offset);
+      }
+    }
   }
 
   uint64_t Instruction::compile() const {
@@ -44,8 +48,8 @@ namespace assembler::instruction {
     builder.opcode(opcode);
 
     // add conditional test?
-    if (test & 0x80) {
-      if (test & 0x40) {
+    if (signature->expect_test) {
+      if (test & 0x80) {
         builder.conditional_test(test & 0x3f);
       } else {
         builder.no_conditional_test();
@@ -53,7 +57,7 @@ namespace assembler::instruction {
     }
 
     // add datatype specifier?
-    if (datatype & 0x80) {
+    if (signature->expect_datatype) {
       builder.data_type(datatype & 0x7f);
     }
 

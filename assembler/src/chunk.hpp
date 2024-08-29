@@ -4,9 +4,11 @@
 
 namespace assembler {
   class Chunk {
+  public:
+    uint32_t offset; // Byte offset
+
   private:
     bool m_is_data; // Is data or an instruction?
-    uint32_t m_offset; // Byte offset
     uint16_t m_bytes; // Byte length
     void *m_ptr; // Internal data, either std::string* or std::vector<unsigned char>*
     int m_source_line; // Index of source line
@@ -15,7 +17,7 @@ namespace assembler {
 
   public:
     Chunk(int line_idx, uint32_t offset) {
-      m_offset = offset;
+      this->offset = offset;
       m_source_line = line_idx;
       m_is_data = false;
       m_bytes = 0;
@@ -28,8 +30,6 @@ namespace assembler {
 
     /** Are we representing data? */
     [[nodiscard]] bool is_data() const { return m_is_data; }
-
-    [[nodiscard]] uint32_t get_offset() const { return m_offset; }
 
     [[nodiscard]] uint16_t get_bytes() const { return m_bytes; }
 
