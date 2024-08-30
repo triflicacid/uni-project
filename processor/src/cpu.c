@@ -134,7 +134,7 @@ static void exec_load_upper(cpu_t *cpu, uint64_t inst) {
   if (!CPU_RUNNING) return;
 
   // store value in register's upper 32 bits
-  ((uint32_t *) &REG(reg))[1] = value;
+  ((uint32_t *) &REG(reg))[1] = *(uint32_t *) &value;
 
   DEBUG_CPU_PRINT(DEBUG_STR " loadu: load value 0x%llx into register %i's upper half\n", value, reg)
   update_zero_flag(cpu, reg);

@@ -139,14 +139,18 @@ The following table specifies possible addressing modes.
     \hline
     \multicolumn{3}{|c|}{\textbf{Data Transfer}} \\
     \hline
-    Load & \texttt{load <reg> <value>} & \makecell[l]{Load a half-word (32-bit) into a register.\\\texttt{Reg[\$reg] = \$value}} \\
+    Load & \texttt{load <reg> <value>} & \makecell[l]{Load a word into a register.\\%
+    \texttt{Reg[\$reg] = \$value}\\%
+    \textbf{Note} that any immediate is only 32-bit;\\%
+    Use \texttt{loadw} for loading a 64-bit immediate.} \\
     \hline
     Load Upper & \texttt{loadu <reg> <value>} & \makecell[l]{Load a half-word (32-bit) into the upper half of a register.\\\texttt{Reg[\$reg][32:] = \$value}} \\
     \hline
     Load Word & \texttt{loadw <reg> <value>} & \makecell[l]{\textit{Pseudo-instruction.}\\%
-    Loads a word (64-bit) into a register.\\%
+    Loads a word into a register.\\%
     \texttt{load \$reg \$value[:32]}\\%
-    \texttt{loadu \$reg \$value[32:]}} \\
+    \texttt{loadu \$reg \$value[32:]}\\%
+    \textbf{Note} accepts a 64-bit immediate.} \\
     \hline
     Zero & \texttt{zero <reg>} & \makecell[l]{\textit{Pseudo-instruction.}\\%
     Zeroes/clears a register.\\%
