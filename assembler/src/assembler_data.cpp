@@ -6,9 +6,15 @@ namespace assembler {
   void Data::replace_label(const std::string &label, uint32_t address) const {
     for (const auto &chunk: buffer) {
       if (!chunk->is_data()) {
-        for (auto &arg: chunk->get_instruction()->args) {
+        const auto &inst = chunk->get_instruction();
+
+        for (uint8_t i = 0; i < inst->args.size(); i++) {
+          auto &arg = inst->args[i];
+
           if (arg.is_label() && *arg.get_label() == label) {
-            arg.update(instruction::ArgumentType::Immediate, address);
+            arg.update(inst->signature->arguments[inst->overload][i] == instruction::ArgumentType::Address
+                         ? instruction::ArgumentType::Address
+                         : instruction::ArgumentType::Immediate, address);
           }
         }
       }
@@ -24,12 +30,13 @@ namespace assembler {
     const auto signature = instruction::find_signature("load", opts);
 
     auto jump = new instruction::Instruction(signature, {
-      instruction::Argument(instruction::ArgumentType::Register, REG_IP),
-      instruction::Argument(instruction::ArgumentType::Immediate, start_label->second.addr + 8),
-    });
+                                               instruction::Argument(instruction::ArgumentType::Register, REG_IP),
+                                               instruction::Argument(instruction::ArgumentType::Immediate,
+                                                                     start_label->second.addr + 8),
+                                             });
 
     // increase all existing chunks' offsets and offset address references
-    for (const auto &chunk : buffer) {
+    for (const auto &chunk: buffer) {
       chunk->offset += 8;
 
       if (!chunk->is_data()) {

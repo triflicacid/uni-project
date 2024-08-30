@@ -235,8 +235,8 @@ The following table specifies possible addressing modes.
     \hline \hline
     \multicolumn{3}{|c|}{\textbf{Functions}} \\
     \hline
-    Function Call & \texttt{call <value>} & \makecell[l]{Call procedure at location \texttt{value}.\\%
-    More complex than \texttt{load ip, \$value} as pushes stack frame.} \\
+    Function Call & \texttt{call <addr>} & \makecell[l]{Call procedure at location \texttt{addr}.\\%
+    More complex than \texttt{load ip, \$addr} as pushes stack frame.} \\
     \hline
     Return & \texttt{ret} & \makecell[l]{Return from function call.\\%
     Restores key registers (undoes \texttt{call}).} \\
@@ -367,7 +367,7 @@ To call a function [at] \texttt{func} with \(n\) arguments:
 push <arg1>\\%
 ...\\%
 push <arg\(n\)>\\%
-push \(n\)\\%
+push \(n \times 4\)\\%
 call <func>
 }
 
@@ -383,7 +383,7 @@ call <func>
      & & preserved GP registers & \(\leftarrow\) \$sp \\
      & & old ip & \\
      & & old fp & \(\leftarrow\) \$fp \\
-     & & \(n\) & \\
+     & & \(n\) bytes & \\
      & & args & \\
      \texttt{xxx} & \(\leftarrow\) \$sp & \texttt{xxx} & \\
      \hline
@@ -410,7 +410,9 @@ It is important to note that the size of the additional information pushed via t
 \begin{center}
     \(i\): argument index, 0-indexed; \(n\): number of arguments.
     
-    \texttt{Arg \(i\) = Reg[\$fp] - 4 * (1 + \(n\) - \(i\))}
+    \texttt{Arg \(i\) = Reg[\$fp] - 4 * (2 + \(n\) - \(i\))}
+
+    E.g., to load the one an only argument: \texttt{load \$reg, 12(\$fp)}.
 \end{center}
 
 \section{System Call}

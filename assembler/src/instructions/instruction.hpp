@@ -41,6 +41,7 @@ namespace assembler::instruction {
   class Instruction {
   public:
     const Signature *signature; // signature of instruction we are representing
+    uint8_t overload; // selected signature overload index, default 0
     uint8_t opcode; // opcode; same as signature->opcode, but provided as it may be changed
     std::deque<Argument> args; // list of supplied arguments
 

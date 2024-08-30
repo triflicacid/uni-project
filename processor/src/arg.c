@@ -21,8 +21,11 @@ static uint32_t arg_reg_indirect(cpu_t *cpu, uint32_t data) {
   uint8_t reg = data & 0xff;
   if (!check_register(reg)) CPU_RAISE_ERROR(ERR_REG, reg, 0)
 
-  int32_t offset = (data >> 8) & 0xffffff;
-  data = REG(reg) + offset;
+  // recover 24-bit offset, add sign if needed
+  uint32_t offset = (data >> 8) & 0xffffff;
+  if (offset & 0x800000) offset |= 0xFF000000;
+
+  data = REG(reg) + *(int32_t *) &offset;
   if (!check_memory(data)) CPU_RAISE_ERROR(ERR_SEGFAULT, data, 0)
 
   return data;

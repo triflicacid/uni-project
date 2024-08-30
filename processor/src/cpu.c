@@ -1,5 +1,6 @@
 #include "cpu.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "arg.h"
@@ -15,13 +16,22 @@
 
 // calculate CMP flag (zero + 3), in local `uint8_t flag`
 // Z flag depends on RHS
-#define CALC_CMP_FLAG(LHS, RHS) { \
+#define CALC_CMP_FLAG(LHS, RHS) \
     if ((LHS) < (RHS)) flag = CMP_LT; \
     else if ((LHS) > (RHS)) flag = CMP_GT; \
     else flag = CMP_NE; \
     if ((LHS) == (RHS)) flag |= 0x1; \
-    if ((RHS) == 0) flag |= 0x8; \
-  }
+    if ((RHS) == 0) flag |= 0x8;
+
+// push an n-byte value to the stack
+#define PUSH(BYTES, DATA) \
+  REG(REG_SP) -= (BYTES); \
+  bus_store(&cpu->bus, REG(REG_SP), (BYTES) * 4, (DATA));
+
+// pop an n-byte value from the stack and assign to given arg
+#define POP(BYTES, VAR) \
+  VAR = bus_load(&cpu->bus, REG(REG_SP), (BYTES) * 4); \
+  REG(REG_SP) += (BYTES);
 
 // check: memory bounds
 bool check_memory(uint32_t address) {
@@ -104,6 +114,45 @@ static void update_zero_flag(cpu_t *cpu, uint8_t reg) {
 
   DEBUG_FLAGS_PRINT(DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register %i (0x%llx) : %s\n" ANSI_RESET, reg, REG(reg),
          GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR")
+}
+
+// push stack frame
+static void push_stack_frame(cpu_t *cpu) {
+  // store $fp
+  PUSH(8, REG(REG_FP))
+
+  // set $fp to point to old $fp
+  REG(REG_FP) = REG(REG_SP);
+
+  // store $ip
+  PUSH(8, REG(REG_IP))
+
+  // store PGRPs ($s...)
+  for (uint8_t r = REG_PGPR; r < REGISTERS; r++) {
+    PUSH(8, REG(r))
+  }
+}
+
+// push & restore stack frame
+static void pop_stack_frame(cpu_t *cpu) {
+  // move $sp to top of frame
+  REG(REG_SP) = REG(REG_FP) - 8 * (REGISTERS - REG_PGPR + 1);
+
+  // restore PGPRs
+  for (uint8_t r = REGISTERS - 1; r >= REG_PGPR; r--) {
+    POP(8, REG(r))
+  }
+
+  // restore old $ip
+  POP(8, REG(REG_IP))
+
+  // restore old $fp
+  POP(8, REG(REG_FP))
+
+  // pop argument count
+  uint8_t argc;
+  POP(4, argc)
+  REG(REG_SP) += argc;
 }
 
 // load <reg> <value> -- load value into register
@@ -297,6 +346,7 @@ static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
   DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: ")\
   switch (datatype) {\
     case DATATYPE_U64: {\
+      printf("IS U64! value = 0x%llx\n", value);\
       int32_t *rhs = (int32_t *) &value;\
       result = REG(reg_src) OPERATOR *rhs;\
       DEBUG_CPU_PRINT("%llu " #OPERATOR " %i = %llu\n", REG(reg_src), *rhs, result)\
@@ -509,8 +559,29 @@ static void exec_push(cpu_t *cpu, uint64_t inst) {
   uint32_t data = *(uint32_t *) &value;
   DEBUG_CPU_PRINT(DEBUG_STR " push: value 0x%x to $sp = 0x%llx\n", data, REG(REG_SP))
 
-  REG(REG_SP) -= 4;
-  bus_store(&cpu->bus, REG(REG_SP), 32, data);
+  PUSH(4, data)
+}
+
+// call <addr>
+static void exec_call(cpu_t *cpu, uint64_t inst) {
+  uint64_t addr = get_arg_addr(cpu, inst, OP_HEADER_SIZE);
+  if (!CPU_RUNNING) return;
+
+  DEBUG_CPU_PRINT(DEBUG_STR " call: location 0x%llx with return $ip = 0x%llx\n", addr, REG(REG_IP));
+
+  // push stack frame
+  push_stack_frame(cpu);
+
+  // set $ip to location
+  REG(REG_IP) = addr;
+}
+
+// ret
+static void exec_return(cpu_t *cpu, uint64_t inst) {
+  // restore stack frame
+  pop_stack_frame(cpu);
+
+  DEBUG_CPU_PRINT(DEBUG_STR " ret: return to location 0x%llx\n", REG(REG_IP));
 }
 
 // map opcode to handler, which takes CPU and instruction word
@@ -534,6 +605,8 @@ static void init_exec_map(void) {
   exec_map[OP_DIV] = exec_div;
   exec_map[OP_MOD] = exec_mod;
   exec_map[OP_PUSH] = exec_push;
+  exec_map[OP_CALL] = exec_call;
+  exec_map[OP_RET] = exec_return;
   exec_map[OP_SYSCALL] = exec_syscall;
 }
 

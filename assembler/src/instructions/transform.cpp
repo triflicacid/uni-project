@@ -6,6 +6,7 @@ namespace assembler::instruction::transform {
   void duplicate_reg(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
     if (!instruction->args.empty() && instruction->args[1].get_type() != ArgumentType::Register) {
       instruction->args.emplace_front(ArgumentType::Register, instruction->args[0].get_data());
+      instruction->overload++;
     }
 
     instructions.push_back(instruction);

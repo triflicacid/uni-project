@@ -3,6 +3,7 @@
 
 #include "instruction.hpp"
 
+#include <processor/src/arg.h>
 #include <processor/src/constants.h>
 
 namespace assembler::instruction {
@@ -15,12 +16,21 @@ namespace assembler::instruction {
       arg.print();
       std::cout << '\n';
     }
+
+    std::cout << "\tMatching signature: " << signature->mnemonic;
+
+    for (ArgumentType type : signature->arguments[overload]) {
+      std::cout << ' ' << Argument::type_to_string(type);
+    }
+
+    std::cout << '\n';
   }
 
   Instruction::Instruction(const Signature *signature, std::deque<Argument> arguments) {
     this->signature = signature;
     opcode = signature->opcode;
     args = std::move(arguments);
+    overload = 0;
     test = 0x0;
     datatype = 0x0;
   }
@@ -62,15 +72,22 @@ namespace assembler::instruction {
     }
 
     // add arguments, formatted depending on type
-    for (auto &arg : args) {
+    for (uint8_t i = 0; i < args.size(); i++) {
+      const auto &arg = args[i];
+
+      // prepare builder for argument type
+      switch (signature->arguments[overload][i]) {
+        case ArgumentType::Address:
+          builder.next_as_addr();
+          break;
+        case ArgumentType::Value:
+          builder.next_as_value();
+          break;
+        default: ;
+      }
+
       switch (arg.get_type()) {
         case ArgumentType::Address:
-          if (arg.get_type() == ArgumentType::Address) {
-            builder.next_as_addr();
-          } else {
-            builder.next_as_value();
-          }
-
           builder.arg_addr(arg.get_data());
           break;
         case ArgumentType::Immediate:
@@ -88,19 +105,9 @@ namespace assembler::instruction {
           break;
         case ArgumentType::Register:
         case ArgumentType::RegisterValue:
-          if (arg.get_type() == ArgumentType::RegisterValue) {
-            builder.next_as_value();
-          }
-
           builder.arg_reg(arg.get_data());
           break;
         case ArgumentType::RegisterIndirect:
-          if (arg.get_type() == ArgumentType::Address) {
-            builder.next_as_addr();
-          } else {
-            builder.next_as_value();
-          }
-
           builder.arg_reg_indirect(arg.get_reg_indirect()->reg, arg.get_reg_indirect()->offset);
           break;
         default: ;

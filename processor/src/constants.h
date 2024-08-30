@@ -42,16 +42,6 @@
 #define ERR_SYSCALL  0b100
 #define ERR_UNKNOWN  0b111
 
-// =============== ARGUMENTS ===============
-#define ARG_IMM 0b00
-#define ARG_REG 0b01
-#define ARG_MEM 0b10
-#define ARG_REG_INDIRECT 0b11
-
-#define ARG_REG_SIZE 8
-#define ARG_VALUE_SIZE 34
-#define ARG_ADDR_SIZE 34
-
 // =============== DATA TYPES ===============
 #define DATATYPE_SIZE 3
 #define DATATYPE_U32 0b000
@@ -108,7 +98,9 @@
 #define OP_MUL 0x22
 #define OP_DIV 0x23
 #define OP_MOD 0x24
-#define OP_PUSH 0x29
+#define OP_PUSH 0x30
+#define OP_CALL 0x31
+#define OP_RET 0x32
 #define OP_SYSCALL 0x3f
 
 // if defined, behaviour is to halt on NOP

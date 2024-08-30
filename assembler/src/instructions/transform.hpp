@@ -5,6 +5,7 @@
 
 namespace assembler::instruction::transform {
   // generic transform -- duplicate first register if second arg is not a register
+  // overloads { ..., reg_val, reg_reg_val, ... } -> increments instruction->overload
   void duplicate_reg(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
   void branch(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);

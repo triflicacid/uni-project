@@ -394,6 +394,9 @@ namespace assembler::parser {
       return false;
     }
 
+    // store overload
+    instruction->overload = overload;
+
     // call custom handler if supplied
     if (signature->intercept == nullptr) {
       instructions.push_back(instruction);
@@ -552,7 +555,7 @@ namespace assembler::parser {
       if (auto entry = data.labels.find(label); entry == data.labels.end()) {
         argument.set_label(label);
       } else {
-        argument.update(instruction::ArgumentType::Address, entry->second.addr);
+        argument.update(instruction::ArgumentType::Immediate, entry->second.addr);
       }
 
       return;
