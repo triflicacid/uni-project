@@ -38,8 +38,7 @@ namespace message {
         break;
     }
 
-    int code = get_code();
-    if (code != -1) {
+    if (int code = get_code(); code != -1) {
       std::cout << " [" << code << "]";
     }
   }

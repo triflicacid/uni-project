@@ -8,7 +8,7 @@ add_executable(assembler
         ../util/util.cpp src/assembler_data.cpp src/chunk.cpp src/parser.cpp
         src/instructions/argument.cpp src/instructions/instruction.cpp src/instructions/variables.cpp
         src/instructions/transform.cpp src/messages/message.cpp src/messages/error.cpp src/messages/list.cpp
-        src/pre-process/data.cpp src/pre-process/line.cpp src/pre-process/pre-processor.cpp assembler.cpp)
+        src/pre-process/data.cpp src/pre-process/pre-processor.cpp assembler.cpp)
 
 
 project(assembler-test LANGUAGES CXX)

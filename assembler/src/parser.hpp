@@ -2,17 +2,10 @@
 
 #include "assembler_data.hpp"
 #include "messages/list.hpp"
-#include <unordered_set>
 #include <instructions/argument.hpp>
 #include <instructions/instruction.hpp>
 
-/** (v_int, v_dbl, is_dbl) */
-using AddBytesFunction = std::function<void(unsigned long long, double, bool)>;
-
 namespace assembler::parser {
-  /** List of valid section names. */
-  extern std::unordered_set<std::string> valid_sections;
-
   /** Parse lines into chunks. */
   void parse(Data &data, message::List &msgs);
 
@@ -31,8 +24,7 @@ namespace assembler::parser {
                   std::vector<uint8_t> *&bytes);
 
   /** Parse an argument, populate <argument>.
-   * Provide argtype: one of Immediate, Register, Value, Address.
-   */
+   * Provide arg type: one of Immediate, Register, Value, Address. */
   void parse_arg(const Data &data, int line_idx, int &col, message::List &msgs, instruction::Argument &argument);
 
   /** Map of register names to offsets. */
@@ -46,8 +38,4 @@ namespace assembler::parser {
 
   /** Parse character. String assumed to have started with an apostrophe, with <index> pointing after this. */
   void parse_character_literal(const Data &data, int line_idx, int &col, message::List &msgs, uint64_t &value);
-
-  /** Given a string, add bytes to data that it represents. Parse only a single data item e.g. '42'. */
-  void parse_byte_item(const Data &data, int line_idx, int &col, message::List &msgs,
-                       const AddBytesFunction &add_bytes);
 }

@@ -23,7 +23,7 @@ namespace assembler {
     if (m_is_data) {
       std::cout << " - data:\n\t" << std::uppercase << std::hex;
 
-      auto bytes = *get_data();
+      const auto bytes = *get_data();
 
       for (int i = 0; i < bytes.size(); i++) {
         std::cout << std::setw(2) << std::setfill('0') << (int) bytes[i];

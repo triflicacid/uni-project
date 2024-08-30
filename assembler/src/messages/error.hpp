@@ -13,8 +13,6 @@ namespace message {
     InvalidLabel,
     FileNotFound,
     CircularInclude,
-    UnknownSection,
-    SectionSeenBefore,
   };
 
   class Error : public Message {
@@ -24,6 +22,6 @@ namespace message {
   public:
     Error(std::filesystem::path file, int line, int col, ErrorType err);
 
-    int get_code() override { return (int) m_type; }
+    int get_code() override { return m_type; }
   };
 }

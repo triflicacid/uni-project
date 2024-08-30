@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 
 namespace assembler {
@@ -7,6 +8,8 @@ namespace assembler {
     int n;
     std::string data;
 
-    void print() const;
+    void print() const {
+      std::cout << n << " | " << data << "\n";
+    }
   };
 }

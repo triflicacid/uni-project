@@ -57,9 +57,7 @@ namespace assembler::parser {
         if (data.debug)
           std::cout << "[" << line_idx << ":0] LABEL DECLARATION: " << label_name << "=" << data.offset << "\n";
 
-        auto label = data.labels.find(label_name);
-
-        if (label == data.labels.end()) {
+        if (auto label = data.labels.find(label_name); label == data.labels.end()) {
           // Create a new label
           data.labels.insert({label_name, {line.n, start, data.offset}});
         } else {
@@ -101,36 +99,6 @@ namespace assembler::parser {
 
       if (data.debug)
         std::cout << "[" << line_idx << ":" << start << "] Mnemonic " << mnemonic << "\n";
-
-      // // .section DATA
-      // if (!data.strict_sections || current_section == "data") {
-      //   // Is constant specifier?
-      //   std::vector<unsigned char> *bytes = nullptr;
-      //
-      //   if (parse_data(data, line_idx, start, msgs, &bytes)) {
-      //     if (data.debug)
-      //       std::cout << "\tData (" << bytes->size() << " bytes)\n";
-      //
-      //     // Check for errors
-      //     if (msgs.has_message_of(message::Level::Error)) {
-      //       delete bytes;
-      //       return;
-      //     }
-      //
-      //     // Insert into a Chunk
-      //     auto chunk = new Chunk(line_idx, offset);
-      //     chunk->set_data(bytes);
-      //     offset += chunk->get_bytes();
-      //     data.chunks.push_back(chunk);
-      //
-      //     continue;
-      //   } else if (data.strict_sections) {
-      //     auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::UnknownMnemonic);
-      //     err->set_message("Unknown data-type '" + mnemonic + "' (.section data)");
-      //     msgs.add(err);
-      //     return;
-      //   }
-      // }
 
       // check if signature exists (i.e., mnemonic exists)
       std::string options;
@@ -190,12 +158,10 @@ namespace assembler::parser {
       std::vector<instruction::Instruction *> instructions;
       bool ok = parse_instruction(data, line_idx, start, msgs, mnemonic, arguments, instructions);
 
-      // check if error occured
-      // if so, add arguments as note
-      // otherwise, if instruction is empty, generate error in place
-      bool was_error = msgs.has_message_of(message::Level::Error);
-
-      if (was_error || !ok) {
+      // check if error occurred
+      // - if so, add arguments as note
+      // - otherwise, if instruction is empty, generate error in place
+      if (bool was_error = msgs.has_message_of(message::Level::Error); was_error || !ok) {
         std::stringstream stream;
         stream << (was_error ? "While parsing" : "Unknown arguments for")
             << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) signature->opcode << std::dec << ")";
@@ -234,9 +200,7 @@ namespace assembler::parser {
     // check if any labels left...
     for (auto chunk: data.buffer) {
       if (!chunk->is_data()) {
-        auto instruction = chunk->get_instruction();
-
-        for (auto &arg: instruction->args) {
+        for (auto instruction = chunk->get_instruction(); auto &arg: instruction->args) {
           if (arg.is_label()) {
             auto line = data.lines[chunk->get_source_line()];
 
@@ -309,7 +273,7 @@ namespace assembler::parser {
                          const std::string &mnemonic,
                          const std::deque<instruction::Argument> &arguments,
                          std::vector<instruction::Instruction *> &instructions) {
-    // lookup signature, create instruction from it with args probided
+    // lookup signature, create instruction from it with args provided
     std::string options;
     auto signature = instruction::find_signature(mnemonic, options);
 
@@ -339,7 +303,8 @@ namespace assembler::parser {
         }
 
         if (data.debug) {
-          std::cout << "Conditional test: 0x" << std::hex << (int)entry->second << std::dec << " ('" << entry->first << "')\n";
+          std::cout << "Conditional test: 0x" << std::hex << (int) entry->second << std::dec << " ('" << entry->first <<
+              "')\n";
         }
 
         instruction->set_conditional_test(entry->second);
@@ -504,7 +469,7 @@ namespace assembler::parser {
       }
 
       // add 'value' to vector
-      if (std::endian::native == std::endian::little) {
+      if constexpr (std::endian::native == std::endian::little) {
         for (int16_t i = 0; i < size; i++) {
           bytes->push_back(*((uint8_t *) &value + i));
         }
@@ -522,7 +487,7 @@ namespace assembler::parser {
     if (str_start > -1) {
       std::string ch(1, line.data[col - 1]);
       message::Message *msg = new message::Error(data.file_path, line.n, col - 1, message::ErrorType::Syntax);
-      msg->set_message("Unterminate string literal; expected '\"', got '" + ch + "'");
+      msg->set_message("Unterminated string literal; expected '\"', got '" + ch + "'");
       msgs.add(msg);
 
       msg = new message::Message(message::Level::Note, data.file_path, line.n, str_start);
@@ -533,72 +498,6 @@ namespace assembler::parser {
 
     return true;
   }
-
-  // bool parse_data(const Data &data, int line_idx, int &col, message::List &msgs, std::vector<unsigned char> **bytes) {
-  //   auto &line = data.lines[line_idx];
-  //
-  //   // Extract datatype
-  //   int start = col;
-  //   skip_non_whitespace(line.data, col);
-  //   std::string datatype = line.data.substr(start, col - start);
-  //
-  //   std::function<void(unsigned char)> add_byte = [bytes](unsigned char byte) {
-  //     (*bytes)->push_back(byte);
-  //   };
-  //
-  //   if (datatype == "u8") {
-  //     *bytes = add_byte_sequence<uint8_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "i8") {
-  //     *bytes = add_byte_sequence<int8_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "u16") {
-  //     *bytes = add_byte_sequence<uint16_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "i16") {
-  //     *bytes = add_byte_sequence<int16_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "u32") {
-  //     *bytes = add_byte_sequence<uint32_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "i32") {
-  //     *bytes = add_byte_sequence<int32_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "u64") {
-  //     *bytes = add_byte_sequence<uint64_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "i64") {
-  //     *bytes = add_byte_sequence<int64_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "f32") {
-  //     *bytes = add_byte_sequence_float<float, uint32_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   if (datatype == "f64") {
-  //     *bytes = add_byte_sequence_float<double, uint64_t>(data, line_idx, col, msgs);
-  //     return true;
-  //   }
-  //
-  //   col = start;
-  //   return false;
-  // }
 
   void parse_arg(const Data &data, int line_idx, int &col, message::List &msgs, instruction::Argument &argument) {
     auto line = data.lines[line_idx];
@@ -650,9 +549,7 @@ namespace assembler::parser {
       col++;
 
       // if already exists, substitute immediately
-      auto entry = data.labels.find(label);
-
-      if (entry == data.labels.end()) {
+      if (auto entry = data.labels.find(label); entry == data.labels.end()) {
         argument.set_label(label);
       } else {
         argument.update(instruction::ArgumentType::Address, entry->second.addr);
@@ -821,7 +718,7 @@ namespace assembler::parser {
   }
 
   int parse_register(const std::string &s, int &i) {
-    // general ourpose registers
+    // general purpose registers
     if (s[i] == 'r' && std::isdigit(s[i + 1])) {
       i++;
       int number = s[i++] - '0';
@@ -833,7 +730,7 @@ namespace assembler::parser {
       return REG_GPR + number - 1;
     }
 
-    // preserved general ourpose registers
+    // preserved general purpose registers
     if (s[i] == 's' && std::isdigit(s[i + 1])) {
       i++;
       int number = s[i++] - '0';
@@ -876,103 +773,4 @@ namespace assembler::parser {
 
     col++;
   }
-
-  // void parse_byte_item(const Data &data, int line_idx, int &col, message::List &msgs,
-  //                      const AddBytesFunction &add_bytes) {
-  //   auto &line = data.lines[line_idx];
-  //
-  //   // Have we a character?
-  //   if (line.data[col] == '\'') {
-  //     unsigned long long value;
-  //     parse_character_literal(data, line_idx, ++col, msgs, value);
-  //
-  //     if (msgs.has_message_of(message::Level::Error)) {
-  //       return;
-  //     }
-  //
-  //     add_bytes(value, 0.0, false);
-  //     return;
-  //   }
-  //
-  //   // Have we a string?
-  //   if (line.data[col] == '"') {
-  //     col++;
-  //
-  //     while (col < line.data.size() && line.data[col] != '"') {
-  //       // Escape character
-  //       if (line.data[col] == '\\') {
-  //         auto value = decode_escape_seq(line.data, ++col);
-  //
-  //         if (value == -1) {
-  //           auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-  //           err->set_message("Invalid escape sequence");
-  //           msgs.add(err);
-  //           return;
-  //         } else {
-  //           add_bytes(value, 0.0, false);
-  //         }
-  //       } else {
-  //         add_bytes(line.data[col++], 0.0, false);
-  //       }
-  //     }
-  //
-  //     // Must terminate string
-  //     if (line.data[col] != '"') {
-  //       auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-  //       err->set_message("Unterminated string literal");
-  //       msgs.add(err);
-  //       return;
-  //     }
-  //
-  //     col++;
-  //     return;
-  //   }
-  //
-  //   // Extract characters
-  //   int start = col;
-  //   skip_to_break(line.data, col);
-  //   std::string sub = line.data.substr(start, col - start);
-  //
-  //   // Is register? Not allowed here.
-  //   int j = start;
-  //   int reg_offset = parse_register(line.data, j);
-  //
-  //   if (reg_offset != -1) {
-  //     auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
-  //     err->set_message("Register symbol disallowed here '" + sub + "'");
-  //     msgs.add(err);
-  //     return;
-  //   }
-  //
-  //   // Parse as number
-  //   unsigned long long number_int;
-  //   double number_dbl;
-  //   bool is_dbl;
-  //
-  //   if (parse_number(sub, is_dbl, number_int, number_dbl)) {
-  //     add_bytes(number_int, number_dbl, is_dbl);
-  //     return;
-  //   }
-  //
-  //   // Must be a label, then
-  //   auto label = data.labels.find(sub);
-  //
-  //   // New label?
-  //   if (label == data.labels.end()) {
-  //     // TODO allow forward-referenced labels in data?
-  //
-  //     message::Message *msg = new message::Error(data.file_path, line.n, col, message::ErrorType::UnknownLabel);
-  //     msg->set_message("Reference to undefined label '" + sub + "'");
-  //     msgs.add(msg);
-  //
-  //     msg = new message::Message(message::Level::Note, data.file_path, line.n, col);
-  //     msg->set_message("Labels in data cannot be forward-referenced");
-  //     msgs.add(msg);
-  //
-  //     return;
-  //   } else {
-  //     add_bytes(label->second.addr, 0.0, false);
-  //     return;
-  //   }
-  // }
 }

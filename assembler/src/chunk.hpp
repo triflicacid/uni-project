@@ -5,7 +5,7 @@
 namespace assembler {
   class Chunk {
   public:
-    uint32_t offset; // Byte offset
+    uint32_t offset; // Byte offset#
 
   private:
     bool m_is_data; // Is data or an instruction?

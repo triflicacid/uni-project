@@ -21,7 +21,7 @@ namespace assembler {
 
     // create jump instruction
     std::string opts;
-    auto signature = instruction::find_signature("load", opts);
+    const auto signature = instruction::find_signature("load", opts);
 
     auto jump = new instruction::Instruction(signature, {
       instruction::Argument(instruction::ArgumentType::Register, REG_IP),
@@ -29,7 +29,7 @@ namespace assembler {
     });
 
     // increase all existing chunks' offsets and offset address references
-    for (auto &chunk : buffer) {
+    for (const auto &chunk : buffer) {
       chunk->offset += 8;
 
       if (!chunk->is_data()) {
@@ -38,7 +38,7 @@ namespace assembler {
     }
 
     // add jmp instruction to buffer
-    auto chunk = new Chunk(-1, 0);
+    const auto chunk = new Chunk(-1, 0);
     chunk->set_instruction(jump);
     buffer.push_front(chunk);
   }
