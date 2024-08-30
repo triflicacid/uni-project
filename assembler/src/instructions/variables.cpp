@@ -5,13 +5,16 @@
 #include "util.hpp"
 
 namespace assembler::instruction {
-  std::map<std::string, uint8_t> conditional_postfix_map = {
+  std::unordered_map<std::string, uint8_t> conditional_postfix_map = {
     { "z", CMP_Z },
     { "nz", CMP_NZ },
-    { "eq", CMP_EQ },
+    { "neq", CMP_NE },
     { "ne", CMP_NE },
+    { "eq", CMP_EQ },
+    { "lte", CMP_LE },
     { "lt", CMP_LT },
     { "le", CMP_LE },
+    { "gte", CMP_GE },
     { "gt", CMP_GT },
     { "ge", CMP_GE },
     };

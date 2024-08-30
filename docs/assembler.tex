@@ -230,7 +230,7 @@ The following list the possible forms of a numeric literal.
     E.g., \texttt{3.14}, \texttt{0xf2.e}.
     \item Character literal: a character enclosed in apostrophes yields the character's ASCII value.
     Escape sequences are also supported by using a backslash prefix.
-    E.g., \texttt{'a'}, \texttt{'\symbol{92}0'}, \texttt{'\symbol{92}n'}.
+    E.g., \texttt{`a'}, \texttt{`\symbol{92}0'}, \texttt{`\symbol{92}n'}.
 \end{itemize}
 
 \subsection{Directives}
@@ -256,5 +256,9 @@ A directive is prefixed with a dot, and must be at the start of a line.
     Reverse Space & \texttt{.space \(n\)} & Reserve \(n\) bytes of memory. \\
     \hline
 \end{longtable}
+\medskip
+
+\textbf{Note} if no data is provided afterwards, a single immediate of zero will be assumed.
+I.e., \texttt{.data} is the same as \texttt{.data 0}.
 
 \end{document}

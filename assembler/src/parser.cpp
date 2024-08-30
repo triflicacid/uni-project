@@ -252,11 +252,18 @@ namespace assembler::parser {
 
   bool parse_directive(Data &data, int line_idx, int &col, const std::string &directive, message::List &msgs) {
     if (directive == "byte" || directive == "data" || directive == "word") {
-      uint8_t size = directive == "byte" ? 8 : directive == "word" ? 64 : 32;
+      uint8_t size = directive == "byte" ? 1 : directive == "word" ? 8 : 4;
       std::vector<uint8_t> *bytes = nullptr;
 
       if (!parse_data(data, line_idx, col, size, msgs, bytes)) {
         return false;
+      }
+
+      // if no data has been provided, add a single zero
+      if (bytes->empty()) {
+        for (uint8_t i = 0; i < size; i++) {
+          bytes->push_back(0x00);
+        }
       }
 
       // insert buffer into a Chunk
@@ -329,6 +336,10 @@ namespace assembler::parser {
 
           delete instruction;
           return false;
+        }
+
+        if (data.debug) {
+          std::cout << "Conditional test: 0x" << std::hex << (int)entry->second << std::dec << " ('" << entry->first << "')\n";
         }
 
         instruction->set_conditional_test(entry->second);
@@ -431,7 +442,6 @@ namespace assembler::parser {
   bool parse_data(const Data &data, int line_idx, int &col, uint8_t size, message::List &msgs,
                   std::vector<uint8_t> *&bytes) {
     auto &line = data.lines[line_idx];
-    size /= 8; // convert size to bytes
 
     int str_start = -1; // index of string start, or -1 if not in string
     bool is_decimal = false;

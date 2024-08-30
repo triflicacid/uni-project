@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <unordered_map>
 
 #include "argument.hpp"
 
@@ -29,7 +30,7 @@ namespace assembler::instruction {
   Signature *find_signature(const std::string &mnemonic);
 
   /** Map conditional postfix to bits. */
-  extern std::map<std::string, uint8_t> conditional_postfix_map;
+  extern std::unordered_map<std::string, uint8_t> conditional_postfix_map;
 
   /** Map data-type postfix to bits. */
   extern std::map<std::string, uint8_t> datatype_postfix_map;

@@ -288,11 +288,35 @@ The first section of the table refers to the `header'.
     \(\bullet\;\) 1111: skip test.\\%
     \(\bullet\;\) 1001: test if zero flag is set.\\%
     \(\bullet\;\) 1000: test if zero flag is unset.\\%
-    \(\bullet\;\) Otherwise: match lower 3 bits to \$flag.\\%
-    \textbf{Note} these bits are omitted if \(\square\) is shown.} \\
+    \(\bullet\;\) Otherwise: match lower 3 bits to \$flag.} \\
     \hline
     \hline
     10-64 & \multicolumn{2}{l|}{Instruction dependant.} \\
+    \hline
+\end{tabular}
+
+\paragraph{Conditional Test}
+Most instructions expect a conditional test field.
+Below shows the mapping between suffix and bit field.
+
+\medskip
+\begin{tabular}{|c|c|c|l|}
+    \hline
+    \textbf{Suffix} & \textbf{Bits} & \textbf{Operator} & \textbf{Comments} \\
+    \hline
+    N/A & \texttt{1111} & N/A & Skip test. \\
+    \hline
+    ne / neq & \texttt{0000} & \(\neq\) & Test if not equal. \\
+    eq & \texttt{0001} & \(=\) & Test if equal. \\
+    \hline
+    lt & \texttt{0010} & \(<\) & Test if less than. \\
+    le / lte & \texttt{0011} & \(\le\) & Test if less than or equal to. \\
+    \hline
+    gt & \texttt{0110} & \(>\) & Test if greater than. \\
+    ge / gte & \texttt{0111} & \(\ge\) & Test if greater than or equal to. \\
+    \hline
+    z & \texttt{1001} & \(= 0\) & Test if zero flag is set. \\
+    nz & \texttt{1000} & \(\neq 0\) & Test if zero flag is clear. \\
     \hline
 \end{tabular}
 

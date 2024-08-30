@@ -25,7 +25,7 @@ namespace assembler::parser {
   /** Parse a directive ".<directive> ...". Provide directive name, col should point to end of directive name. */
   bool parse_directive(Data &data, int line_idx, int &col, const std::string &directive, message::List &msgs);
 
-  /** Parse a sequence of data. Give size of each element in bits: 8, 32, or 64.
+  /** Parse a sequence of data. Give size of each element in bytes: 1 (byte), 4 (half word), or 8 (word).
    * Allocate vector on heap and fill with bytes. */
   bool parse_data(const Data &data, int line_idx, int &col, uint8_t size, message::List &msgs,
                   std::vector<uint8_t> *&bytes);
