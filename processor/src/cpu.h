@@ -23,6 +23,14 @@
 // get error flag
 #define CPU_GET_ERROR ((REG(REG_FLAG) >> FLAG_ERR_OFFSET) & FLAG_ERR_MASK)
 
+// halt CPU, raise error with CODE, write VAL to $ret, and return RET
+#define CPU_RAISE_ERROR(CODE, VAL, RET) { \
+  CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING); \
+  REG(REG_FLAG) |= (CODE & FLAG_ERR_MASK) << FLAG_ERR_OFFSET; \
+  REG(REG_RET) = VAL; \
+  return RET; \
+}
+
 // CPU data structure
 typedef struct cpu {
   uint64_t regs[REGISTERS];  // register store
@@ -54,5 +62,11 @@ void print_error(const cpu_t *cpu, bool prefix);
 
 // print contents of stack as hexadecimal bytes
 void print_stack(const cpu_t *cpu);
+
+// check if the given memory address is valid
+bool check_memory(uint32_t address);
+
+// check if the given register offset is valid
+bool check_register(uint8_t reg);
 
 #endif

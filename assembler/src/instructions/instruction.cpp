@@ -65,6 +65,12 @@ namespace assembler::instruction {
     for (auto &arg : args) {
       switch (arg.get_type()) {
         case ArgumentType::Address:
+          if (arg.get_type() == ArgumentType::Address) {
+            builder.next_as_addr();
+          } else {
+            builder.next_as_value();
+          }
+
           builder.arg_addr(arg.get_data());
           break;
         case ArgumentType::Immediate:
@@ -82,9 +88,19 @@ namespace assembler::instruction {
           break;
         case ArgumentType::Register:
         case ArgumentType::RegisterValue:
-          builder.arg_reg(arg.get_data(), arg.get_type() == ArgumentType::RegisterValue);
+          if (arg.get_type() == ArgumentType::RegisterValue) {
+            builder.next_as_value();
+          }
+
+          builder.arg_reg(arg.get_data());
           break;
         case ArgumentType::RegisterIndirect:
+          if (arg.get_type() == ArgumentType::Address) {
+            builder.next_as_addr();
+          } else {
+            builder.next_as_value();
+          }
+
           builder.arg_reg_indirect(arg.get_reg_indirect()->reg, arg.get_reg_indirect()->offset);
           break;
         default: ;
@@ -103,6 +119,14 @@ namespace assembler::instruction {
     m_pos += length;
   }
 
+  void InstructionBuilder::next_as_value() {
+    m_next = NextArgument::AsValue;
+  }
+
+  void InstructionBuilder::next_as_addr() {
+    m_next = NextArgument::AsAddress;
+  }
+
   void InstructionBuilder::no_conditional_test() {
     write(4, CMP_NA);
   }
@@ -115,29 +139,63 @@ namespace assembler::instruction {
     write(3, bits & 0x7);
   }
 
-  void InstructionBuilder::arg_reg(uint8_t reg, bool as_value) {
-    if (!as_value) {
-      write(8, reg);
-      return;
+  void InstructionBuilder::arg_reg(uint8_t reg) {
+    switch (m_next) {
+      case NextArgument::None:
+        write(8, reg);
+        return;
+      case NextArgument::AsValue:
+        write(2, ARG_REG);
+        write(32, reg);
+        break;
+      case NextArgument::AsAddress:
+        write(1, ARG_REG_INDIRECT & 0x1);
+        write(32, reg);
+        break;
     }
 
-    write(2, ARG_REG);
-    write(32, reg);
+    m_next = NextArgument::None;
   }
 
   void InstructionBuilder::arg_imm(uint32_t imm) {
     write(2, ARG_IMM);
     write(32, imm);
+
+    m_next = NextArgument::None;
   }
 
   void InstructionBuilder::arg_addr(uint32_t addr) {
-    write(2, ARG_MEM);
+    switch (m_next) {
+      case NextArgument::None:
+        return;
+      case NextArgument::AsValue:
+        write(2, ARG_MEM);
+        break;
+      case NextArgument::AsAddress:
+        write(1, ARG_MEM & 0x1);
+        break;
+    }
+
     write(32, addr);
+
+    m_next = NextArgument::None;
   }
 
   void InstructionBuilder::arg_reg_indirect(uint8_t reg, int32_t offset) {
-    write(2, ARG_REG_INDIRECT);
+    switch (m_next) {
+      case NextArgument::None:
+        return;
+      case NextArgument::AsValue:
+        write(2, ARG_REG_INDIRECT);
+        break;
+      case NextArgument::AsAddress:
+        write(1, ARG_REG_INDIRECT & 0x1);
+        break;
+    }
+
     write(8, reg);
     write(24, *(uint32_t *) &offset & 0xffffff);
+
+    m_next = NextArgument::None;
   }
 }

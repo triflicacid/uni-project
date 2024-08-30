@@ -1,5 +1,6 @@
+load $r5, 0xdead
+store $r5, data
+load $r6, data
 exit
 
-main:
-syscall 100
-exit
+data:

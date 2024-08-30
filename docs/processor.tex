@@ -86,7 +86,25 @@ Register names are preceded by a dollar `\$' sign.
 
 \section{Addressing Modes}
 
-An argument can have the following type.
+An argument may be one of the following specifiers:
+
+\medskip
+\begin{tabular}{|c|c|l|l|}
+    \hline
+    \textbf{Argument} & \textbf{Size} & \textbf{Comment} & \textbf{Example} \\
+    \hline
+    \texttt{<reg>} & 8 & Register offset. & \texttt{\$r1} \\
+    \hline
+    \texttt{<value>} & 2 + 32 & \makecell[l]{Any listed addressing mode.\\%
+    2 indicator bits, 32 for data.} & \texttt{0xdead} \\
+    \hline
+    \texttt{<addr>} & 1 + 32 & \makecell[l]{Any listed memory addressing mode.\\%
+    1 indicator bit, 32 for data.} & \texttt{(0x8000)} \\
+    \hline
+\end{tabular}
+\medskip
+
+The following table specifies possible addressing modes.
 
 \medskip
 \begin{tabular}{|c|l|l|l|l|}
@@ -94,43 +112,26 @@ An argument can have the following type.
     \textbf{Indicator} & \textbf{Name} & \textbf{Syntax} & \textbf{Operation} & \textbf{Size} \\
     \hline
     00 & Immediate & \texttt{imm} & \texttt{imm} & 32 \\
-    01 & Memory & \texttt{(mem)} & \texttt{Mem[mem]} & 32\\
-    10 & Register & \texttt{\$reg} & \texttt{Reg[\$reg]} & 8 \\ 
+    01 & Register & \texttt{\$reg} & \texttt{Reg[\$reg]} & 8 \\
+    10 & Memory & \texttt{(mem)} & \texttt{Mem[mem]} & 32\\
     11 & Register Indirect & \texttt{n(\$reg)} & \texttt{Mem[Reg[\$reg] + n]} & \texttt{\$reg}=8, \texttt{\$n}=24 \\
-    \hline
-\end{tabular}
-
-\bigskip
-The following values are used on the ISA specification:
-\medskip
-
-\begin{tabular}{|c|c|l|}
-    \hline
-    \textbf{Argument} & \textbf{Size} & \textbf{Comment} \\
-    \hline
-    \texttt{<reg>} & 8 & Register offset. \\
-    \hline
-    \texttt{<value>} & 2 + 32 & \makecell[l]{Any listed addressing mode.\\%
-    2 indicator bits, 32 for data.} \\
-    \hline
-    \texttt{<addr>} & 2 + 32 & \makecell[l]{Any listed addressing mode \textbf{except} immediate.\\%
-    2 indicator bits, 32 for data.} \\
     \hline
 \end{tabular}
 
 \section{Instruction Set}
 
-\textbf{Note} the \(\square\) symbol means that this instruction does not take a conditional test suffix.
+\textbf{Notes}:
 
-\textbf{Note} that mnemonics support overloading.
-That is, the same mnemonic can have many argument signatures.
-Optional arguments are listed using square brackets \texttt{[optional]} versus mandatory arguments \texttt{<mandatory>}.
-
-\textbf{Note} for all arithmetic and logical instructions with signature \texttt{<reg> <reg> <value>}, the first register is optional.
-If omitted, the supplied register is duplicated.
-That is, \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
-
-\textbf{Note} all arithmetic operations and the compare operation take a datatype.
+\begin{itemize}
+    \item Instructions accept a conditional test suffix, unless indicated via a \(\square\) symbol.
+    \item Mnemonics support overloading.
+    That is, the same mnemonic can have many argument signatures.
+    Optional arguments are listed using square brackets \texttt{[optional]} versus mandatory arguments \texttt{<mandatory>}.
+    \item For all arithmetic and logical instructions with signatures \texttt{<reg> <reg> <value>}, the first register is optional.
+    If omitted, the supplied register is duplicated.
+    I.e., \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
+    \item All arithmetic operations and the compare operation take a datatype.
+\end{itemize}
 
 \begin{longtable}{|c|l|l|}
     \hline

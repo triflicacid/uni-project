@@ -29,9 +29,6 @@
 
 #define FLAG_IS_RUNNING BIT4
 
-// get instruction pointer from the cpu pointer
-#define IP(CPU) ((CPU)->regs[REG_IP])
-
 // get the given register from `cpu_t *cpu`
 #define REG(OFF) (cpu->regs[OFF])
 
@@ -47,8 +44,8 @@
 
 // =============== ARGUMENTS ===============
 #define ARG_IMM 0b00
-#define ARG_MEM 0b01
-#define ARG_REG 0b10
+#define ARG_REG 0b01
+#define ARG_MEM 0b10
 #define ARG_REG_INDIRECT 0b11
 
 #define ARG_REG_SIZE 8

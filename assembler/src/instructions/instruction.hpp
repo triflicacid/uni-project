@@ -68,18 +68,33 @@ namespace assembler::instruction {
   /** Builder class to construct an instruction word. */
   class InstructionBuilder {
   private:
-    uint64_t m_word{};
-    uint8_t m_pos{}; // current bit
+    enum class NextArgument {
+      None,
+      AsValue,
+      AsAddress
+    };
 
-  public:
-    /** Write opcode. */
-    void opcode(uint8_t opcode);
+    uint64_t m_word;
+    uint8_t m_pos; // current bit
+    NextArgument m_next;
 
     /** Write the given data of length bits raw. */
     void write(uint8_t length, uint64_t data);
 
+  public:
+    InstructionBuilder() : m_word(0), m_pos(0), m_next(NextArgument::None) {};
+
+    /** Write opcode. */
+    void opcode(uint8_t opcode);
+
     /** Get instruction word. */
     [[nodiscard]] uint64_t get() const { return m_word; }
+
+    /** Specify next argument as <value>. */
+    void next_as_value();
+
+    /** Specify next argument as <addr>. */
+    void next_as_addr();
 
     /** No conditional test. */
     void no_conditional_test();
@@ -90,8 +105,8 @@ namespace assembler::instruction {
     /** Write data-type bits. */
     void data_type(uint8_t bits);
 
-    /** Write argument: `<reg>`. Write as `<value>`? */
-    void arg_reg(uint8_t reg, bool as_value);
+    /** Write argument: `<reg>` */
+    void arg_reg(uint8_t reg);
 
     /** Write argument: immediate. */
     void arg_imm(uint32_t imm);
