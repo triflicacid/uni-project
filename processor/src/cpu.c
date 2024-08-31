@@ -615,9 +615,9 @@ static void init_exec_map(void) {
 }
 
 void cpu_init(cpu_t *cpu) {
-  // set default file I/O handlers
   cpu->fp_out = stdout;
   cpu->fp_in = stdin;
+  cpu->addr_interrupt_handler = DEFAULT_INTERRUPT_HANDLER_ADDRESS;
 
   // clear and configure key registers
   memset(cpu->regs, 0, sizeof(cpu->regs));
@@ -718,7 +718,7 @@ static void handle_interrupt(cpu_t *cpu) {
   REG(REG_FLAG) |= FLAG_IN_INTERRUPT;
 
   // jump to handler
-  REG(REG_IP) = INTERRUPT_HANDLER_ADDRESS;
+  REG(REG_IP) = cpu->addr_interrupt_handler;
 
   DEBUG_CPU_PRINT(DEBUG_STR ANSI_CYAN " interrupt! " ANSI_RESET "$isr=0x%llx, $imr=0x%llx, $iip=0x%llx\n", REG(REG_ISR), REG(REG_IMR), REG(REG_IIP))
 }

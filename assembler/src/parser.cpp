@@ -62,7 +62,7 @@ namespace assembler::parser {
           data.labels.insert({label_name, {line.n, start, data.offset}});
         } else {
           // Warn user that the label already exists (error if main)
-          auto level = label_name == data.main_label ? message::Level::Error : message::Level::Warning;
+          auto level = label_name == data.main_label || label_name == data.interrupt_label ? message::Level::Error : message::Level::Warning;
           auto *msg = new message::Message(level, data.file_path, line.n, start);
           msg->set_message("Re-declaration of label " + label_name);
           msgs.add(msg);
@@ -573,7 +573,7 @@ namespace assembler::parser {
     if (std::isalpha(line.data[col])) {
       // extract label
       start = col;
-      skip_alphanum(line.data, col);
+      skip_to_break(line.data, col);
       auto label = line.data.substr(start, col - start);
       col++;
 

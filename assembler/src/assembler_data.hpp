@@ -12,11 +12,13 @@ namespace assembler {
     std::map<std::string, Label> labels;
     uint16_t offset; // byte offset into source
     std::string main_label; // Contain "main" label name
+    std::string interrupt_label; // Contains "interrupt_handler" label name
     std::deque<Chunk *> buffer; // List of compiled chunks
 
     explicit Data(bool debug) {
       this->debug = debug;
       main_label = "main";
+      interrupt_label = "interrupt_handler";
       offset = 0;
     }
 
@@ -27,9 +29,6 @@ namespace assembler {
 
     /** Replace all instances of <label> with the given <address>. */
     void replace_label(const std::string &label, uint32_t address) const;
-
-    /** Consider start label, may add instruction to chunks. */
-    void add_start_label_jump();
 
     /** Get size in bytes. */
     [[nodiscard]] uint32_t get_bytes() const;

@@ -178,14 +178,22 @@ A label may be redefined, in which case its address value will be updated.
 A label is referenced in an argument by stating its name.
 How a reference is handles depends on if the label is defined:
 \begin{itemize}
-    \item If it has been defined, the label is directly substituted by its address as an immediate, \texttt{<imm>}.
+    \item If it has been defined, the label is directly substituted by its address as an immediate, \texttt{<imm>}, or as an address reference, \texttt{<addr>}, as expected by the instruction signature.
     \item Otherwise, this is known as a forward-reference.
     This reference is noted and, when the label is defined in the future, this reference will be replaced by the address.
     All forward-references must be resolved by the end of compilation, or an error will be raised.
 \end{itemize}
 
-\textbf{Note} the special label ``\texttt{main}''.
-By default, code execution starts from the top of the file but, if present, execution will start from \texttt{main}.
+\paragraph*{Special Labels}
+There exist a few special labels:
+\begin{itemize}
+    \item \texttt{main} -- sets the entry point of the program.
+    By default, the entry point is \texttt{+0x00}.
+    \item \texttt{interrupt\_handler} -- sets the location of the interrupt handler.
+    By default, the location of the interrupt handler is \texttt{+0x400}.
+\end{itemize}
+
+Special labels may only be declared once.
 
 \subsection{Mnemonics}
 

@@ -84,6 +84,15 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
+  // extract words in header
+  uint64_t addr_entry, addr_interrupt;
+  fread(&addr_entry, sizeof(uint64_t), 1, source);
+  fread(&addr_interrupt, sizeof(uint64_t), 1, source);
+
+  DEBUG_CPU_PRINT(DEBUG_STR " entry point: 0x%llx; interrupt handler: 0x%llx\n", addr_entry, addr_interrupt)
+  cpu.regs[REG_IP] = addr_entry;
+  cpu.addr_interrupt_handler = addr_interrupt;
+
   // copy code into processor's memory
   fread(cpu.bus.dram.mem, 1, file_size, source);
 

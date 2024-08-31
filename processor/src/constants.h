@@ -18,8 +18,8 @@
 #define REG_GPR  10
 #define REG_PGPR 24
 
-// address of the interrupt handler
-#define INTERRUPT_HANDLER_ADDRESS 0x400
+// default address of the interrupt handler
+#define DEFAULT_INTERRUPT_HANDLER_ADDRESS 0x400
 
 // =============== FLAGS ===============
 #define FLAG_ZERO BIT3

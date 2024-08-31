@@ -4,7 +4,8 @@
 \usepackage{longtable}
 \usepackage{amsmath, amssymb}
 \usepackage{graphicx}
-\usepackage{listings} % Required for inserting images
+\usepackage{listings}
+\usepackage{tikz} % Required for inserting images
 
 \setlength{\parindent}{0pt}
 
@@ -27,6 +28,22 @@
     Then, most operations will be on registers.
     \item Load/store instructions operate on 32-bit immediates.
     \item Arithmetic and logic instructions operate on full registers, so 64-bit.
+\end{itemize}
+
+\section{Memory Layout}
+
+The emulator is simple, able to run only one program.
+
+The memory space has three regions: reserved, RAM, and stack.
+\begin{itemize}
+    \item The reserved region contains two words.
+    \begin{itemize}
+        \item Program entry point (i.e., initial \$ip).
+        \item Address of interrupt handler.
+    \end{itemize}
+    Note, these addresses refer to offsets in RAM.
+    \item RAM is where user code is located.
+    \item The stack grows downwards from the top of memory, with its base indicates via the \$sp register.
 \end{itemize}
 
 \section{Registers}

@@ -22,33 +22,6 @@ namespace assembler {
     }
   }
 
-  void Data::add_start_label_jump() {
-    const auto start_label = labels.find(main_label);
-    if (start_label == labels.end()) return;
-
-    // create jump instruction
-    std::string opts;
-    auto jump = new instruction::Instruction(&instruction::Signature::_load, {
-                                               instruction::Argument(instruction::ArgumentType::Register, REG_IP),
-                                               instruction::Argument(instruction::ArgumentType::Immediate,
-                                                                     start_label->second.addr + 8),
-                                             });
-
-    // increase all existing chunks' offsets and offset address references
-    for (const auto &chunk: buffer) {
-      chunk->offset += 8;
-
-      if (!chunk->is_data()) {
-        chunk->get_instruction()->offset_addresses(1);
-      }
-    }
-
-    // add jmp instruction to buffer
-    const auto chunk = new Chunk(-1, 0);
-    chunk->set_instruction(jump);
-    buffer.push_front(chunk);
-  }
-
   uint32_t Data::get_bytes() const {
     if (buffer.empty())
       return 0;
@@ -58,7 +31,24 @@ namespace assembler {
   }
 
   void Data::write(std::ostream &stream) const {
-    uint32_t offset = 0; // current position in stream
+    uint32_t offset = 0; // current position in ram
+
+    // write header
+    // entry point
+    auto label = labels.find(main_label);
+    uint64_t value = label == labels.end() ? 0 : label->second.addr;
+    stream.write((char *) &value, sizeof(value));
+
+    if (debug)
+      std::cout << "start address: 0x" << std::hex << value << std::dec << std::endl;
+
+    // interrupt handler
+    label = labels.find(interrupt_label);
+    value = label == labels.end() ? DEFAULT_INTERRUPT_HANDLER_ADDRESS : label->second.addr;
+    stream.write((char *) &value, sizeof(value));
+
+    if (debug)
+      std::cout << "interrupt handler address: 0x" << std::hex << value << std::dec << std::endl;
 
     // write chunks, filling in gaps between chunks as required for contiguous layout
     for (const auto chunk: buffer) {

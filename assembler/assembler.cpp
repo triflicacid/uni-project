@@ -181,8 +181,6 @@ int parse_data(assembler::Data &data, message::List &messages) {
 
 /** Compile data to given file. */
 int compile_result(assembler::Data &data, const char *output_file) {
-  data.add_start_label_jump();
-
   if (data.debug) {
     // Print chunks
     std::cout << ANSI_GREEN "=== COMPILATION ===\n" ANSI_RESET;

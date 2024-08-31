@@ -37,6 +37,7 @@ typedef struct cpu {
   bus_t bus;  // connected to bus to access memory
   FILE *fp_out;
   FILE *fp_in;
+  uint64_t addr_interrupt_handler;
 } cpu_t;
 
 void cpu_init(cpu_t *cpu);

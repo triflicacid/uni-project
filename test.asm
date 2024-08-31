@@ -1,16 +1,16 @@
 xor $imr, 0x1
 or $isr, 0x3
-load $r1, after
+load $r1, string_after
 syscall 5
 exit
 
-ininterrupt:
+string_interrupt:
 .byte "Interrupt!\n"
-after:
+string_after:
 .byte "Program End.\n"
 
-.org 0x400
-load $r1, ininterrupt
+interrupt_handler:
+load $r1, string_interrupt
 syscall 5
 zero $isr
 rti
