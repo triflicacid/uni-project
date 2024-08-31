@@ -8,7 +8,13 @@
 
 namespace assembler::instruction {
   void Instruction::print() const {
-    std::cout << "Mnemonic '" << signature->mnemonic << "'; Opcode = 0x" << std::hex << (int) opcode << std::dec << "; "
+    std::cout << "Signature '" << signature->mnemonic;
+
+    for (ArgumentType type : signature->arguments[overload]) {
+      std::cout << ' ' << Argument::type_to_string(type);
+    }
+
+    std::cout << "'; Opcode = 0x" << std::hex << (int) signature->opcode << std::dec << "; "
         << args.size() << " argument(s)\n";
 
     for (Argument arg : args) {
@@ -16,19 +22,10 @@ namespace assembler::instruction {
       arg.print();
       std::cout << '\n';
     }
-
-    std::cout << "\tMatching signature: " << signature->mnemonic;
-
-    for (ArgumentType type : signature->arguments[overload]) {
-      std::cout << ' ' << Argument::type_to_string(type);
-    }
-
-    std::cout << '\n';
   }
 
   Instruction::Instruction(const Signature *signature, std::deque<Argument> arguments) {
     this->signature = signature;
-    opcode = signature->opcode;
     args = std::move(arguments);
     overload = 0;
     test = 0x0;
@@ -55,7 +52,7 @@ namespace assembler::instruction {
     InstructionBuilder builder;
 
     // add opcode
-    builder.opcode(opcode);
+    builder.opcode(signature->opcode);
 
     // add conditional test?
     if (signature->expect_test) {
@@ -104,7 +101,6 @@ namespace assembler::instruction {
           }
           break;
         case ArgumentType::Register:
-        case ArgumentType::RegisterValue:
           builder.arg_reg(arg.get_data());
           break;
         case ArgumentType::RegisterIndirect:

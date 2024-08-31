@@ -12,6 +12,7 @@ namespace assembler {
           auto &arg = inst->args[i];
 
           if (arg.is_label() && *arg.get_label() == label) {
+            std::cout << "Replace label " << label << " with address 0x" << std::hex << address << std::dec << std::endl;
             arg.update(inst->signature->arguments[inst->overload][i] == instruction::ArgumentType::Address
                          ? instruction::ArgumentType::Address
                          : instruction::ArgumentType::Immediate, address);
@@ -27,9 +28,7 @@ namespace assembler {
 
     // create jump instruction
     std::string opts;
-    const auto signature = instruction::find_signature("load", opts);
-
-    auto jump = new instruction::Instruction(signature, {
+    auto jump = new instruction::Instruction(&instruction::Signature::_load, {
                                                instruction::Argument(instruction::ArgumentType::Register, REG_IP),
                                                instruction::Argument(instruction::ArgumentType::Immediate,
                                                                      start_label->second.addr + 8),

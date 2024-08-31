@@ -63,18 +63,17 @@ bool check_register(uint8_t reg) {
 #endif
 }
 
-// fetch `<reg> <reg> <value>`, return if OK. Index into instruction `HEADER_SIZE + offset`
+// fetch `<reg> <value> <value>`, return if OK. Index into instruction `HEADER_SIZE + offset`
 // pass `is_double` to `get_arg` of value
-static bool fetch_reg_reg_value(cpu_t *cpu, uint64_t inst, uint8_t *reg1, uint8_t *reg2, uint64_t *value,
+static bool fetch_reg_val_val(cpu_t *cpu, uint64_t inst, uint8_t *reg, uint64_t *value1, uint64_t *value2,
   uint8_t offset, bool is_double) {
-  *reg1 = get_arg_reg(cpu, inst, OP_HEADER_SIZE + offset);
+  *reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE + offset);
   if (!CPU_RUNNING) return false;
 
-  *reg2 = get_arg_reg(cpu, inst, OP_HEADER_SIZE + offset + ARG_REG_SIZE);
+  *value1 = get_arg_value(cpu, inst, OP_HEADER_SIZE + offset + ARG_REG_SIZE, is_double);
   if (!CPU_RUNNING) return false;
 
-  // fetch and resolve value, check if OK
-  *value = get_arg_value(cpu, inst, OP_HEADER_SIZE + offset + 2 * ARG_REG_SIZE, is_double);
+  *value2 = get_arg_value(cpu, inst, OP_HEADER_SIZE + offset + ARG_REG_SIZE + ARG_VALUE_SIZE, is_double);
 
   return CPU_RUNNING;
 }
@@ -256,7 +255,7 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
     break;
     default:
       ERR_PRINT("unknown data type indicator: 0x%x\n", datatype)
-      CPU_RAISE_ERROR(ERR_UNKNOWN, datatype,)
+      CPU_RAISE_ERROR(ERR_DATATYPE, datatype,)
   }
 
   // update flag bits in register
@@ -270,128 +269,133 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
 // not <reg> <reg>
 static void exec_not(cpu_t *cpu, uint64_t inst) {
   // fetch register, check if OK
-  uint8_t reg_dest = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
-  if (!check_register(reg_dest)) CPU_RAISE_ERROR(ERR_REG, reg_dest,)
+  uint8_t reg_dst = get_arg_reg(cpu, inst, OP_HEADER_SIZE);
+  if (!check_register(reg_dst)) CPU_RAISE_ERROR(ERR_REG, reg_dst,)
 
   uint8_t reg_src = get_arg_reg(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE);
   if (!check_register(reg_src)) CPU_RAISE_ERROR(ERR_REG, reg_src,)
 
   // inverse source register, update flag
-  REG(reg_dest) = ~REG(reg_src);
-  update_zero_flag(cpu, reg_dest);
+  REG(reg_dst) = ~REG(reg_src);
+  DEBUG_CPU_PRINT(DEBUG_STR " not: reg %i = ~0x%llx = 0x%llx\n", reg_dst, REG(reg_src), REG(reg_dst))
+  update_zero_flag(cpu, reg_dst);
 }
 
 // and <reg> <reg> <value>
 static void exec_and(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg_src, reg_dst;
-  uint64_t value;
+  uint8_t reg;
+  uint64_t value1, value2;
 
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
+  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
 
-  REG(reg_dst) = REG(reg_src) & value;
-  update_zero_flag(cpu, reg_dst);
+  REG(reg) = value1 & value2;
+  DEBUG_CPU_PRINT(DEBUG_STR " and: reg %i = 0x%llx & 0x%llx = 0x%llx\n", reg, value1, value2, REG(reg))
+  update_zero_flag(cpu, reg);
 }
 
 // or <reg> <reg> <value>
 static void exec_or(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg_src, reg_dst;
-  uint64_t value;
+  uint8_t reg;
+  uint64_t value1, value2;
 
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
+  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
 
-  REG(reg_dst) = REG(reg_src) | value;
-  update_zero_flag(cpu, reg_dst);
+  REG(reg) = value1 | value2;
+  DEBUG_CPU_PRINT(DEBUG_STR " or: reg %i = 0x%llx | 0x%llx = 0x%llx\n", reg, value1, value2, REG(reg))
+  update_zero_flag(cpu, reg);
 }
 
 // xor <reg> <reg> <value>
 static void exec_xor(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg_src, reg_dst;
-  uint64_t value;
+  uint8_t reg;
+  uint64_t value1, value2;
 
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
+  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
 
-  REG(reg_dst) = REG(reg_src) ^ value;
-  update_zero_flag(cpu, reg_dst);
+  REG(reg) = value1 ^ value2;
+  DEBUG_CPU_PRINT(DEBUG_STR " xor: reg %i = 0x%llx ^ 0x%llx = 0x%llx\n", reg, value1, value2, REG(reg))
+  update_zero_flag(cpu, reg);
 }
 
 // shr <reg> <reg> <value>
 static void exec_shift_left(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg_src, reg_dst;
-  uint64_t value;
+  uint8_t reg;
+  uint64_t value1, value2;
 
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
+  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
 
-  REG(reg_dst) = REG(reg_src) << value;
-  update_zero_flag(cpu, reg_dst);
+  REG(reg) = value1 << value2;
+  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", value1, value2, REG(reg))
+  update_zero_flag(cpu, reg);
 }
 
 // shr <reg> <reg> <value>
 static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg_src, reg_dst;
-  uint64_t value;
+  uint8_t reg;
+  uint64_t value1, value2;
 
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
+  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
 
-  REG(reg_dst) = REG(reg_src) >> value;
-  update_zero_flag(cpu, reg_dst);
+  REG(reg) = value1 >> value2;
+  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", value1, value2, REG(reg))
+  update_zero_flag(cpu, reg);
 }
 
 // macro for arithmetic operation
 #define ARITH_OPERATION(OPERATOR, INJECT) \
   uint8_t datatype = (inst >> OP_HEADER_SIZE) & 0x7;\
-  uint8_t reg_src, reg_dst;\
-  uint64_t value, result;\
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, DATATYPE_SIZE, datatype == DATATYPE_D))\
+  uint8_t reg;\
+  uint64_t value1, value2, result;\
+  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, DATATYPE_SIZE, datatype == DATATYPE_D))\
     return;\
   DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: ")\
   switch (datatype) {\
     case DATATYPE_U64: {\
-      printf("IS U64! value = 0x%llx\n", value);\
-      int32_t *rhs = (int32_t *) &value;\
-      result = REG(reg_src) OPERATOR *rhs;\
-      DEBUG_CPU_PRINT("%llu " #OPERATOR " %i = %llu\n", REG(reg_src), *rhs, result)\
+      int32_t *rhs = (int32_t *) &value2;\
+      result = value1 OPERATOR *rhs;\
+      DEBUG_CPU_PRINT("%llu " #OPERATOR " %i = %llu\n", value1, *rhs, result)\
       break;\
     }\
     case DATATYPE_U32: {\
-      uint32_t *lhs = (uint32_t *) &REG(reg_src);\
-      int32_t *rhs = (int32_t *) &value;\
+      uint32_t *lhs = (uint32_t *) &value1;\
+      int32_t *rhs = (int32_t *) &value2;\
       result = *lhs OPERATOR *rhs;\
       DEBUG_CPU_PRINT("%u " #OPERATOR " %i = %llu\n", *lhs, *rhs, result)\
     }\
     break;\
     case DATATYPE_S64: {\
-      int64_t *lhs = (int64_t *) &REG(reg_src);\
-      int32_t *rhs = (int32_t *) &value;\
+      int64_t *lhs = (int64_t *) &value1;\
+      int32_t *rhs = (int32_t *) &value2;\
       int64_t res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%lli " #OPERATOR " %i = %lli\n", *lhs, *rhs, res)\
     }\
     break;\
     case DATATYPE_S32: {\
-      int32_t *lhs = (int32_t *) &REG(reg_dst), *rhs = (int32_t *) &value, res = *lhs + *rhs;\
+      int32_t *lhs = (int32_t *) &value1, *rhs = (int32_t *) &value2, res = *lhs + *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%i " #OPERATOR " %i = %i\n", *lhs, *rhs, res)\
     }\
     break;\
     case DATATYPE_F: {\
-      float *lhs = (float *) &REG(reg_dst), *rhs = (float *) &value, res = *lhs OPERATOR *rhs;\
+      float *lhs = (float *) &value1, *rhs = (float *) &value2, res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%f " #OPERATOR " %f = %f\n", *lhs, *rhs, res)\
     }\
     break;\
     case DATATYPE_D: {\
-      double *lhs = (double *) &REG(reg_dst), *rhs = (double *) &value, res = *lhs OPERATOR *rhs;\
+      double *lhs = (double *) &value1, *rhs = (double *) &value2, res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%lf " #OPERATOR " %lf = %lf\n", *lhs, *rhs, res)\
     }\
     break;\
     default:\
       ERR_PRINT("unknown data type indicator: 0x%x\n", datatype)\
-      CPU_RAISE_ERROR(ERR_UNKNOWN, datatype,)\
+      CPU_RAISE_ERROR(ERR_DATATYPE, datatype,)\
   }\
   INJECT\
-  REG(reg_dst) = result;\
-  update_zero_flag(cpu, reg_dst);
+  REG(reg) = result;\
+  update_zero_flag(cpu, reg);
 
 // add <reg> <reg> <value>
 static void exec_add(cpu_t *cpu, uint64_t inst) {
@@ -413,21 +417,21 @@ static void exec_div(cpu_t *cpu, uint64_t inst) {
   ARITH_OPERATION(/,)
 }
 
-// mod <reg> <reg> <value>
+// mod <reg> <value> <value>
 static void exec_mod(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg_src, reg_dst;
-  uint64_t value;
+  uint8_t reg;
+  uint64_t value1, value2;
 
-  if (!fetch_reg_reg_value(cpu, inst, &reg_src, &reg_dst, &value, 0, false))
+  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, false))
     return;
 
-  int64_t *lhs = (int64_t *) &REG(reg_src);
-  int32_t *rhs = (int32_t *) &value;
+  int64_t *lhs = (int64_t *) &value1;
+  int32_t *rhs = (int32_t *) &value2;
   int64_t result = *lhs % *rhs;
 
   DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: %lli mod %i = %lli\n", *lhs, *rhs, result);
-  REG(reg_dst) = result;
-  update_zero_flag(cpu, reg_dst);
+  REG(reg) = result;
+  update_zero_flag(cpu, reg);
 }
 
 // syscall <value>
@@ -617,6 +621,7 @@ void cpu_init(cpu_t *cpu) {
 
   // clear and configure key registers
   memset(cpu->regs, 0, sizeof(cpu->regs));
+  REG(REG_IMR) = 0xffffffffffffffff;
   REG(REG_SP) = DRAM_SIZE;
   REG(REG_FP) = REG(REG_SP);
 
@@ -695,6 +700,29 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
   handler(cpu, inst);
 }
 
+// test if there is an interrupt
+static bool is_interrupt(const cpu_t *cpu) {
+  // don't allow interrupt stacking
+  if (REG(REG_FLAG) & FLAG_IN_INTERRUPT)
+    return false;
+
+  return REG(REG_ISR) & REG(REG_IMR);
+}
+
+// handle interrupt
+static void handle_interrupt(cpu_t *cpu) {
+  // save $ip to $iip
+  REG(REG_IIP) = REG(REG_IP);
+
+  // disable future interrupts
+  REG(REG_FLAG) |= FLAG_IN_INTERRUPT;
+
+  // jump to handler
+  REG(REG_IP) = INTERRUPT_HANDLER_ADDRESS;
+
+  DEBUG_CPU_PRINT(DEBUG_STR ANSI_CYAN " interrupt! " ANSI_RESET "$isr=0x%llx, $imr=0x%llx, $iip=0x%llx\n", REG(REG_ISR), REG(REG_IMR), REG(REG_IIP))
+}
+
 void cpu_start(cpu_t *cpu) {
   // set running bit, clear error flag
   SET_BIT(REG(REG_FLAG), FLAG_IS_RUNNING);
@@ -709,6 +737,11 @@ void cpu_start(cpu_t *cpu) {
   uint64_t inst;
 
   while (CPU_RUNNING) {
+    // interrupt?
+    if (is_interrupt(cpu)) {
+      handle_interrupt(cpu);
+    }
+
     DEBUG_CPU_PRINT(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, inst=", counter++, REG(REG_IP));
 
     // fetch instruction at instruction pointer
@@ -739,25 +772,29 @@ static char register_strings[][6] = {
   "$sp",
   "$fp",
   "$flag",
+  "$isr",
+  "$imr",
+  "$iip",
   "$ret",
-  "$zero"
+  "$k1",
+  "$k2"
 };
 
 void print_registers(const cpu_t *cpu) {
   uint8_t i;
 
   // special registers
-  for (i = 0; i < 6; i++) {
+  for (i = 0; i < REG_GPR; i++) {
     fprintf(cpu->fp_out, "%-8s = 0x%llx\n", register_strings[i], REG(i));
   }
 
   // GPRs
-  for (i = 0; i < 16; i++) {
+  for (i = 0; i < REG_PGPR - REG_GPR; i++) {
     fprintf(cpu->fp_out, "$r%02i     = 0x%llx\n", i + 1, REG(REG_GPR + i));
   }
 
   // PGPRs
-  for (i = 0; i < 8; i++) {
+  for (i = 0; i < REGISTERS - REG_PGPR; i++) {
     fprintf(cpu->fp_out, "$s%i      = 0x%llx\n", i + 1, REG(REG_PGPR + i));
   }
 }
@@ -799,6 +836,9 @@ void print_error(const cpu_t *cpu, bool prefix) {
       break;
     case ERR_SYSCALL:
       fprintf(cpu->fp_out, "E-SYSCALL: system call with unknown opcode 0x%llx\n", REG(REG_RET));
+      break;
+    case ERR_DATATYPE:
+      fprintf(cpu->fp_out, "E-DATATYPE: invalid datatype specifier 0x%llx (at $ip=%llx)\n", REG(REG_RET), REG(REG_IP));
       break;
     default:
       fprintf(cpu->fp_out, "E-UNKNOWN: unknown error, supplied data 0x%llx\n", REG(REG_RET));

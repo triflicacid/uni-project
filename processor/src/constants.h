@@ -4,15 +4,22 @@
 #include "util.h"
 
 // =============== REGISTERS ===============
-#define REGISTERS 30
-#define REG_IP 0
-#define REG_SP 1
-#define REG_FP 2
+#define REGISTERS 32
+#define REG_IP   0
+#define REG_SP   1
+#define REG_FP   2
 #define REG_FLAG 3
-#define REG_RET 4
-#define REG_ZERO 5
-#define REG_GPR 6
-#define REG_PGPR 22
+#define REG_ISR  4
+#define REG_IMR  5
+#define REG_IIP  6
+#define REG_RET  7
+#define REG_K1   8
+#define REG_K2   9
+#define REG_GPR  10
+#define REG_PGPR 24
+
+// address of the interrupt handler
+#define INTERRUPT_HANDLER_ADDRESS 0x400
 
 // =============== FLAGS ===============
 #define FLAG_ZERO BIT3
@@ -28,6 +35,7 @@
 #define CMP_NA 0b1111
 
 #define FLAG_IS_RUNNING BIT4
+#define FLAG_IN_INTERRUPT BIT8
 
 // get the given register from `cpu_t *cpu`
 #define REG(OFF) (cpu->regs[OFF])
@@ -40,6 +48,7 @@
 #define ERR_SEGFAULT 0b010
 #define ERR_REG      0b011
 #define ERR_SYSCALL  0b100
+#define ERR_DATATYPE 0b101
 #define ERR_UNKNOWN  0b111
 
 // =============== DATA TYPES ===============

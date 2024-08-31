@@ -4,13 +4,21 @@
 #include "instruction.hpp"
 
 namespace assembler::instruction::transform {
-  // generic transform -- duplicate first register if second arg is not a register
-  // overloads { ..., reg_val, reg_reg_val, ... } -> increments instruction->overload
-  void duplicate_reg(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
+  // generic transform -- transform reg to reg_val
+  // e.g., for use with { reg, reg_val }
+  void transform_reg_val(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
+
+  // generic transform -- transform reg_val to reg_val_val
+  // e.g., for use with { reg_val, reg_val_val }
+  void transform_reg_val_val(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
   void branch(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
   void exit(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
+
+  void interrupt(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
+
+  void interrupt_return(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
   void jump(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 

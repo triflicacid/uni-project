@@ -1,10 +1,16 @@
-push 0xdead
-push 4
-call print
+xor $imr, 0x1
+or $isr, 0x3
+load $r1, after
+syscall 5
 exit
 
-print:
-loadu $r1, 12($fp)
-shr $r1, 32
-syscall 1
-ret
+ininterrupt:
+.byte "Interrupt!\n"
+after:
+.byte "Program End.\n"
+
+.org 0x400
+load $r1, ininterrupt
+syscall 5
+zero $isr
+rti

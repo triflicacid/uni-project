@@ -11,7 +11,6 @@ namespace assembler::instruction {
     DecimalImmediate, // PRIVATE. <imm>, double
     Address, // <addr> or PRIVATE <mem>
     Register, // <reg>, no indicator bits
-    RegisterValue, // PRIVATE. <reg>
     RegisterIndirect, // PRIVATE.
     Value, // <value>
     Label, // PRIVATE.

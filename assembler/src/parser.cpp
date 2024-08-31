@@ -55,7 +55,7 @@ namespace assembler::parser {
         }
 
         if (data.debug)
-          std::cout << "[" << line_idx << ":0] LABEL DECLARATION: " << label_name << "=" << data.offset << "\n";
+          std::cout << "[" << line_idx << ":0] Label: " << label_name << " = 0x" << std::hex << data.offset << std::dec << '\n';
 
         if (auto label = data.labels.find(label_name); label == data.labels.end()) {
           // Create a new label
@@ -230,6 +230,10 @@ namespace assembler::parser {
         }
       }
 
+      if (data.debug) {
+        std::cout << "[" << line_idx << ":0] ." << directive << ": size " << bytes->size() << " bytes\n";
+      }
+
       // insert buffer into a Chunk
       auto *chunk = new Chunk(line_idx, data.offset);
       chunk->set_data(bytes);
@@ -241,7 +245,7 @@ namespace assembler::parser {
 
     auto &line = data.lines[line_idx];
 
-    if (directive == "space") {
+    if (directive == "space" || directive == "org") {
       skip_whitespace(line.data, col);
 
       uint64_t value;
@@ -260,8 +264,30 @@ namespace assembler::parser {
         return false;
       }
 
-      // increment offset as desired
-      data.offset += value;
+      if (directive == "space") {
+        if (data.debug) {
+          std::cout << "[" << line_idx << ":0] .space: insert " << value << " null bytes\n";
+        }
+
+        // increment offset as desired
+        data.offset += value;
+      } else {
+        if (data.debug) {
+          std::cout << "[" << line_idx << ":0] .org: move from 0x" << std::hex << data.offset << " to 0x" << value << std::dec << '\n';
+        }
+
+        if (value < data.offset) {
+          std::stringstream stream;
+          stream << ".org: decreasing offset to 0x" << std::hex << value << " (was 0x" << data.offset << std::dec << ")";
+
+          auto msg = new message::Message(message::Level::Warning, data.file_path, line.n, col);
+          msg->set_message(stream);
+          msgs.add(msg);
+        }
+
+        // set offset as specified
+        data.offset = value;
+      }
 
       return true;
     }
@@ -699,8 +725,12 @@ namespace assembler::parser {
     {"sp", REG_SP},
     {"fp", REG_FP},
     {"flag", REG_FLAG},
+    {"isr", REG_ISR},
+    {"imr", REG_IMR},
+    {"iip", REG_IIP},
     {"ret", REG_RET},
-    {"zero", REG_ZERO}
+    {"k1", REG_K1},
+    {"k2", REG_K2},
   };
 
   std::string register_to_string(uint8_t offset) {

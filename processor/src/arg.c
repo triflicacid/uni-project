@@ -47,7 +47,7 @@ uint64_t get_arg_value(cpu_t *cpu, uint64_t word, uint8_t pos, bool cast_imm_dou
     case ARG_MEM:
       return bus_load(&cpu->bus, arg_addr(cpu, data), 64);
     case ARG_REG:
-      return arg_reg(cpu, data);
+      return CPU_RUNNING ? cpu->regs[arg_reg(cpu, data)] : 0;
     case ARG_REG_INDIRECT:
       return bus_load(&cpu->bus, arg_reg_indirect(cpu, data), 64);
     default:

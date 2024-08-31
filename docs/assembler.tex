@@ -255,6 +255,11 @@ A directive is prefixed with a dot, and must be at the start of a line.
     \hline
     Reverse Space & \texttt{.space \(n\)} & Reserve \(n\) bytes of memory. \\
     \hline
+    \multicolumn{3}{|c|}{\textbf{Manipulating Location}} \\
+    \hline
+    Set Offset & \texttt{.offset \(n\)} & \makecell[l]{Set positional offset in bytes to \(n\).\\%
+    \textbf{Note} a warning will be generated if decreasing behind current offset.} \\
+    \hline
 \end{longtable}
 \medskip
 

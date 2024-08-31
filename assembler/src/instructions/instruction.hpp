@@ -22,6 +22,8 @@ namespace assembler::instruction {
     // custom function to intercept instruction. If called, instruction IS NOT added to instruction vector.
     // Provide index of matched overload
     void (*intercept)(std::vector<Instruction *> &instructions, Instruction *instruction, int overload_index);
+
+    static const Signature _add, _and, _call, _div, _load, _loadu, _mod, _mul, _nop, _not, _or, _push, _ret, _shl, _shr, _store, _sub, _syscall, _xor;
   };
 
   /** Given mnemonic, return signature. Extract options and assign to second argument. */
@@ -40,9 +42,8 @@ namespace assembler::instruction {
 
   class Instruction {
   public:
-    const Signature *signature; // signature of instruction we are representing
+    const Signature * signature; // signature of instruction we are representing
     uint8_t overload; // selected signature overload index, default 0
-    uint8_t opcode; // opcode; same as signature->opcode, but provided as it may be changed
     std::deque<Argument> args; // list of supplied arguments
 
   private:

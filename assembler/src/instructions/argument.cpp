@@ -33,7 +33,7 @@ namespace assembler::instruction {
       case ArgumentType::DecimalImmediate:
         out << "immediate 0x" << std::hex << m_data << std::dec;
         if (m_type == ArgumentType::DecimalImmediate)
-          out << " (double: " << *(double *) &m_data << ")";
+          out << " (double " << *(double *) &m_data << ")";
         break;
       case ArgumentType::Address:
         out << "address 0x" << std::hex << m_data << std::dec;
@@ -107,7 +107,6 @@ namespace assembler::instruction {
 
     if (type == ArgumentType::Register) {
       if (target == ArgumentType::Value) {
-        type = ArgumentType::RegisterValue;
         return true;
       }
 

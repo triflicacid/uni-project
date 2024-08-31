@@ -3,9 +3,12 @@
 \usepackage{makecell}
 \usepackage{longtable}
 \usepackage{amsmath, amssymb}
-\usepackage{graphicx} % Required for inserting images
+\usepackage{graphicx}
+\usepackage{listings} % Required for inserting images
 
 \setlength{\parindent}{0pt}
+
+\include{styles/c}
 
 \title{Processor Documentation}
 \author{Ruben Saunders}
@@ -45,7 +48,10 @@ Register names are preceded by a dollar `\$' sign.
     \hline
     \$fp & Frame Pointer &  & Point to the next byte beyond the last stack frame. \\
     \hline
-    \$flag & Flag Register & 8-64 & \\
+    \$flag & Flag Register & 9-64 & \\
+    \cline{3-4}
+    & & 8 & \makecell[l]{Interrupt status: 1=in interrupt, 0=normal.\\%
+    Can be used to disable all interrupts.} \\
     \cline{3-4}
     & & 5-7 & \makecell[l]{Error flag.\\%
     \(\bullet\;\) 000: no error.\\%
@@ -53,6 +59,7 @@ Register names are preceded by a dollar `\$' sign.
     \(\bullet\;\) 010: segfault, address in \$ret.\\%
     \(\bullet\;\) 011: register segfault, register offset in \$ret.\\%
     \(\bullet\;\) 100: invalid syscall, opcode in \$ret.\\%
+    \(\bullet\;\) 101: invalid datatype, bit field in \$ret.\\%
     } \\
     \cline{3-4}
     & & 4 & \makecell[l]{Execution status: 1=executing, 0=halted.\\%
@@ -71,14 +78,23 @@ Register names are preceded by a dollar `\$' sign.
     \(\bullet\;\) 111: greater than or equal to.\\%
     } \\
     \hline
+    \$isr & Interrupt Service Register & & \makecell[l]{Used to indicate active interrupts.\\%
+    64-bits, so 64 available distinguishable interrupts.} \\
+    \hline
+    \$imr & Interrupt Mask Register & & \makecell[l]{Used to mask \$isr.\\%
+    That is, interrupt \$isr[\(i\)] only triggers if \$imr[\(i\)] is set.\\%
+    \textbf{Default}: all bits set.} \\
+    \hline
+    \$iip & Interrupt IP & & \makecell[l]{Stores \$ip in occurence of an interrupt.} \\
+    \hline
     \$ret & Return Value Register & & \makecell[l]{Contains value returned from function, syscall, etc.\\%
     Contains process exit code on halt.} \\
-    \hline
-    \$zero & Zero & & Hardwired to zero. \\
     \hline \hline
     \multicolumn{4}{|c|}{\textbf{General Purpose Registers}} \\
     \hline
-    \$r1 -- \$r16 & GPRs &  & Register for general use. \\
+    \$k1, \$k2 & Internal Registers & & \makecell[l]{Used by pseudo-instructions.} \\
+    \hline
+    \$r1 -- \$r14 & GPRs &  & Register for general use. \\
     \hline
     \$s1 -- \$s8 & Preserved GPRs &  & \makecell[l]{Register for general use.\\Values are preserved in stack frame.} \\
     \hline
@@ -244,6 +260,18 @@ The following table specifies possible addressing modes.
     System Call & \texttt{syscall <value>} & \makecell[l]{Invoke the system call mapped to the given value.\\%
     See the respective section for mappings.} \\
     \hline \hline
+    \multicolumn{3}{|c|}{\textbf{Interrupts}} \\
+    \hline
+    Trigger Interrupt & \texttt{int <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
+    Trigger the given interrupt mask.\\%
+    \texttt{loadw \$k1, <value>}\\%
+    \texttt{or \$isr, \$k1}} \\
+    \hline
+    Return From Interrupt & \texttt{rti} & \makecell[l]{\textit{Pseudo-instruction}\\%
+    Return from an interrupt.\\%
+    \texttt{xor \$flag, <in interrupt flag>}\\
+    \texttt{load \$ip, \$iip}} \\
+    \hline \hline
     \multicolumn{3}{|c|}{\textbf{Miscellaneous}} \\
     \hline
     No-Operation \(\square\) & \texttt{nop} & \makecell[l]{Useless operation; do nothing.\\%
@@ -352,6 +380,37 @@ Datatypes may be interpreted slightly differently, depending on the instruction.
     That is, in \texttt{add.u \$r1, -75}, \texttt{\$r1} is assumed to hold an unsigned 64-bit integer, but \texttt{-75} is a 32-bit signed integer, while the result also be an unsigned 64-bit integer.
 
 \end{itemize}
+
+\section{Interrupts}
+
+Interrupts are events which, when triggered, alert the processor immediately.
+Interrupts are triggered via the \$isr register and may be used to distinguish between different sources.
+The \$isr is used to mask, or ignore, some interrupts.
+Note that the interrupt bit must be cleared manually.
+Also note that while in an interrupt, no other interrupt can be handled.
+
+Below is listed C pseudo-code for the fetch-execute cycle to understand interrupt behaviour:
+
+\begin{lstlisting}[style=c]
+void fetch_execute_cycle(void) {
+    if (($isr & $imr) && !($flag & FLAG_IN_INTERRUPT)) {
+        handle_interrupt();
+    }
+
+    word instruction = fetch();
+    execute(instruction);
+
+    $ip += sizeof(word);
+}
+
+void handle_interrupt(void) {
+    $iip = $ip;
+    $flag |= FLAG_IN_INTERRUPT;
+    $ip = HANDLER_OFFSET;
+}
+\end{lstlisting}
+
+\textbf{Note} the handler offset is at the fixed memory location \texttt{0x400}.
 
 \section{Calling Convention}
 
