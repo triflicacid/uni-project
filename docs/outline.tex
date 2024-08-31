@@ -1,0 +1,251 @@
+\documentclass{article}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{enumitem}
+
+%\setlength{\parindent}{0pt}
+
+\title{Project Outline}
+\author{Ruben Saunders}
+\date{August 2024}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\newpage
+
+\section{Overview}
+
+This project aims to design and build all three ``layers'' of operation down from a high-level language to the processor itself.
+Specifically, my third year project has three component:
+\begin{itemize}
+    \item Designing a RISC processor and writing an emulator for it, the ``processor'' stage;
+    \item Designing an assembly language and writing an assembler to output a binary for the above processor, the ``assembler'' stage; and
+    \item Designing a custom high-level language and writing a compiler to output the above assembly code, the ``compiler'' stage.
+\end{itemize}
+
+\subsection{Motivation \& Goal}
+
+The project has the goal of being primarily educational, both to me and to users.
+The desired simply design has the intention of being easy to understand at all stages and therefore a resource for education and exploration on the topic of CPU design, assembly language, compiler design, and learning a high-level language, as well as the interaction between all three stages.
+The educational value to me, in addition to above, will be managing and documentation a large project, and the integration of three smaller sub-systems into one workflow.
+
+Hence stems the decision to fully design and build all three stages; ot fully explore and consider the entire pipeline, from user code to machine code.
+
+\subsection{Feasability Plan}
+
+This project is divided into three sub-systems, each requiring a different, but relatively large, amount of research and work.
+Each sub-system is completely dependent on the layer below it, so it is essential that each sub-system is completed in a reasonable time to allow for the next sub-system to be worked on.
+This is only for writing; research, documentation, and design can be written beforehand, and ideally so as to ensure each sub-system will interface well.
+
+The high-level language has been identified to be the most complex sub-system, both in terms of design and creation.
+Therefore, this sub-system should have the most time reserved for it.
+Furthermore, due to the presence of the compiler design module, this sub-system has the most to benefit from term-time.
+With this in mind, the following rough time-frames and targets have been deduced.
+
+\medskip
+\begin{longtable}{|c|l|c|c|c|}
+    \hline
+    \multicolumn{2}{|c|}{} & \textbf{Processor} & \textbf{Assembler} & \textbf{Compiler} \\
+    \hline
+    \multirow{2}{*}{\textbf{Summer}} & Design & \(100\%\) & \(100\%\) & \\
+    \cline{2-5}
+    & Implementation & \(100\%\) & \(100\%\) core & \\
+    \hline
+    \multirow{2}{*}{\textbf{Term 1}} & Design & & & \(100\%\) core \\
+    \cline{2-5}
+    & Implementation & & \(100\%\) & \\
+    \hline
+    \multirow{2}{*}{\textbf{Term 2}} & Design & & & \(100\%\) \\
+    \cline{2-5}
+    & Implementation & & & \(> 90\%\) \\
+    \hline
+    \multirow{2}{*}{\textbf{Easter}} & Design & & & \\
+    \cline{2-5}
+    & Implementation & & & \(100\%\) \\
+    \hline
+\end{longtable}
+\medskip
+
+The development of each sub-system is plan-driven, meaning that documentation will be full or mostly written during design, with minimal changes during implementation.
+This makes sense with a larger project and timeframes, and the reliable and consistent documentation will ensure the project is kept on-track and to specification.
+
+\section{The Processor}
+
+Core to the project, a RISC-based processor will be designed and an emulator written.
+The emulator is but a program which will implement the processor specification.
+
+\subsection{Emulator Requirements}
+
+\begin{quote}
+    ``The emulator must be able to accept a binary file, read it, and execute the contents according to a RISC processor specification.''
+\end{quote}
+
+\begin{enumerate}[label=R\arabic*]
+    \item The emulator shall be able to accept, read, and execute a binary.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The emulator shall be able to accept a file name as an argument.
+        \item The emulator shall be able to open and read a file in binary mode.
+    \end{enumerate}
+    \item The emulator shall execute a binary according to a pre-defined RISC processor specification.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The emulator shall implement a processor specification.
+        \item The specification shall define a RISC-based processor.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The specification shall fully outline the ISA.
+            \item The specification shall fully outline expected memory structure.
+            \item The specification shall fully outline all available registers.
+        \end{enumerate}
+    \end{enumerate}
+    \item The emulator shall be able to indicate its past and current state.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The emulator shall be able to print to the console.
+        \item The emulator shall be able have a configurable debug/verbose mode to provide further details into its operation and state.
+    \end{enumerate}
+\end{enumerate}
+
+\subsection{Processor Requirements}
+
+\begin{quote}
+    ``The processor must be RISC based with a minimal but expressive instruction set.''
+\end{quote}
+
+\begin{enumerate}[label=R\arabic*]
+    \item The processor's instruction set shall be reduced and minimal.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item Every instruction shall be encoded in a fixed-size.
+        \item Each instruction shall be atomic.
+        \item Each instruction shall be necessary.
+    \end{enumerate}
+    \item The processor's instruction set shall minimally be Turing-complete and expressive.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The processor shall operate primary through registers.
+        \item The ISA shall provide instructions for storing and retrieving data.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The ISA shall provide operations to load data into registers.
+            \item The ISA shall provide operations to store data into memory.
+        \end{enumerate}
+        \item The processor shall support both positive and negative integers, as well as floating-point numbers.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The ISA shall support the conversion between integers and floating-point values.
+        \end{enumerate}
+        \item The ISA shall support arithmetic operations for both integers and floats.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The ISA shall support a method to specify the datatype for an operation.
+            \begin{enumerate}[label=\theenumiii.\arabic*]
+                \item The ISA shall be able to specify a (signed?) word.
+                \item The ISA shall be able to specify a (signed?) half-word.
+                \item The ISA shall be able to specify an IEEE754 float and double.
+            \end{enumerate}
+            \item The ISA shall support addition.
+            \item The ISA shall support subtraction.
+            \item The ISA shall support multiplication.
+            \item The ISA shall support division.
+        \end{enumerate}
+        \item The ISA shall support conditional branching and jumps.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The ISA shall support the comparison between registers and values.
+            \item The processor shall be able to store the result of comparisons for future use.
+            \item The ISA shall support branching conditional on the result of a comparison.
+        \end{enumerate}
+        \item The ISA shall support a complete set of logical operations.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The ISA shall support bitwise-not.
+            \item The ISA shall support bitwise-and.
+            \item The ISA shall support bitwise-or.
+            \item The ISA shall support both logical left-- and right-shifting.
+        \end{enumerate}
+    \end{enumerate}
+\end{enumerate}
+\medskip
+
+The following additional requirements extend the above requirements by adding more expressiveness to the processor:
+
+\medskip
+\begin{enumerate}[label=AR\arabic*]
+    \item The ISA shall provide pseudo-instructions for common tasks.
+    \item The ISA shall provide instructions for common operations which are covered but may be complex or multi-stepped to do so.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The ISA shall provide a modulo operation.
+        \item The ISA shall provide a bitwise-exclusive-or operation.
+    \end{enumerate}
+    \item The ISA shall support functionality to call and return from procedures.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The processor shall support the implementation and operation of a global stack structure.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The processor shall have a stack pointer register.
+            \item The ISA shall support pushing values to the stack.
+            \item The ISA shall support popping values off the stack.
+        \end{enumerate}
+        \item The processor shall support the concept of stack frames.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The processor shall have a frame pointer register.
+        \end{enumerate}
+    \end{enumerate}
+    \item The processor shall support configurable interrupts.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The processor shall have an interrupt status register.
+        \item The processor shall have an interrupt mask register.
+        \item The processor shall check for the presence of an interrupt every fetch-execute cycle.
+    \end{enumerate}
+    \item The processor shall provide functionality syscall functionality for additional useful behaviours.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The processor shall provide syscalls for printing data to stdout.
+        \item The processor shall provide syscalls for inputting data to stdin.
+        \item The processor shall provide syscalls for halting the current process.
+    \end{enumerate}
+\end{enumerate}
+
+\section{The Assembler}
+
+An intermediary between machine code for the emulator and the high-level language, the assembler's role is to take generated assembly code and output a binary.
+
+\subsection{Assembler Requirements}
+
+\begin{quote}
+    ``The assembler must convert an assembly source to a machine-code binary executable on the emulator.''
+\end{quote}
+
+\begin{enumerate}[label=R\arabic*]
+    \item \textit{TODO}
+\end{enumerate}
+
+\subsection{Assembly Language Requirements}
+
+\begin{quote}
+    ``The assembly language must be able to express all the processor's operations and functions, serving as a more abstract but equally powerful medium for programming the processor.''
+\end{quote}
+
+\begin{enumerate}[label=R\arabic*]
+    \item \textit{TODO}
+\end{enumerate}
+
+\section{The Compiler}
+
+Arguably the entire reason for the project, a high-level language will be designed and documented.
+The compiler will simply implement this specification, outputting one or more assembly files for the assembler.
+
+\subsection{Compiler Requirements}
+
+\begin{quote}
+    ``The compiler must be able to accept one or more files, read them, and compile the contents to one or more assembly files.''
+\end{quote}
+
+\begin{enumerate}[label=R\arabic*]
+    \item \textit{TODO}
+\end{enumerate}
+
+\subsection{High-Level Language Requirements}
+
+\begin{quote}
+    ``The language must be able to provide structures or methods to fully exercise the assembly language, but provide sufficient abstraction as to reveal no design intricacies or details, and be easy to read and understand.''
+\end{quote}
+
+\begin{enumerate}[label=R\arabic*]
+    \item \textit{TODO}
+\end{enumerate}
+
+\end{document}

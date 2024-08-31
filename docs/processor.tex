@@ -18,6 +18,9 @@
 \begin{document}
 
 \maketitle
+\tableofcontents
+
+\newpage
 
 \section{Principals}
 
@@ -190,6 +193,8 @@ The following table specifies possible addressing modes.
     \texttt{xor \$reg, \$reg}} \\
     \hline
     Store & \texttt{store <reg> <addr>} & \makecell[l]{Copy from register to memory.\\\texttt{Mem[\$addr] = Reg[\$reg]}} \\
+    \hline
+    Convert & \texttt{cvt\(d_1\)2\(d_2\) <reg> <reg>} & \makecell[l]{Convert register from data-type \(d_1\) to \(d_2\)} \\
     \hline \hline
     \multicolumn{3}{|c|}{\makecell[c]{\textbf{Arithmetic}\\%
     All arithmmetic operations, bar \texttt{mod}, expect a datatype.}} \\

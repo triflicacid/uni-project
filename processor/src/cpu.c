@@ -63,17 +63,17 @@ bool check_register(uint8_t reg) {
 #endif
 }
 
-// fetch `<reg> <value> <value>`, return if OK. Index into instruction `HEADER_SIZE + offset`
+// fetch `<reg> <reg> <value>`, return if OK. Index into instruction `HEADER_SIZE + offset`
 // pass `is_double` to `get_arg` of value
-static bool fetch_reg_val_val(cpu_t *cpu, uint64_t inst, uint8_t *reg, uint64_t *value1, uint64_t *value2,
+static bool fetch_reg_reg_val(cpu_t *cpu, uint64_t inst, uint8_t *reg1, uint8_t *reg2, uint64_t *value,
   uint8_t offset, bool is_double) {
-  *reg = get_arg_reg(cpu, inst, OP_HEADER_SIZE + offset);
+  *reg1 = get_arg_reg(cpu, inst, OP_HEADER_SIZE + offset);
   if (!CPU_RUNNING) return false;
 
-  *value1 = get_arg_value(cpu, inst, OP_HEADER_SIZE + offset + ARG_REG_SIZE, is_double);
+  *reg2 = get_arg_reg(cpu, inst, OP_HEADER_SIZE + offset + ARG_REG_SIZE);
   if (!CPU_RUNNING) return false;
 
-  *value2 = get_arg_value(cpu, inst, OP_HEADER_SIZE + offset + ARG_REG_SIZE + ARG_VALUE_SIZE, is_double);
+  *value = get_arg_value(cpu, inst, OP_HEADER_SIZE + offset + 2 * ARG_REG_SIZE, is_double);
 
   return CPU_RUNNING;
 }
@@ -283,108 +283,108 @@ static void exec_not(cpu_t *cpu, uint64_t inst) {
 
 // and <reg> <reg> <value>
 static void exec_and(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg;
-  uint64_t value1, value2;
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
 
-  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
+  if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
-  REG(reg) = value1 & value2;
-  DEBUG_CPU_PRINT(DEBUG_STR " and: reg %i = 0x%llx & 0x%llx = 0x%llx\n", reg, value1, value2, REG(reg))
-  update_zero_flag(cpu, reg);
+  REG(reg_dst) = REG(reg_src) & value;
+  DEBUG_CPU_PRINT(DEBUG_STR " and: reg %i = 0x%llx & 0x%llx = 0x%llx\n", reg_dst, REG(reg_src), value, REG(reg_dst))
+  update_zero_flag(cpu, reg_dst);
 }
 
 // or <reg> <reg> <value>
 static void exec_or(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg;
-  uint64_t value1, value2;
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
 
-  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
+  if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
-  REG(reg) = value1 | value2;
-  DEBUG_CPU_PRINT(DEBUG_STR " or: reg %i = 0x%llx | 0x%llx = 0x%llx\n", reg, value1, value2, REG(reg))
-  update_zero_flag(cpu, reg);
+  REG(reg_dst) = REG(reg_src) | value;
+  DEBUG_CPU_PRINT(DEBUG_STR " or: reg %i = 0x%llx | 0x%llx = 0x%llx\n", reg_dst, REG(reg_src), value, REG(reg_dst))
+  update_zero_flag(cpu, reg_dst);
 }
 
 // xor <reg> <reg> <value>
 static void exec_xor(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg;
-  uint64_t value1, value2;
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
 
-  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
+  if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
-  REG(reg) = value1 ^ value2;
-  DEBUG_CPU_PRINT(DEBUG_STR " xor: reg %i = 0x%llx ^ 0x%llx = 0x%llx\n", reg, value1, value2, REG(reg))
-  update_zero_flag(cpu, reg);
+  REG(reg_dst) = REG(reg_src) ^ value;
+  DEBUG_CPU_PRINT(DEBUG_STR " xor: reg %i = 0x%llx ^ 0x%llx = 0x%llx\n", reg_dst, REG(reg_src), value, REG(reg_dst))
+  update_zero_flag(cpu, reg_dst);
 }
 
 // shr <reg> <reg> <value>
 static void exec_shift_left(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg;
-  uint64_t value1, value2;
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
 
-  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
+  if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
-  REG(reg) = value1 << value2;
-  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", value1, value2, REG(reg))
-  update_zero_flag(cpu, reg);
+  REG(reg_dst) = REG(reg_src) << value;
+  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", REG(reg_src), value, REG(reg_dst))
+  update_zero_flag(cpu, reg_dst);
 }
 
 // shr <reg> <reg> <value>
 static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg;
-  uint64_t value1, value2;
+  uint8_t reg_src, reg_dst;
+  uint64_t value;
 
-  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, NULL)) return;
+  if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
-  REG(reg) = value1 >> value2;
-  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", value1, value2, REG(reg))
-  update_zero_flag(cpu, reg);
+  REG(reg_dst) = REG(reg_src) >> value;
+  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", REG(reg_src), value, REG(reg_dst))
+  update_zero_flag(cpu, reg_dst);
 }
 
 // macro for arithmetic operation
 #define ARITH_OPERATION(OPERATOR, INJECT) \
   uint8_t datatype = (inst >> OP_HEADER_SIZE) & 0x7;\
-  uint8_t reg;\
-  uint64_t value1, value2, result;\
-  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, DATATYPE_SIZE, datatype == DATATYPE_D))\
+  uint8_t reg_src, reg_dst;\
+  uint64_t value, result;\
+  if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, DATATYPE_SIZE, datatype == DATATYPE_D))\
     return;\
   DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: ")\
   switch (datatype) {\
     case DATATYPE_U64: {\
-      int32_t *rhs = (int32_t *) &value2;\
-      result = value1 OPERATOR *rhs;\
-      DEBUG_CPU_PRINT("%llu " #OPERATOR " %i = %llu\n", value1, *rhs, result)\
+      int32_t *rhs = (int32_t *) &value;\
+      result = REG(reg_src) OPERATOR *rhs;\
+      DEBUG_CPU_PRINT("%llu " #OPERATOR " %i = %llu\n", REG(reg_src), *rhs, result)\
       break;\
     }\
     case DATATYPE_U32: {\
-      uint32_t *lhs = (uint32_t *) &value1;\
-      int32_t *rhs = (int32_t *) &value2;\
+      uint32_t *lhs = (uint32_t *) &REG(reg_src);\
+      int32_t *rhs = (int32_t *) &value;\
       result = *lhs OPERATOR *rhs;\
       DEBUG_CPU_PRINT("%u " #OPERATOR " %i = %llu\n", *lhs, *rhs, result)\
     }\
     break;\
     case DATATYPE_S64: {\
-      int64_t *lhs = (int64_t *) &value1;\
-      int32_t *rhs = (int32_t *) &value2;\
+      int64_t *lhs = (int64_t *) &REG(reg_src);\
+      int32_t *rhs = (int32_t *) &value;\
       int64_t res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%lli " #OPERATOR " %i = %lli\n", *lhs, *rhs, res)\
     }\
     break;\
     case DATATYPE_S32: {\
-      int32_t *lhs = (int32_t *) &value1, *rhs = (int32_t *) &value2, res = *lhs + *rhs;\
+      int32_t *lhs = (int32_t *) &REG(reg_src), *rhs = (int32_t *) &value, res = *lhs + *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%i " #OPERATOR " %i = %i\n", *lhs, *rhs, res)\
     }\
     break;\
     case DATATYPE_F: {\
-      float *lhs = (float *) &value1, *rhs = (float *) &value2, res = *lhs OPERATOR *rhs;\
+      float *lhs = (float *) &REG(reg_src), *rhs = (float *) &value, res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%f " #OPERATOR " %f = %f\n", *lhs, *rhs, res)\
     }\
     break;\
     case DATATYPE_D: {\
-      double *lhs = (double *) &value1, *rhs = (double *) &value2, res = *lhs OPERATOR *rhs;\
+      double *lhs = (double *) &REG(reg_src), *rhs = (double *) &value, res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
       DEBUG_CPU_PRINT("%lf " #OPERATOR " %lf = %lf\n", *lhs, *rhs, res)\
     }\
@@ -394,8 +394,8 @@ static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
       CPU_RAISE_ERROR(ERR_DATATYPE, datatype,)\
   }\
   INJECT\
-  REG(reg) = result;\
-  update_zero_flag(cpu, reg);
+  REG(reg_dst) = result;\
+  update_zero_flag(cpu, reg_dst);
 
 // add <reg> <reg> <value>
 static void exec_add(cpu_t *cpu, uint64_t inst) {
@@ -419,19 +419,19 @@ static void exec_div(cpu_t *cpu, uint64_t inst) {
 
 // mod <reg> <value> <value>
 static void exec_mod(cpu_t *cpu, uint64_t inst) {
-  uint8_t reg;
-  uint64_t value1, value2;
+  uint8_t reg_dst, reg_src;
+  uint64_t value;
 
-  if (!fetch_reg_val_val(cpu, inst, &reg, &value1, &value2, 0, false))
+  if (!fetch_reg_reg_val(cpu, inst, &reg_dst, &reg_src, &value, 0, false))
     return;
 
-  int64_t *lhs = (int64_t *) &value1;
-  int32_t *rhs = (int32_t *) &value2;
+  int64_t *lhs = (int64_t *) &REG(reg_src);
+  int32_t *rhs = (int32_t *) &value;
   int64_t result = *lhs % *rhs;
 
   DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: %lli mod %i = %lli\n", *lhs, *rhs, result);
-  REG(reg) = result;
-  update_zero_flag(cpu, reg);
+  REG(reg_dst) = result;
+  update_zero_flag(cpu, reg_dst);
 }
 
 // syscall <value>
@@ -588,6 +588,77 @@ static void exec_return(cpu_t *cpu, uint64_t inst) {
   DEBUG_CPU_PRINT(DEBUG_STR " ret: return to location 0x%llx\n", REG(REG_IP));
 }
 
+#define CAST_VALUE(DATATYPE, SRC, DST) \
+  switch (DATATYPE) { \
+    case DATATYPE_U32: { \
+      uint32_t tmp = (SRC); \
+      (DST) = *(uint64_t *) &tmp; \
+      } break; \
+    case DATATYPE_U64: { \
+      uint64_t tmp = (SRC); \
+      (DST) = tmp; \
+      } break; \
+    case DATATYPE_S32: { \
+      int32_t tmp = (SRC); \
+      (DST) = *(uint64_t *) &tmp; \
+      } break; \
+    case DATATYPE_S64: { \
+      int64_t tmp = (SRC); \
+      (DST) = *(uint64_t *) &tmp; \
+      } break; \
+    case DATATYPE_F: { \
+      float tmp = (SRC); \
+      (DST) = *(uint64_t *) &tmp; \
+      } break; \
+    case DATATYPE_D: { \
+      double tmp = (SRC); \
+      (DST) = *(uint64_t *) &tmp; \
+      } break; \
+    default: ; \
+  }
+
+// cvt(d1)2(d2) reg reg
+static void exec_convert(cpu_t *cpu, uint64_t inst) {
+  // extra datatypes to convert from/to
+  uint8_t pos = OP_HEADER_SIZE;
+  uint8_t d1 = (inst >> pos) & 0x7;
+  uint8_t d2 = (inst >> (pos += DATATYPE_SIZE)) & 0x7;
+
+  // extra source and destination registers
+  uint8_t reg_dst = get_arg_reg(cpu, inst, pos += DATATYPE_SIZE);
+  uint8_t reg_src = get_arg_reg(cpu, inst, pos += ARG_REG_SIZE);
+
+  // store value
+  uint64_t value = REG(reg_src);
+
+  switch (d1) {
+    case DATATYPE_U32:
+      CAST_VALUE(d2, *(uint32_t *) &value, value)
+      break;
+    case DATATYPE_U64:
+      CAST_VALUE(d2, value, value)
+      break;
+    case DATATYPE_S32:
+      CAST_VALUE(d2, *(int32_t *) &value, value)
+      break;
+    case DATATYPE_S64:
+      CAST_VALUE(d2, *(int64_t *) &value, value)
+      break;
+    case DATATYPE_F:
+      CAST_VALUE(d2, *(float *) &value, value)
+      break;
+    case DATATYPE_D:
+      CAST_VALUE(d2, *(double *) &value, value)
+      break;
+    default: ;
+  }
+
+  DEBUG_CPU_PRINT(DEBUG_STR " cvt: convert from %s in reg +%d to %s in reg +%d\n", datatype_bit_str(d1), reg_src, datatype_bit_str(d2), reg_dst)
+
+  REG(reg_dst) = value;
+  update_zero_flag(cpu, reg_dst);
+}
+
 // map opcode to handler, which takes CPU and instruction word
 typedef void (*exec_t)(cpu_t *, uint64_t);
 static exec_t exec_map[OPCODE_MASK + 1] = {NULL};
@@ -597,6 +668,7 @@ static void init_exec_map(void) {
   exec_map[OP_LOAD_UPPER] = exec_load_upper;
   exec_map[OP_STORE] = exec_store;
   exec_map[OP_COMPARE] = exec_compare;
+  exec_map[OP_CONVERT] = exec_convert;
   exec_map[OP_NOT] = exec_not;
   exec_map[OP_AND] = exec_and;
   exec_map[OP_OR] = exec_or;

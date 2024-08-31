@@ -6,30 +6,12 @@
 #include <vector>
 #include <deque>
 #include <unordered_map>
+#include <messages/message.hpp>
 
 #include "argument.hpp"
 
 namespace assembler::instruction {
-  class Instruction;
-
-  struct Signature {
-    const std::string mnemonic;
-    uint8_t opcode;
-    bool expect_test; // expect conditional test?
-    bool expect_datatype; // expect datatype?
-    std::vector<std::deque<ArgumentType>> arguments; // list of supplied args overloads
-    bool is_full_word; // expect full-word immediates?
-    // custom function to intercept instruction. If called, instruction IS NOT added to instruction vector.
-    // Provide index of matched overload
-    void (*intercept)(std::vector<Instruction *> &instructions, Instruction *instruction, int overload_index);
-
-    static const Signature _add, _and, _call, _div, _load, _loadu, _mod, _mul, _nop, _not, _or, _push, _ret, _shl, _shr, _store, _sub, _syscall, _xor;
-  };
-
-  /** Given mnemonic, return signature. Extract options and assign to second argument. */
-  Signature *find_signature(const std::string &mnemonic, std::string &options);
-
-  Signature *find_signature(const std::string &mnemonic);
+  struct Signature;
 
   /** Map conditional postfix to bits. */
   extern std::unordered_map<std::string, uint8_t> conditional_postfix_map;
@@ -50,15 +32,15 @@ namespace assembler::instruction {
     // conditional test bits, only included if signature.expect_test
     // MSB - perform test, or skip?
     uint8_t test;
-    // datatype specifier, only included if signature.expect_datatype
-    uint8_t datatype;
+    // datatype specifier(s), only included if signature.expect_datatype
+    std::vector<uint8_t> datatypes;
 
   public:
     Instruction(const Signature *signature, std::deque<Argument> arguments);
 
     void set_conditional_test(uint8_t mask);
 
-    void set_datatype_specifier(uint8_t mask);
+    void add_datatype_specifier(uint8_t mask);
 
     /** Offset addresses by the given amount. */
     void offset_addresses(uint16_t offset);

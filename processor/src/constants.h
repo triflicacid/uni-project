@@ -95,7 +95,8 @@
 #define OP_LOAD 0x01
 #define OP_LOAD_UPPER 0x02
 #define OP_STORE 0x03
-#define OP_COMPARE 0x4
+#define OP_COMPARE 0x05
+#define OP_CONVERT 0x07
 #define OP_NOT 0x10
 #define OP_AND 0x11
 #define OP_OR  0x12

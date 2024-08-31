@@ -1,4 +1,5 @@
 #include "assembler_data.hpp"
+#include "instructions/signature.hpp"
 
 #include <processor/src/constants.h>
 

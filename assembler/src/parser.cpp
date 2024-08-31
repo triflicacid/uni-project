@@ -1,6 +1,9 @@
 #include <iostream>
 
 #include "parser.hpp"
+
+#include <instructions/signature.hpp>
+
 #include "messages/error.hpp"
 #include "util.hpp"
 
@@ -309,6 +312,16 @@ namespace assembler::parser {
 
     auto instruction = new instruction::Instruction(signature, arguments);
 
+    // custom parser?
+    if (signature->parse) {
+      signature->parse(data, line_idx, col, instruction, options, msgs);
+
+      if (msgs.has_message_of(message::Level::Error)) {
+        delete instruction;
+        return false;
+      }
+    }
+
     // expect datatype and conditional strings
     // options = <cond>.<datatype>
     auto dot = options.find('.');
@@ -346,7 +359,7 @@ namespace assembler::parser {
 
     if (signature->expect_datatype) {
       if (dot == std::string::npos) {
-        instruction->set_datatype_specifier(DATATYPE_U64);
+        instruction->add_datatype_specifier(DATATYPE_U64);
       } else {
         std::string str = options.substr(dot + 1);
         auto entry = instruction::datatype_postfix_map.find(str);
@@ -360,7 +373,7 @@ namespace assembler::parser {
           return false;
         }
 
-        instruction->set_datatype_specifier(entry->second);
+        instruction->add_datatype_specifier(entry->second);
       }
     } else if (dot != std::string::npos) {
       auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);

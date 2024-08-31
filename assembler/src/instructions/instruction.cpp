@@ -2,6 +2,7 @@
 #include <utility>
 
 #include "instruction.hpp"
+#include "signature.hpp"
 
 #include <processor/src/arg.h>
 #include <processor/src/constants.h>
@@ -29,15 +30,14 @@ namespace assembler::instruction {
     args = std::move(arguments);
     overload = 0;
     test = 0x0;
-    datatype = 0x0;
   }
 
   void Instruction::set_conditional_test(uint8_t mask) {
     test = 0x80 | mask; // indicate test is provided
   }
 
-  void Instruction::set_datatype_specifier(uint8_t mask) {
-    datatype = mask;
+  void Instruction::add_datatype_specifier(uint8_t mask) {
+    datatypes.push_back(mask);
   }
 
   void Instruction::offset_addresses(uint16_t offset) {
@@ -63,9 +63,14 @@ namespace assembler::instruction {
       }
     }
 
-    // add datatype specifier?
-    if (signature->expect_datatype) {
-      builder.data_type(datatype & 0x7f);
+    // add datatype specifiers?
+    for (auto &datatype : datatypes) {
+      builder.data_type(datatype);
+    }
+
+    // ensure a datatype is added if expected
+    if (signature->expect_datatype && datatypes.empty()) {
+      builder.data_type(0x0);
     }
 
     // add arguments, formatted depending on type
