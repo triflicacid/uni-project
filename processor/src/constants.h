@@ -61,6 +61,7 @@
 #define DATATYPE_D   0b101
 
 // =============== SYSTEM CALLS ===============
+#define SYSCALL_PRINT_HEX    0
 #define SYSCALL_PRINT_INT    1
 #define SYSCALL_PRINT_FLOAT  2
 #define SYSCALL_PRINT_DOUBLE 3

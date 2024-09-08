@@ -443,6 +443,12 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
   DEBUG_CPU_PRINT(DEBUG_STR " syscall: invoke operation %llu (", value)
 
   switch (value) {
+    case SYSCALL_PRINT_HEX:
+#if DEBUG & DEBUG_CPU
+      printf("print_hex)\n");
+#endif
+    fprintf(cpu->fp_out, "0x%llx", REG(REG_GPR));
+    break;
     case SYSCALL_PRINT_INT:
 #if DEBUG & DEBUG_CPU
       printf("print_int)\n");

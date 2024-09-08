@@ -452,9 +452,7 @@ push \(n \times 4\)\\%
 call <func>
 }
 
-\textbf{Note} when zero arguments are needed, still \texttt{push 0} to indicate this.
 \medskip
-
 \begin{tabular}{|r l||r l|}
      \hline
      \multicolumn{4}{|c|}{\textbf{Stack}} \\
@@ -469,6 +467,15 @@ call <func>
      \texttt{xxx} & \(\leftarrow\) \$sp & \texttt{xxx} & \\
      \hline
 \end{tabular}
+\medskip
+
+See the following points of clarification:
+\begin{itemize}
+    \item When zero arguments are passed, still \texttt{push 0} to indicate this.
+    \item PGPRs are pushed starting \$s1 through \$s8.
+    \item All pushed values are words, except \(n\), which is a half-word (4 bytes).
+    This \(n\) states the size of the \texttt{args} region in \textbf{bytes}.
+\end{itemize}
 
 \subsection{Function Returning}
 
@@ -493,7 +500,7 @@ It is important to note that the size of the additional information pushed via t
     
     \texttt{Arg \(i\) = Reg[\$fp] - 4 * (2 + \(n\) - \(i\))}
 
-    E.g., to load the one an only argument: \texttt{load \$reg, 12(\$fp)}.
+    E.g., to load the one and only argument: \texttt{load \$reg, 12(\$fp)}.
 \end{center}
 
 \section{System Call}
@@ -508,6 +515,8 @@ Optionally, each read arguments from general-purpose registers \texttt{r1} onwar
     \textbf{Service} & \textbf{Opcode} & \textbf{Arguments} & \textbf{Operation} & \textbf{Result} \\
     \hline
     \multicolumn{5}{|c|}{\textbf{Output}} \\
+    \hline
+    print\_hex & 0 & \texttt{\$r1} = integer & Print register as hexadecimal. & \textit{None} \\
     \hline
     print\_int & 1 & \texttt{\$r1} = integer & Print 64-bit integer. & \textit{None} \\
     \hline
