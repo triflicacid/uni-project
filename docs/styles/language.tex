@@ -1,0 +1,24 @@
+\definecolor{bluekeywords}{RGB}{0,0,255}
+\definecolor{redkeywords}{RGB}{255,0,0}
+
+\lstdefinelanguage{CustomLang}{
+    alsoletter={x,b,o,d},
+    morekeywords=[1]{data, decl, entry, func, sizeof, register},
+    morekeywords=[2]{byte, const, int, uint, word, uword, unknown, float, double},
+    literate={0x}{0x}{1}%
+             {0b}{0b}{1}%
+             {0o}{0o}{1}%
+             {0d}{0d}{1},%
+    comment=[l]{//},
+    keywordstyle=[1]\color{bluekeywords},
+    keywordstyle=[2]\color{redkeywords},
+    numberstyle=\color{orange},
+    commentstyle=\color{gray},
+    stringstyle=\color{green},
+    basicstyle=\ttfamily,
+    breaklines=true,
+    frame=lbt,
+    tabsize=2,
+    alsoletter={,},
+    literate={,}{{{\color{black},}}}1,
+}
