@@ -57,7 +57,7 @@ With this in mind, the following rough time-frames and targets have been deduced
     \hline
     \multirow{2}{*}{\textbf{Term 1}} & Design & & & \(100\%\) core \\
     \cline{2-5}
-    & Implementation & & \(100\%\) & \\
+    & Implementation & & \(100\%\) & \(\sim 30\%\)\ \\
     \hline
     \multirow{2}{*}{\textbf{Term 2}} & Design & & & \(100\%\) \\
     \cline{2-5}
@@ -210,7 +210,22 @@ An intermediary between machine code for the emulator and the high-level languag
 \end{quote}
 
 \begin{enumerate}[label=R\arabic*]
-    \item \textit{TODO}
+    \item The assembler shall be able to accept, read, assemble a text file, and output a binary.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The assembler shall be able to accept a file name as an argument.
+        \item The assembler shall be able to open and read a file in text mode.
+        \item The assembler shall be able to write to a file in binary mode.
+    \end{enumerate}
+    \item The assembler shall transform a text source to a binary according to a specification.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The assembler shall implement an assembly language specification.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The specification shall specify the overall structure and syntax of the assembly code.
+            \item The specification shall outline and describe mnemonics to implement the processor specification.
+            \item The specification shall outline argument formats.
+        \end{enumerate}
+        \item The output assembly shall be executable with no non-user errors by the processor.
+    \end{enumerate}
 \end{enumerate}
 
 \subsection{Assembly Language Requirements}
@@ -220,7 +235,17 @@ An intermediary between machine code for the emulator and the high-level languag
 \end{quote}
 
 \begin{enumerate}[label=R\arabic*]
-    \item \textit{TODO}
+    \item The assembly shall be at least as powerful as the processor.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The assembly shall implement all instructions stated in the processor specification.
+        \item The assembly shall support access to all available memory regions of the processor.
+    \end{enumerate}
+    \item The assembly shall provide a layer of abstraction over raw processor binary.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item Assembly mnemonics shall be short, easy to remember, and relate to the instruction.
+        \item Assembly arguments shall be explicit and use of different formats obvious to recognise.
+        \item The assembly shall support labels as placeholders for addresses to ensure ease of programming.
+    \end{enumerate}
 \end{enumerate}
 
 \section{The Compiler}
@@ -235,7 +260,22 @@ The compiler will simply implement this specification, outputting one or more as
 \end{quote}
 
 \begin{enumerate}[label=R\arabic*]
-    \item \textit{TODO}
+    \item The compiler shall be able to accept, read, assemble a text file, and output an assembly file.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The compiler shall be able to accept a file name as an argument.
+        \item The compiler shall be able to open and read a file in text mode.
+        \item The compiler shall be able to write to a file in text mode.
+    \end{enumerate}
+    \item The compiler shall transform a text source from the language to a text assembly source according to a specification.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The compiler shall implement a language specification.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The specification shall specify the overall structure and syntax of the code.
+            \item The specification shall specify how to create, read, and write to variables.
+            \item The specification shall outline control structures.
+        \end{enumerate}
+        \item The compiler shall implement a language specification.
+    \end{enumerate}
 \end{enumerate}
 
 \subsection{High-Level Language Requirements}
@@ -245,7 +285,19 @@ The compiler will simply implement this specification, outputting one or more as
 \end{quote}
 
 \begin{enumerate}[label=R\arabic*]
-    \item \textit{TODO}
+    \item The language shall be at least as powerful as the assembly language.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item The language shall implement or provide structures for all assembly instructions.
+    \end{enumerate}
+    \item The language shall provide a layer of abstraction over assembly code.
+    \begin{enumerate}[label=\theenumi.\arabic*]
+        \item No assembly mnemonic shall be necessary to directly reference.
+        \begin{enumerate}[label=\theenumii.\arabic*]
+            \item The language shall provide standard infix operators to achieve operations between data.
+            \item The language shall provide semantic structures to express branching operations.
+        \end{enumerate}
+        \item The language shall provide the ability to address registers and memory locations without explicit knowledge of the programmer.
+    \end{enumerate}
 \end{enumerate}
 
 \end{document}

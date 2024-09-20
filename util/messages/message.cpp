@@ -8,14 +8,14 @@ extern "C" {
 
 namespace message {
   Message::Message(Level level, std::filesystem::path filename, int line, int col) {
-    m_type = level;
+    m_level = level;
     m_line = line;
     m_col = col;
     m_file = std::move(filename);
   }
 
   Message::Message(Level level, const assembler::pre_processor::LocationInformation &loc) {
-    m_type = level;
+    m_level = level;
     m_line = loc.line;
     m_col = loc.col;
     m_file = loc.file;
@@ -26,20 +26,20 @@ namespace message {
   }
 
   void Message::print_type_suffix() {
-    switch (m_type) {
+    switch (m_level) {
       case Level::Note:
-        std::cout << ANSI_BLUE "NOTE" ANSI_RESET;
+        std::cout << ANSI_BLUE "note" ANSI_RESET;
         break;
       case Level::Warning:
-        std::cout << ANSI_YELLOW "WARN" ANSI_RESET;
+        std::cout << ANSI_YELLOW "warn" ANSI_RESET;
         break;
       case Level::Error:
-        std::cout << ANSI_RED "ERROR!" ANSI_RESET;
+        std::cout << ANSI_RED "error!" ANSI_RESET;
         break;
     }
 
     if (int code = get_code(); code != -1) {
-      std::cout << " [" << code << "]";
+      std::cout << " (" << code << ")";
     }
   }
 
@@ -54,7 +54,7 @@ namespace message {
   void Message::print() {
     print_type_suffix();
 
-    std::cout << " File " << m_file.string();
+    std::cout << " file " << m_file.string();
 
     if (m_line > -1) {
       std::cout << ", line " << m_line;
@@ -66,5 +66,11 @@ namespace message {
     }
 
     std::cout << ": " << m_msg << "\n";
+  }
+
+  Level level_from_int(int level) {
+    if (level < 1) return Level::Note;
+    if (level == 1) return Level::Warning;
+    return Level::Error;
   }
 }

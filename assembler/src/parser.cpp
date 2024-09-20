@@ -4,7 +4,6 @@
 
 #include <instructions/signature.hpp>
 
-#include "messages/error.hpp"
 #include "util.hpp"
 
 extern "C" {
@@ -30,12 +29,12 @@ namespace assembler::parser {
         if (!parse_directive(data, line_idx, i, directive, msgs)) {
           message::Message *msg;
 
-          if (msgs.has_message_of(message::Level::Error)) {
-            msg = new message::Message(message::Level::Note, data.file_path, line_idx, start);
-            msg->set_message("Whilst parsing directive ." + directive);
+          if (msgs.has_message_of(message::Error)) {
+            msg = new message::Message(message::Note, data.file_path, line_idx, start);
+            msg->set_message("whilst parsing directive ." + directive);
           } else {
-            msg = new message::Error(data.file_path, line_idx, start, message::Syntax);
-            msg->set_message("Unknown directive ." + directive);
+            msg = new message::Message(message::Error, data.file_path, line_idx, start);
+            msg->set_message("unknown directive ." + directive);
           }
 
           msgs.add(msg);
@@ -51,8 +50,8 @@ namespace assembler::parser {
 
         // Check if valid label name
         if (!is_valid_label_name(label_name)) {
-          auto *err = new message::Error(data.file_path, line.n, start, message::ErrorType::InvalidLabel);
-          err->set_message("Invalid label: '" + label_name + "'");
+          auto *err = new message::Message(message::Error, data.file_path, line.n, start);
+          err->set_message("invalid label: '" + label_name + "'");
           msgs.add(err);
           return;
         }
@@ -65,17 +64,17 @@ namespace assembler::parser {
           data.labels.insert({label_name, {line.n, start, data.offset}});
         } else {
           // Warn user that the label already exists (error if main)
-          auto level = label_name == data.main_label || label_name == data.interrupt_label ? message::Level::Error : message::Level::Warning;
+          auto level = label_name == data.main_label || label_name == data.interrupt_label ? message::Error : message::Warning;
           auto *msg = new message::Message(level, data.file_path, line.n, start);
           msg->set_message("Re-declaration of label " + label_name);
           msgs.add(msg);
 
-          msg = new message::Message(message::Level::Note, data.file_path, label->second.line, label->second.col);
+          msg = new message::Message(message::Note, data.file_path, label->second.line, label->second.col);
           msg->set_message("Previously declared here");
           msgs.add(msg);
 
           // Exit if error
-          if (level == message::Level::Error)
+          if (level == message::Error)
             return;
 
           // Update label's information
@@ -108,8 +107,8 @@ namespace assembler::parser {
       auto signature = instruction::find_signature(mnemonic, options);
 
       if (signature == nullptr) {
-        auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::UnknownMnemonic);
-        err->set_message("Unknown mnemonic '" + mnemonic + "'");
+        auto err = new message::Message(message::Error, data.file_path, line.n, start);
+        err->set_message("unknown mnemonic '" + mnemonic + "'");
         msgs.add(err);
         return;
       }
@@ -125,8 +124,8 @@ namespace assembler::parser {
         parse_arg(data, line_idx, i, msgs, argument);
 
         // tell user which argument it was if error was encountered
-        if (msgs.has_message_of(message::Level::Error)) {
-          auto msg = new message::Message(message::Level::Note, data.file_path, line.n, 0);
+        if (msgs.has_message_of(message::Error)) {
+          auto msg = new message::Message(message::Note, data.file_path, line.n, 0);
           msg->set_message("While parsing mnemonic " + mnemonic + ", argument " + std::to_string(arguments.size() + 1));
           msgs.add(msg);
 
@@ -137,8 +136,8 @@ namespace assembler::parser {
         if (i < line.data.size() && line.data[i] != ' ' && line.data[i] != ',') {
           std::string ch(1, line.data[i]);
 
-          auto err = new message::Error(data.file_path, line.n, i, message::ErrorType::Syntax);
-          err->set_message("Expected ' ' or ',', got '" + ch + "'");
+          auto err = new message::Message(message::Error, data.file_path, line.n, i);
+          err->set_message("expected ' ' or ',', got '" + ch + "'");
           msgs.add(err);
           return;
         }
@@ -164,7 +163,7 @@ namespace assembler::parser {
       // check if error occurred
       // - if so, add arguments as note
       // - otherwise, if instruction is empty, generate error in place
-      if (bool was_error = msgs.has_message_of(message::Level::Error); was_error || !ok) {
+      if (bool was_error = msgs.has_message_of(message::Error); was_error || !ok) {
         std::stringstream stream;
         stream << (was_error ? "While parsing" : "Unknown arguments for")
             << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) signature->opcode << std::dec << ")";
@@ -183,7 +182,7 @@ namespace assembler::parser {
           }
         }
 
-        auto msg = new message::Message(was_error ? message::Level::Note : message::Level::Error, data.file_path,
+        auto msg = new message::Message(was_error ? message::Note : message::Error, data.file_path,
                                         line.n, start);
         msg->set_message(stream);
         msgs.add(msg);
@@ -207,8 +206,8 @@ namespace assembler::parser {
           if (arg.is_label()) {
             auto line = data.lines[chunk->get_source_line()];
 
-            auto err = new message::Error(data.file_path, line.n, 0, message::ErrorType::UnknownLabel);
-            err->set_message("Unresolved label reference '" + *arg.get_label() + "'");
+            auto err = new message::Message(message::Error, data.file_path, line.n, 0);
+            err->set_message("unresolved label reference '" + *arg.get_label() + "'");
             msgs.add(err);
             return;
           }
@@ -254,15 +253,15 @@ namespace assembler::parser {
       uint64_t value;
       bool is_double;
       if (!parse_number(line.data, col, value, is_double)) {
-        auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-        err->set_message("Expected number");
+        auto err = new message::Message(message::Error, data.file_path, line.n, col);
+        err->set_message("expected number");
         msgs.add(err);
         return false;
       }
 
       if (is_double) {
-        auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-        err->set_message("Number of bytes cannot be decimal!");
+        auto err = new message::Message(message::Error, data.file_path, line.n, col);
+        err->set_message("number of bytes cannot be decimal!");
         msgs.add(err);
         return false;
       }
@@ -283,7 +282,7 @@ namespace assembler::parser {
           std::stringstream stream;
           stream << ".org: decreasing offset to 0x" << std::hex << value << " (was 0x" << data.offset << std::dec << ")";
 
-          auto msg = new message::Message(message::Level::Warning, data.file_path, line.n, col);
+          auto msg = new message::Message(message::Warning, data.file_path, line.n, col);
           msg->set_message(stream);
           msgs.add(msg);
         }
@@ -316,7 +315,7 @@ namespace assembler::parser {
     if (signature->parse) {
       signature->parse(data, line_idx, col, instruction, options, msgs);
 
-      if (msgs.has_message_of(message::Level::Error)) {
+      if (msgs.has_message_of(message::Error)) {
         delete instruction;
         return false;
       }
@@ -333,8 +332,8 @@ namespace assembler::parser {
         auto entry = instruction::conditional_postfix_map.find(str);
 
         if (entry == instruction::conditional_postfix_map.end()) {
-          auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
-          err->set_message("Unknown conditional test '" + str + "'");
+          auto err = new message::Message(message::Error, data.file_path, line_idx, col);
+          err->set_message("unknown conditional test '" + str + "'");
           msgs.add(err);
 
           delete instruction;
@@ -349,8 +348,8 @@ namespace assembler::parser {
         instruction->set_conditional_test(entry->second);
       }
     } else if (!options.empty() && dot == std::string::npos) {
-      auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
-      err->set_message("Unexpected options after " + signature->mnemonic + ": '" + options + "'");
+      auto err = new message::Message(message::Error, data.file_path, line_idx, col);
+      err->set_message("unexpected options after " + signature->mnemonic + ": '" + options + "'");
       msgs.add(err);
 
       delete instruction;
@@ -365,8 +364,8 @@ namespace assembler::parser {
         auto entry = instruction::datatype_postfix_map.find(str);
 
         if (entry == instruction::datatype_postfix_map.end()) {
-          auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
-          err->set_message("Unknown datatype specifier '" + str + "'");
+          auto err = new message::Message(message::Error, data.file_path, line_idx, col);
+          err->set_message("unknown datatype specifier '" + str + "'");
           msgs.add(err);
 
           delete instruction;
@@ -376,8 +375,8 @@ namespace assembler::parser {
         instruction->add_datatype_specifier(entry->second);
       }
     } else if (dot != std::string::npos) {
-      auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
-      err->set_message("Unexpected dot-options after " + signature->mnemonic + ": '" + options.substr(dot) + "'");
+      auto err = new message::Message(message::Error, data.file_path, line_idx, col);
+      err->set_message("unexpected dot-options after " + signature->mnemonic + ": '" + options.substr(dot) + "'");
       msgs.add(err);
 
       delete instruction;
@@ -409,12 +408,12 @@ namespace assembler::parser {
 
     if (overload == -1) {
       std::stringstream stream;
-      stream << "No match for mnemonic " << signature->mnemonic << " with arguments ";
+      stream << "no match for mnemonic " << signature->mnemonic << " with arguments ";
 
       for (auto &arg: arguments)
         stream << instruction::Argument::type_to_string(arg.get_type()) << " ";
 
-      stream << "\nAvailable overloads:";
+      stream << "\navailable overloads:";
 
       for (auto &args: signature->arguments) {
         stream << "\n\t- " << signature->mnemonic;
@@ -425,7 +424,7 @@ namespace assembler::parser {
         }
       }
 
-      auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::BadArguments);
+      auto err = new message::Message(message::Error, data.file_path, line_idx, col);
       err->set_message(stream);
       msgs.add(err);
 
@@ -483,15 +482,15 @@ namespace assembler::parser {
         // character literal
         parse_character_literal(data, line_idx, ++col, msgs, value);
 
-        if (msgs.has_message_of(message::Level::Error)) {
+        if (msgs.has_message_of(message::Error)) {
           return false;
         }
       } else if (parse_number(line.data, col, value, is_decimal)) {
         // numeric literal
       } else {
         std::string ch(1, line.data[col]);
-        auto err = new message::Error(data.file_path, line_idx, col, message::ErrorType::Syntax);
-        err->set_message("Unexpected character '" + ch + "' in data list");
+        auto err = new message::Message(message::Error, data.file_path, line_idx, col);
+        err->set_message("unexpected character '" + ch + "' in data list");
         msgs.add(err);
 
         delete bytes;
@@ -528,12 +527,12 @@ namespace assembler::parser {
     // still in string?
     if (str_start > -1) {
       std::string ch(1, line.data[col - 1]);
-      message::Message *msg = new message::Error(data.file_path, line.n, col - 1, message::ErrorType::Syntax);
-      msg->set_message("Unterminated string literal; expected '\"', got '" + ch + "'");
+      auto *msg = new message::Message(message::Error, data.file_path, line.n, col - 1);
+      msg->set_message("unterminated string literal; expected '\"', got '" + ch + "'");
       msgs.add(msg);
 
-      msg = new message::Message(message::Level::Note, data.file_path, line.n, str_start);
-      msg->set_message("String literal opened here");
+      msg = new message::Message(message::Note, data.file_path, line.n, str_start);
+      msg->set_message("string literal opened here");
       msgs.add(msg);
       return false;
     }
@@ -555,7 +554,7 @@ namespace assembler::parser {
       parse_character_literal(data, line_idx, ++col, msgs, value);
 
       // Any errors?
-      if (msgs.has_message_of(message::Level::Error)) {
+      if (msgs.has_message_of(message::Error)) {
         return;
       }
 
@@ -571,8 +570,8 @@ namespace assembler::parser {
 
       // is register unknown?
       if (reg == -1) {
-        auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
-        err->set_message("Unknown register");
+        auto err = new message::Message(message::Error, data.file_path, line.n, start);
+        err->set_message("unknown register");
         msgs.add(err);
         return;
       }
@@ -626,9 +625,9 @@ namespace assembler::parser {
         // if constant was decimal, this is bad
         if (found_number && number_decimal) {
           std::stringstream stream;
-          stream << "Offset in register-indirect cannot be a decimal! (got " << *(double *) &value << ")";
+          stream << "offset in register-indirect cannot be a decimal! (got " << *(double *) &value << ")";
 
-          auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
+          auto err = new message::Message(message::Error, data.file_path, line.n, col);
           err->set_message(stream);
           msgs.add(err);
           return;
@@ -639,8 +638,8 @@ namespace assembler::parser {
 
         // is register unknown?
         if (reg == -1) {
-          auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
-          err->set_message("Unknown register");
+          auto err = new message::Message(message::Error, data.file_path, line.n, start);
+          err->set_message("unknown register");
           msgs.add(err);
           return;
         }
@@ -649,12 +648,12 @@ namespace assembler::parser {
         if (line.data[col] != ')') {
           std::string ch(1, line.data[col]);
 
-          message::Message *msg = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-          msg->set_message("Expected ')', got '" + ch + "'");
+          auto *msg = new message::Message(message::Error, data.file_path, line.n, col);
+          msg->set_message("expected ')', got '" + ch + "'");
           msgs.add(msg);
 
-          msg = new message::Message(message::Level::Note, data.file_path, line.n, start - 1);
-          msg->set_message("Group opened here");
+          msg = new message::Message(message::Note, data.file_path, line.n, start - 1);
+          msg->set_message("group opened here");
           msgs.add(msg);
 
           return;
@@ -671,8 +670,8 @@ namespace assembler::parser {
       if (found_number) {
         std::string ch(1, line.data[col]);
 
-        auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-        err->set_message("Expected '$' for register-indirect, found '" + ch + "' after '('");
+        auto err = new message::Message(message::Error, data.file_path, line.n, col);
+        err->set_message("expected '$' for register-indirect, found '" + ch + "' after '('");
         msgs.add(err);
         return;
       }
@@ -681,16 +680,16 @@ namespace assembler::parser {
       if (!parse_number(line.data, col, value, number_decimal)) {
         std::string ch(1, line.data[col]);
 
-        auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
-        err->set_message("Expected memory address, found '" + ch + "' after '('");
+        auto err = new message::Message(message::Error, data.file_path, line.n, start);
+        err->set_message("expected memory address, found '" + ch + "' after '('");
         msgs.add(err);
         return;
       }
 
       // disallow decimals
       if (number_decimal) {
-        auto err = new message::Error(data.file_path, line.n, start, message::ErrorType::Syntax);
-        err->set_message("Memory address cannot be a decimal!");
+        auto err = new message::Message(message::Error, data.file_path, line.n, start);
+        err->set_message("memory address cannot be a decimal!");
         msgs.add(err);
         return;
       }
@@ -699,12 +698,12 @@ namespace assembler::parser {
       if (line.data[col] != ')') {
         std::string ch(1, line.data[col]);
 
-        message::Message *msg = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-        msg->set_message("Expected ')', got '" + ch + "'");
+        auto *msg = new message::Message(message::Error, data.file_path, line.n, col);
+        msg->set_message("expected ')', got '" + ch + "'");
         msgs.add(msg);
 
-        msg = new message::Message(message::Level::Note, data.file_path, line.n, start - 1);
-        msg->set_message("Group opened here");
+        msg = new message::Message(message::Note, data.file_path, line.n, start - 1);
+        msg->set_message("group opened here");
         msgs.add(msg);
 
         return;
@@ -728,8 +727,8 @@ namespace assembler::parser {
 
     std::string ch(1, line.data[col]);
 
-    auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-    err->set_message("Unexpected character '" + ch + "'");
+    auto err = new message::Message(message::Error, data.file_path, line.n, col);
+    err->set_message("unexpected character '" + ch + "'");
     msgs.add(err);
   }
 
@@ -800,8 +799,8 @@ namespace assembler::parser {
     // Escape character
     if (line.data[col] == '\\') {
       if (!decode_escape_seq(line.data, ++col, value)) {
-        auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-        err->set_message("Invalid escape sequence");
+        auto err = new message::Message(message::Error, data.file_path, line.n, col);
+        err->set_message("invalid escape sequence");
         msgs.add(err);
         return;
       }
@@ -811,8 +810,8 @@ namespace assembler::parser {
 
     // Check for ending apostrophe
     if (line.data[col] != '\'') {
-      auto err = new message::Error(data.file_path, line.n, col, message::ErrorType::Syntax);
-      err->set_message("Expected apostrophe to terminate character literal");
+      auto err = new message::Message(message::Error, data.file_path, line.n, col);
+      err->set_message("expected apostrophe to terminate character literal");
       msgs.add(err);
       return;
     }

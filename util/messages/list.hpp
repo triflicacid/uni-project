@@ -6,10 +6,10 @@
 
 namespace message {
   class List {
-  private:
+    private:
     std::vector<Message *> messages;
 
-  public:
+    public:
     /** Get number of messages. */
     size_t size() { return messages.size(); }
 
@@ -34,4 +34,7 @@ namespace message {
     /** Merge given list into this (append). */
     void append(List &other);
   };
+
+  /** Handle message list: print messages and empty the list, return if there was an error. */
+  bool print_and_check(List &list);
 }

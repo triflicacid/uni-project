@@ -2,7 +2,6 @@
 #include "signature.hpp"
 
 #include <util.hpp>
-#include <messages/error.hpp>
 #include <processor/src/constants.h>
 
 namespace assembler::instruction::transform {
@@ -158,7 +157,7 @@ namespace assembler::instruction::parse {
               options = options.substr(1);
             } else {
               std::string ch(1, options[0]);
-              auto err = new message::Error(data.file_path, line_idx, col, message::Syntax);
+              auto err = new message::Message(message::Error, data.file_path, line_idx, col);
               err->set_message("cvt: expected '2' after first datatype, got '" + ch + "'");
               msgs.add(err);
 
@@ -171,7 +170,7 @@ namespace assembler::instruction::parse {
       }
 
       if (!found) {
-        auto err = new message::Error(data.file_path, line_idx, col, message::Syntax);
+        auto err = new message::Message(message::Error, data.file_path, line_idx, col);
         err->set_message("cvt: expected datatype. Syntax: cvt(d1)2(d2)");
         msgs.add(err);
 

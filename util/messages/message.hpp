@@ -1,31 +1,31 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-#include "../pre-process/location-info.hpp"
+#include "assembler/src/pre-process/location-info.hpp"
 
 namespace message {
-  enum class Level {
+  enum Level {
     Note,
     Warning,
     Error
   };
 
   class Message {
-  private:
+    protected:
     int m_line;
     int m_col;
     std::filesystem::path m_file;
-    Level m_type;
+    Level m_level;
     std::string m_msg;
 
     /** Print varying type line e.g., 'ERROR!' */
     void print_type_suffix();
 
-  protected:
     virtual void _set_message(std::string msg);
 
-  public:
+    public:
     Message(Level level, std::filesystem::path filename, int line, int col);
 
     Message(Level level, const assembler::pre_processor::LocationInformation &loc);
@@ -39,8 +39,11 @@ namespace message {
 
     void set_message(const std::stringstream &stream);
 
-    [[nodiscard]] Level get_level() const { return m_type; }
+    Level get_level() { return m_level; }
 
-    void print();
+    virtual void print();
   };
+
+  /** Get level from int, where lowest is 0 */
+  Level level_from_int(int level);
 }

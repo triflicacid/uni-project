@@ -5,7 +5,7 @@
 #include <cstring>
 
 #include "src/pre-process/pre-processor.hpp"
-#include "src/messages/list.hpp"
+#include "messages/list.hpp"
 
 extern "C" {
 #include "util.h"
@@ -38,7 +38,7 @@ bool handle_messages(message::List &list) {
     msg.print();
   });
 
-  bool is_error = list.has_message_of(message::Level::Error);
+  bool is_error = list.has_message_of(message::Error);
 
   list.clear();
 
