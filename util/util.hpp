@@ -43,6 +43,9 @@ bool starts_with(const std::string &a, int pos, std::string b);
 /** Decode escape sequence '\...'. Return if OK.  */
 bool decode_escape_seq(const std::string &string, int &i, uint64_t &value);
 
+/** gGiven character, populate base. Return success. */
+bool base_char(char ch, uint8_t &base);
+
 /** Return whether the given character is within the given base. */
 inline bool is_base_char(char c, uint8_t base) {
   return (c >= '0' && c <= '0' + (base > 9 ? 9 : base))

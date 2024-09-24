@@ -146,8 +146,7 @@ bool decode_escape_seq(const std::string &string, int &i, uint64_t &value) {
   return true;
 }
 
-/** Given character, return base and success. */
-static bool base_char(char ch, uint8_t &base) {
+bool base_char(char ch, uint8_t &base) {
   switch (ch) {
     case 'b':
       base = 2;

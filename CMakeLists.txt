@@ -10,3 +10,4 @@ include_directories(util)
 
 add_subdirectory(processor)
 add_subdirectory(assembler)
+add_subdirectory(language)

@@ -1,0 +1,1420 @@
+#include <iostream>
+#include <set>
+#include "Parser.hpp"
+
+#include "language/src/statement/SymbolRef.hpp"
+#include "language/src/statement/SymbolRef.hpp"
+#include "types/primitive.hpp"
+#include "statement/Number.hpp"
+#include "statement/UnaryOperator.hpp"
+#include "statement/BinaryOperator.hpp"
+#include "statement/ReturnStatement.hpp"
+#include "LanguageOptions.hpp"
+#include "statement/FunctionRef.hpp"
+#include "types/UnitType.hpp"
+#include "util.hpp"
+
+namespace language::parser {
+  void Parser::save() {
+    m_pos_stack.push(m_pos);
+  }
+
+  void Parser::restore() {
+    if (m_pos_stack.empty()) {
+      m_pos = 0;
+    } else {
+      m_pos = m_pos_stack.top();
+      m_pos_stack.pop();
+    }
+  }
+
+  void Parser::discard() {
+    m_pos_stack.pop();
+  }
+
+  bool Parser::expect(lexer::Token::Type type, message::List *messages) {
+    if (exists() && peek()->type() == type) {
+      move();
+      return true;
+    }
+
+    if (messages != nullptr) {
+      messages->add(generate_syntax_error({type}));
+    }
+
+    return false;
+  }
+
+  bool Parser::expect(const std::vector<lexer::Token::Type> &types, message::List *messages) {
+    if (exists() && std::find(types.begin(), types.end(), peek()->type()) != types.end()) {
+      move();
+      return true;
+    }
+
+    if (messages != nullptr) {
+      messages->add(generate_syntax_error(types));
+    }
+
+    return false;
+  }
+
+  bool Parser::expect(const std::function<bool(lexer::Token::Type)> &test_fn) {
+    if (exists() && test_fn(peek()->type())) {
+      move();
+      return true;
+    }
+
+    return false;
+  }
+
+  bool Parser::check_can_create_identifier(const lexer::Token &identifier, int pos, message::List &messages) {
+    auto local = m_scopes.get_local();
+    bool exists = false;
+    int other_pos;
+
+    if (identifier.type() == lexer::Token::IDENTIFIER) {
+      if (!options::allow_shadowing && local->var_exists(identifier.image())) {
+        exists = true;
+        other_pos = local->var_get(identifier.image())->position();
+      } else if (local->func_exists(identifier.image())) {
+        exists = true;
+        other_pos = local->func_get(identifier.image())->back()->position();
+      }
+    } else if (identifier.type() == lexer::Token::DATA_IDENTIFIER) {
+      if (local->data_exists(identifier.image())) {
+        exists = true;
+        other_pos = local->data_get(identifier.image())->position();
+      }
+    }
+
+    if (exists) {
+      set(pos);
+      messages.add(generate_error("identifier is already bound"));
+
+      set(other_pos);
+      messages.add(generate_message(message::Note, "identifier bound here"));
+
+      return false;
+    }
+
+    return true;
+  }
+
+  bool Parser::check_can_shadow_identifier(const lexer::Token &identifier, int pos, message::List &messages) {
+    auto local = m_scopes.get_local();
+    bool can_shadow = true;
+    int other_pos;
+
+    if (local->var_exists(identifier.image())) {
+      if (!options::allow_shadowing) {
+        can_shadow = false;
+        other_pos = local->var_get(identifier.image())->position();
+      }
+    } else if (local->func_exists(identifier.image())) {
+      can_shadow = false;
+      other_pos = local->func_get(identifier.image())->back()->position();
+    }
+
+    if (can_shadow) {
+      return true;
+    } else {
+      set(pos);
+      messages.add(generate_error("cannot shadow identifier"));
+
+      set(other_pos);
+      messages.add(generate_message(message::Note, "identifier bound here"));
+
+      return false;
+    }
+  }
+
+  bool Parser::check_can_create_overload(const std::string &name, const types::FunctionType *overload,
+                                         message::List &messages) {
+    if (m_scopes.get_local()->func_exists(name, overload)) {
+      auto *old = m_scopes.get_local()->func_get(name, overload);
+
+      set(overload->position());
+      messages.add(generate_error("signature already exists: " + name + overload->repr()));
+
+      set(old->position());
+      messages.add(generate_message(message::Note, "signature previously declared here."));
+
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  bool Parser::check_type_match(const types::Type *a, const types::Type *b, int pos, message::List *messages) {
+    bool match = true;
+
+    if (!types::can_implicitly_cast_to(a, b)) {
+      match = false;
+
+      if (messages) {
+        mark_end();
+        set(pos);
+        messages->add(generate_error("type mismatch: cannot match type " + b->repr() + " with type " + a->repr()));
+      }
+    }
+
+    if (!match) {
+      set_end(-1);
+    }
+
+    return match;
+  }
+
+  bool Parser::check_symbol_unused(const parser::SymbolDeclaration *symbol, message::List &messages) {
+    auto level =
+        options::unused_symbol_level < 0 ? message::Note : message::level_from_int(options::unused_symbol_level);
+    bool unused = false;
+    save(); // Ensure position isn't corrupted
+
+    if (!symbol->was_used_since_assignment) {
+      if (!symbol->was_assigned) {
+        set(symbol->position());
+        messages.add(generate_message(level, "unused symbol, consider removing"));
+        unused = true;
+      } else {
+        set(symbol->last_assigned_pos);
+        messages.add(generate_message(level, "assigned value never used, consider removing"));
+        unused = true;
+      }
+    }
+
+    restore();
+    return unused;
+  }
+
+  message::MessageWithSource *Parser::generate_message(message::Level level, const std::string &message) {
+    // Token we have an issue with
+    const auto &token = peek();
+    Location location = token->location();
+
+    // Record end column.
+    size_t end_col = location.column() + token->size();
+
+    if (m_end_pos > m_pos) {
+      for (int i = m_pos + 1; i < m_end_pos; i++) {
+        if (m_tokens[i].location().line() != location.line()) {
+          break;
+        }
+
+        end_col = m_tokens[i].location().column() + m_tokens[i].size();
+      }
+    }
+
+    auto msg = new message::MessageWithSource(level, m_prog->source()->path(), location.line(),
+                                              location.column(), location.column(), (int) (end_col - location.column()),
+                                              m_prog->source()->get_line(location.line()));
+    msg->set_message(message);
+    return msg;
+  }
+
+  message::MessageWithSource *
+  Parser::generate_syntax_error_multi(const std::vector<const std::vector<lexer::Token::Type> *> &expected) {
+    std::stringstream message;
+    message << "Syntax Error: encountered " << lexer::Token::repr(peek()->type()) << ".";
+
+    size_t expected_count = 0;
+    for (auto &vec: expected) {
+      expected_count += vec->size();
+    }
+
+    if (expected_count > 0) {
+      message << " Expected ";
+
+      if (expected_count > 1) message << "one of ";
+
+      for (auto &vec: expected) {
+        for (int i = 0; i < vec->size(); i++) {
+          message << lexer::Token::repr((*vec)[i]);
+
+          if (i < expected_count - 1) message << ", ";
+        }
+      }
+
+      message << '.';
+    }
+
+    return generate_error(message.str());
+  }
+
+  message::MessageWithSource *Parser::generate_syntax_error(const std::vector<lexer::Token::Type> &expected) {
+    return generate_syntax_error_multi({&expected});
+  }
+
+  message::MessageWithSource *Parser::generate_custom_syntax_error(const std::string &expected) {
+    std::stringstream message;
+    message << "Syntax Error: encountered " << lexer::Token::repr(peek()->type()) << ". Expected " << expected << ".";
+    return generate_error(message.str());
+  }
+
+  message::MessageWithSource *Parser::generate_syntax_error_expected_expression() {
+    std::vector<lexer::Token::Type> expected = {lexer::Token::IDENTIFIER, lexer::Token::NUMBER, lexer::Token::LPARENS};
+
+    for (auto &pair: token_unary_operators) {
+      expected.emplace_back(pair.first);
+    }
+
+    return generate_syntax_error(expected);
+  }
+
+  bool Parser::consume_type(message::List &messages, const types::Type **type) {
+    // TODO add floating point type support
+    if (expect(lexer::Token::TYPE_BYTE)) {
+      *type = &types::Byte::instance;
+    } else if (expect(lexer::Token::TYPE_INT)) {
+      *type = &types::Int::instance;
+    } else if (expect(lexer::Token::TYPE_UINT)) {
+      *type = &types::UInt::instance;
+    } else if (expect(lexer::Token::TYPE_WORD)) {
+      *type = &types::Word::instance;
+    } else if (expect(lexer::Token::TYPE_UWORD)) {
+      *type = &types::UWord::instance;
+    } else if (expect(lexer::Token::DATA_IDENTIFIER)) {
+      if (m_scopes.data_exists(peek(-1)->image())) {
+        *type = m_scopes.data_get(peek(-1)->image());
+      } else {
+        move(-1);
+        messages.add(generate_error("reference to undefined type"));
+        return false;
+      }
+    } else {
+      messages.add(generate_error("expected type"));
+      return false;
+    }
+
+    return true;
+  }
+
+  bool Parser::consume_kw_decl_func(message::List &messages) {
+    if (expect(lexer::Token::KW_DECL) && expect(lexer::Token::KW_FUNC)) {
+      // <IDENTIFIER>
+      int func_name_pos = m_pos;
+
+      if (!expect(lexer::Token::IDENTIFIER, &messages)) {
+        return false;
+      }
+
+      auto token_func_name = peek(-1);
+
+      // Parse function signature type
+      auto *type = parse_function_type(messages, false, func_name_pos);
+
+      if (type == nullptr) {
+        return false;
+      }
+
+      // <EOL>
+      if (!expect(lexer::Token::EOL, &messages)) {
+        if (peek()->type() == lexer::Token::LBRACE) {
+          set(func_name_pos - 2);
+          messages.add(generate_message(message::Note, "did you mean to define a function? Remove \"decl\"."));
+        }
+
+        return false;
+      }
+
+      // Check if the overload already exists
+      if (!check_can_create_overload(token_func_name->image(), type, messages)) {
+        delete type;
+        return false;
+      }
+
+      // Create function & register with global table
+      m_scopes.get_local()->func_create(token_func_name->image(), type);
+
+      auto *func = new statement::Function(token_func_name->image(), type, m_prog->new_function_id());
+      m_prog->register_function(func);
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool Parser::consume_kw_decl_data(message::List &messages) {
+    if (expect(lexer::Token::KW_DECL) && expect(lexer::Token::KW_DATA)) {
+      // <DATA_IDENTIFIER>
+      if (!expect(lexer::Token::DATA_IDENTIFIER, &messages)) {
+        return false;
+      }
+
+      auto token = peek(-1);
+      int token_pos = m_pos - 1;
+
+      // Does data already exist?
+      if (m_scopes.get_local()->data_exists(token->image())) {
+        set(token_pos);
+        messages.add(generate_error("cannot re-declare data type"));
+
+        auto *data = m_scopes.get_local()->data_get(token->image());
+        set(data->position());
+        messages.add(generate_message(message::Note, "declared here"));
+
+        return false;
+      }
+
+      // Create empty definition
+      m_scopes.get_local()->data_create(new types::UserType(token, token_pos));
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool Parser::consume_kw_decl(message::List &messages) {
+    if (expect(lexer::Token::KW_DECL)) {
+      do {
+        int identifier_pos = m_pos;
+
+        // <IDENTIFIER>
+        if (!expect(lexer::Token::IDENTIFIER, &messages)) {
+          return false;
+        }
+
+        auto token_identifier = peek(-1);
+
+        // Perform checks
+        if (!check_can_create_identifier(*token_identifier, identifier_pos, messages) ||
+            !check_can_shadow_identifier(*token_identifier, identifier_pos, messages)) {
+          return false;
+        }
+
+        // Shadow unused symbol warning
+        if (options::unused_symbol_level > -1) {
+          auto exists = m_scopes.get_local()->var_get(token_identifier->image());
+
+          if (exists != nullptr && !exists->was_assigned) {
+            auto level = message::level_from_int(options::unused_symbol_level);
+
+            save();
+            set(exists->position());
+            messages.add(generate_message(level, "unused symbol, consider removing"));
+            restore();
+
+            messages.add(generate_message(message::Note, "being shadowed here"));
+
+            if (level == message::Error) {
+              return false;
+            }
+          }
+        }
+
+        // ":"
+        if (!expect(lexer::Token::COLON, &messages)) {
+          return false;
+        }
+
+        // Type
+        const types::Type *type;
+        if (!consume_type(messages, &type)) {
+          return false;
+        }
+
+        // Add to current scope, deleting old Symbol if needed
+        auto symbol = new parser::SymbolDeclaration(identifier_pos, token_identifier->image(), type, false);
+        delete m_scopes.get_local()->var_create(symbol);
+
+        // "," or <EOL>
+        if (!expect({lexer::Token::COMMA, lexer::Token::EOL}, &messages)) {
+          return false;
+        }
+
+        // If <EOL>, break, else scan for more
+        if (peek(-1)->type() == lexer::Token::EOL) {
+          return true;
+        }
+      } while (true);
+    } else {
+      return false;
+    }
+  }
+
+  bool Parser::consume_kw_data(message::List &messages) {
+    if (expect(lexer::Token::KW_DATA)) {
+      // <DATA IDENTIFIER>
+      int data_pos = m_pos;
+
+      if (!expect(lexer::Token::DATA_IDENTIFIER, &messages)) {
+        return false;
+      }
+
+      auto token_data_identifier = peek(-1);
+
+      // Either create type, or complete definition
+      types::UserType *user_type;
+
+      if (m_scopes.get_local()->data_exists(token_data_identifier->image())) {
+        user_type = m_scopes.get_local()->data_get(token_data_identifier->image());
+
+        if (user_type->member_count() > 0) {
+          set(data_pos);
+          messages.add(generate_error("identifier is already bound"));
+
+          set(user_type->position());
+          messages.add(generate_message(message::Note, "identifier bound here"));
+
+          return false;
+        }
+      } else {
+        user_type = new types::UserType(token_data_identifier, data_pos);
+        m_scopes.get_local()->data_create(user_type);
+      }
+
+      // "{"
+      if (!expect(lexer::Token::LBRACE, &messages)) {
+        return false;
+      }
+
+      // Parse contents
+      while (true) {
+        // <IDENTIFIER>
+        int identifier_pos = m_pos;
+
+        if (!expect(lexer::Token::IDENTIFIER, &messages)) {
+          return false;
+        }
+
+        auto token_identifier = peek(-1);
+
+        // Check: does member already exist
+        if (user_type->exists(token_identifier->image())) {
+          move(-1);
+          messages.add(generate_error("data: duplicate member"));
+
+          set(user_type->get(token_identifier->image())->position());
+          messages.add(generate_message(message::Note, "member declared here"));
+
+          set(data_pos);
+          messages.add(generate_message(message::Note, "data declared here"));
+
+          return false;
+        }
+
+        // ":"
+        if (!expect(lexer::Token::COLON, &messages)) {
+          return false;
+        }
+
+        // Type
+        const types::Type *type;
+        if (!consume_type(messages, &type)) {
+          return false;
+        }
+
+        // Add to current scope, deleting old Symbol if needed
+        auto symbol = new parser::SymbolDeclaration(identifier_pos, token_identifier->image(), type, false);
+        user_type->add(symbol);
+
+        if (expect(lexer::Token::COMMA)) {
+          expect(lexer::Token::EOL);
+          continue;
+        } else if (expect(lexer::Token::EOL)) {
+          continue;
+        } else if (expect(lexer::Token::RBRACE)) {
+          break;
+        } else {
+          generate_syntax_error({lexer::Token::COMMA, lexer::Token::EOL, lexer::Token::RBRACE});
+          return false;
+        }
+      }
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool Parser::consume_kw_return(message::List &messages, statement::StatementBlock &block, bool check_return_type) {
+    if (expect(lexer::Token::KW_RETURN)) {
+      int pos = m_pos - 1;
+      statement::ReturnStatement *stmt;
+      bool expect_expr;
+
+      // "()" <EOL> or <EOL> for no value, else <expr>
+      if (expect(lexer::Token::UNIT)) {
+        if (expect(lexer::Token::EOL, &messages)) {
+          expect_expr = false;
+        } else {
+          return false;
+        }
+      } else {
+        expect_expr = !expect(lexer::Token::EOL);
+      }
+
+      if (expect_expr) {
+        auto *expr = parse_expression(messages);
+
+        if (messages.has_message_of(message::Error)) {
+          return false;
+        }
+
+        stmt = new statement::ReturnStatement(pos, expr);
+      } else {
+        stmt = new statement::ReturnStatement(pos, nullptr);
+      }
+
+      // Check to see if return type matches with current function
+      if (check_return_type) {
+        auto *function = m_prog->get_function(m_scopes.get_local()->invoker_id());
+
+        if (!check_type_match(stmt->get_type_of(), function->function_type()->return_type(), pos, &messages)) {
+          set_end(-1);
+          set(function->position());
+          messages.add(
+              generate_message(message::Note, "in function " + function->name() + function->function_type()->repr()));
+
+          delete stmt;
+          return false;
+        }
+      }
+
+      block.add(stmt);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool Parser::consume_kw_func(message::List &messages) {
+    if (expect(lexer::Token::KW_FUNC)) {
+      // <IDENTIFIER>
+      int func_name_pos = m_pos;
+
+      if (!expect(lexer::Token::IDENTIFIER, &messages)) {
+        return false;
+      }
+
+      auto token_func_name = peek(-1);
+
+      // Collect parameters
+      std::vector<const types::Type *> param_types;
+      std::map<std::string, int> param_name_positions;
+
+      if (!expect(lexer::Token::UNIT) && expect(lexer::Token::LPARENS)) {
+        const types::Type *param_type;
+
+        while (true) {
+          // <IDENTIFIER>
+          int param_pos = m_pos;
+
+          if (!expect(lexer::Token::IDENTIFIER, &messages)) {
+            return false;
+          }
+
+          std::string param_name = peek(-1)->image();
+
+          // Does parameter already exist?
+          auto old_param_pos = param_name_positions.find(param_name);
+
+          if (old_param_pos != param_name_positions.end()) {
+            move(-1);
+            messages.add(generate_error("duplicate parameter " + param_name));
+
+            set(old_param_pos->second);
+            messages.add(generate_message(message::Note, "parameter first appeared here"));
+
+            set(func_name_pos);
+            messages.add(generate_message(message::Note, "in function " + token_func_name->image()));
+
+            return false;
+          }
+
+          // Record parameter
+          param_name_positions.insert({param_name, param_pos});
+
+          // ":"
+          if (!expect(lexer::Token::COLON, &messages)) {
+            return false;
+          }
+
+          // Type
+          if (!consume_type(messages, &param_type)) {
+            return false;
+          }
+
+          // Add to parameter list
+          param_types.push_back(param_type);
+
+          // Expect "," or ")"
+          if (!expect({lexer::Token::COMMA, lexer::Token::RPARENS}, &messages)) {
+            return false;
+          }
+
+          // If ")", exit
+          if (peek(-1)->type() == lexer::Token::RPARENS) {
+            break;
+          }
+        }
+      }
+
+      // Parse return type
+      const types::Type *return_type;
+
+      if (expect(lexer::Token::ARROW)) {
+        if (expect(lexer::Token::UNIT)) {
+          return_type = &types::UnitType::instance;
+        } else if (!consume_type(messages, &return_type)) {
+          return false;
+        }
+      } else {
+        return_type = &types::UnitType::instance;
+      }
+
+      // "{"
+      if (!expect(lexer::Token::LBRACE, &messages)) {
+        // Helpful message if declaration attempted
+        if (peek()->type() == lexer::Token::EOL) {
+          set(func_name_pos - 1);
+          messages.add(generate_message(message::Note, "did you mean to declare a function? Prefix with \"decl\"."));
+        }
+
+        return false;
+      }
+
+      // Create function type
+      auto *type = new types::FunctionType(func_name_pos, param_types, return_type);
+
+      // Check if we can create the overload
+      if (!check_can_create_overload(token_func_name->image(), type, messages)) {
+        delete type;
+        return false;
+      }
+
+      // Check if function was declared previously
+      auto *old_type = m_scopes.get_local()->func_get(token_func_name->image(), type);
+
+      statement::Function *func;
+
+      if (old_type == nullptr) {
+        // Strict: declaration must be present before definition
+        if (options::must_declare_functions) {
+          set(func_name_pos);
+          messages.add(generate_error("Attempted to define function before declaration"));
+          messages.add(generate_message(message::Note,
+                                        "Signature: " + token_func_name->image() + type->repr()));
+
+          delete type;
+          return false;
+        }
+
+        // Create declaration quickly
+        m_scopes.get_local()->func_create(token_func_name->image(), type);
+        func = new statement::Function(token_func_name->image(), type, m_prog->new_function_id());
+        m_prog->register_function(func);
+      } else {
+        // Delete old type, not needed anymore
+        delete type;
+
+        func = m_prog->get_function(old_type->id());
+
+        // Check if function is already defined
+        if (func->is_complete()) {
+          set(func_name_pos);
+          messages.add(generate_error("cannot re-define function " + token_func_name->image() + type->repr()));
+
+          set(old_type->position());
+          messages.add(generate_message(message::Note, "function defined here"));
+
+          delete type;
+          return false;
+        }
+      }
+
+      // Extract map into vector of pairs and add to function
+      std::vector<std::pair<std::string, int>> param_names;
+      param_names.reserve(param_name_positions.size());
+
+      for (auto &pair: param_name_positions) {
+        param_names.emplace_back(pair);
+      }
+
+      func->set_params(param_names);
+
+      // Add new scope
+      m_scopes.push(func);
+
+      // Parse body as code block
+      auto *block = parse_code_block(messages);
+
+      if (messages.has_message_of(message::Error)) {
+//                set(func_name_pos);
+//                messages.add(generate_message(message::Note, "In function " + token_func_name->image()));
+        delete block;
+
+        return false;
+      }
+
+      // Check for return statements
+      if (func->function_type()->return_type()->category() != types::Category::None) {
+        bool has_return = false;
+
+        for (auto stmt: *block->statements()) {
+          if (stmt->type() == statement::Type::RETURN) {
+            has_return = true;
+            break;
+          }
+        }
+
+        if (!has_return) {
+          move(-1);
+          messages.add(generate_error(
+              "type mismatch: cannot match () with type " + func->function_type()->return_type()->repr()));
+          set(func_name_pos);
+          messages.add(generate_message(message::Note, "function definition begins here"));
+
+          delete block;
+          return false;
+        }
+      }
+
+      // Add function body
+      func->set_body(block);
+
+      // TODO check for unused variables, functions completely
+      if (options::unused_symbol_level > -1) {
+        for (auto &symbol: m_scopes.get_local()->symbols()) {
+          if (check_symbol_unused(symbol, messages) && messages.has_message_of(message::Error)) {
+            return false;
+          }
+        }
+      }
+
+      // Invert all symbol's offsets to be correctly aligned with SP
+      m_scopes.get_local()->invert_offsets();
+      func->set_stack_size((int) m_scopes.get_local()->size());
+
+      // Remove old scope - all sorted
+      m_scopes.pop();
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool Parser::consume_kw_entry(message::List &messages) {
+    if (expect(lexer::Token::KW_ENTRY)) {
+      // Has an entry already been specified?
+      if (m_entry_pos > -1) {
+        move(-1);
+        messages.add(generate_error("entry point has already been defined"));
+
+        set(m_entry_pos);
+        messages.add(generate_message(message::Note, "previously defined here"));
+
+        return false;
+      }
+
+      // <IDENTIFIER>
+      int pos = m_pos;
+
+      if (!expect(lexer::Token::IDENTIFIER, &messages)) {
+        return false;
+      }
+
+      m_entry_pos = pos - 1;
+      m_entry_name = peek(-1)->image();
+
+      // Provide signature?
+      if (expect({lexer::Token::LPARENS, lexer::Token::UNIT})) {
+        move(-1);
+
+        auto *entry_type = parse_function_type(messages, true, pos);
+
+        if (entry_type == nullptr) {
+          return false;
+        }
+
+        m_entry_type = entry_type;
+      }
+
+      // <EOL>? (include '(' and '()' for message purposes only)
+      if (!expect({lexer::Token::EOL, lexer::Token::LPARENS, lexer::Token::UNIT}, &messages)) {
+        return false;
+      }
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool Parser::parse_expression_list(message::List &messages, std::vector<const statement::Expression *> &expressions) {
+    if (!expect(lexer::Token::LPARENS, &messages)) {
+      return false;
+    }
+
+    while (exists()) {
+      auto *expr = parse_expression(messages);
+
+      if (messages.has_message_of(message::Error)) {
+        return false;
+      } else if (expr == nullptr) {
+        messages.add(generate_syntax_error_expected_expression());
+        return false;
+      }
+
+      expressions.push_back(expr);
+
+      if (expect(lexer::Token::RPARENS)) {
+        break;
+      } else if (!expect(lexer::Token::COMMA, &messages)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  const statement::Expression *Parser::parse_expression(message::List &messages, int precedence) {
+    // Collect LHS
+    const statement::Expression *lhs = nullptr;
+
+    if (!exists()) {
+      messages.add(generate_custom_syntax_error("expression"));
+      return lhs;
+    }
+
+    // number literal?
+    if (expect(lexer::Token::NUMBER)) {
+      statement::Number *number = nullptr;
+
+      move(-1);
+      parse_number(&number, messages);
+      lhs = number;
+    } else if (expect(lexer::Token::IDENTIFIER)) {
+      auto *identifier = peek(-1);
+      int pos = m_pos - 1;
+
+      if (m_scopes.var_exists(identifier->image())) {
+        auto *decl = m_scopes.var_get(identifier->image());
+        decl->was_used_since_assignment = true;
+        lhs = new statement::SymbolRef(pos, identifier, decl);
+      } else if (m_scopes.func_exists(identifier->image())) {
+        lhs = new statement::FunctionRef(pos, identifier, identifier->image());
+      } else {
+        set(pos);
+
+        messages.add(generate_error("unbound identifier"));
+        return nullptr;
+      }
+    } else if (expect(lexer::Token::LPARENS)) {
+      lhs = parse_expression(messages);
+
+      if (messages.has_message_of(message::Error)) {
+        delete lhs;
+        return nullptr;
+      }
+
+      if (!expect(lexer::Token::RPARENS, &messages)) {
+        delete lhs;
+        return nullptr;
+      }
+    } else {
+      auto op_token = peek();
+      int op_pos = m_pos;
+      auto op = token_unary_operators.find(op_token->type());
+
+      if (op == token_unary_operators.end()) {
+        // Build vector of expected tokens
+        std::vector<lexer::Token::Type> expected = {lexer::Token::IDENTIFIER, lexer::Token::NUMBER,
+                                                    lexer::Token::LPARENS};
+
+        for (auto &pair: token_unary_operators) {
+          expected.push_back(pair.first);
+        }
+
+        messages.add(generate_syntax_error(expected));
+        return nullptr;
+      } else {
+        move();
+        lhs = parse_expression(messages, precedence);
+
+        if (messages.has_message_of(message::Error)) {
+          delete lhs;
+          return nullptr;
+        }
+
+        lhs = new statement::UnaryOperator(op_pos, op_token, op->second.type, lhs);
+      }
+    }
+
+    const OperatorInfo *op_info;
+    const statement::Expression *rhs;
+    const lexer::Token *op_token;
+    int op_pos;
+
+    while (exists()) {
+      // Expect infix operator
+      op_token = peek();
+      op_pos = m_pos;
+      auto op = token_binary_operators.find(op_token->type());
+
+      if (op == token_binary_operators.end()) {
+        break;
+      }
+
+      op_info = &op->second;
+
+      // Exit if higher precedence
+      if (precedence >= op_info->precedence) {
+        break;
+      }
+
+      // If function call, we parse slightly differently
+      if (op_info->type == statement::OperatorType::FUNCTION_CALL) {
+        // Check we have a function reference
+        if (lhs->type() != statement::Type::FUNCTION_REF) {
+          messages.add(generate_custom_syntax_error(op_token->image() + " can only be applied to a function"));
+          delete lhs;
+          return nullptr;
+        }
+
+        // Parse and generate call
+        auto *call = parse_function_call(messages, *(statement::FunctionRef *) lhs);
+        delete lhs;
+
+        if (call == nullptr) {
+          return nullptr;
+        }
+
+        lhs = call;
+        continue;
+      }
+
+      // Unresolved function reference?
+      if (lhs->type() == statement::Type::FUNCTION_REF &&
+          !check_function_reference_is_resolved(messages, (statement::FunctionRef *) lhs)) {
+        delete lhs;
+        return nullptr;
+      }
+
+      move();
+
+      // Parse remainder of expression
+      rhs = parse_expression(messages, op_info->precedence - (op_info->right_associative ? 1 : 0));
+
+      if (messages.has_message_of(message::Error)) {
+        delete rhs;
+        delete lhs;
+        return nullptr;
+      }
+
+      // If we have a symbol, perform some checks
+      if (lhs->type() == statement::Type::SYMBOL_REF) {
+        auto *symbol = m_scopes.get_local()->var_get(((statement::SymbolRef *) lhs)->name());
+
+        if (op_info->type == statement::OperatorType::ASSIGNMENT) {
+          symbol->was_assigned = true;
+          symbol->was_used_since_assignment = false;
+          symbol->last_assigned_pos = op_pos;
+
+          // Check if types match
+          if (!check_type_match(rhs->get_type_of(), symbol->type(), op_pos, &messages)) {
+            set(symbol->position());
+            messages.add(generate_message(message::Note, "identifier declared here"));
+
+            delete lhs;
+            delete rhs;
+            return nullptr;
+          }
+        } else {
+          symbol->was_used_since_assignment = true;
+        }
+      }
+
+      // Wrap in operator
+      lhs = new statement::BinaryOperator(op_pos, op_token, op_info->type, lhs, rhs);
+    }
+
+    // Unresolved function reference?
+    if (lhs->type() == statement::Type::FUNCTION_REF &&
+        !check_function_reference_is_resolved(messages, (statement::FunctionRef *) lhs)) {
+      delete lhs;
+      return nullptr;
+    }
+
+    return lhs;
+  }
+
+  types::FunctionType *Parser::parse_function_type(message::List &messages, bool arg_list_required, int given_pos) {
+    int pos = m_pos;
+
+    // Collect parameters
+    std::vector<const types::Type *> param_types;
+
+    if (expect(lexer::Token::UNIT));
+    else if (expect(lexer::Token::LPARENS)) {
+      const types::Type *param_type;
+
+      while (true) {
+        if (!consume_type(messages, &param_type)) {
+          return nullptr;
+        }
+
+        // Add to parameter list
+        param_types.push_back(param_type);
+
+        // Expect "," or ")"
+        if (!expect({lexer::Token::COMMA, lexer::Token::RPARENS}, &messages)) {
+          return nullptr;
+        }
+
+        // If ")", exit
+        if (peek(-1)->type() == lexer::Token::RPARENS) {
+          break;
+        }
+      }
+    } else if (arg_list_required) {
+      messages.add(generate_syntax_error({lexer::Token::LPARENS, lexer::Token::UNIT}));
+      return nullptr;
+    }
+
+    // Parse return type
+    const types::Type *return_type;
+
+    if (expect(lexer::Token::ARROW)) {
+      if (expect(lexer::Token::UNIT)) {
+        return_type = &types::UnitType::instance;
+      } else if (!consume_type(messages, &return_type)) {
+        return nullptr;
+      }
+    } else {
+      return_type = &types::UnitType::instance;
+    }
+
+    return new types::FunctionType(given_pos == -1 ? pos : given_pos, param_types, return_type);
+  }
+
+  statement::StatementBlock *Parser::parse_code_block(message::List &messages) {
+    auto *block = new statement::StatementBlock(m_pos);
+
+    std::vector<std::function<bool()>> parsers = {
+        [this, &messages, &block] { return this->consume_kw_return(messages, *block, true); },
+        [this, &messages] { return this->consume_kw_decl(messages); },
+    };
+
+    while (true) {
+      // Skip <EOL>
+      if (expect(lexer::Token::EOL)) {
+        continue;
+      }
+
+      // Terminate on "}"
+      if (expect(lexer::Token::RBRACE)) {
+        break;
+      }
+
+      // Iterate over parsers
+      bool found_match = false;
+
+      for (const auto &parser: parsers) {
+        save();
+
+        if (parser()) {
+          found_match = true;
+          discard();
+          break;
+        } else {
+          if (messages.has_message_of(message::Error)) {
+            delete block;
+            return nullptr;
+          }
+
+          restore();
+        }
+      }
+
+      if (found_match) {
+        continue;
+      }
+
+      // Last resort: expression
+      auto *expr = parse_expression(messages);
+
+      if (messages.has_message_of(message::Error)) {
+        break;
+      } else if (expr == nullptr) {
+        messages.add(generate_syntax_error_expected_expression());
+        break;
+      }
+
+      block->add(expr);
+    }
+
+    return block;
+  }
+
+  void Parser::parse(message::List &messages) {
+    reset();
+
+    std::vector<std::function<bool()>> parsers = {
+        [this, &messages] { return this->consume_kw_decl_data(messages); },
+        [this, &messages] { return this->consume_kw_decl_func(messages); },
+        [this, &messages] { return this->consume_kw_data(messages); },
+        [this, &messages] { return this->consume_kw_func(messages); },
+        [this, &messages] { return this->consume_kw_entry(messages); },
+    };
+
+
+    while (exists()) {
+      // Skip <EOL> ?
+      if (peek()->type() == lexer::Token::EOL) {
+        move();
+        continue;
+      }
+
+      // Iterate over parsers
+      bool found_match = false;
+
+      for (const auto &parser: parsers) {
+        save();
+
+        if (parser()) {
+          discard();
+          found_match = true;
+          break;
+        } else {
+          if (messages.has_message_of(message::Error)) {
+            return;
+          }
+
+          restore();
+        }
+      }
+
+      if (found_match) {
+        continue;
+      }
+
+      messages.add(generate_syntax_error(
+          {lexer::Token::KW_DECL, lexer::Token::KW_DATA, lexer::Token::KW_FUNC, lexer::Token::KW_ENTRY}));
+      return;
+    }
+
+    // Check entry point
+    if (!check_entry_point_exists(messages)) {
+      return;
+    }
+  }
+
+  bool Parser::check_entry_point_exists(message::List &messages) {
+    if (m_entry_pos < 0) return true; // Is not defined, so cannot check
+
+    // If a name is provided, check it exists
+    if (!m_scopes.get_local()->func_exists(m_entry_name)) {
+      set(m_entry_pos + 1);
+      messages.add(generate_error("entry point " + m_entry_name + " cannot be found"));
+      return false;
+    }
+
+    auto *overloads = m_scopes.get_local()->func_get(m_entry_name);
+
+    // Either search for a valid option, or check is the specified one exists
+    if (m_entry_type == nullptr) {
+      for (auto &overload: *overloads) {
+        if (types::FunctionType::valid_entry_point(overload)) {
+          m_entry_type = overload;
+          break;
+        }
+      }
+
+      if (m_entry_type == nullptr) {
+        set(m_entry_pos + 1);
+        messages.add(generate_error("no suitable signature for entry point " + m_entry_name + " exists"));
+
+        for (auto &overload: *overloads) {
+          set(overload->position());
+          messages.add(generate_message(message::Note, "invalid entry point signature"));
+        }
+
+        return false;
+      }
+    } else {
+      bool found = false;
+
+      for (auto &overload: *overloads) {
+        if (overload->equal(*m_entry_type)) {
+          delete m_entry_type;
+          m_entry_type = overload;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        set(m_entry_pos + 1);
+        set_end((int) m_tokens.size());
+        messages.add(generate_error("entry point " + m_entry_name + m_entry_type->repr() + " cannot be found"));
+        set_end(-1);
+
+        for (auto &overload: *overloads) {
+          set(overload->position());
+          messages.add(generate_message(message::Note, "invalid candidate"));
+        }
+
+        return false;
+      }
+    }
+
+    // Check that entry point is defined
+    if (!(m_entry_type->is_stored() && m_prog->get_function(m_entry_type->id())->is_complete())) {
+      set(m_entry_pos + 1);
+      messages.add(generate_error("entry point " + m_entry_name + " must be bound"));
+
+      set(m_entry_type->position());
+      messages.add(generate_message(message::Note, "declared here"));
+
+      return false;
+    }
+
+    return true;
+  }
+
+  const statement::FunctionCall *
+  Parser::parse_function_call(message::List &messages, statement::FunctionRef &function_ref) {
+    auto *signatures = m_scopes.func_get(function_ref.name());
+    std::vector<const statement::Expression *> arguments;
+
+    // Expect argument list or "()"
+    if (exists() && peek()->type() == lexer::Token::LPARENS) {
+      if (!parse_expression_list(messages, arguments)) {
+        for (auto &arg: arguments) delete arg;
+        return nullptr;
+      }
+    } else if (!expect(lexer::Token::UNIT)) {
+      messages.add(generate_syntax_error({lexer::Token::RPARENS, lexer::Token::UNIT}));
+      return nullptr;
+    }
+
+    // Get argument types
+    std::vector<const types::Type *> argument_types;
+    argument_types.reserve(arguments.size());
+
+    for (auto &arg: arguments) {
+      argument_types.push_back(arg->get_type_of());
+    }
+
+    // Look for signature which matches arguments, or check if supplies signature exists
+    bool error = false;
+    std::string error_message;
+
+    if (function_ref.function() == nullptr) {
+      const types::FunctionType *signature = nullptr;
+
+      for (auto &candidate: *signatures) {
+        if (candidate->matches_args(argument_types)) {
+          signature = candidate;
+          break;
+        }
+      }
+
+      if (signature == nullptr) {
+        error = true;
+        error_message = "cannot find signature " + function_ref.name();
+      } else {
+        function_ref.set_function(m_prog->get_function(signature->id()));
+      }
+    } else {
+      if (!function_ref.function()->function_type()->matches_args(argument_types)) {
+        error = true;
+        error_message = "type mismatch: cannot match supplied function " + function_ref.name() +
+                        function_ref.function()->function_type()->repr() + " with arguments ";
+      }
+    }
+
+    // Report error?
+    if (error) {
+      mark_end();
+      set(function_ref.position());
+
+      std::stringstream stream;
+      stream << "(";
+
+      for (int i = 0; i < arguments.size(); i++) {
+        stream << argument_types[i]->repr();
+
+        if (i < arguments.size() - 1) stream << ", ";
+      }
+
+      stream << ")";
+
+      messages.add(generate_error(error_message + stream.str()));
+
+      for (auto &arg: arguments) delete arg;
+      return nullptr;
+    }
+
+    // Return call
+    return new statement::FunctionCall(&function_ref, arguments);
+  }
+
+  bool Parser::check_function_reference_is_resolved(message::List &messages, statement::FunctionRef *reference) {
+    if (reference->function() == nullptr) {
+      // Collect candidates
+      auto *candidates = m_scopes.func_get(reference->name());
+
+      // If only one candidate, pick this one
+      if (candidates->size() == 1) {
+        reference->set_function(m_prog->get_function(candidates->back()->id()));
+        return true;
+      }
+
+      mark_end();
+      set(reference->position());
+      set_end(-1);
+
+      messages.add(generate_error("unable to resolve ambiguous function reference"));
+
+      for (auto &candidate: *candidates) {
+        set(candidate->position());
+        messages.add(generate_message(message::Note, "possible candidate: " + reference->name() + candidate->repr()));
+      }
+
+      // Loop
+
+      return false;
+    }
+
+    return true;
+  }
+
+  bool Parser::parse_number(statement::Number **number, message::List &messages) {
+    if (!expect(lexer::Token::NUMBER)) {
+      return false;
+    }
+
+    // parse token's image into bytes
+    uint64_t value;
+    int index = 0;
+    bool is_double;
+
+    ::parse_number(peek(-1)->image(), index, value, is_double);
+
+    // TODO explicit word/float?
+    auto type = is_double ? (const types::Type *) &types::Double::instance : (const types::Type *) &types::Int::instance;
+
+    *number = new statement::Number(m_pos - 1, peek(-1), type, value);
+
+    return true;
+  }
+
+  std::map<lexer::Token::Type, OperatorInfo> token_binary_operators = {
+      {lexer::Token::EQUALS,  {4,  true,  statement::OperatorType::ASSIGNMENT}},
+      {lexer::Token::PLUS,    {14, false, statement::OperatorType::ADDITION}},
+      {lexer::Token::DASH,    {14, false, statement::OperatorType::SUBTRACTION}},
+      {lexer::Token::STAR,    {15, false, statement::OperatorType::MULTIPLICATION}},
+      {lexer::Token::STAR,    {15, false, statement::OperatorType::MULTIPLICATION}},
+      {lexer::Token::LPARENS, {18, false, statement::OperatorType::FUNCTION_CALL}},
+      {lexer::Token::UNIT,    {18, false, statement::OperatorType::FUNCTION_CALL}},
+  };
+
+  std::map<lexer::Token::Type, OperatorInfo> token_unary_operators = {
+      {lexer::Token::DASH, {17, false, statement::OperatorType::NEGATION}},
+  };
+}

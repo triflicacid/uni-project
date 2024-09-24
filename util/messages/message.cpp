@@ -31,10 +31,10 @@ namespace message {
         std::cout << ANSI_BLUE "note" ANSI_RESET;
         break;
       case Level::Warning:
-        std::cout << ANSI_YELLOW "warn" ANSI_RESET;
+        std::cout << ANSI_YELLOW "warning" ANSI_RESET;
         break;
       case Level::Error:
-        std::cout << ANSI_RED "error!" ANSI_RESET;
+        std::cout << ANSI_RED "error" ANSI_RESET;
         break;
     }
 
