@@ -3,75 +3,35 @@
 \usepackage{multirow}
 \usepackage{makecell}
 \usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
 
-%\setlength{\parindent}{0pt}
-
-\title{Project Outline}
-\author{Ruben Saunders}
-\date{August 2024}
+\newlength{\drop}
 
 \begin{document}
 
-\maketitle
-\tableofcontents
+\begin{titlepage}
+    \drop=0.1\textheight
+    \centering
+    \vspace*{\baselineskip}
+    \rule{\textwidth}{1.6pt}\vspace*{-\baselineskip}\vspace*{2pt}
+    \rule{\textwidth}{0.4pt}\\[\baselineskip]
+    {\LARGE PROJECT REQUIREMENTS}\\[0.2\baselineskip]
+    \rule{\textwidth}{0.4pt}\vspace*{-\baselineskip}\vspace{3.2pt}
+    \rule{\textwidth}{1.6pt}\\[\baselineskip]
+    \scshape
+    CS310 Computer Science Project\\
+    SUPERVISOR: GIHAN MUDALIGE\par
+    \vspace*{2\baselineskip}
+    \includegraphics[scale = 0.45]{assets/WarwickCrest.pdf}\\
+    \vspace*{\baselineskip}
+    {\itshape University of Warwick \\ Department of Computer Science\par}
+    \vfill
+    {\scshape AUGUST 2024} \\
+    {\large RUBEN SAUNDERS}\par
+\end{titlepage}
 
 \newpage
-
-\section{Overview}
-
-This project aims to design and build all three ``layers'' of operation down from a high-level language to the processor itself.
-Specifically, my third year project has three component:
-\begin{itemize}
-    \item Designing a RISC processor and writing an emulator for it, the ``processor'' stage;
-    \item Designing an assembly language and writing an assembler to output a binary for the above processor, the ``assembler'' stage; and
-    \item Designing a custom high-level language and writing a compiler to output the above assembly code, the ``compiler'' stage.
-\end{itemize}
-
-\subsection{Motivation \& Goal}
-
-The project has the goal of being primarily educational, both to me and to users.
-The desired simply design has the intention of being easy to understand at all stages and therefore a resource for education and exploration on the topic of CPU design, assembly language, compiler design, and learning a high-level language, as well as the interaction between all three stages.
-The educational value to me, in addition to above, will be managing and documentation a large project, and the integration of three smaller sub-systems into one workflow.
-
-Hence stems the decision to fully design and build all three stages; ot fully explore and consider the entire pipeline, from user code to machine code.
-
-\subsection{Feasability Plan}
-
-This project is divided into three sub-systems, each requiring a different, but relatively large, amount of research and work.
-Each sub-system is completely dependent on the layer below it, so it is essential that each sub-system is completed in a reasonable time to allow for the next sub-system to be worked on.
-This is only for writing; research, documentation, and design can be written beforehand, and ideally so as to ensure each sub-system will interface well.
-
-The high-level language has been identified to be the most complex sub-system, both in terms of design and creation.
-Therefore, this sub-system should have the most time reserved for it.
-Furthermore, due to the presence of the compiler design module, this sub-system has the most to benefit from term-time.
-With this in mind, the following rough time-frames and targets have been deduced.
-
-\medskip
-\begin{longtable}{|c|l|c|c|c|}
-    \hline
-    \multicolumn{2}{|c|}{} & \textbf{Processor} & \textbf{Assembler} & \textbf{Compiler} \\
-    \hline
-    \multirow{2}{*}{\textbf{Summer}} & Design & \(100\%\) & \(100\%\) & \\
-    \cline{2-5}
-    & Implementation & \(100\%\) & \(100\%\) core & \\
-    \hline
-    \multirow{2}{*}{\textbf{Term 1}} & Design & & & \(100\%\) core \\
-    \cline{2-5}
-    & Implementation & & \(100\%\) & \(\sim 30\%\)\ \\
-    \hline
-    \multirow{2}{*}{\textbf{Term 2}} & Design & & & \(100\%\) \\
-    \cline{2-5}
-    & Implementation & & & \(> 90\%\) \\
-    \hline
-    \multirow{2}{*}{\textbf{Easter}} & Design & & & \\
-    \cline{2-5}
-    & Implementation & & & \(100\%\) \\
-    \hline
-\end{longtable}
-\medskip
-
-The development of each sub-system is plan-driven, meaning that documentation will be full or mostly written during design, with minimal changes during implementation.
-This makes sense with a larger project and timeframes, and the reliable and consistent documentation will ensure the project is kept on-track and to specification.
 
 \section{The Processor}
 
