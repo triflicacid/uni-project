@@ -6,10 +6,11 @@
 \usepackage{graphicx}
 
 \usepackage[backend=biber,style=numeric,sorting=ynt]{biblatex}
+\usepackage{hyperref}
 \addbibresource{project-specification.bib}
 
 \begin{document}
-    \title{CS310 Project Specification:\\Creating a Code Execution Pipeline for Educational Use}
+    \title{CS310 Project Specification:\\Creating a Compiler Targeting a Custom RISC Processor}
     \author{Ruben Saunders\\2231825}
     \date{September 30, 2024}
 
@@ -17,8 +18,19 @@
 
     \section{Problem Statement}\label{sec:problem-statement}
 
-    This project aims to design and implement a complete execution pipeline from a high-level programming language to machine code which may be emulated on a custom RISC processor.
-    The project will focus on the design and implementation of three key layers:
+    When learning about processors, assembly language, and high-level programming languages, numerous online resources can significantly enhance your understanding and practical skills.
+    For example, the Little Man Computer ~\cite{lmc} emulator provides a simplified model of a computer, making it easier to grasp basic processor operations and assembly language concepts.
+    Similarly, MARS ~\cite{mars-simulator} (the MIPS Assembler and Runtime Simulator) is a platform for practicing the MIPS assembly language, allowing users to write, simulate, and debug code in an intuitive environment.
+
+    While there are numerous tools for these individual aspects, resources that explore the interaction between these stages are more limited.
+    Beyond merely compiling programs on a computer and examining the generated assembly or object files, websites like GodBolt Compiler Explorer ~\cite{godbolt} provide a more interactive experience, allows users to input high-level code and view the corresponding assembly output from various compilers.
+    However, comprehensive tools that cover the entire process -- from writing high-level language code to executing it on a processor within a single environment -- are scarce.
+    Such a tool would allow users to visualise and understand the entire workflow, offering an educational platform that integrates compiling, assembly translation, and execution.
+    This contrasts with existing systems that are often complex and geared towards professional use, posing a barrier for learners.
+
+    \medskip
+    This project aims to fill this gap by designing and implementing the entire process -- from compiling a high-level language to emulating machine code on a custom RISC processor -- in a single environment.
+    The project will consist of the following three layers:
 
     \begin{enumerate}
         \item A compiler which translates source code in a custom high-level language to assembly code.
@@ -26,9 +38,9 @@
         \item A RISC processor emulator that executes the machine code.
     \end{enumerate}
 
-    The goal of this project is to serve as an educational tool, with a design that prioritises simplicity at every stage.
-    By covering the entire process from compilation to execution, the project is a resource for students interested in exploring CPU architecture, assembly programming, compiler design, and the execution of high-level languages.
-    Furthermore, it will be a practical resource for insight into the interaction of said layers to produce a complete pipeline from start to end of program execution.
+    As stated above, the goal of this project is to serve as an educational tool, with a design that prioritises simplicity at every stage.
+    Each individual stage serves as a resource for students interested in exploring CPU architecture, assembly programming, compiler design, and the execution of high-level languages.
+    Furthermore, as the project covers the entire process in a single tool, it additionally serves as a practical tool for insight into the interaction of said layers to produce a complete pipeline from start to end of program execution.
 
     \section{Objectives}\label{sec:objectives}
 
@@ -152,8 +164,10 @@
 
     All three languages are typically used in systems-level programming, are well-established, and documented.
     While \texttt{C} is flexible, it does not provide any native libraries for data structures or algorithms which may become useful in development, and would avoid external dependencies.
+    Hence, due to its simplicity and lack of need for extra features and libraries, the processor emulator will be written in \texttt{C}, with the assembler and compiler written ion \texttt{C++}.
 
     Using a buildsystem, such as \texttt{makefile}, would be beneficial to the project in terms of file management and ease of compilation.
+    As a further abstraction, \texttt{CMake} would further simplify the build process and dependency management.
 
 %    For the programming language, \texttt{C} and \texttt{C++} have been chosen due to their long-standing use in systems programming.
 %    These languages are highly suitable for low-level tasks such as those involved in this project.
@@ -181,7 +195,7 @@
     The RISC-V documentation ~\cite{riscv-docs} will serve as a key resource for developing a sufficient instruction set and informing instruction layout and encoding.
 
     For further insights into instruction sets and assembly formats, the MIPS architecture will also be studied.
-    MIPS is another prominent RISC processor, often used for educational purposes due to its simplicity and clarity.
+    MIPS is another RISC ISA, often used for educational purposes due to its simplicity and clarity.
     The MIPS instruction set architecture ~\cite{mips-isa} will provide additional context on required instructions, and further research will cover useful pseudo-instructions ~\cite{mips-pseudo-instructions}.
 
     Research for the high-level language and compiler sub-system has not yet been considered in detail.
