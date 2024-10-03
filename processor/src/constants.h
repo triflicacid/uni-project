@@ -1,22 +1,22 @@
-#ifndef _CONSTANTS_H_
-#define _CONSTANTS_H_
+#ifndef CONSTANTS_H_
+#define CONSTANTS_H_
 
 #include "util.h"
 
 // =============== REGISTERS ===============
 #define REGISTERS 32
 #define REG_IP   0
-#define REG_SP   1
-#define REG_FP   2
-#define REG_FLAG 3
-#define REG_ISR  4
-#define REG_IMR  5
-#define REG_IIP  6
-#define REG_RET  7
-#define REG_K1   8
-#define REG_K2   9
-#define REG_GPR  10
-#define REG_PGPR 24
+#define REG_RIP  1
+#define REG_SP   2
+#define REG_FP   3
+#define REG_FLAG 4
+#define REG_ISR  5
+#define REG_IMR  6
+#define REG_IIP  7
+#define REG_RET  8
+#define REG_K1   9
+#define REG_K2   10
+#define REG_GPR  11
 
 // default address of the interrupt handler
 #define DEFAULT_INTERRUPT_HANDLER_ADDRESS 0x400
@@ -109,9 +109,8 @@
 #define OP_MUL 0x22
 #define OP_DIV 0x23
 #define OP_MOD 0x24
+#define OP_JAL 0x29
 #define OP_PUSH 0x30
-#define OP_CALL 0x31
-#define OP_RET 0x32
 #define OP_SYSCALL 0x3f
 
 // if defined, behaviour is to halt on NOP

@@ -19,7 +19,7 @@ namespace assembler::instruction {
     // Provide index of matched overload
     void (*intercept)(std::vector<Instruction *> &instructions, Instruction *instruction, int overload_index);
 
-    static const Signature _add, _and, _call, _cvt, _div, _load, _loadu, _mod, _mul, _nop, _not, _or, _push, _ret, _shl, _shr, _store, _sub, _syscall, _xor;
+    static const Signature _add, _and, _cvt, _div, _jal, _load, _loadu, _mod, _mul, _nop, _not, _or, _push, _shl, _shr, _store, _sub, _syscall, _xor;
   };
 
   /** Given mnemonic, return signature. Extract options and assign to second argument. */

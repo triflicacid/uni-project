@@ -1,5 +1,10 @@
-loadw $r1, 3.141
-syscall 0
-cvtd2u $r1
-syscall 0
+jal print
 exit
+
+print:
+load $r1, message
+syscall 5
+jmp $rip
+
+message:
+.byte "Hello!"

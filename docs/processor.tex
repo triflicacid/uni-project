@@ -2,560 +2,431 @@
 \usepackage[margin=0.75in]{geometry}
 \usepackage{makecell}
 \usepackage{longtable}
-\usepackage{amsmath, amssymb}
+\usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{listings}
-\usepackage{tikz} % Required for inserting images
+\usepackage{tikz}
+\usepackage{amssymb}
 
 \setlength{\parindent}{0pt}
 
+\include{styles/assembly}
 \include{styles/c}
+\include{styles/rtn}
 
 \title{Processor Documentation}
 \author{Ruben Saunders}
-\date{August 2024}
+\date{September 2024}
 
 \begin{document}
 
-\maketitle
-\tableofcontents
+    \maketitle
+    \tableofcontents
 
-\newpage
+    \newpage
 
-\section{Principals}
+    \section{Principals}\label{sec:principals}
 
-\begin{itemize}
-    \item This processor will operate a RISC instruction set.
-    \item This processor has a word size of 64 bits, and supports both floats (4 bytes) and doubles (8 bytes).
-    \item The instruction set will provide methods to load values into and out of registers.
-    Then, most operations will be on registers.
-    \item Load/store instructions operate on 32-bit immediates.
-    \item Arithmetic and logic instructions operate on full registers, so 64-bit.
-\end{itemize}
-
-\section{Memory Layout}
-
-The emulator is simple, able to run only one program.
-
-The memory space has three regions: reserved, RAM, and stack.
-\begin{itemize}
-    \item The reserved region contains two words.
     \begin{itemize}
-        \item Program entry point (i.e., initial \$ip).
-        \item Address of interrupt handler.
+        \item This processor will operate a RISC instruction set.
+        \item This processor has a word size of 64 bits, and supports both floats (4 bytes) and doubles (8 bytes).
+        \item The instruction set will provide methods to load values into and out of registers.
+        Then, most operations will be on registers.
+        \item Load/store instructions operate on 32-bit immediates.
+        \item Arithmetic and logic instructions operate on full registers, so 64-bit.
     \end{itemize}
-    Note, these addresses refer to offsets in RAM.
-    \item RAM is where user code is located.
-    \item The stack grows downwards from the top of memory, with its base indicates via the \$sp register.
-\end{itemize}
 
-\section{Registers}
+    \section{Memory Layout}\label{sec:memory-layout}
 
-See below for a list of registers.
-All registers are 64-bit.
-Register names are preceded by a dollar `\$' sign.
+    The emulator is simple, able to run only one program.
 
-\bigskip
-\begin{longtable}{|c|l|l|l|}
-    \hline
-    \textbf{Symbol} & \textbf{Name} & \textbf{Bit} & \textbf{Description} \\
-    \hline
-    \multicolumn{4}{|c|}{\textbf{Special Registers}} \\
-    \hline
-    \$ip & Instruction Pointer &  & Point to next address to execute as an instruction. \\
-    \hline
-    \$sp & Stack Pointer &  & Top address of the stack. \\
-    \hline
-    \$fp & Frame Pointer &  & Point to the next byte beyond the last stack frame. \\
-    \hline
-    \$flag & Flag Register & 9-64 & \\
-    \cline{3-4}
-    & & 8 & \makecell[l]{Interrupt status: 1=in interrupt, 0=normal.\\%
-    Can be used to disable all interrupts.} \\
-    \cline{3-4}
-    & & 5-7 & \makecell[l]{Error flag.\\%
-    \(\bullet\;\) 000: no error.\\%
-    \(\bullet\;\) 001: invalid opcode, opcode in \$ret.\\%
-    \(\bullet\;\) 010: segfault, address in \$ret.\\%
-    \(\bullet\;\) 011: register segfault, register offset in \$ret.\\%
-    \(\bullet\;\) 100: invalid syscall, opcode in \$ret.\\%
-    \(\bullet\;\) 101: invalid datatype, bit field in \$ret.\\%
-    } \\
-    \cline{3-4}
-    & & 4 & \makecell[l]{Execution status: 1=executing, 0=halted.\\%
-    Can be used to halt the processor.} \\
-    \cline{3-4}
-    & & 3 & \makecell[l]{Zero flag.\\%
-    Indicates if register is zero.\\%
-    Updated on most instructions' dest register.} \\
-    \cline{3-4}
-    & & 0-2 & \makecell[l]{Comparison bits.\\%
-    \(\bullet\;\) 000: not equal.\\%
-    \(\bullet\;\) 001: equal.\\%
-    \(\bullet\;\) 010: less than.\\%
-    \(\bullet\;\) 011: less than or equal to.\\%
-    \(\bullet\;\) 110: greater than.\\%
-    \(\bullet\;\) 111: greater than or equal to.\\%
-    } \\
-    \hline
-    \$isr & Interrupt Service Register & & \makecell[l]{Used to indicate active interrupts.\\%
-    64-bits, so 64 available distinguishable interrupts.} \\
-    \hline
-    \$imr & Interrupt Mask Register & & \makecell[l]{Used to mask \$isr.\\%
-    That is, interrupt \$isr[\(i\)] only triggers if \$imr[\(i\)] is set.\\%
-    \textbf{Default}: all bits set.} \\
-    \hline
-    \$iip & Interrupt IP & & \makecell[l]{Stores \$ip in occurence of an interrupt.} \\
-    \hline
-    \$ret & Return Value Register & & \makecell[l]{Contains value returned from function, syscall, etc.\\%
-    Contains process exit code on halt.} \\
-    \hline \hline
-    \multicolumn{4}{|c|}{\textbf{General Purpose Registers}} \\
-    \hline
-    \$k1, \$k2 & Internal Registers & & \makecell[l]{Used by pseudo-instructions.} \\
-    \hline
-    \$r1 -- \$r14 & GPRs &  & Register for general use. \\
-    \hline
-    \$s1 -- \$s8 & Preserved GPRs &  & \makecell[l]{Register for general use.\\Values are preserved in stack frame.} \\
-    \hline
-\end{longtable}
+    The memory space has three regions: reserved, RAM, and stack.
+    \begin{itemize}
+        \item The reserved region contains two words.
+        \begin{itemize}
+            \item Program entry point (i.e., initial \$ip).
+            \item Address of interrupt handler.
+        \end{itemize}
+        Note, these addresses refer to offsets in RAM.
+        \item RAM is where user code is located.
+        \item The stack grows downwards from the top of memory, with its base indicates via the \$sp register.
+    \end{itemize}
 
-\section{Addressing Modes}
+    \section{Registers}\label{sec:registers}
 
-An argument may be one of the following specifiers:
+    See below for a list of registers.
+    There are a total of 32 registers, and are all 64 bits wide.
+    Register names are preceded by a dollar `\$' sign.
 
-\medskip
-\begin{tabular}{|c|c|l|l|}
-    \hline
-    \textbf{Argument} & \textbf{Size} & \textbf{Comment} & \textbf{Example} \\
-    \hline
-    \texttt{<reg>} & 8 & Register offset. & \texttt{\$r1} \\
-    \hline
-    \texttt{<value>} & 2 + 32 & \makecell[l]{Any listed addressing mode.\\%
-    2 indicator bits, 32 for data.} & \texttt{0xdead} \\
-    \hline
-    \texttt{<addr>} & 1 + 32 & \makecell[l]{Any listed memory addressing mode.\\%
-    1 indicator bit, 32 for data.} & \texttt{(0x8000)} \\
-    \hline
-\end{tabular}
-\medskip
+    \bigskip
+    \begin{longtable}{|c|l|l|l|}
+        \hline
+        \textbf{Symbol} & \textbf{Name} & \textbf{Bit} & \textbf{Description} \\
+        \hline
+        \multicolumn{4}{|c|}{\textbf{Special Registers}} \\
+        \hline
+        \$ip & Instruction Pointer &  & Point to next address to execute as an instruction. \\
+        \hline
+        \$rip & Return Address &  & \makecell[l]{Contains the sub-routiune return address.\\%
+        Must be pushed onto the stack as it is not preserved.} \\
+        \hline
+        \$sp & Stack Pointer &  & Top address of the stack. \\
+        \hline
+        \$fp & Frame Pointer &  & Point to the next byte beyond the last stack frame. \\
+        \hline
+        \$flag & Flag Register & 9--64 & \\
+        \cline{3-4}
+        & & 8 & \makecell[l]{Interrupt status: 1=in interrupt, 0=normal.\\%
+        Can be used to disable all interrupts.} \\
+        \cline{3-4}
+        & & 5--7 & \makecell[l]{Error flag.\\%
+        \(\bullet\;\) 000: no error.\\%
+        \(\bullet\;\) 001: invalid opcode, opcode in \$ret.\\%
+        \(\bullet\;\) 010: segfault, address in \$ret.\\%
+        \(\bullet\;\) 011: register segfault, register offset in \$ret.\\%
+        \(\bullet\;\) 100: invalid syscall, opcode in \$ret.\\%
+        \(\bullet\;\) 101: invalid datatype, bit field in \$ret.\\%
+        } \\
+        \cline{3-4}
+        & & 4 & \makecell[l]{Execution status: 1=executing, 0=halted.\\%
+        Can be used to halt the processor.} \\
+        \cline{3-4}
+        & & 3 & \makecell[l]{Zero flag.\\%
+        Indicates if register is zero.\\%
+        Updated on most instructions' dest register.} \\
+        \cline{3-4}
+        & & 0--2 & \makecell[l]{Comparison bits.\\%
+        \(\bullet\;\) 000: not equal.\\%
+        \(\bullet\;\) 001: equal.\\%
+        \(\bullet\;\) 010: less than.\\%
+        \(\bullet\;\) 011: less than or equal to.\\%
+        \(\bullet\;\) 110: greater than.\\%
+        \(\bullet\;\) 111: greater than or equal to.\\%
+        } \\
+        \hline
+        \$isr & Interrupt Service Register & & \makecell[l]{Used to indicate active interrupts.\\%
+        64-bits, so 64 available distinguishable interrupts.\\%
+        By setting any bit, the processor enters an interrupt state.} \\
+        \hline
+        \$imr & Interrupt Mask Register & & \makecell[l]{Used to mask \$isr.\\%
+        That is, interrupt \$isr[\(i\)] only triggers if \$imr[\(i\)] is set.\\%
+        \textbf{Default}: all bits set.} \\
+        \hline
+        \$iip & Interrupt IP & & \makecell[l]{Stores \$ip in occurence of an interrupt.} \\
+        \hline
+        \$ret & Return Value Register & & \makecell[l]{Contains value returned from function, syscall, etc.\\%
+        Contains process exit code on halt.} \\
+        \hline \hline
+        \multicolumn{4}{|c|}{\textbf{General Purpose Registers}} \\
+        \hline
+        \$k1, \$k2 & Internal Registers & & \makecell[l]{Used by pseudo-instructions.} \\
+        \hline
+        \$r1 -- \$r21 & General &  & Register for general use. \\
+        \hline
+    \end{longtable}
 
-The following table specifies possible addressing modes.
+    \section{Addressing Modes}\label{sec:addressing-modes}
 
-\medskip
-\begin{tabular}{|c|l|l|l|l|}
-    \hline
-    \textbf{Indicator} & \textbf{Name} & \textbf{Syntax} & \textbf{Operation} & \textbf{Size} \\
-    \hline
-    00 & Immediate & \texttt{imm} & \texttt{imm} & 32 \\
-    01 & Register & \texttt{\$reg} & \texttt{Reg[\$reg]} & 8 \\
-    10 & Memory & \texttt{(mem)} & \texttt{Mem[mem]} & 32\\
-    11 & Register Indirect & \texttt{n(\$reg)} & \texttt{Mem[Reg[\$reg] + n]} & \texttt{\$reg}=8, \texttt{\$n}=24 \\
-    \hline
-\end{tabular}
+    An argument may be one of the following specifiers:
 
-\section{Instruction Set}
+    \medskip
+    \begin{tabular}{|c|c|l|l|}
+        \hline
+        \textbf{Argument} & \textbf{Size} & \textbf{Comment} & \textbf{Example} \\
+        \hline
+        \texttt{<reg>} & 8 & Register offset. & \texttt{\$r1} \\
+        \hline
+        \texttt{<value>} & 2 + 32 & \makecell[l]{Any listed addressing mode.\\%
+        2 indicator bits, 32 for data.} & \texttt{0xdead} \\
+        \hline
+        \texttt{<addr>} & 1 + 32 & \makecell[l]{Any listed memory addressing mode.\\%
+        1 indicator bit, 32 for data.} & \texttt{(0x8000)} \\
+        \hline
+    \end{tabular}
+    \medskip
 
-\textbf{Notes}:
+    The following table specifies possible addressing modes.
 
-\begin{itemize}
-    \item Instructions accept a conditional test suffix, unless indicated via a \(\square\) symbol.
-    \item Mnemonics support overloading.
-    That is, the same mnemonic can have many argument signatures.
-    Optional arguments are listed using square brackets \texttt{[optional]} versus mandatory arguments \texttt{<mandatory>}.
-    \item For all arithmetic and logical instructions with signatures \texttt{<reg> <reg> <value>}, the first register is optional.
-    If omitted, the supplied register is duplicated.
-    I.e., \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
-    \item All arithmetic operations and the compare operation take a datatype.
-\end{itemize}
+    \medskip
+    \begin{tabular}{|c|l|l|l|l|}
+        \hline
+        \textbf{Indicator} & \textbf{Name} & \textbf{Syntax} & \textbf{Operation} & \textbf{Size} \\
+        \hline
+        00 & Immediate & \texttt{imm} & \texttt{imm} & 32 \\
+        01 & Register & \texttt{\$reg} & \texttt{Reg[\$reg]} & 8 \\
+        10 & Memory & \texttt{(mem)} & \texttt{Mem[mem]} & 32\\
+        11 & Register Indirect & \texttt{n(\$reg)} & \texttt{Mem[Reg[\$reg] + n]} & \texttt{\$reg}=8, \texttt{\$n}=24 \\
+        \hline
+    \end{tabular}
 
-\begin{longtable}{|c|l|l|}
-    \hline
-    \textbf{Instruction} & \textbf{Syntax} & \textbf{Operation/Comments} \\
-    \hline
-    \multicolumn{3}{|c|}{\textbf{Data Transfer}} \\
-    \hline
-    Load & \texttt{load <reg> <value>} & \makecell[l]{Load a word into a register.\\%
-    \texttt{Reg[\$reg] = \$value}\\%
-    \textbf{Note} that any immediate is only 32-bit;\\%
-    Use \texttt{loadw} for loading a 64-bit immediate.} \\
-    \hline
-    Load Upper & \texttt{loadu <reg> <value>} & \makecell[l]{Load a half-word (32-bit) into the upper half of a register.\\\texttt{Reg[\$reg][32:] = \$value}} \\
-    \hline
-    Load Word & \texttt{loadw <reg> <value>} & \makecell[l]{\textit{Pseudo-instruction.}\\%
-    Loads a word into a register.\\%
-    \texttt{load \$reg \$value[:32]}\\%
-    \texttt{loadu \$reg \$value[32:]}\\%
-    \textbf{Note} accepts a 64-bit immediate.} \\
-    \hline
-    Zero & \texttt{zero <reg>} & \makecell[l]{\textit{Pseudo-instruction.}\\%
-    Zeroes/clears a register.\\%
-    \texttt{xor \$reg, \$reg}} \\
-    \hline
-    Store & \texttt{store <reg> <addr>} & \makecell[l]{Copy from register to memory.\\\texttt{Mem[\$addr] = Reg[\$reg]}} \\
-    \hline
-    Convert & \texttt{cvt\(d_1\)2\(d_2\) <reg> <reg>} & \makecell[l]{Convert register from data-type \(d_1\) to \(d_2\)} \\
-    \hline \hline
-    \multicolumn{3}{|c|}{\makecell[c]{\textbf{Arithmetic}\\%
-    All arithmmetic operations, bar \texttt{mod}, expect a datatype.}} \\
-    \hline
-    Add & \texttt{add <reg> <reg> <value>} & \makecell[l]{Add value to a register.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] + \$value}} \\
-    \hline
-    Subtract & \texttt{sub <reg> <reg> <value>} & \makecell[l]{Subtract value from a register.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] - \$value}} \\
-    \hline
-    Multiply & \texttt{mul <reg> <reg> <value>} & \makecell[l]{Multiply register by a value.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] \(\times\) \$value}} \\
-    \hline
-    Division & \texttt{div <reg> <reg> <value>} & \makecell[l]{Divide a register by a value, store as double.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] \(\div\) \$value}} \\
-    \hline
-    Modulo & \texttt{mod <reg> <reg> <value>} & \makecell[l]{Calculate the remainder when dividing a register by a value.\\%
-    The register is treated as a signed word,\\%
-    the value as a signed half-word.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] \(\mod\) \$value}} \\
-    \hline \hline
-    \multicolumn{3}{|c|}{\textbf{Branching}} \\
-    \hline
-    Compare & \texttt{cmp <reg> <value>} & \makecell[l]{Compare \texttt{\$1} with \texttt{\$2}, setting comparison bits in flag register.\\%
-    E.g., set \texttt{lt} iff \texttt{\$1 < \$2}.\\%
-    \textbf{Note} Z flag is set depending on value, not register.} \\
-    \hline
-    Branch & \texttt{b<cnd> <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Branch to the given address if comparison matches conditional.\\%
-    \texttt{load<cnd> \$ip, \$value}} \\
-    \hline
-    Jump \(\square\) & \texttt{jmp <value>} & \makecell[l]{\textit{Pseudo-instruction.}\\%
-    \texttt{load \$ip \$value}} \\
-    \hline \hline
-    \multicolumn{3}{|c|}{\textbf{Logical}} \\
-    \hline
-    Not & \texttt{not <reg> <reg>} & \makecell[l]{Bitwise NOT a register.\\%
-    \texttt{Reg[\$reg1] = \(\sim\) Reg[\$reg2]}} \\
-    \hline
-    And & \texttt{and <reg> <reg> <value>} & \makecell[l]{Bitwise AND between register and value.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] \& \$value}} \\
-    \hline
-    Or & \texttt{or <reg> <reg> <value>} & \makecell[l]{Bitwise OR between register and value.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] | \$value}} \\
-    \hline
-    Exclusive Or & \texttt{xor <reg> <reg> <value>} & \makecell[l]{Bitwise exclusive-OR between register and value.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] \(\oplus\) \$value}} \\
-    \hline
-    Right Shift & \texttt{shr <reg> <reg> <value>} & \makecell[l]{Logically shift the register right an amount.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] \(\gg\) \$value}} \\
-    \hline
-    Left Shift & \texttt{shl <reg> <reg> <value>} & \makecell[l]{Logically shift the register left an amount.\\%
-    \texttt{Reg[\$reg1] = Reg[\$reg2] \(\ll\) \$value}} \\
-    \hline \hline
-    \multicolumn{3}{|c|}{\textbf{Stack}} \\
-    \hline
-    Push & \texttt{push <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Push a 32-bit value onto the stack.\\%
-    \texttt{sub \$sp, 8}\\%
-    \texttt{loadu \$r1, <value>}\\%
-    \texttt{store \$r1, (\$sp)}\\%
-    \texttt{add \$sp, 4}\\%
-    \textbf{Note} for efficiency, this is implemented as an instruction.} \\
-    \hline
-    Push Word & \texttt{pushw <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Push a 64-bit word onto the stack.\\%
-    \texttt{sub \$sp, 8}\\%
-    \texttt{loadw \$r1, <value>}\\%
-    \texttt{store \$r1, (\$sp)}} \\
-    \hline
-    Pop & \multicolumn{2}{l|}{\makecell[l]{The pop operation is not implemented due to its simplistic nature.\\%
-    I.e., to pop a word from the stack:\\%
-    \texttt{sub \$sp, 8}\\%
-    And to store it in a register:\\%
-    \texttt{load \$r1, (\$sp)}}} \\
-    \hline \hline
-    \multicolumn{3}{|c|}{\textbf{Functions}} \\
-    \hline
-    Function Call & \texttt{call <addr>} & \makecell[l]{Call procedure at location \texttt{addr}.\\%
-    More complex than \texttt{load ip, \$addr} as pushes stack frame.} \\
-    \hline
-    Return & \texttt{ret} & \makecell[l]{Return from function call.\\%
-    Restores key registers (undoes \texttt{call}).} \\
-    \hline
-    System Call & \texttt{syscall <value>} & \makecell[l]{Invoke the system call mapped to the given value.\\%
-    See the respective section for mappings.} \\
-    \hline \hline
-    \multicolumn{3}{|c|}{\textbf{Interrupts}} \\
-    \hline
-    Trigger Interrupt & \texttt{int <value>} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Trigger the given interrupt mask.\\%
-    \texttt{loadw \$k1, <value>}\\%
-    \texttt{or \$isr, \$k1}} \\
-    \hline
-    Return From Interrupt & \texttt{rti} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Return from an interrupt.\\%
-    \texttt{xor \$flag, <in interrupt flag>}\\
-    \texttt{load \$ip, \$iip}} \\
-    \hline \hline
-    \multicolumn{3}{|c|}{\textbf{Miscellaneous}} \\
-    \hline
-    No-Operation \(\square\) & \texttt{nop} & \makecell[l]{Useless operation; do nothing.\\%
-    Equivalent to \texttt{or r1, 0}.\\%
-    \textbf{Note} For efficiency, implemented as instruction.} \\
-    \hline
-    Exit & \texttt{exit [value]} & \makecell[l]{\textit{Pseudo-instruction}\\%
-    Exit the program, optionally with an exit code in \$ret.\\%
-    If code provided: \texttt{load \$ret, <value>}\\%
-    \texttt{syscall <opcode: exit>}} \\
-    \hline
-\end{longtable}
+    \section{Instruction Set}\label{sec:instruction-set}
 
-\subsection{Pseudo-Instructions}
+    \include{assets/instructions}
 
-These are instructions which are not necessary for full functionality, but are provided for usefulness.
-They may be implemented using other instructions.
-It is up to the implementer whether to implement these as actual instructions or expand them to their equivalent form.
+    \subsection{Pseudo-Instructions}\label{subsec:pseudo-instructions}
 
-\subsection{Instruction Layout}
+    These are instructions which are not necessary for full functionality, but are provided for usefulness.
+    They may be implemented using other instructions.
+    It is up to the implementer whether to implement these as actual instructions or expand them to their equivalent form.
 
-All instructions are encoded in a single 64-bit word.
-The layouts of various types is listed below.
-The size field stated the size in bits of this field.
-From top-to-bottom, the table starts at the least-significant bit.
+    \subsection{Instruction Layout}\label{subsec:instruction-layout}
 
-\textbf{Note}, the opcode of each instruction is not decided upon; it may be any value as long as the instruction set is implemented.
-The only exception is \texttt{nop}, which maps to a fully-zeroed word.
+    All instructions are encoded in a single 64-bit word.
+    The layouts of various types is listed below.
+    The size field stated the size in bits of this field.
+    From top-to-bottom, the table starts at the least-significant bit.
 
-\paragraph{Generic Layout}
-This outlines the generic structure of an instruction.
-The first section of the table refers to the `header'.
+    \textbf{Note}, the opcode of each instruction is not decided upon; it may be any value as long as the instruction set is implemented.
+    The only exception is \texttt{nop}, which maps to a fully-zeroed word.
 
-\bigskip
-\begin{tabular}{|c|l|l|}
-    \hline
-    \textbf{Bit} & \textbf{Purpose} & \textbf{Comments} \\
-    \hline
-    0-5 & Opcode & \\
-    \hline
-    6-9 & Conditional test & \makecell[l]{These bits are tested against \$flag to determine if instruction is executed or skipped.\\%
-    \(\bullet\;\) 1111: skip test.\\%
-    \(\bullet\;\) 1001: test if zero flag is set.\\%
-    \(\bullet\;\) 1000: test if zero flag is unset.\\%
-    \(\bullet\;\) Otherwise: match lower 3 bits to \$flag.} \\
-    \hline
-    \hline
-    10-64 & \multicolumn{2}{l|}{Instruction dependant.} \\
-    \hline
-\end{tabular}
+    \paragraph{Generic Layout}
+    This outlines the generic structure of an instruction.
+    The first section of the table refers to the `header'.
 
-\paragraph{Conditional Test}
-Most instructions expect a conditional test field.
-Below shows the mapping between suffix and bit field.
+    \bigskip
+    \begin{tabular}{|c|l|l|}
+        \hline
+        \textbf{Bit} & \textbf{Purpose} & \textbf{Comments} \\
+        \hline
+        0--5 & Opcode & \\
+        \hline
+        6--9 & Conditional test & \makecell[l]{These bits are tested against \$flag to determine if instruction is executed or skipped.\\%
+        \(\bullet\;\) 1111: skip test.\\%
+        \(\bullet\;\) 1001: test if zero flag is set.\\%
+        \(\bullet\;\) 1000: test if zero flag is unset.\\%
+        \(\bullet\;\) Otherwise: match lower 3 bits to \$flag.} \\
+        \hline
+        \hline
+        10--64 & \multicolumn{2}{l|}{Instruction dependant.} \\
+        \hline
+    \end{tabular}
 
-\medskip
-\begin{tabular}{|c|c|c|l|}
-    \hline
-    \textbf{Suffix} & \textbf{Bits} & \textbf{Operator} & \textbf{Comments} \\
-    \hline
-    N/A & \texttt{1111} & N/A & Skip test. \\
-    \hline
-    ne / neq & \texttt{0000} & \(\neq\) & Test if not equal. \\
-    eq & \texttt{0001} & \(=\) & Test if equal. \\
-    \hline
-    lt & \texttt{0010} & \(<\) & Test if less than. \\
-    le / lte & \texttt{0011} & \(\le\) & Test if less than or equal to. \\
-    \hline
-    gt & \texttt{0110} & \(>\) & Test if greater than. \\
-    ge / gte & \texttt{0111} & \(\ge\) & Test if greater than or equal to. \\
-    \hline
-    z & \texttt{1001} & \(= 0\) & Test if zero flag is set. \\
-    nz & \texttt{1000} & \(\neq 0\) & Test if zero flag is clear. \\
-    \hline
-\end{tabular}
+    \paragraph{Conditional Test}
+    Most instructions expect a conditional test field.
+    Below shows the mapping between suffix and bit field.
 
-\paragraph{Data-Type Indicator}
-Some instructions have a field to specify the data-type of the data being operated on.
-These bits are after the ordinary header, and are as follows:
+    \medskip
+    \begin{tabular}{|c|c|c|l|}
+        \hline
+        \textbf{Suffix} & \textbf{Bits} & \textbf{Operator} & \textbf{Comments} \\
+        \hline
+        N/A & \texttt{1111} & N/A & Skip test. \\
+        \hline
+        ne / neq & \texttt{0000} & \(\neq\) & Test if not equal. \\
+        eq & \texttt{0001} & \(=\) & Test if equal. \\
+        \hline
+        lt & \texttt{0010} & \(<\) & Test if less than. \\
+        le / lte & \texttt{0011} & \(\le\) & Test if less than or equal to. \\
+        \hline
+        gt & \texttt{0110} & \(>\) & Test if greater than. \\
+        ge / gte & \texttt{0111} & \(\ge\) & Test if greater than or equal to. \\
+        \hline
+        z & \texttt{1001} & \(= 0\) & Test if zero flag is set. \\
+        nz & \texttt{1000} & \(\neq 0\) & Test if zero flag is clear. \\
+        \hline
+    \end{tabular}
 
-\bigskip
-\begin{tabular}{|c|c|c||c|l|}
-    \hline
-    \makecell[c]{\textbf{Bit 0}\\Decimal?} & \makecell[c]{\textbf{Bit 1}\\Signed?} & \makecell[c]{\textbf{Bit 0}\\Full or half word?} & \textbf{Suffix} & \textbf{Comments} \\
-    \hline
-    0 & 0 & 0 & hu & 32-bit unsigned integer. \\
-    \hline
-    0 & 0 & 1 & [u] & 64-bit unsigned integer. \\
-    \hline
-    0 & 1 & 0 & hi & 32-bit signed integer. \\
-    \hline
-    0 & 1 & 1 & i & 64-bit signed integer. \\
-    \hline
-    1 & 0 & 0 & f & 32-bit float. \\
-    \hline
-    1 & 0 & 1 & d & 64-bit double. \\
-    \hline
-\end{tabular}
+    \paragraph{Data-Type Indicator}
+    Some instructions have a field to specify the data-type of the data being operated on.
+    These bits are after the ordinary header, and are as follows:
 
-\bigskip
-Datatypes may be interpreted slightly differently, depending on the instruction.
+    \bigskip
+    \begin{tabular}{|c|c|c||c|l|}
+        \hline
+        \makecell[c]{\textbf{Bit 0}\\Decimal?} & \makecell[c]{\textbf{Bit 1}\\Signed?} & \makecell[c]{\textbf{Bit 0}\\Full or half word?} & \textbf{Suffix} & \textbf{Comments} \\
+        \hline
+        0 & 0 & 0 & hu & 32-bit unsigned integer. \\
+        \hline
+        0 & 0 & 1 & [u] & 64-bit unsigned integer. \\
+        \hline
+        0 & 1 & 0 & hi & 32-bit signed integer. \\
+        \hline
+        0 & 1 & 1 & i & 64-bit signed integer. \\
+        \hline
+        1 & 0 & 0 & f & 32-bit float. \\
+        \hline
+        1 & 0 & 1 & d & 64-bit double. \\
+        \hline
+    \end{tabular}
 
-\begin{itemize}
-    \item Arithmetic operations: the datatype refers to the type of the first data to be operated on.
-    The last argument is always considered a 32-bit signed integer or float.
-    That is, in \texttt{add.u \$r1, -75}, \texttt{\$r1} is assumed to hold an unsigned 64-bit integer, but \texttt{-75} is a 32-bit signed integer, while the result also be an unsigned 64-bit integer.
+    \bigskip
+    Datatypes may be interpreted slightly differently, depending on the instruction.
 
-\end{itemize}
+    \begin{itemize}
+        \item Arithmetic operations: the datatype refers to the type of the first data to be operated on.
+        The last argument is always considered a 32-bit signed integer or float.
+        That is, in \texttt{add.u \$r1, -75}, \texttt{\$r1} is assumed to hold an unsigned 64-bit integer, but \texttt{-75} is a 32-bit signed integer, while the result also be an unsigned 64-bit integer.
 
-\section{Interrupts}
+    \end{itemize}
 
-Interrupts are events which, when triggered, alert the processor immediately.
-Interrupts are triggered via the \$isr register and may be used to distinguish between different sources.
-The \$isr is used to mask, or ignore, some interrupts.
-Note that the interrupt bit must be cleared manually.
-Also note that while in an interrupt, no other interrupt can be handled.
+    \section{Interrupts}\label{sec:interrupts}
 
-Below is listed C pseudo-code for the fetch-execute cycle to understand interrupt behaviour:
+    Interrupts are events which, when triggered, alert the processor immediately.
+    Interrupts are triggered via the \$isr register and may be used to distinguish between different sources.
+    The \$isr is used to mask, or ignore, some interrupts.
+    Note that the interrupt bit must be cleared manually.
+    Also note that while in an interrupt, no other interrupt can be handled.
 
-\begin{lstlisting}[style=c]
-void fetch_execute_cycle(void) {
-    if (($isr & $imr) && !($flag & FLAG_IN_INTERRUPT)) {
-        handle_interrupt();
+    Below is listed C pseudocode for the fetch-execute cycle to understand interrupt behaviour:
+
+    \begin{lstlisting}[style=c,label={lst:lstlisting}]
+    void fetch_execute_cycle(void) {
+        if (($isr & $imr) && !($flag & FLAG_IN_INTERRUPT)) {
+            handle_interrupt();
+        }
+
+        word instruction = fetch();
+        execute(instruction);
+
+        $ip += sizeof(word);
     }
 
-    word instruction = fetch();
-    execute(instruction);
+    void handle_interrupt(void) {
+        $iip = $ip;
+        $flag |= FLAG_IN_INTERRUPT;
+        $ip = HANDLER_OFFSET;
+    }
 
-    $ip += sizeof(word);
-}
+    void return_from_interrupt(void) {
+        $ip = $iip;
+        $flag &= ~FLAG_IN_INTERRUPT;
+    }
+    \end{lstlisting}
 
-void handle_interrupt(void) {
-    $iip = $ip;
-    $flag |= FLAG_IN_INTERRUPT;
-    $ip = HANDLER_OFFSET;
-}
-\end{lstlisting}
+    \textbf{Note} the handler offset is at the fixed memory location \texttt{0x400}.
 
-\textbf{Note} the handler offset is at the fixed memory location \texttt{0x400}.
+%    \section{Calling Convention}\label{sec:calling-convention}
+%
+%    Despite being a RISC processor, this processor will support explicit \texttt{call} and \texttt{ret} functions which will aid in pushing and popping a stack frame.
+%    For ease of programming, multiple actions are taken in each to maintain structure, so they are not pseudo-instructions.
+%
+%    \subsection{Function Invocation}\label{subsec:function-invocation}
+%
+%    To call a function [at] \texttt{func} with \(n\) arguments:
+%
+%    \medskip
+%    \texttt{%
+%    push <arg1>\\%
+%    ...\\%
+%    push <arg\(n\)>\\%
+%    push \(n \times 4\)\\%
+%    call <func>
+%    }
+%
+%    \medskip
+%    \begin{tabular}{|r l||r l|}
+%         \hline
+%         \multicolumn{4}{|c|}{\textbf{Stack}} \\
+%         \hline
+%         \multicolumn{2}{|c||}{\textbf{Before}} & \multicolumn{2}{c|}{\textbf{After}} \\
+%         \hline
+%         & & preserved GP registers & \(\leftarrow\) \$sp \\
+%         & & old ip & \\
+%         & & old fp & \(\leftarrow\) \$fp \\
+%         & & \(n\) bytes & \\
+%         & & args & \\
+%         \texttt{xxx} & \(\leftarrow\) \$sp & \texttt{xxx} & \\
+%         \hline
+%    \end{tabular}
+%    \medskip
+%
+%    See the following points of clarification:
+%    \begin{itemize}
+%        \item When zero arguments are passed, still \texttt{push 0} to indicate this.
+%        \item PGPRs are pushed starting \$s1 through \$s8.
+%        \item All pushed values are words, except \(n\), which is a half-word (4 bytes).
+%        This \(n\) states the size of the \texttt{args} region in \textbf{bytes}.
+%    \end{itemize}
+%
+%    \subsection{Function Returning}\label{subsec:function-returning}
+%
+%    To return from the function invoked in the previous sub-section, we need only a call to \texttt{ret}.
+%    This will restore and pop the stack frame, as well as handle any arguments the user pushed.
+%    The following operations take place:
+%
+%    \texttt{%
+%    Reg[\$ip] = old ip\\%
+%    Reg[\$fp] = old fp\\%
+%    Reg[\$sp] = loc(xxx)\\%
+%    }
+%
+%    \subsection{Argument Retrieval}\label{subsec:argument-retrieval}
+%
+%    The frame pointer points to the top of the previous frame.
+%    Using the diagram above, it is possible to retrieve an argument from the stack.
+%    It is important to note that the size of the additional information pushed via the processor may theoretically vary, and so referencing and relying on knowledge of this size is unadvised.
+%
+%    \begin{center}
+%        \(i\): argument index, 0-indexed; \(n\): number of arguments.
+%
+%        \texttt{Arg \(i\) = Reg[\$fp] - 4 * (2 + \(n\) - \(i\))}
+%
+%        E.g., to load the one and only argument: \texttt{load \$reg, 12(\$fp)}.
+%    \end{center}
 
-\section{Calling Convention}
+    \section{Subroutines}\label{sec:subroutines}
 
-Despite being a RISC processor, this processor will support explicit \texttt{call} and \texttt{ret} functions which will aid in pushing and popping a stack frame.
-For ease of programming, multiple actions are taken in each to maintain structure, so they are not pseudo-instructions.
+    As a RISC processor, little support is provided by the processor for calling subroutines;
+    instead, it is up to compilers or other softwares to decide upon and implement such a convention.
 
-\subsection{Function Invocation}
+    The process provides one instruction -- \texttt{jal} -- to handle calling a subroutine.
+    Given the location in memory of the subroutine, it first caches the old instruction pointer, then loads in the subroutine's address.
+    Note that this return address is not preserved, and hence must be cached by the programmer if multiple nested calls are required, lest the previous return address be overwritten.
 
-To call a function [at] \texttt{func} with \(n\) arguments:
+    To return from a subroutine is simple: load the contents of this cache into the instruction pointer register.
 
-\medskip
-\texttt{%
-push <arg1>\\%
-...\\%
-push <arg\(n\)>\\%
-push \(n \times 4\)\\%
-call <func>
-}
+    \section{System Call}\label{sec:system-call}
 
-\medskip
-\begin{tabular}{|r l||r l|}
-     \hline
-     \multicolumn{4}{|c|}{\textbf{Stack}} \\
-     \hline
-     \multicolumn{2}{|c||}{\textbf{Before}} & \multicolumn{2}{c|}{\textbf{After}} \\
-     \hline
-     & & preserved GP registers & \(\leftarrow\) \$sp \\
-     & & old ip & \\
-     & & old fp & \(\leftarrow\) \$fp \\
-     & & \(n\) bytes & \\
-     & & args & \\
-     \texttt{xxx} & \(\leftarrow\) \$sp & \texttt{xxx} & \\
-     \hline
-\end{tabular}
-\medskip
+    System calls are core functionality abstracted inside the processor.
+    Actions are assigned operation codes and invoked via \texttt{syscall <opcode>}.
+    Optionally, each read arguments from general-purpose registers \texttt{r1} onward.
 
-See the following points of clarification:
-\begin{itemize}
-    \item When zero arguments are passed, still \texttt{push 0} to indicate this.
-    \item PGPRs are pushed starting \$s1 through \$s8.
-    \item All pushed values are words, except \(n\), which is a half-word (4 bytes).
-    This \(n\) states the size of the \texttt{args} region in \textbf{bytes}.
-\end{itemize}
-
-\subsection{Function Returning}
-
-To return from the function invoked in the previous sub-section, we need only a call to \texttt{ret}.
-This will restore and pop the stack frame, as well as handle any arguments the user pushed.
-The following operations take place:
-
-\texttt{%
-Reg[\$ip] = old ip\\%
-Reg[\$fp] = old fp\\%
-Reg[\$sp] = loc(xxx)\\%
-}
-
-\subsection{Argument Retrieval}
-
-The frame pointer points to the top of the previous frame.
-Using the diagram above, it is possible to retrieve an argument from the stack.
-It is important to note that the size of the additional information pushed via the processor may theoretically vary, and so referencing and relying on knowledge of this size is unadvised.
-
-\begin{center}
-    \(i\): argument index, 0-indexed; \(n\): number of arguments.
-    
-    \texttt{Arg \(i\) = Reg[\$fp] - 4 * (2 + \(n\) - \(i\))}
-
-    E.g., to load the one and only argument: \texttt{load \$reg, 12(\$fp)}.
-\end{center}
-
-\section{System Call}
-
-System calls are core functionality abstracted inside the processor.
-Actions are assigned operation codes and invoked via \texttt{syscall <opcode>}.
-Optionally, each read arguments from general-purpose registers \texttt{r1} onward.
-
-\bigskip
-\begin{longtable}{|c|c|l|l|l|}
-    \hline
-    \textbf{Service} & \textbf{Opcode} & \textbf{Arguments} & \textbf{Operation} & \textbf{Result} \\
-    \hline
-    \multicolumn{5}{|c|}{\textbf{Output}} \\
-    \hline
-    print\_hex & 0 & \texttt{\$r1} = integer & Print register as hexadecimal. & \textit{None} \\
-    \hline
-    print\_int & 1 & \texttt{\$r1} = integer & Print 64-bit integer. & \textit{None} \\
-    \hline
-    print\_float & 2 & \texttt{\$r1} = float & Print 32-bit float. & \textit{None} \\
-    \hline
-    print\_double & 3 & \texttt{\$r1} = double & Print 64-bit double. & \textit{None} \\
-    \hline
-    print\_char & 4 & \texttt{\$r1} = byte & Print byte as ASCII character. & \textit{None} \\
-    \hline
-    print\_string & 5 & \texttt{\$r1} = string address & Print null-terminated string at the address. & \textit{None} \\
-    \hline \hline
-    \multicolumn{5}{|c|}{\textbf{Input}} \\
-    \hline
-    read\_int & 6 & \textit{None} & Read a signed 64-bit integer. & \texttt{\$ret} = integer \\
-    \hline
-    read\_float & 7 & \textit{None} & Read a 32-bit float. & \texttt{\$ret} = float \\
-    \hline
-    read\_double & 8 & \textit{None} & Read a 64-bit double. & \texttt{\$ret} = double \\
-    \hline
-    read\_char & 9 & \textit{None} & Read an ASCII character. & \texttt{\$ret} = character \\
-    \hline
-    read\_string & 10 & \makecell[l]{\texttt{\$r1} = string address\\%
-    \texttt{\$r2} = max length} & \makecell[l]{Read a null-terminated string into given address.\\%
-    String is truncated to maximum length.} & \textit{None} \\
-    \hline \hline
-    \multicolumn{5}{|c|}{\textbf{Program Flow}} \\
-    \hline
-    exit & 11 & \textit{None} & \makecell[l]{Exit program.\\%
-    \textbf{Note} process exit code is located in \$ret.} & \textit{None} \\
-    \hline \hline
-    \multicolumn{5}{|c|}{\textbf{Debug}} \\
-    \hline
-    print\_regs & 100 & \textit{None} & Print hexadecimal value of each register. & \textit{None} \\
-    \hline
-    print\_mem & 101 & \makecell[l]{\texttt{\$r1} = start address\\%
-    \texttt{\$r2} = segment length} & Print hexadecimal bytes of memory segment. & \textit{None} \\
-    \hline
-    print\_stack & 102 & \textit{None} & Print bytes of the stack. & \textit{None} \\
-    \hline
-\end{longtable}
-
+    \bigskip
+    \begin{longtable}{|c|c|l|l|l|}
+        \hline
+        \textbf{Service} & \textbf{Opcode} & \textbf{Arguments} & \textbf{Operation} & \textbf{Result} \\
+        \hline
+        \multicolumn{5}{|c|}{\textbf{Output}} \\
+        \hline
+        print\_hex & 0 & \texttt{\$r1} = integer & Print register as hexadecimal. & \textit{None} \\
+        \hline
+        print\_int & 1 & \texttt{\$r1} = integer & Print 64-bit integer. & \textit{None} \\
+        \hline
+        print\_float & 2 & \texttt{\$r1} = float & Print 32-bit float. & \textit{None} \\
+        \hline
+        print\_double & 3 & \texttt{\$r1} = double & Print 64-bit double. & \textit{None} \\
+        \hline
+        print\_char & 4 & \texttt{\$r1} = byte & Print byte as ASCII character. & \textit{None} \\
+        \hline
+        print\_string & 5 & \texttt{\$r1} = string address & Print null-terminated string at the address. & \textit{None} \\
+        \hline \hline
+        \multicolumn{5}{|c|}{\textbf{Input}} \\
+        \hline
+        read\_int & 6 & \textit{None} & Read a signed 64-bit integer. & \texttt{\$ret} = integer \\
+        \hline
+        read\_float & 7 & \textit{None} & Read a 32-bit float. & \texttt{\$ret} = float \\
+        \hline
+        read\_double & 8 & \textit{None} & Read a 64-bit double. & \texttt{\$ret} = double \\
+        \hline
+        read\_char & 9 & \textit{None} & Read an ASCII character. & \texttt{\$ret} = character \\
+        \hline
+        read\_string & 10 & \makecell[l]{\texttt{\$r1} = string address\\%
+        \texttt{\$r2} = max length} & \makecell[l]{Read a null-terminated string into given address.\\%
+        String is truncated to maximum length.} & \textit{None} \\
+        \hline \hline
+        \multicolumn{5}{|c|}{\textbf{Program Flow}} \\
+        \hline
+        exit & 11 & \textit{None} & \makecell[l]{Exit program.\\%
+        \textbf{Note} process exit code is located in \$ret.} & \textit{None} \\
+        \hline \hline
+        \multicolumn{5}{|c|}{\textbf{Debug}} \\
+        \hline
+        print\_regs & 100 & \textit{None} & Print hexadecimal value of each register. & \textit{None} \\
+        \hline
+        print\_mem & 101 & \makecell[l]{\texttt{\$r1} = start address\\%
+        \texttt{\$r2} = segment length} & Print hexadecimal bytes of memory segment. & \textit{None} \\
+        \hline
+        print\_stack & 102 & \textit{None} & Print bytes of the stack. & \textit{None} \\
+        \hline
+    \end{longtable}
 \end{document}

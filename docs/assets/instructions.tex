@@ -1,0 +1,370 @@
+\textbf{Notes}:
+
+\begin{itemize}
+    \item Instructions accept a conditional test suffix, unless indicated via a \(\square\) symbol.
+    \item Mnemonics support overloading.
+    That is, the same mnemonic can have many argument signatures.
+    Optional arguments are listed using square brackets \texttt{[optional]} versus mandatory arguments \texttt{<mandatory>}.
+    \item For all arithmetic and logical instructions with signatures \texttt{<reg> <reg> <value>}, the first register is optional.
+    If omitted, the supplied register is duplicated.
+    I.e., \texttt{\$r, \$v} becomes \texttt{\$r, \$r, \$v}.
+    \item All arithmetic operations (except \texttt{mod}) and the compare operation take a datatype.
+\end{itemize}
+
+\subsection{Data Transfer}
+
+\subsubsection{Load}
+
+\begin{lstlisting}[style=assembly]
+    load <reg> <value>
+\end{lstlisting}
+
+Loads \texttt{<value>} as a word into register \texttt{<reg>}.
+Note, \texttt{<value>} may only specify a 32-bit immediate, so the upper 32 bits will always be zeroed in this case.
+To load a full 64-bit immediate, use \texttt{loadi}.
+
+\begin{lstlisting}[style=rtn]
+    Reg[reg] <- value
+\end{lstlisting}
+
+\subsubsection{Load Upper}
+
+\begin{lstlisting}[style=assembly]
+    loadu <reg> <value>
+\end{lstlisting}
+
+Loads \texttt{<value>} as a half-word into the upper half of register \texttt{<reg>}.
+
+\begin{lstlisting}[style=rtn]
+    Reg[reg][32:] <- value
+\end{lstlisting}
+
+\subsubsection{Load Immediate}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    loadi <reg> <imm>
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    load <reg> <imm>[:32]
+    loadu <reg> <imm>[32:]
+\end{lstlisting}
+
+Loads \texttt{<imm>} as a word into register \texttt{<reg>}.
+
+\subsubsection{Zero}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    zero <reg>
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    xor <reg> <reg>
+\end{lstlisting}
+
+Clears (zeroes) register \texttt{<reg>}.
+
+\subsubsection{Store}
+
+\begin{lstlisting}[style=assembly]
+    store <reg> <addr>
+\end{lstlisting}
+
+Stores the contents of register \texttt{<reg>} at the given address \texttt{<addr>}.
+
+\begin{lstlisting}[style=rtn]
+    Mem[addr] <- Reg[reg]
+\end{lstlisting}
+
+\subsubsection{Convert}
+
+\begin{lstlisting}[style=assembly]
+    cvt<d1>2<d2> <reg> <reg>
+\end{lstlisting}
+
+Converts the second register from data-type \(d_1\) to \(d_2\) and store in the first register.
+
+\begin{lstlisting}[style=rtn]
+    Reg[reg1] <- cvt(Reg[reg2], d1, d2)
+\end{lstlisting}
+
+\subsection{Arithmetic}
+
+\textbf{Note} that all mnemonics, except \texttt{mod}, expect a datatype flag.
+
+\subsubsection{Addition}
+
+\begin{lstlisting}[style=assembly]
+    add <reg> <reg> <value>
+\end{lstlisting}
+
+Add the value in the second register to \texttt{<value>} and store in the first register.
+
+\begin{lstlisting}[style=rtn]
+    Reg[reg1] <- Reg[reg2] + value
+\end{lstlisting}
+
+\subsubsection{Subtraction}
+
+\begin{lstlisting}[style=assembly]
+    sub <reg> <reg> <value>
+\end{lstlisting}
+
+Subtract \texttt{<value>} from the value in the second register and store in the first register.
+
+\begin{lstlisting}[style=rtn]
+    Reg[reg1] <- Reg[reg2] - value
+\end{lstlisting}
+
+\subsubsection{Multiplication}
+
+\begin{lstlisting}[style=assembly]
+    mul <reg> <reg> <value>
+\end{lstlisting}
+
+Multiply the value in the second register by \texttt{<value>} and store in the first register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] $\times$ value
+\end{lstlisting}
+
+\subsubsection{Division}
+
+\begin{lstlisting}[style=assembly]
+    div <reg> <reg> <value>
+\end{lstlisting}
+
+Divide the value in the second register by \texttt{<value>} and store in the first register as a \textit{double}.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] $\div$ value
+\end{lstlisting}
+
+\subsubsection{Modulo}
+
+\begin{lstlisting}[style=assembly]
+    mod <reg> <reg> <value>
+\end{lstlisting}
+
+Calculate the remainder when dividing the second register by the value.
+The register is treated as a signed word; the value as a signed half-word.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] $\mod$ value
+\end{lstlisting}
+
+\subsection{Branching}
+
+\subsubsection{Compare}
+
+\begin{lstlisting}[style=assembly]
+    cmp <reg> <value>
+\end{lstlisting}
+
+Compare the value in the register by \texttt{<value>}; set the comparison bits in the \texttt{\$flag} register appropriately.
+E.g., set \texttt{lt} iff \texttt{\$reg < \$value}.
+\textbf{Note} the Z flag is set depending on value, not register.
+
+\subsubsection{Branch}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    b<cnd> <value>
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    load<cnd> $ip <value>
+\end{lstlisting}
+
+Branch to the given value if the flag's comparison bits match the conditional guard.
+
+\subsubsection{Jump}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    jmp <value>
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    load $ip <value>
+\end{lstlisting}
+
+An unconditional branch.
+
+\subsubsection{Jump and Link}
+
+\begin{lstlisting}[style=assembly]
+    jal [reg] <addr>
+\end{lstlisting}
+
+Performs a function call: stores the current \texttt{\$ip} in \texttt{\$rip} and jumps to \texttt{<addr>}.
+By default, this register is \texttt{\$rip}; the optional register argument changes this.
+
+\begin{lstlisting}[style=rtn]
+    Reg[reg1] <- Reg[$ip]
+    Reg[$ip] <- addr
+\end{lstlisting}
+
+\subsection{Logical}
+
+\subsubsection{And}
+
+\begin{lstlisting}[style=assembly]
+    and <reg> <reg> <value>
+\end{lstlisting}
+
+Computer the bitwise AND of the value in the second register and \texttt{<value>} and stores the result in the second register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] & value
+\end{lstlisting}
+
+\subsubsection{Not}
+
+\begin{lstlisting}[style=assembly]
+    not <reg> <reg>
+\end{lstlisting}
+
+Stores the inverse (bitwise NOT) of the value in the second register in the first register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- $\sim$ Reg[reg2]
+\end{lstlisting}
+
+\subsubsection{Or}
+
+\begin{lstlisting}[style=assembly]
+    and <reg> <reg> <value>
+\end{lstlisting}
+
+Computer the bitwise OR of the value in the second register and \texttt{<value>} and stores the result in the first register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] | value
+\end{lstlisting}
+
+\subsubsection{Exclusive-Or}
+
+\begin{lstlisting}[style=assembly]
+    xor <reg> <reg> <value>
+\end{lstlisting}
+
+Computer the bitwise exclusive OR of the value in the second register and \texttt{<value>} and stores the result in the first register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] ^ value
+\end{lstlisting}
+
+\subsubsection{Left Shift}
+
+\begin{lstlisting}[style=assembly]
+    shl <reg> <reg> <value>
+\end{lstlisting}
+
+Logically shift the value in the second register left by \texttt{<value>} and store the result in the first register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] $\ll$ value
+\end{lstlisting}
+
+\subsubsection{Right Shift}
+
+\begin{lstlisting}[style=assembly]
+    shl <reg> <reg> <value>
+\end{lstlisting}
+
+Logically shift the value in the second register right by \texttt{<value>} and store the result in the first register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg1] <- Reg[reg2] $\gg$ value
+\end{lstlisting}
+
+\subsection{Interrupts}
+
+\subsubsection{Trigger Interrupt}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    int <value>
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    or $isr <value>
+\end{lstlisting}
+
+Mask the \texttt{\$isr} register; trigger the given interrupt given the bit mask.
+
+\subsubsection{Return from Interrupt}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    rti
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    load $iip $ip
+    and $flag ~FLAG_INTERRUPT_BIT
+\end{lstlisting}
+
+Restores instruction pointer to pre-interrupt state, and unlocks future interrupts.
+
+\subsection{Miscellaneous}
+
+\subsubsection{No-Operation}
+
+\begin{lstlisting}[style=assembly]
+    nop
+\end{lstlisting}
+
+Do nothing; consume an instruction cycle.
+
+\subsubsection{Exit}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    exit [value]
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    load $ret <value>
+    syscall <exit>
+\end{lstlisting}
+
+Exit or halt the given process, optionally with a provided exit code.
+
+\subsubsection{System Call}
+
+\begin{lstlisting}[style=assembly]
+    syscall <value>
+\end{lstlisting}
+
+Invoke the system call mapped to the given value.
+See the system call section for these mappings.
+
+\begin{lstlisting}[style=rtn]
+    pop stack frame
+    Reg[$ip] <- old $ip
+\end{lstlisting}

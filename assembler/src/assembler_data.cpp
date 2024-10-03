@@ -13,7 +13,7 @@ namespace assembler {
           auto &arg = inst->args[i];
 
           if (arg.is_label() && *arg.get_label() == label) {
-            std::cout << "Replace label " << label << " with address 0x" << std::hex << address << std::dec << std::endl;
+            if (debug) std::cout << "Replace label " << label << " with address 0x" << std::hex << address << std::dec << std::endl;
             arg.update(inst->signature->arguments[inst->overload][i] == instruction::ArgumentType::Address
                          ? instruction::ArgumentType::Address
                          : instruction::ArgumentType::Immediate, address);

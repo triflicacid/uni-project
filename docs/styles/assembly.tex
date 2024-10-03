@@ -4,21 +4,19 @@
   alsoletter={.}, % allow dots in keywords
   alsodigit={0x}, % hex numbers are numbers too!
   morekeywords=[1]{ % instructions
-    load, loadu, loadw, zero, store,
-    add, sub, mul, div, idiv,
-    cmp, jmp, b, beq, bne, bge, bgt, ble, blt, bz, bnz,
-    not, and, or, xnor, shr, shl,
-    push, pushw, pop, popw,
-    call, syscall, ret,
-    nop, exit
+    load, loadu, loadi, zero, store,
+    add, sub, mul, div, mod,
+    cmp, jmp, jal, b, beq, bne, bge, bgt, ble, blt, bz, bnz,
+    not, and, xor, or, shr, shl,
+    syscall, nop, exit, int, rti
   },
   morekeywords=[2]{
     \%define, \%end, \%include, \%macro, \%rm, \%stop
   },
   morekeywords=[3]{
-    \$ip, \$sp, \$fp, \$flag, \$ret, \$zero,
-    r1, \$r2, \$r3, \$r4, \$r5, \$r6, \$r7, \$r8, \$r9, \$r10, \$r11, \$r12, \$r13, \$r14, \$r15, \$r16,
-    \$s1, \$s2, \$s3, \$s4, \$s5, \$s6, \$s7, \$s8
+    \$ip, \$rip, \$sp, \$fp, \$flag, \$isr, \$imr, \$iip, \$ret,
+    \$k1, \$k2,
+    \$r1, \$r2, \$r3, \$r4, \$r5, \$r6, \$r7, \$r8, \$r9, \$r10, \$r11, \$r12, \$r13, \$r14, \$r15, \$r16, \$r17, \$r18, \$rt19, \$r20, \$r21
   },
   commentstyle=,
   morecomment=[l]{;},   % mark ; as line comment start

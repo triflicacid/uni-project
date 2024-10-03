@@ -25,6 +25,16 @@ namespace assembler::instruction::transform {
     instructions.push_back(instruction);
   }
 
+  void transform_jal(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
+    if (instruction->args.size() == 1) {
+      // add $rip as register
+      instruction->args.emplace_front(ArgumentType::Register, REG_RIP);
+      instruction->overload++;
+    }
+
+    instructions.push_back(instruction);
+  }
+
   void branch(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
     // original: "b $addr"
     // "load $ip, $addr"
@@ -58,24 +68,10 @@ namespace assembler::instruction::transform {
   }
 
   void interrupt(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
-    // original: "int $v"
-    // "load $k1, $v"
-    instruction->signature = &Signature::_load;
-    instruction->args.emplace_front(ArgumentType::Register, REG_K1);
-    instructions.push_back(instruction);
-
-    // "loadu $k1, $v[32:]"
-    instruction = new Instruction(*instruction);
-    instruction->signature = &Signature::_loadu;
-    instruction->args[1].set_data(instruction->args[1].get_data() >> 32);
-    instructions.push_back(instruction);
-
-    // "or $isr, $k1"
-    instruction = new Instruction(*instruction);
+    // original: "int <value>"
+    // "or $isr, <value>"
     instruction->signature = &Signature::_or;
-    instruction->args[0].set_data(REG_ISR);
-    instruction->args[1].update(ArgumentType::Register, REG_ISR);
-    instruction->args.emplace_back(ArgumentType::Register, REG_K1);
+    instruction->args.emplace_back(ArgumentType::Register, REG_ISR);
     instructions.push_back(instruction);
   }
 
@@ -87,12 +83,12 @@ namespace assembler::instruction::transform {
     instruction->args.emplace_back(ArgumentType::Register, REG_IIP);
     instructions.push_back(instruction);
 
-    // "xor $flag, <in interrupt>"
+    // "and $flag, ~<in interrupt>"
     instruction = new Instruction(*instruction);
-    instruction->signature = &Signature::_xor;
+    instruction->signature = &Signature::_and;
     instruction->args[0].update(ArgumentType::Register, REG_FLAG);
     instruction->args[1].update(ArgumentType::Register, REG_FLAG);
-    instruction->args.emplace_back(ArgumentType::Immediate, FLAG_IN_INTERRUPT);
+    instruction->args.emplace_back(ArgumentType::Immediate, ~FLAG_IN_INTERRUPT);
     instructions.push_back(instruction);
   }
 
@@ -100,31 +96,19 @@ namespace assembler::instruction::transform {
     branch(instructions, instruction, overload);
   }
 
-  void loadw(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
-    // original: "loadl $r, $v"
+  void load_immediate(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
+    // original: "loadi $r, $i"
     uint64_t imm = instruction->args[1].get_data();
 
-    // "load $r, $v[:32]"
+    // "load $r, $i[:32]"
     instruction->signature = &Signature::_load;
     instruction->args[1].update(ArgumentType::Immediate, imm & 0xffffffff);
     instructions.push_back(instruction);
 
-    // "loadu $r, $v[32:]"
+    // "loadu $r, $i[32:]"
     instruction = new Instruction(*instruction);
     instruction->signature = &Signature::_loadu;
     instruction->args[1].set_data(imm >> 32);
-    instructions.push_back(instruction);
-  }
-
-  void pushw(std::vector<Instruction *> &instructions, Instruction *instruction, int overload) {
-    // original: "pushw $v"
-    // "push $r, $v"
-    instruction->signature = &Signature::_push;
-    instructions.push_back(instruction);
-
-    // "push $v[32:]"
-    instruction = new Instruction(*instruction);
-    instruction->args[0].set_data(instruction->args[0].get_data() >> 32);
     instructions.push_back(instruction);
   }
 

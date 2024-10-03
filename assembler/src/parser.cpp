@@ -734,6 +734,7 @@ namespace assembler::parser {
 
   std::map<std::string, uint8_t> register_map = {
     {"ip", REG_IP},
+    {"rip", REG_RIP},
     {"sp", REG_SP},
     {"fp", REG_FP},
     {"flag", REG_FLAG},
@@ -753,13 +754,8 @@ namespace assembler::parser {
       }
     }
 
-    // is a GPR?
-    if (offset >= REG_GPR && offset < REG_PGPR) {
-      return "r" + std::to_string(offset - REG_GPR + 1);
-    }
-
-    // must be an RGPR
-    return "s" + std::to_string(offset - REG_PGPR + 1);
+    // assume we are a general register
+    return "r" + std::to_string(offset - REG_GPR + 1);
   }
 
   int parse_register(const std::string &s, int &i) {
@@ -773,13 +769,6 @@ namespace assembler::parser {
       }
 
       return REG_GPR + number - 1;
-    }
-
-    // preserved general purpose registers
-    if (s[i] == 's' && std::isdigit(s[i + 1])) {
-      i++;
-      int number = s[i++] - '0';
-      return REG_PGPR + number - 1;
     }
 
     // check register map

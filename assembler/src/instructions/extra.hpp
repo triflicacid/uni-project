@@ -15,6 +15,8 @@ namespace assembler::instruction::transform {
   // e.g., for use with { reg_val, reg_reg_val }
   void transform_reg_reg_val(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
+  void transform_jal(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
+
   void branch(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
   void exit(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
@@ -25,9 +27,7 @@ namespace assembler::instruction::transform {
 
   void jump(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
-  void loadw(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
-
-  void pushw(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
+  void load_immediate(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 
   void zero(std::vector<Instruction *> &instructions, Instruction *instruction, int overload);
 }
