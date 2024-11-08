@@ -1,5 +1,5 @@
-#ifndef _DEBUG_H_
-#define _DEBUG_H_
+#ifndef CPU_DEBUG_H_
+#define CPU_DEBUG_H_
 
 #define DEBUG_CPU   0x01
 #define DEBUG_DRAM  0x02

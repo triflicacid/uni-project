@@ -1,5 +1,5 @@
-#ifndef _DRAM_H_
-#define _DRAM_H_
+#ifndef CPU_DRAM_H_
+#define CPU_DRAM_H_
 
 #include <stdint.h>
 

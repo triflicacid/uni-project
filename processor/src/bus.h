@@ -1,5 +1,5 @@
-#ifndef _BUS_H_
-#define _BUS_H_
+#ifndef CPU_BUS_H_
+#define CPU_BUS_H_
 
 #include "dram.h"
 

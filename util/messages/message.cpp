@@ -51,19 +51,21 @@ namespace message {
     _set_message(stream.str());
   }
 
-  void Message::print() {
-    print_type_suffix();
-
-    std::cout << " file " << m_file.string();
+  void Message::print(std::ostream &os) {
+    os << m_file.string();
 
     if (m_line > -1) {
-      std::cout << ", line " << m_line;
+      os << ":" << m_line;
 
       if (m_col > -1)
-        std::cout << ", column " << m_col;
+        os << ":" << m_col;
+
+      os << ": ";
     } else if (m_col > -1) {
-      std::cout << ", offset +" << m_col;
+      std::cout << " offset +" << m_col << ": ";
     }
+
+    print_type_suffix();
 
     std::cout << ": " << m_msg << "\n";
   }

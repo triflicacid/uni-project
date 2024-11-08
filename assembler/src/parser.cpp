@@ -3,6 +3,7 @@
 #include "parser.hpp"
 
 #include <instructions/signature.hpp>
+#include <bit>
 
 #include "util.hpp"
 
@@ -165,7 +166,7 @@ namespace assembler::parser {
       // - otherwise, if instruction is empty, generate error in place
       if (bool was_error = msgs.has_message_of(message::Error); was_error || !ok) {
         std::stringstream stream;
-        stream << (was_error ? "While parsing" : "Unknown arguments for")
+        stream << (was_error ? "while parsing" : "unknown arguments for")
             << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) signature->opcode << std::dec << ")";
 
         if (arguments.empty()) {
@@ -413,14 +414,14 @@ namespace assembler::parser {
       for (auto &arg: arguments)
         stream << instruction::Argument::type_to_string(arg.get_type()) << " ";
 
-      stream << "\navailable overloads:";
+      stream << "- available overloads:";
 
       for (auto &args: signature->arguments) {
         stream << "\n\t- " << signature->mnemonic;
 
         if (!args.empty()) {
           for (auto &arg: args)
-            stream << instruction::Argument::type_to_string(arg) << " ";
+            stream << " " << instruction::Argument::type_to_string(arg);
         }
       }
 

@@ -35,7 +35,7 @@ struct Options {
 /** Handle message list: print messages and empty the list, return if there was an error. */
 bool handle_messages(message::List &list) {
   list.for_each_message([](message::Message &msg) {
-    msg.print();
+    msg.print(std::cerr);
   });
 
   bool is_error = list.has_message_of(message::Error);

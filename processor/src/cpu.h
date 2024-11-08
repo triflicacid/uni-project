@@ -1,5 +1,5 @@
-#ifndef _CPU_H_
-#define _CPU_H_
+#ifndef CPU_H_
+#define CPU_H_
 
 #include <stdint.h>
 #include <stdio.h>
@@ -57,6 +57,12 @@ uint32_t cpu_exit_code(const cpu_t *cpu);
 
 // print contents of all registers as hexadecimal
 void print_registers(const cpu_t *cpu);
+
+// given a string name, return register offset (or -1)
+int string_to_register(const char *s);
+
+// given a register offset, return string name
+const char *register_to_string(int offset);
 
 // print error details (doesn't print if no error)
 void print_error(const cpu_t *cpu, bool prefix);

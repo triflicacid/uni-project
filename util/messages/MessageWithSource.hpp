@@ -18,6 +18,6 @@ namespace message {
         void print_notice();
         void print_warning();
         void print_error();
-        void print() override;
+        void print(std::ostream &os) override;
     };
 }

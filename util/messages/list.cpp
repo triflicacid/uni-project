@@ -45,9 +45,9 @@ namespace message {
     messages.insert(messages.end(), other.messages.begin(), other.messages.end());
   }
 
-  bool print_and_check(List &list) {
-    list.for_each_message([](Message &msg) {
-      msg.print();
+  bool print_and_check(List &list, std::ostream &os) {
+    list.for_each_message([&](Message &msg) {
+      msg.print(os);
     });
 
     bool is_error = list.has_message_of(Level::Error);

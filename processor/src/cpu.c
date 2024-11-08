@@ -1,6 +1,5 @@
 #include "cpu.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 #include "arg.h"
@@ -28,10 +27,10 @@
   REG(REG_SP) -= (BYTES); \
   bus_store(&cpu->bus, REG(REG_SP), (BYTES) * 4, (DATA));
 
-// pop an n-byte value from the stack and assign to given arg
-#define POP(BYTES, VAR) \
-  VAR = bus_load(&cpu->bus, REG(REG_SP), (BYTES) * 4); \
-  REG(REG_SP) += (BYTES);
+//// pop an n-byte value from the stack and assign to given arg
+//#define POP(BYTES, VAR) \
+//  VAR = bus_load(&cpu->bus, REG(REG_SP), (BYTES) * 4); \
+//  REG(REG_SP) += (BYTES);
 
 // check: memory bounds
 bool check_memory(uint32_t address) {
@@ -89,7 +88,7 @@ static const char *cmp_bit_str(uint8_t bits) {
     case CMP_LE: return "le";
     case CMP_GT: return "gt";
     case CMP_GE: return "ge";
-    default: return '\0';
+    default: return NULL;
   }
 }
 
@@ -102,7 +101,7 @@ static char *datatype_bit_str(uint8_t bits) {
     case DATATYPE_S64: return "i";
     case DATATYPE_F: return "f";
     case DATATYPE_D: return "d";
-    default: return '\0';
+    default: return NULL;
   }
 }
 
@@ -111,8 +110,8 @@ static char *datatype_bit_str(uint8_t bits) {
 static void update_zero_flag(cpu_t *cpu, uint8_t reg) {
   CPU_SET_Z(REG(reg));
 
-  DEBUG_FLAGS_PRINT(DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register %i (0x%llx) : %s\n" ANSI_RESET, reg, REG(reg),
-         GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR")
+  DEBUG_FLAGS_PRINT(DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register %s (0x%lx) : %s\n" ANSI_RESET, register_to_string(reg),
+                    REG(reg), GET_BIT(REG(REG_FLAG), FLAG_ZERO) ? ANSI_GREEN "SET" : ANSI_RED "CLEAR")
 }
 
 //// push stack frame
@@ -167,7 +166,7 @@ static void exec_load(cpu_t *cpu, uint64_t inst) {
   // assign value to register
   REG(reg) = value;
 
-  DEBUG_CPU_PRINT(DEBUG_STR " load: load value 0x%llx into register %i\n", value, reg)
+  DEBUG_CPU_PRINT(DEBUG_STR " load: load value 0x%lx into register %s\n", value, register_to_string(reg))
   update_zero_flag(cpu, reg);
 }
 
@@ -184,7 +183,7 @@ static void exec_load_upper(cpu_t *cpu, uint64_t inst) {
   // store value in register's upper 32 bits
   ((uint32_t *) &REG(reg))[1] = *(uint32_t *) &value;
 
-  DEBUG_CPU_PRINT(DEBUG_STR " loadu: load value 0x%llx into register %i's upper half\n", value, reg)
+  DEBUG_CPU_PRINT(DEBUG_STR " loadu: load value 0x%lx into register %s's upper half\n", value, register_to_string(reg))
   update_zero_flag(cpu, reg);
 }
 
@@ -201,7 +200,7 @@ static void exec_store(cpu_t *cpu, uint64_t inst) {
   // store in memory at address
   bus_store(&cpu->bus, addr, 64, REG(reg));
 
-  DEBUG_CPU_PRINT(DEBUG_STR " store: copy register %i (0x%llx) to address 0x%lx\n", reg, REG(reg), addr)
+  DEBUG_CPU_PRINT(DEBUG_STR " store: copy register %s (0x%lx) to address 0x%x\n", register_to_string(reg), REG(reg), addr)
   update_zero_flag(cpu, reg);
 }
 
@@ -261,9 +260,9 @@ static void exec_compare(cpu_t *cpu, uint64_t inst) {
   // update flag bits in register
   REG(REG_FLAG) = (REG(REG_FLAG) & ~0xf) | (flag & 0xf);
 
-  DEBUG_CPU_PRINT(DEBUG_STR " cmp: datatype=%s (0x%x)\n", datatype_bit_str(datatype), datatype);
-  DEBUG_CPU_PRINT(DEBUG_STR " cmp: register %i (0x%llx) vs 0x%llx = " ANSI_CYAN "%s\n" ANSI_RESET,
-         reg, REG(reg), value, cmp_bit_str(flag));
+  DEBUG_CPU_PRINT(DEBUG_STR " cmp: datatype=%s (0x%x)\n", datatype_bit_str(datatype), datatype)
+  DEBUG_CPU_PRINT(DEBUG_STR " cmp: register %s (0x%lx) vs 0x%lx = " ANSI_CYAN "%s\n" ANSI_RESET,
+                  register_to_string(reg), REG(reg), value, cmp_bit_str(flag))
 }
 
 // not <reg> <reg>
@@ -277,7 +276,7 @@ static void exec_not(cpu_t *cpu, uint64_t inst) {
 
   // inverse source register, update flag
   REG(reg_dst) = ~REG(reg_src);
-  DEBUG_CPU_PRINT(DEBUG_STR " not: reg %i = ~0x%llx = 0x%llx\n", reg_dst, REG(reg_src), REG(reg_dst))
+  DEBUG_CPU_PRINT(DEBUG_STR " not: reg %i = ~0x%lx = 0x%lx\n", reg_dst, REG(reg_src), REG(reg_dst))
   update_zero_flag(cpu, reg_dst);
 }
 
@@ -289,7 +288,7 @@ static void exec_and(cpu_t *cpu, uint64_t inst) {
   if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
   REG(reg_dst) = REG(reg_src) & value;
-  DEBUG_CPU_PRINT(DEBUG_STR " and: reg %i = 0x%llx & 0x%llx = 0x%llx\n", reg_dst, REG(reg_src), value, REG(reg_dst))
+  DEBUG_CPU_PRINT(DEBUG_STR " and: reg %i = 0x%lx & 0x%lx = 0x%lxn", reg_dst, REG(reg_src), value, REG(reg_dst))
   update_zero_flag(cpu, reg_dst);
 }
 
@@ -301,7 +300,7 @@ static void exec_or(cpu_t *cpu, uint64_t inst) {
   if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
   REG(reg_dst) = REG(reg_src) | value;
-  DEBUG_CPU_PRINT(DEBUG_STR " or: reg %i = 0x%llx | 0x%llx = 0x%llx\n", reg_dst, REG(reg_src), value, REG(reg_dst))
+  DEBUG_CPU_PRINT(DEBUG_STR " or: reg %i = 0x%lx | 0x%lx = 0x%lxn", reg_dst, REG(reg_src), value, REG(reg_dst))
   update_zero_flag(cpu, reg_dst);
 }
 
@@ -313,7 +312,7 @@ static void exec_xor(cpu_t *cpu, uint64_t inst) {
   if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
   REG(reg_dst) = REG(reg_src) ^ value;
-  DEBUG_CPU_PRINT(DEBUG_STR " xor: reg %i = 0x%llx ^ 0x%llx = 0x%llx\n", reg_dst, REG(reg_src), value, REG(reg_dst))
+  DEBUG_CPU_PRINT(DEBUG_STR " xor: reg %i = 0x%lx ^ 0x%lx = 0x%lx\n", reg_dst, REG(reg_src), value, REG(reg_dst))
   update_zero_flag(cpu, reg_dst);
 }
 
@@ -325,7 +324,7 @@ static void exec_shift_left(cpu_t *cpu, uint64_t inst) {
   if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
   REG(reg_dst) = REG(reg_src) << value;
-  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", REG(reg_src), value, REG(reg_dst))
+  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%lx << %lu = 0x%lx", REG(reg_src), value, REG(reg_dst))
   update_zero_flag(cpu, reg_dst);
 }
 
@@ -337,7 +336,7 @@ static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
   if (!fetch_reg_reg_val(cpu, inst, &reg_src, &reg_dst, &value, 0, NULL)) return;
 
   REG(reg_dst) = REG(reg_src) >> value;
-  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%llx << %llu = 0x%llx", REG(reg_src), value, REG(reg_dst))
+  DEBUG_CPU_PRINT(DEBUG_STR " shl: 0x%lx << %lu = 0x%lx", REG(reg_src), value, REG(reg_dst))
   update_zero_flag(cpu, reg_dst);
 }
 
@@ -353,14 +352,14 @@ static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
     case DATATYPE_U64: {\
       int32_t *rhs = (int32_t *) &value;\
       result = REG(reg_src) OPERATOR *rhs;\
-      DEBUG_CPU_PRINT("%llu " #OPERATOR " %i = %llu\n", REG(reg_src), *rhs, result)\
+      DEBUG_CPU_PRINT("%lu " #OPERATOR " %i = %lu\n", REG(reg_src), *rhs, result)\
       break;\
     }\
     case DATATYPE_U32: {\
       uint32_t *lhs = (uint32_t *) &REG(reg_src);\
       int32_t *rhs = (int32_t *) &value;\
       result = *lhs OPERATOR *rhs;\
-      DEBUG_CPU_PRINT("%u " #OPERATOR " %i = %llu\n", *lhs, *rhs, result)\
+      DEBUG_CPU_PRINT("%u " #OPERATOR " %i = %lu\n", *lhs, *rhs, result)\
     }\
     break;\
     case DATATYPE_S64: {\
@@ -368,7 +367,7 @@ static void exec_shift_right(cpu_t *cpu, uint64_t inst) {
       int32_t *rhs = (int32_t *) &value;\
       int64_t res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
-      DEBUG_CPU_PRINT("%lli " #OPERATOR " %i = %lli\n", *lhs, *rhs, res)\
+      DEBUG_CPU_PRINT("%li " #OPERATOR " %i = %li\n", *lhs, *rhs, res)\
     }\
     break;\
     case DATATYPE_S32: {\
@@ -429,7 +428,7 @@ static void exec_mod(cpu_t *cpu, uint64_t inst) {
   int32_t *rhs = (int32_t *) &value;
   int64_t result = *lhs % *rhs;
 
-  DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: %lli mod %i = %lli\n", *lhs, *rhs, result);
+  DEBUG_CPU_PRINT(DEBUG_STR " arithmetic operation: %li mod %i = %li\n", *lhs, *rhs, result)
   REG(reg_dst) = result;
   update_zero_flag(cpu, reg_dst);
 }
@@ -440,20 +439,20 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
   uint64_t value = get_arg_value(cpu, inst, OP_HEADER_SIZE, false);
   if (!CPU_RUNNING) return;
 
-  DEBUG_CPU_PRINT(DEBUG_STR " syscall: invoke operation %llu (", value)
+  DEBUG_CPU_PRINT(DEBUG_STR " syscall: invoke operation %lu (", value)
 
   switch (value) {
     case SYSCALL_PRINT_HEX:
 #if DEBUG & DEBUG_CPU
       printf("print_hex)\n");
 #endif
-    fprintf(cpu->fp_out, "0x%llx", REG(REG_GPR));
+    fprintf(cpu->fp_out, "0x%lx", REG(REG_GPR));
     break;
     case SYSCALL_PRINT_INT:
 #if DEBUG & DEBUG_CPU
       printf("print_int)\n");
 #endif
-      fprintf(cpu->fp_out, "%llu", REG(REG_GPR));
+      fprintf(cpu->fp_out, "%lu", REG(REG_GPR));
       break;
     case SYSCALL_PRINT_FLOAT:
 #if DEBUG & DEBUG_CPU
@@ -486,19 +485,19 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_CPU
       printf("read_int)\n");
 #endif
-      fscanf(cpu->fp_in, "%lld", &REG(REG_RET));
+      fscanf(cpu->fp_in, "%ld", &REG(REG_RET));
       break;
     case SYSCALL_READ_FLOAT:
 #if DEBUG & DEBUG_CPU
       printf("read_float)\n");
 #endif
-      fscanf(cpu->fp_in, "%f", &REG(REG_RET));
+      fscanf(cpu->fp_in, "%lu", &REG(REG_RET));
       break;
     case SYSCALL_READ_DOUBLE:
 #if DEBUG & DEBUG_CPU
       printf("read_double)\n");
 #endif
-      fscanf(cpu->fp_in, "%lf", &REG(REG_RET));
+      fscanf(cpu->fp_in, "%lu", &REG(REG_RET));
       break;
     case SYSCALL_READ_CHAR:
 #if DEBUG & DEBUG_CPU
@@ -513,7 +512,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       uint32_t addr = REG(REG_GPR);
       if (!check_memory(addr)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr,)
       fgets((char *) (cpu->bus.dram.mem + addr), REG(REG_GPR + 1), cpu->fp_in);
-      DEBUG_CPU_PRINT(DEBUG_STR " read_string: reading at most %llu bytes from 0x%x... read %lld bytes\n", REG(REG_GPR + 1), addr,
+      DEBUG_CPU_PRINT(DEBUG_STR " read_string: reading at most %lu bytes from 0x%x... read %lu bytes\n", REG(REG_GPR + 1), addr,
              strlen((char *) (cpu->bus.dram.mem + addr)))
       break;
     }
@@ -521,7 +520,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_CPU
       printf("exit)\n");
 #endif
-      CPU_STOP;
+      CPU_STOP
       break;
     case SYSCALL_PRINT_REGS:
 #if DEBUG & DEBUG_CPU
@@ -536,7 +535,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
       uint64_t addr = REG(REG_GPR), size = REG(REG_GPR + 1);
       if (!check_memory(addr)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr,)
       if (!check_memory(addr + size - 1)) CPU_RAISE_ERROR(ERR_SEGFAULT, addr + size - 1,)
-      fprintf(cpu->fp_out, "Mem(0x%llx:0x%llx) = { ", addr, addr + size - 1);
+      fprintf(cpu->fp_out, "Mem(0x%lx:0x%lx) = { ", addr, addr + size - 1);
 
       for (uint32_t i = 0; i < size; i++) {
         fprintf(cpu->fp_out, "%02x ", *(cpu->bus.dram.mem + addr + i));
@@ -555,7 +554,7 @@ static void exec_syscall(cpu_t *cpu, uint64_t inst) {
 #if DEBUG & DEBUG_CPU
       printf("unknown)\n");
 #endif
-      ERR_PRINT("invocation of unknown syscall operation (%llu)\n", value)
+      ERR_PRINT("invocation of unknown syscall operation (%lu)\n", value)
       CPU_RAISE_ERROR(ERR_SYSCALL, value,)
   }
 }
@@ -567,7 +566,7 @@ static void exec_push(cpu_t *cpu, uint64_t inst) {
   if (!CPU_RUNNING) return;
 
   uint32_t data = *(uint32_t *) &value;
-  DEBUG_CPU_PRINT(DEBUG_STR " push: value 0x%x to $sp = 0x%llx\n", data, REG(REG_SP))
+  DEBUG_CPU_PRINT(DEBUG_STR " push: value 0x%x to $sp = 0x%lx\n", data, REG(REG_SP))
 
   PUSH(4, data)
 }
@@ -580,7 +579,7 @@ static void exec_jal(cpu_t *cpu, uint64_t inst) {
   uint64_t value = get_arg_value(cpu, inst, OP_HEADER_SIZE + ARG_REG_SIZE, false);
   if (!CPU_RUNNING) return;
 
-  DEBUG_CPU_PRINT(DEBUG_STR " jal: cache $ip (0x%llx) in $%d; jump to 0x%llx\n", REG(REG_IP), reg, value);
+  DEBUG_CPU_PRINT(DEBUG_STR " jal: cache $ip (0x%lx) in $%d; jump to 0x%lx\n", REG(REG_IP), reg, value)
 
   // cache + jump
   REG(reg) = REG(REG_IP);
@@ -727,7 +726,7 @@ void cpu_execute(cpu_t *cpu, uint64_t inst) {
   const exec_t handler = exec_map[opcode];
 
   if (handler == NULL) {
-    ERR_PRINT("unknown opcode 0x%x (in instruction 0x%llx)\n", opcode, inst)
+    ERR_PRINT("unknown opcode 0x%x (in instruction 0x%lx)\n", opcode, inst)
     CPU_RAISE_ERROR(ERR_OPCODE, opcode,)
   }
 
@@ -790,7 +789,7 @@ static void handle_interrupt(cpu_t *cpu) {
   // jump to handler
   REG(REG_IP) = cpu->addr_interrupt_handler;
 
-  DEBUG_CPU_PRINT(DEBUG_STR ANSI_CYAN " interrupt! " ANSI_RESET "$isr=0x%llx, $imr=0x%llx, $iip=0x%llx\n", REG(REG_ISR), REG(REG_IMR), REG(REG_IIP))
+  DEBUG_CPU_PRINT(DEBUG_STR ANSI_CYAN " interrupt! " ANSI_RESET "$isr=0x%lx, $imr=0x%lx, $iip=0x%lx\n", REG(REG_ISR), REG(REG_IMR), REG(REG_IIP))
 }
 
 void cpu_start(cpu_t *cpu) {
@@ -800,7 +799,7 @@ void cpu_start(cpu_t *cpu) {
 
 #if DEBUG & DEBUG_CPU
   uint32_t counter = 0;
-  DEBUG_CPU_PRINT(DEBUG_STR " start cpu; commencing fetch-execute cycle...\n");
+  DEBUG_CPU_PRINT(DEBUG_STR " commencing fetch-execute cycle...\n")
 #endif
 
   // fetch-execute cycle until halt
@@ -812,14 +811,14 @@ void cpu_start(cpu_t *cpu) {
       handle_interrupt(cpu);
     }
 
-    DEBUG_CPU_PRINT(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%llx, inst=", counter++, REG(REG_IP));
+    DEBUG_CPU_PRINT(DEBUG_STR ANSI_VIOLET " cycle #%i" ANSI_RESET ": ip=0x%lx, inst=", counter++, REG(REG_IP))
 
     // fetch instruction at instruction pointer
     inst = cpu_fetch(cpu);
     if (CPU_GET_ERROR) break;
 
 #if (DEBUG & DEBUG_CPU) && !(DEBUG & DEBUG_DRAM)
-    printf("0x%llx\n", inst);
+    printf("0x%lx\n", inst);
 #endif
 
     // increment instruction pointer
@@ -837,8 +836,9 @@ uint32_t cpu_exit_code(const cpu_t *cpu) {
   return error ? error : REG(REG_RET);
 }
 
-static char register_strings[][6] = {
+static char register_strings[REGISTERS][6] = {
   "$ip",
+  "$rip",
   "$sp",
   "$fp",
   "$flag",
@@ -850,23 +850,44 @@ static char register_strings[][6] = {
   "$k2"
 };
 
+int string_to_register(const char *s) {
+    for (int i = 0; i < REGISTERS; i++) {
+        if (!strcmp(register_strings[i], s)) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+const char *register_to_string(int offset) {
+    if (offset < 0 || offset >= REGISTERS) return NULL;
+
+    if (register_strings[offset][0] == '\0') {
+        char *s = (char *) (register_strings + offset);
+        sprintf(s, "r%d", offset - REG_GPR + 1);
+    }
+
+    return register_strings[offset];
+}
+
 void print_registers(const cpu_t *cpu) {
   uint8_t i;
 
   // special registers
   for (i = 0; i < REG_GPR; i++) {
-    fprintf(cpu->fp_out, "%-8s = 0x%llx\n", register_strings[i], REG(i));
+    fprintf(cpu->fp_out, "%-8s = 0x%lx\n", register_strings[i], REG(i));
   }
 
   // general registers
   for (i = 0; i < REGISTERS - REG_GPR; i++) {
-    fprintf(cpu->fp_out, "$r%i      = 0x%llx\n", i + 1, REG(REG_GPR + i));
+    fprintf(cpu->fp_out, "$r%i      = 0x%lx\n", i + 1, REG(REG_GPR + i));
   }
 }
 
 void print_stack(const cpu_t *cpu) {
   uint64_t addr = REG(REG_SP), size = DRAM_SIZE - addr;
-  fprintf(cpu->fp_out, "STACK: top = 0x%x -> bottom = 0x%llx = $sp + 1 (%llu bytes)\n", DRAM_SIZE - 1, addr, size);
+  fprintf(cpu->fp_out, "STACK: top = 0x%x -> bottom = 0x%lx = $sp + 1 (%lu bytes)\n", DRAM_SIZE - 1, addr, size);
 
   uint32_t i = 0, j;
   while (i < size) {
@@ -891,21 +912,21 @@ void print_error(const cpu_t *cpu, bool prefix) {
 
   switch (CPU_GET_ERROR) {
     case ERR_OPCODE:
-      fprintf(cpu->fp_out, "E-OPCODE: invalid opcode 0x%llx (at $ip=%llx)\n", REG(REG_RET), REG(REG_IP));
+      fprintf(cpu->fp_out, "E-OPCODE: invalid opcode 0x%lx (at $ip=%lx)\n", REG(REG_RET), REG(REG_IP));
       break;
     case ERR_SEGFAULT:
-      fprintf(cpu->fp_out, "E-SEGSEGV: segfault on access of 0x%llx\n", REG(REG_RET));
+      fprintf(cpu->fp_out, "E-SEGSEGV: segfault on access of 0x%lx\n", REG(REG_RET));
       break;
     case ERR_REG:
-      fprintf(cpu->fp_out, "E-UREG: segfault on access of register at +0x%llx\n", REG(REG_RET));
+      fprintf(cpu->fp_out, "E-UREG: segfault on access of register at +0x%lx\n", REG(REG_RET));
       break;
     case ERR_SYSCALL:
-      fprintf(cpu->fp_out, "E-SYSCALL: system call with unknown opcode 0x%llx\n", REG(REG_RET));
+      fprintf(cpu->fp_out, "E-SYSCALL: system call with unknown opcode 0x%lx\n", REG(REG_RET));
       break;
     case ERR_DATATYPE:
-      fprintf(cpu->fp_out, "E-DATATYPE: invalid datatype specifier 0x%llx (at $ip=%llx)\n", REG(REG_RET), REG(REG_IP));
+      fprintf(cpu->fp_out, "E-DATATYPE: invalid datatype specifier 0x%lx (at $ip=%lx)\n", REG(REG_RET), REG(REG_IP));
       break;
     default:
-      fprintf(cpu->fp_out, "E-UNKNOWN: unknown error, supplied data 0x%llx\n", REG(REG_RET));
+      fprintf(cpu->fp_out, "E-UNKNOWN: unknown error, supplied data 0x%lx\n", REG(REG_RET));
   }
 }

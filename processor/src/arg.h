@@ -1,5 +1,5 @@
-#ifndef _ARG_H_
-#define _ARG_H_
+#ifndef CPU_ARG_H_
+#define CPU_ARG_H_
 
 #define ARG_IMM 0b00
 #define ARG_REG 0b01

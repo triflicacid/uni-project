@@ -41,7 +41,7 @@ namespace message {
 
     Level get_level() { return m_level; }
 
-    virtual void print();
+    virtual void print(std::ostream &os);
   };
 
   /** Get level from int, where lowest is 0 */

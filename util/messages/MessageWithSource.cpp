@@ -42,7 +42,7 @@ namespace message {
                   << std::endl;
     }
 
-    void MessageWithSource::print() {
+    void MessageWithSource::print(std::ostream &os) {
         switch (m_level) {
             case Level::Note:
                 print_notice();
