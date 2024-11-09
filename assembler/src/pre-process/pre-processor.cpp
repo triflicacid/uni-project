@@ -30,7 +30,7 @@ namespace assembler {
     int i = 0;
     while (std::getline(file, str)) {
       if (!str.empty())
-        data.lines.push_back({i, str});
+        data.lines.push_back({i + 1, str});
 
       i++;
     }
@@ -47,6 +47,13 @@ namespace assembler {
 
       // Trim leading and trailing whitespace
       trim(line.data);
+
+      // is the line empty?
+      if (line.data.empty()) {
+          data.lines.erase(data.lines.begin() + lines_idx);
+          lines_idx--;
+          continue;
+      }
 
       // Remove comments
       bool in_string = false, was_comment = false;

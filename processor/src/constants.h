@@ -1,5 +1,5 @@
-#ifndef CONSTANTS_H_
-#define CONSTANTS_H_
+#ifndef CPU_CONSTANTS_H_
+#define CPU_CONSTANTS_H_
 
 #include "util.h"
 

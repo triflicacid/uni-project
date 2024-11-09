@@ -58,7 +58,7 @@ namespace assembler::parser {
         }
 
         if (data.debug)
-          std::cout << "[" << line_idx << ":0] Label: " << label_name << " = 0x" << std::hex << data.offset << std::dec << '\n';
+          std::cout << "[" << line_idx + 1 << ":0] Label: " << label_name << " = 0x" << std::hex << data.offset << std::dec << '\n';
 
         if (auto label = data.labels.find(label_name); label == data.labels.end()) {
           // Create a new label
@@ -101,7 +101,7 @@ namespace assembler::parser {
       std::string mnemonic = line.data.substr(start, i - start);
 
       if (data.debug)
-        std::cout << "[" << line_idx << ":" << start << "] Mnemonic " << mnemonic << "\n";
+        std::cout << "[" << line_idx + 1 << ":" << start << "] Mnemonic " << mnemonic << "\n";
 
       // check if signature exists (i.e., mnemonic exists)
       std::string options;
@@ -234,7 +234,7 @@ namespace assembler::parser {
       }
 
       if (data.debug) {
-        std::cout << "[" << line_idx << ":0] ." << directive << ": size " << bytes->size() << " bytes\n";
+        std::cout << "[" << line_idx + 1 << ":0] ." << directive << ": size " << bytes->size() << " bytes\n";
       }
 
       // insert buffer into a Chunk
@@ -269,14 +269,14 @@ namespace assembler::parser {
 
       if (directive == "space") {
         if (data.debug) {
-          std::cout << "[" << line_idx << ":0] .space: insert " << value << " null bytes\n";
+          std::cout << "[" << line_idx + 1 << ":0] .space: insert " << value << " null bytes\n";
         }
 
         // increment offset as desired
         data.offset += value;
       } else {
         if (data.debug) {
-          std::cout << "[" << line_idx << ":0] .org: move from 0x" << std::hex << data.offset << " to 0x" << value << std::dec << '\n';
+          std::cout << "[" << line_idx + 1 << ":0] .org: move from 0x" << std::hex << data.offset << " to 0x" << value << std::dec << '\n';
         }
 
         if (value < data.offset) {
