@@ -106,14 +106,7 @@ namespace assembler::instruction {
     }
 
     if (type == ArgumentType::Register) {
-      if (target == ArgumentType::Value) {
-        return true;
-      }
-
-      if (target == ArgumentType::Address || target == ArgumentType::RegisterIndirect) {
-        type = ArgumentType::RegisterIndirect;
-        return true;
-      }
+      return target == ArgumentType::Value;
     }
 
     if (type == ArgumentType::RegisterIndirect || type == ArgumentType::Label) {

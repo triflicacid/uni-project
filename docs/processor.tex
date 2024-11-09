@@ -7,16 +7,19 @@
 \usepackage{listings}
 \usepackage{tikz}
 \usepackage{amssymb}
-
-\setlength{\parindent}{0pt}
+\usepackage{parskip}
+\usepackage{fancyhdr}
 
 \include{styles/assembly}
 \include{styles/c}
 \include{styles/rtn}
+\include{styles/bashconsole}
 
-\title{Processor Documentation}
+\title{The Processor}
 \author{Ruben Saunders}
 \date{September 2024}
+
+\setcounter{tocdepth}{2}
 
 \begin{document}
 
@@ -429,4 +432,26 @@
         print\_stack & 102 & \textit{None} & Print bytes of the stack. & \textit{None} \\
         \hline
     \end{longtable}
+
+    \section{Application Overview}
+
+    The application, named \texttt{processor}, is a simple program which implements the processor detailed therein.
+    It is called as follows:
+
+    \medskip
+    \begin{lstlisting}[style=bashconsole]
+$ ./processor <input_file> [flags]
+    \end{lstlisting}
+
+    Where the program has the following flags:
+    \begin{itemize}
+        \item \texttt{-o <output\_file>} - defaults to \texttt{stdout}, output is written here (not including debug messages).
+        \item \texttt{-i <input\_file>} - defaults to \texttt{stdin}, input is read from here.
+    \end{itemize}
+
+    \subsection{Debugging}
+
+    There are no flags to control debugging.
+    Rather, the debugging level is controlled by the \texttt{DEBUG} macro in \texttt{src/debug.h}, forming a bitmask of possible debug fields.
+    This file may be modified and the application re-compiled for debugging changes to take effect.
 \end{document}
