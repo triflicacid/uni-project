@@ -5,7 +5,7 @@
 
 int main(int argc, char **argv) {
   // parse command-line arguments
-  char *file_in = NULL, *file_out = NULL;
+  char *source_file = NULL, *file_in = NULL, *file_out = NULL;
 
   for (int i = 1; i < argc; i++) {
     // option?
@@ -20,12 +20,20 @@ int main(int argc, char **argv) {
 
           file_out = argv[i];
           break;
+        case 'i': // input file
+          if (++i >= argc) {
+              printf( ERROR_STR " -i: expected file path.\n");
+              return EXIT_FAILURE;
+          }
+
+          file_in = argv[i];
+          break;
         default:
           printf(ERROR_STR " unknown flag '%s'.\n", argv[i]);
           return EXIT_FAILURE;
       }
-    } else if (file_in == NULL) {
-      file_in = argv[i];
+    } else if (source_file == NULL) {
+        source_file = argv[i];
     } else {
       printf(ERROR_STR " unknown positional argument '%s'.\n", argv[i]);
       return EXIT_FAILURE;
@@ -33,7 +41,7 @@ int main(int argc, char **argv) {
   }
 
   // check that an input file was provided
-  if (file_in == NULL) {
+  if (source_file == NULL) {
     printf(ERROR_STR " expected input file as positional argument.\n");
     return EXIT_FAILURE;
   }
@@ -43,27 +51,39 @@ int main(int argc, char **argv) {
   cpu_init(&cpu);
 
   // was an output file specified?
-  if (file_out != NULL) {
-    cpu.fp_out = fopen(file_out, "w");
+  if (file_out) {
+    cpu.fp_out = fopen(file_out, "a");
     DEBUG_CPU_PRINT(DEBUG_STR ANSI_BLUE " output file" ANSI_RESET " set to '%s' (descriptor %d)\n",
-      file_out, cpu.fp_out == NULL ? -1 : fileno(cpu.fp_out))
+      file_out, cpu.fp_out ? fileno(cpu.fp_out) : -1)
 
-    if (cpu.fp_out == NULL) {
+    if (!cpu.fp_out) {
       printf(ERROR_STR " -o: failed to open file '%s'.\n", file_out);
       return EXIT_FAILURE;
     }
-  } else {
-    DEBUG_CPU_PRINT(DEBUG_STR ANSI_BLUE " output file" ANSI_RESET " set to <stdout> (descriptor %d)\n", fileno(cpu.fp_out))
+  }
+
+  // was an input file specified?
+  if (file_in) {
+    cpu.fp_in = fopen(file_in, "r");
+    DEBUG_CPU_PRINT(DEBUG_STR ANSI_BLUE " input file" ANSI_RESET " set to '%s' (descriptor %d)\n",
+                file_out, cpu.fp_in ? fileno(cpu.fp_out) : -1)
+
+    if (!cpu.fp_in) {
+      if (cpu.fp_out) fclose(cpu.fp_out);
+
+      printf(ERROR_STR " -i: failed to open file '%s'.\n", file_in);
+      return EXIT_FAILURE;
+    }
   }
 
   // for exit code
   int exit_code = EXIT_SUCCESS;
 
   // read source file as binary
-  FILE *source = fopen(file_in, "rb");
+  FILE *source = fopen(source_file, "rb");
 
-  if (source == NULL) {
-    printf(ERROR_STR " failed to read source file '%s'\n", file_in);
+  if (!source) {
+    printf(ERROR_STR " failed to read source file '%s'\n", source_file);
     exit_code = EXIT_FAILURE;
     goto cleanup;
   }
@@ -74,7 +94,7 @@ int main(int argc, char **argv) {
   rewind(source);
 
 #if DEBUG & DEBUG_CPU
-  printf(DEBUG_STR " reading source file '%s'... %ld bytes read\n", file_in, file_size);
+  printf(DEBUG_STR " reading source file '%s'... %ld bytes read\n", source_file, file_size);
 #endif
 
   // error if file size exceeds buffer size
@@ -89,7 +109,7 @@ int main(int argc, char **argv) {
   fread(&addr_entry, sizeof(uint64_t), 1, source);
   fread(&addr_interrupt, sizeof(uint64_t), 1, source);
 
-  DEBUG_CPU_PRINT(DEBUG_STR " entry point: 0x%llx; interrupt handler: 0x%llx\n", addr_entry, addr_interrupt)
+  DEBUG_CPU_PRINT(DEBUG_STR " entry point: 0x%lx; interrupt handler: 0x%lx\n", addr_entry, addr_interrupt)
   cpu.regs[REG_IP] = addr_entry;
   cpu.addr_interrupt_handler = addr_interrupt;
 
@@ -107,13 +127,9 @@ int main(int argc, char **argv) {
 
 cleanup:
   // close file handles, if appropriate
-  if (file_out != NULL) {
-    fclose(cpu.fp_out);
-  }
-
-  if (source != NULL) {
-    fclose(source);
-  }
+  if (file_out) fclose(cpu.fp_out);
+  if (file_in) fclose(cpu.fp_in);
+  if (source) fclose(source);
 
   return exit_code;
 }
