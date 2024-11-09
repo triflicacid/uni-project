@@ -1,40 +1,34 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 
 #include "message.hpp"
 
 namespace message {
-  class List {
+    class List {
     private:
-    std::vector<Message *> messages;
+        std::vector<std::unique_ptr<Message>> messages;
 
     public:
-    /** Get number of messages. */
-    size_t size() { return messages.size(); }
+        [[nodiscard]] size_t size() const { return messages.size(); }
 
-    /** Clear messages (deletes every message). */
-    void clear();
+        void clear() { messages.clear(); }
 
-    /** Add message. */
-    void add(Message *message);
+        void add(std::unique_ptr<Message> message);
 
-    /** Return whether we contain a message of the given type. */
-    bool has_message_of(Level level);
+        [[nodiscard]] bool has_message_of(Level level) const;
 
-    /** Get first message with the given level. */
-    Message *get_message(Level level);
+        /** Go through each message, calling the given function on it **/
+        void for_each_message(const std::function<void(Message &)> &func) const;
 
-    /** Go through each message, calling the given function on it **/
-    void for_each_message(const std::function<void(Message &)> &func) const;
+        /** Go through each message, calling the given function on it. Only include messages which meet the minimum level. **/
+        void for_each_message(const std::function<void(Message &)> &func, Level min_level) const;
 
-    /** Go through each message, calling the given function on it. Only include messages which meet the minimum level. **/
-    void for_each_message(const std::function<void(Message &)> &func, Level min_level) const;
+        /** Merge given list into this. The given list is emptied. */
+        void add(List &other);
+    };
 
-    /** Merge given list into this (append). */
-    void append(List &other);
-  };
-
-  /** Handle message list: print messages and empty the list, return if there was an error. */
-  bool print_and_check(List &list);
+    /** Handle message list: print messages and empty the list, return if there was an error. */
+    bool print_and_check(List &list);
 }

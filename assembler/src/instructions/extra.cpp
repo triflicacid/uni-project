@@ -141,9 +141,9 @@ namespace assembler::instruction::parse {
               options = options.substr(1);
             } else {
               std::string ch(1, options[0]);
-              auto err = new message::Message(message::Error, data.file_path, line_idx, col);
-              err->set_message("cvt: expected '2' after first datatype, got '" + ch + "'");
-              msgs.add(err);
+              auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
+              msg->set_message("cvt: expected '2' after first datatype, got '" + ch + "'");
+              msgs.add(std::move(msg));
 
               return;
             }
@@ -154,9 +154,9 @@ namespace assembler::instruction::parse {
       }
 
       if (!found) {
-        auto err = new message::Message(message::Error, data.file_path, line_idx, col);
-        err->set_message("cvt: expected datatype. Syntax: cvt(d1)2(d2)");
-        msgs.add(err);
+        auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
+        msg->set_message("cvt: expected datatype. Syntax: cvt(d1)2(d2)");
+        msgs.add(std::move(msg));
 
         return;
       }

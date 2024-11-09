@@ -74,7 +74,7 @@ namespace language::lexer {
     std::stringstream stream;
     stream << "Unexpected token '" << peek() << "'.";
 
-    auto err = new message::MessageWithSource(message::Error, m_source->path(), m_line, m_col, m_col, 1,
+    auto msg = std::make_unique<message::Message>WithSource(message::Error, m_source->path(), m_line, m_col, m_col, 1,
                                               m_source->get_line(m_line));
     err->set_message(stream);
     return err;
@@ -90,13 +90,13 @@ namespace language::lexer {
     Location closing_loc = closing_bracket.location();
     Location opening_loc = open_bracket.location();
 
-    message::Message *msg = new message::MessageWithSource(message::Error, m_source->path(), closing_loc.line(),
+    message::Message *msg = std::make_unique<message::Message>WithSource(message::Error, m_source->path(), closing_loc.line(),
                                                            closing_loc.column(), closing_loc.column(), 1,
                                                            m_source->get_line(closing_loc.line()));
     msg->set_message(stream);
     list.add(msg);
 
-    msg = new message::MessageWithSource(message::Note, m_source->path(), opening_loc.line(),
+    msg = std::make_unique<message::Message>WithSource(message::Note, m_source->path(), opening_loc.line(),
                                          opening_loc.column(), opening_loc.column(), 1,
                                          m_source->get_line(opening_loc.line()));
     msg->set_message("Bracket group opened here");

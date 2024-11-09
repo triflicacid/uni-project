@@ -205,7 +205,7 @@ namespace language::parser {
       }
     }
 
-    auto msg = new message::MessageWithSource(level, m_prog->source()->path(), location.line(),
+    auto msg = std::make_unique<message::Message>WithSource(level, m_prog->source()->path(), location.line(),
                                               location.column(), location.column(), (int) (end_col - location.column()),
                                               m_prog->source()->get_line(location.line()));
     msg->set_message(message);
