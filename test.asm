@@ -1,3 +1,5 @@
+%include lib:stdio
+
 jal print
 exit
 

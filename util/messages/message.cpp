@@ -62,12 +62,14 @@ namespace message {
 
       os << ": ";
     } else if (m_col > -1) {
-      std::cout << " offset +" << m_col << ": ";
+      os << ", offset +" << m_col << ": ";
+    } else {
+        os << ": ";
     }
 
     print_type_suffix();
 
-    std::cout << ": " << m_msg << "\n";
+    os << ": " << m_msg << "\n";
   }
 
   Level level_from_int(int level) {
