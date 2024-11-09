@@ -9,11 +9,3 @@ add_executable(assembler
         src/instructions/argument.cpp src/instructions/instruction.cpp src/instructions/variables.cpp
         src/instructions/extra.cpp ../util/messages/message.cpp ../util/messages/list.cpp
         src/pre-process/data.cpp src/pre-process/pre-processor.cpp assembler.cpp)
-
-
-project(assembler-test LANGUAGES CXX)
-
-include_directories(src)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../out)
-add_executable(assembler-test ../util/util.cpp test.cpp)
