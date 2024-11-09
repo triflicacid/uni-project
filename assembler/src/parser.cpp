@@ -153,7 +153,7 @@ namespace assembler::parser {
                 if (data.debug) {
                     std::cout << "\tArg: ";
                     argument.print();
-                    std::cout << "\n";
+                    std::cout << std::endl;
                 }
 
                 // Skip next
@@ -162,7 +162,7 @@ namespace assembler::parser {
             }
 
             // parse instruction
-            std::vector<instruction::Instruction *> instructions;
+            std::vector<std::unique_ptr<instruction::Instruction>> instructions;
             bool ok = parse_instruction(data, line_idx, start, msgs, mnemonic, arguments, instructions);
 
             // check if error occurred
@@ -175,16 +175,15 @@ namespace assembler::parser {
                        << ")";
 
                 if (arguments.empty()) {
-                    stream << '\n';
+                    stream << std::endl;
                 } else {
-                    stream << ", arguments\n";
+                    stream << ", arguments" << std::endl;
 
                     for (int j = 0; j < arguments.size(); j++) {
                         stream << '\t' << j + 1 << ": ";
                         arguments[j].print(stream);
 
-                        if (j < arguments.size() - 1)
-                            stream << '\n';
+                        if (j < arguments.size() - 1) stream << std::endl;
                     }
                 }
 
@@ -198,18 +197,18 @@ namespace assembler::parser {
 
             // insert each instruction into a Chunk
             for (auto &instruction: instructions) {
-                auto chunk = new Chunk(line_idx, data.offset);
-                chunk->set_instruction(instruction);
+                auto chunk = std::make_unique<Chunk>(line_idx, data.offset);
+                chunk->set(std::move(instruction));
 
-                data.buffer.push_back(chunk);
+                data.buffer.push_back(std::move(chunk));
                 data.offset += chunk->get_bytes();
             }
         }
 
         // check if any labels left...
-        for (auto chunk: data.buffer) {
+        for (auto &chunk: data.buffer) {
             if (!chunk->is_data()) {
-                for (auto instruction = chunk->get_instruction(); auto &arg: instruction->args) {
+                for (const auto &instruction = chunk->get_instruction(); auto &arg: instruction->args) {
                     if (arg.is_label()) {
                         auto line = data.lines[chunk->get_source_line()];
 
@@ -226,7 +225,7 @@ namespace assembler::parser {
     bool parse_directive(Data &data, int line_idx, int &col, const std::string &directive, message::List &msgs) {
         if (directive == "byte" || directive == "data" || directive == "word") {
             uint8_t size = directive == "byte" ? 1 : directive == "word" ? 8 : 4;
-            std::vector<uint8_t> *bytes = nullptr;
+            std::unique_ptr<std::vector<uint8_t>> bytes;
 
             if (!parse_data(data, line_idx, col, size, msgs, bytes)) {
                 return false;
@@ -244,10 +243,10 @@ namespace assembler::parser {
             }
 
             // insert buffer into a Chunk
-            auto *chunk = new Chunk(line_idx, data.offset);
-            chunk->set_data(bytes);
+            auto chunk = std::make_unique<Chunk>(line_idx, data.offset);
+            chunk->set(std::move(bytes));
             data.offset += chunk->get_bytes();
-            data.buffer.push_back(chunk);
+            data.buffer.push_back(std::move(chunk));
 
             return true;
         }
@@ -283,7 +282,7 @@ namespace assembler::parser {
             } else {
                 if (data.debug) {
                     std::cout << "[" << line_idx + 1 << ":0] .org: move from 0x" << std::hex << data.offset << " to 0x"
-                              << value << std::dec << '\n';
+                              << value << std::dec << std::endl;
                 }
 
                 if (value < data.offset) {
@@ -309,7 +308,7 @@ namespace assembler::parser {
     bool parse_instruction(const Data &data, int line_idx, int &col, message::List &msgs,
                            const std::string &mnemonic,
                            const std::deque<instruction::Argument> &arguments,
-                           std::vector<instruction::Instruction *> &instructions) {
+                           std::vector<std::unique_ptr<instruction::Instruction>> &instructions) {
         // lookup signature, create instruction from it with args provided
         std::string options;
         auto signature = instruction::find_signature(mnemonic, options);
@@ -318,14 +317,13 @@ namespace assembler::parser {
             return false;
         }
 
-        auto instruction = new instruction::Instruction(signature, arguments);
+        auto instruction = std::make_unique<instruction::Instruction>(signature, arguments);
 
         // custom parser?
         if (signature->parse) {
             signature->parse(data, line_idx, col, instruction, options, msgs);
 
             if (msgs.has_message_of(message::Error)) {
-                delete instruction;
                 return false;
             }
         }
@@ -344,8 +342,6 @@ namespace assembler::parser {
                     auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
                     msg->set_message("unknown conditional test '" + str + "'");
                     msgs.add(std::move(msg));
-
-                    delete instruction;
                     return false;
                 }
 
@@ -360,8 +356,6 @@ namespace assembler::parser {
             auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
             msg->set_message("unexpected options after " + signature->mnemonic + ": '" + options + "'");
             msgs.add(std::move(msg));
-
-            delete instruction;
             return false;
         }
 
@@ -376,8 +370,6 @@ namespace assembler::parser {
                     auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
                     msg->set_message("unknown datatype specifier '" + str + "'");
                     msgs.add(std::move(msg));
-
-                    delete instruction;
                     return false;
                 }
 
@@ -387,8 +379,6 @@ namespace assembler::parser {
             auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
             msg->set_message("unexpected dot-options after " + signature->mnemonic + ": '" + options.substr(dot) + "'");
             msgs.add(std::move(msg));
-
-            delete instruction;
             return false;
         }
 
@@ -436,8 +426,6 @@ namespace assembler::parser {
             auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
             msg->set_message(stream);
             msgs.add(std::move(msg));
-
-            delete instruction;
             return false;
         }
 
@@ -446,22 +434,22 @@ namespace assembler::parser {
 
         // call custom handler if supplied
         if (signature->intercept == nullptr) {
-            instructions.push_back(instruction);
+            instructions.push_back(std::move(instruction));
         } else {
-            signature->intercept(instructions, instruction, overload);
+            signature->intercept(instructions, std::move(instruction), overload);
         }
 
         return true;
     }
 
     bool parse_data(const Data &data, int line_idx, int &col, uint8_t size, message::List &msgs,
-                    std::vector<uint8_t> *&bytes) {
+                    std::unique_ptr<std::vector<uint8_t>> &bytes) {
         auto &line = data.lines[line_idx];
 
         int str_start = -1; // index of string start, or -1 if not in string
         bool is_decimal = false;
         uint64_t value; // used to store result from various functions
-        bytes = new std::vector<uint8_t>;
+        bytes = std::make_unique<std::vector<uint8_t>>();
 
         skip_whitespace(line.data, col);
 
@@ -501,8 +489,6 @@ namespace assembler::parser {
                 auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
                 msg->set_message("unexpected character '" + ch + "' in data list");
                 msgs.add(std::move(msg));
-
-                delete bytes;
                 return false;
             }
 

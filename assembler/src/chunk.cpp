@@ -3,66 +3,46 @@
 #include <iomanip>
 
 namespace assembler {
-  void Chunk::free_ptr() const {
-    if (m_ptr != nullptr) {
-      if (m_is_data) {
-        delete get_data();
-      } else {
-        delete get_instruction();
-      }
+    void Chunk::print(std::ostream &os) {
+        os << "Chunk at +0x" << std::hex << offset << std::dec << " of " << m_size << " bytes";
+
+        if (m_is_data) {
+            os << " - data:" << std::endl << '\t' << std::uppercase << std::hex;
+
+            const auto bytes = *get_data();
+
+            for (int i = 0; i < bytes.size(); i++) {
+                os << std::setw(2) << std::setfill('0') << (int) bytes[i];
+
+                if (i + 1 < bytes.size()) os << " ";
+            }
+
+            std::cout << std::dec << std::endl;
+        } else {
+            std::cout << " - instruction 0x" << std::hex << get_instruction()->compile() << std::dec << std::endl
+                      << '\t';
+            get_instruction()->print(os);
+        }
     }
-  }
 
-  Chunk::~Chunk() {
-    free_ptr();
-  }
-
-  void Chunk::print() const {
-    std::cout << "Chunk at +0x" << std::hex << offset << std::dec << " of " << m_bytes << " bytes";
-
-    if (m_is_data) {
-      std::cout << " - data:\n\t" << std::uppercase << std::hex;
-
-      const auto bytes = *get_data();
-
-      for (int i = 0; i < bytes.size(); i++) {
-        std::cout << std::setw(2) << std::setfill('0') << (int) bytes[i];
-
-        if (i + 1 < bytes.size())
-          std::cout << " ";
-      }
-
-      std::cout << std::dec << "\n";
-    } else {
-      std::cout << " - instruction 0x" << std::hex << get_instruction()->compile() << std::dec << "\n\t";
-      get_instruction()->print();
+    void Chunk::write(std::ostream &os) {
+        if (m_is_data) {
+            for (auto &byte: *get_data()) {
+                os.write((char *) &byte, sizeof(byte));
+            }
+        } else {
+            auto data = get_instruction()->compile();
+            os.write((char *) &data, sizeof(data));
+        }
     }
-  }
 
-  void Chunk::set_instruction(instruction::Instruction *instruction) {
-    free_ptr();
-
-    m_is_data = false;
-    m_bytes = sizeof(uint64_t);
-    m_ptr = instruction;
-  }
-
-  void Chunk::set_data(std::vector<unsigned char> *data) {
-    free_ptr();
-
-    m_is_data = true;
-    m_bytes = (int) data->size();
-    m_ptr = data;
-  }
-
-  void Chunk::write(std::ostream &out) const {
-    if (m_is_data) {
-      for (auto &byte: *get_data()) {
-        out.write((char *) &byte, sizeof(byte));
-      }
-    } else {
-      auto data = get_instruction()->compile();
-      out.write((char *) &data, sizeof(data));
+    void Chunk::set(std::unique_ptr<std::vector<uint8_t>> bytes) {
+        m_is_data = true;
+        m_bytes = std::move(bytes);
     }
-  }
+
+    void Chunk::set(std::unique_ptr<instruction::Instruction> instruction) {
+        m_is_data = false;
+        m_instruction = std::move(instruction);
+    }
 }

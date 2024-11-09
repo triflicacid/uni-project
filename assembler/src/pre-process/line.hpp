@@ -4,12 +4,12 @@
 #include <string>
 
 namespace assembler {
-  struct Line {
-    int n;
-    std::string data;
+    struct Line {
+        int n;
+        std::string data;
 
-    void print() const {
-      std::cout << n << " | " << data << "\n";
-    }
-  };
+        void print() const {
+            std::cout << n << " | " << data << "\n";
+        }
+    };
 }

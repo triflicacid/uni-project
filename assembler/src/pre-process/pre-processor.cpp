@@ -179,14 +179,15 @@ namespace assembler {
 
                 // Check that argument sizes match
                 if (macro_exists->second.params.size() != arguments.size()) {
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, (int) mnemonic.size());
+                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n,
+                                                                  (int) mnemonic.size());
                     msg->set_message(
                             "macro " + mnemonic + " expects " + std::to_string(macro_exists->second.params.size())
                             + " argument(s), received " + std::to_string(arguments.size()));
                     msgs.add(std::move(msg));
 
                     msg = std::make_unique<message::Message>(message::Note, data.file_path, macro_exists->second.line,
-                                               macro_exists->second.col);
+                                                             macro_exists->second.col);
                     msg->set_message("macro \"" + mnemonic + "\" defined here");
                     msgs.add(std::move(msg));
 
@@ -439,7 +440,8 @@ namespace assembler {
                         msg->set_message("invalid parameter name \"" + parameter + "\"");
                         msgs.add(std::move(msg));
 
-                        msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n, macro_name_index);
+                        msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n,
+                                                                 macro_name_index);
                         msg->set_message("in definition of macro \"" + macro_name + "\"");
                         msgs.add(std::move(msg));
 
@@ -454,7 +456,8 @@ namespace assembler {
                         msg->set_message("duplicate parameter \"" + parameter + "\"");
                         msgs.add(std::move(msg));
 
-                        msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n, macro_name_index);
+                        msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n,
+                                                                 macro_name_index);
                         msg->set_message("in definition of macro \"" + macro_name + "\"");
                         msgs.add(std::move(msg));
 
