@@ -55,23 +55,6 @@ The following optional flags are available:
     \item \texttt{-r <filename>}: reconstruct the assembly from the compiled output and write it to \texttt{filename}.
 \end{itemize}
 
-\subsubsection{Assembly Reconstruction}
-
-If the \texttt{-r} flag is provided, the assembly source will be reconstructed.
-This reconstruction is a one-to-one matching to the compiled machine code, as all pseudo-instructions have been expanded by this point.
-Each line is suffixed by a comment in the form
-
-\begin{lstlisting}[style=assembly]
-... ; source_line=<int>, offset=<int>
-\end{lstlisting}
-
-where
-\begin{itemize}
-    \item \texttt{source\_line} is the corresponding source line number.
-    \item \texttt{offset} is the byte offset of this line in RAM.
-    (This is equal to \$ip for an instruction.)
-\end{itemize}
-
 \subsection{Process Flow}
 
 \bigskip
@@ -231,6 +214,12 @@ The mnemonic itself consists of three parts.
 
 Again, the above table only lists brief description; see the ISA table for more information on each part.
 
+\subsubsection{Pseudo-Instructions}
+
+Pseudo-instructions are marked as such in the processor specification.
+As a RISC processor, the instruction set is limited and compact.
+Pseudo-instructions are compromises for common operations, written as an intrinsic instruction but expanded into its equivalent intrinsic form by the assembler.
+
 \subsection{Arguments}
 
 The argument types are detailed in the process documentation document, but syntax will be detailed here.
@@ -294,5 +283,22 @@ A directive is prefixed with a dot, and must be at the start of a line.
 
 \textbf{Note} if no data is provided afterwards, a single immediate of zero will be assumed.
 I.e., \texttt{.data} is the same as \texttt{.data 0}.
+
+\section{Assembly Reconstruction}
+
+If the \texttt{-r} flag is provided, the assembly source will be reconstructed.
+This reconstruction is a one-to-one matching to the compiled machine code, as all pseudo-instructions have been expanded by this point.
+Each line is suffixed by a comment in the form
+
+\begin{lstlisting}[style=assembly]
+... ; source_line=<int>, offset=<int>
+\end{lstlisting}
+
+where
+\begin{itemize}
+    \item \texttt{source\_line} is the corresponding source line number.
+    \item \texttt{offset} is the byte offset of this line in RAM.
+    (This is equal to \$ip for an instruction.)
+\end{itemize}
 
 \end{document}
