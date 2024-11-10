@@ -13,7 +13,7 @@ namespace assembler {
                     auto &arg = inst->args[i];
 
                     if (arg.is_label() && *arg.get_label() == label) {
-                        if (debug)
+                        if (cli_args.debug)
                             std::cout << "Replace label " << label << " with address 0x" << std::hex << address
                                       << std::dec << std::endl;
                         arg.update(inst->signature->arguments[inst->overload][i] == instruction::ArgumentType::Address
@@ -42,7 +42,7 @@ namespace assembler {
         uint64_t value = label == labels.end() ? 0 : label->second.addr;
         stream.write((char *) &value, sizeof(value));
 
-        if (debug)
+        if (cli_args.debug)
             std::cout << "start address: 0x" << std::hex << value << std::dec << std::endl;
 
         // interrupt handler
@@ -50,7 +50,7 @@ namespace assembler {
         value = label == labels.end() ? DEFAULT_INTERRUPT_HANDLER_ADDRESS : label->second.addr;
         stream.write((char *) &value, sizeof(value));
 
-        if (debug)
+        if (cli_args.debug)
             std::cout << "interrupt handler address: 0x" << std::hex << value << std::dec << std::endl;
 
         // write chunks, filling in gaps between chunks as required for contiguous layout
@@ -63,5 +63,10 @@ namespace assembler {
             chunk->write(stream);
             offset += chunk->get_bytes();
         }
+    }
+
+    void Data::add_chunk(std::unique_ptr<Chunk> chunk) {
+        offset += chunk->get_bytes();
+        buffer.push_back(std::move(chunk));
     }
 }

@@ -6,13 +6,24 @@
 #include "data.hpp"
 
 namespace assembler {
-    void read_source_file(const std::string &filename, pre_processor::Data &data, message::List &msgs) {
-        std::ifstream file(filename);
+    void read_source_file(pre_processor::Data &data, message::List &msgs) {
+        auto &handle = *data.cli_args.input_file;
+        data.file_path = handle.path;
+        std::string str;
 
-        // Check if the file exists
-        if (!file.good()) {
+        for (int i = 0; std::getline(handle.stream, str); i++) {
+            if (!str.empty())
+                data.lines.push_back({i + 1, str});
+        }
+    }
+
+    void read_source_file(const std::string &filepath, pre_processor::Data &data, message::List &msgs) {
+        data.file_path = filepath;
+        std::ifstream file(filepath);
+
+        if (!file.is_open()) {
             auto msg = std::make_unique<message::Message>(message::Error, data.file_path, -1, -1);
-            msg->set_message("cannot read file " + filename);
+            msg->set_message("cannot read file " + filepath);
             msgs.add(std::move(msg));
 
             msg = std::make_unique<message::Message>(message::Note, data.file_path, -1, -1);
@@ -22,17 +33,11 @@ namespace assembler {
             return;
         }
 
-        // Initialise pre-processor data structure
-        data.file_path = filename;
-
         std::string str;
 
-        int i = 0;
-        while (std::getline(file, str)) {
+        for (int i = 0; std::getline(file, str); i++) {
             if (!str.empty())
                 data.lines.push_back({i + 1, str});
-
-            i++;
         }
 
         file.close();
@@ -104,7 +109,7 @@ namespace assembler {
                 size_t index = 0;
 
                 while ((index = line.data.find(pair.first, index)) != std::string::npos) {
-                    if (data.debug) {
+                    if (data.cli_args.debug) {
                         std::cout << "[" << line.n << ":" << index << "] CONSTANT: substitute symbol " << pair.first
                                   << "\n";
                     }
@@ -134,7 +139,7 @@ namespace assembler {
             auto macro_exists = data.macros.find(mnemonic);
 
             if (macro_exists != data.macros.end()) {
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "[" << line.n << ":0] CALL TO MACRO " << mnemonic << "\n";
                     std::cout << "\tArgs: ";
                 }
@@ -158,7 +163,7 @@ namespace assembler {
                     std::string argument = line.data.substr(j, i - j);
                     arguments.push_back(argument);
 
-                    if (data.debug) {
+                    if (data.cli_args.debug) {
                         std::cout << argument << " ";
                     }
 
@@ -169,7 +174,7 @@ namespace assembler {
                         break;
                 }
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     if (arguments.empty()) {
                         std::cout << "(none)";
                     }
@@ -209,7 +214,7 @@ namespace assembler {
                         std::string &arg = arguments[arg_index];
 
                         while ((index = macro_line.find(param, index)) != std::string::npos) {
-                            if (data.debug) {
+                            if (data.cli_args.debug) {
                                 std::cout << "\tCol " << index << ": EXPANSION: substitute parameter " << param
                                           << " with value \"" <<
                                           arg << "\"\n";
@@ -240,14 +245,14 @@ namespace assembler {
         std::string directive = line.data.substr(j, i - j);
         to_lowercase(directive);
 
-        if (data.debug) {
+        if (data.cli_args.debug) {
             std::cout << "[" << line.n << ":" << j << "] DIRECTIVE: '" << directive << "'\n";
         }
 
         // If we are in a macro, our options are limited
         if (current_macro) {
             if (directive == "end") {
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tEnd definition of " << current_macro->first << " - "
                               << current_macro->second.lines.size()
                               << " lines\n";
@@ -271,7 +276,7 @@ namespace assembler {
                 skip_non_whitespace(line.data, i);
                 std::string constant = line.data.substr(j, i - j);
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tConstant: " << constant;
                 }
 
@@ -279,7 +284,7 @@ namespace assembler {
                 skip_whitespace(line.data, i);
                 std::string value = line.data.substr(i);
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "; Value = \"" << value << "\"\n";
                 }
 
@@ -310,7 +315,7 @@ namespace assembler {
                 // Extract file path
                 std::string file_path = line.data.substr(i);
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tFile path '" + file_path + "'\n";
                     std::cout << "\tBase directory '" + data.file_path.parent_path().string() + "'\n";
                 }
@@ -326,7 +331,7 @@ namespace assembler {
                     full_path = data.file_path.parent_path() / std::filesystem::path(file_path + ".asm");
                 }
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tFull path '" + full_path.string() + "'\n";
                     std::cout << "\tNew base directory '" + full_path.parent_path().string() + "'\n";
                 }
@@ -336,6 +341,7 @@ namespace assembler {
                 message::List include_messages;
 
                 // Read included file
+                // TODO check that this is OK
                 read_source_file(full_path.string(), include_data, include_messages);
 
                 if (include_messages.has_message_of(message::Error)) {
@@ -392,7 +398,7 @@ namespace assembler {
                 skip_non_whitespace(line.data, i);
                 std::string macro_name = line.data.substr(j, i - j);
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tName: '" << macro_name << "'; Args: ";
                 }
 
@@ -467,7 +473,7 @@ namespace assembler {
                     // Add top parameter list
                     macro_params.push_back(parameter);
 
-                    if (data.debug) {
+                    if (data.cli_args.debug) {
                         std::cout << parameter << " ";
                     }
 
@@ -476,7 +482,7 @@ namespace assembler {
                         break;
                 }
 
-                if (data.debug)
+                if (data.cli_args.debug)
                     std::cout << "\n";
 
                 // Insert/update macro
@@ -491,12 +497,12 @@ namespace assembler {
                 current_macro = reinterpret_cast<std::pair<std::string, pre_processor::Macro> *>(&*macro_exists);
             } else if (directive == "rm") {
                 // %rm: act as a comment
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tIgnoring this line.\n";
                 }
             } else if (directive == "stop") {
                 // %stop: halt the pre-processor, remove all lines after this one
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tRemoving all lines past line " << line_idx << "\n";
                 }
 

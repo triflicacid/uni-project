@@ -6,24 +6,21 @@
 #include "line.hpp"
 #include "macro.hpp"
 #include "location-info.hpp"
+#include "cli_options.hpp"
 
 namespace assembler::pre_processor {
     struct Data {
+        CliArguments &cli_args; // CLI options to program
         std::filesystem::path executable; // Path to executable
-        std::filesystem::path file_path; // Name of source file
-        bool debug; // Print debug comments?
+        std::filesystem::path file_path; // Name of source file (may be different to base.input_filename if parsing an include)
         std::vector<Line> lines; // List of source file lines
         std::map<std::string, Constant> constants; // Map of constant values (%define)
         std::map<std::string, Macro> macros; // Map of macros
-        std::map<std::filesystem::path, LocationInformation> included_files;
-        // Maps included files to where they were included
+        std::map<std::filesystem::path, LocationInformation> included_files; // Maps included files to where they were included
 
-        explicit Data(bool debug) {
-            this->debug = debug;
-        }
+        explicit Data(CliArguments &args) : cli_args(args) {}
 
-        Data(const Data &data) {
-            debug = data.debug;
+        Data(CliArguments &args, const Data &data) : Data(args) {
             file_path = data.file_path;
             executable = data.executable;
         }

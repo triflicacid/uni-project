@@ -57,7 +57,7 @@ namespace assembler::parser {
                     return;
                 }
 
-                if (data.debug)
+                if (data.cli_args.debug)
                     std::cout << "[" << line_idx + 1 << ":0] Label: " << label_name << " = 0x" << std::hex
                               << data.offset << std::dec << '\n';
 
@@ -103,7 +103,7 @@ namespace assembler::parser {
             // Interpret as an instruction mnemonic
             std::string mnemonic = line.data.substr(start, i - start);
 
-            if (data.debug)
+            if (data.cli_args.debug)
                 std::cout << "[" << line_idx + 1 << ":" << start << "] Mnemonic " << mnemonic << "\n";
 
             // check if signature exists (i.e., mnemonic exists)
@@ -150,7 +150,7 @@ namespace assembler::parser {
                 // add to argument list
                 arguments.push_back(argument);
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "\tArg: ";
                     argument.print();
                     std::cout << std::endl;
@@ -199,9 +199,7 @@ namespace assembler::parser {
             for (auto &instruction: instructions) {
                 auto chunk = std::make_unique<Chunk>(line_idx, data.offset);
                 chunk->set(std::move(instruction));
-
-                data.buffer.push_back(std::move(chunk));
-                data.offset += chunk->get_bytes();
+                data.add_chunk(std::move(chunk));
             }
         }
 
@@ -238,7 +236,7 @@ namespace assembler::parser {
                 }
             }
 
-            if (data.debug) {
+            if (data.cli_args.debug) {
                 std::cout << "[" << line_idx + 1 << ":0] ." << directive << ": size " << bytes->size() << " bytes\n";
             }
 
@@ -273,14 +271,14 @@ namespace assembler::parser {
             }
 
             if (directive == "space") {
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "[" << line_idx + 1 << ":0] .space: insert " << value << " null bytes\n";
                 }
 
                 // increment offset as desired
                 data.offset += value;
             } else {
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "[" << line_idx + 1 << ":0] .org: move from 0x" << std::hex << data.offset << " to 0x"
                               << value << std::dec << std::endl;
                 }
@@ -345,7 +343,7 @@ namespace assembler::parser {
                     return false;
                 }
 
-                if (data.debug) {
+                if (data.cli_args.debug) {
                     std::cout << "Conditional test: 0x" << std::hex << (int) entry->second << std::dec << " ('"
                               << entry->first << "')\n";
                 }
