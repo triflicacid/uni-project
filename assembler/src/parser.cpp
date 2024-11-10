@@ -815,12 +815,14 @@ namespace assembler::parser {
                     os << " 0x" << (int) byte;
                 }
 
-                os << std::dec << std::endl;
+                os << std::dec;
             } else {
                 auto &inst = *chunk->get_instruction();
                 inst.print(os);
-                os << std::endl;
             }
+
+            os << "\t; source_line=" << chunk->get_source_line() << ", offset=" << chunk->offset;
+            os << std::endl;
         }
     }
 }

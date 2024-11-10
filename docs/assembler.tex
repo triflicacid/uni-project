@@ -55,6 +55,23 @@ The following optional flags are available:
     \item \texttt{-r <filename>}: reconstruct the assembly from the compiled output and write it to \texttt{filename}.
 \end{itemize}
 
+\subsubsection{Assembly Reconstruction}
+
+If the \texttt{-r} flag is provided, the assembly source will be reconstructed.
+This reconstruction is a one-to-one matching to the compiled machine code, as all pseudo-instructions have been expanded by this point.
+Each line is suffixed by a comment in the form
+
+\begin{lstlisting}[style=assembly]
+... ; source_line=<int>, offset=<int>
+\end{lstlisting}
+
+where
+\begin{itemize}
+    \item \texttt{source\_line} is the corresponding source line number.
+    \item \texttt{offset} is the byte offset of this line in RAM.
+    (This is equal to \$ip for an instruction.)
+\end{itemize}
+
 \subsection{Process Flow}
 
 \bigskip
