@@ -4,6 +4,7 @@
 \usepackage[english]{babel}
 \usepackage{enumitem}
 \usepackage{graphicx}
+\usepackage{parskip}
 
 \usepackage[backend=biber,style=numeric,sorting=ynt]{biblatex}
 \usepackage{hyperref}
@@ -12,7 +13,7 @@
 \begin{document}
     \title{CS310 Project Specification:\\Creating a Code Execution Toolchain from Compilation to Emulating a Custom RISC Processor}
     \author{Ruben Saunders\\2231825}
-    \date{September 30, 2024}
+    \date{November, 2024}
 
     \maketitle
 
@@ -28,7 +29,6 @@
     Such a tool would allow users to visualise and understand the entire workflow, offering an educational platform that integrates compiling, assembly translation, and execution.
     This contrasts with existing systems that are often complex and geared towards professional use, posing a barrier for learners.
 
-    \medskip
     This project aims to fill this gap by designing and implementing the entire process -- from compiling a high-level language to emulating machine code on a custom RISC processor -- in a single environment.
     The project will consist of the following three layers:
 
@@ -37,6 +37,8 @@
         \item An assembler that converts this assembly code into a machine code binary.
         \item A RISC processor emulator that executes the machine code.
     \end{enumerate}
+
+    Along with a TUI application demonstrating how all three layers relate during execution, allowing the user to observe and interact with the translation and execution of the program.
 
     As stated above, the goal of this project is to serve as an educational tool, with a design that prioritises simplicity at every stage.
     Each individual stage serves as a resource for students interested in exploring CPU architecture, assembly programming, compiler design, and the execution of high-level languages.
@@ -102,8 +104,8 @@
                 \item Data structures contain name--type fields, similar to structs in C.
                 \textit{Optional}: data structures may contain methods.
                 \item The language will support the following datatypes: signed and unsigned 32-- and 64-bit integers, floats, and doubles.
-                \item Namespaces will be implemented to allow for name separation and modularisation.
                 \textit{Optional}: due to the flexibility of the stack, it will also support 8-- and 16-bit integers.
+                \item Namespaces will be implemented to allow for name separation and modularisation.
                 \item \textit{Optional}: Operators are functions, and may be overloaded.
             \end{enumerate}
             \item The program has the following stages:
@@ -120,6 +122,19 @@
             Hence, the compiler takes multiple input files and produces one assembly.
             \item The compiled output accepts command-line arguments as strings, with an entry point of \texttt{main}, taking either no arguments or the number of arguments and a pointer to an array of strings.
         \end{enumerate}
+
+        \item Writing a TUI application to visualise the execution of a program across all three layers.
+        \begin{enumerate}
+            \item The user will have three views: the high-level code, the assembly, and the machine code (reconstructed assembly).
+            \item Working backwards from the current machine code instruction, with corresponding lines/sections in both the assembly and high-level source code highlighted.
+            \item Extra windows will be available for interactivity.
+            \begin{enumerate}
+                \item Register view/editor.
+                \item Memory view/editor.
+                \item Stack view/editor.
+                View stack frames and label each value.
+            \end{enumerate}
+        \end{enumerate}
     \end{enumerate}
 
     \section{Methods \& Methodology}\label{sec:methods-&-methodology}
@@ -131,11 +146,14 @@
     Furthermore, from the perspective of the entire project, once documentation is complete, the next stage can commence even prior to implementation.
     This minimises the dependence between sub-systems, increasing design and development time on each, and allows for the project to be fully designing, reviewed, and adjusted prior to any implementation.
 
+    This is additionally true for the TUI application which will combine the three, as it will mostly rely on previous documentation and completed work.
+    However, development of features for observation and interaction will not have been documented fully prior to development, so this stage will take on more of an incremental approach.
+
     Kanban boards will be used to ensure tasks are completed and deadlines adhered to, and will serve as an indicator of progress.
 
     \section{Timetable}\label{sec:timetable}
 
-    Each sub-system is designed to interface with the others to produce a fully functioning pipeline.
+    Each primary sub-system is designed to interface with the others to produce a fully functioning pipeline.
     However, implementation can proceed in any order, as long as the interfaces are well-documented and defined beforehand.
     Given this, documentation has been identified as the critical path because the interfaces and dependencies between sub-systems must be clearly defined before implementation can begin.
 
@@ -143,10 +161,14 @@
     Additionally, due to the presence of the compiler design and principles of programming languages modules, this sub-system has the most to benefit from term-time.
     With that in mind, a preliminary plan has been created (figure~\ref{fig:gantt-chart}): the processor emulator and assembler are planned to be completed in term 1, with term 2 focusing on the compiler.
 
+    The TUI application will be developed incrementally alongside each stage, but has been allotted time solely dedicated to it at the ends of term 1, as focus will be on developing the emulator and assembler, and in term 2, as the inclusion of the high-level language in the application is forseen to complicate development.
+    This is because the relationship between machine code and assembler is generally one-to-one, compared to a high-level language.
+    This complexity will be reduced be considering this hurdle and incorporating it into early design.
+
     \begin{figure}
         \centering
         \includegraphics[width=\textwidth]{assets/project-gantt-chart}
-        \caption{Preliminary project plan}
+        \caption{Preliminary project plan for term one}
         \label{fig:gantt-chart}
     \end{figure}
 
@@ -169,25 +191,6 @@
     Using a buildsystem, such as \texttt{makefile}, would be beneficial to the project in terms of file management and ease of compilation.
     As a further abstraction, \texttt{CMake} would further simplify the build process and dependency management.
 
-%    For the programming language, \texttt{C} and \texttt{C++} have been chosen due to their long-standing use in systems programming.
-%    These languages are highly suitable for low-level tasks such as those involved in this project.
-%    Furthermore, both are widely used and well-documented, making them ideal choices from both an educational and practical standpoint.
-%
-%    Performance is a critical factor, particularly when writing a processor emulator.
-%    Both \texttt{C} and \texttt{C++} are known for their high performance, and provide direct memory access and low-level control.
-%
-%    Given the size and complexity of this project, a build system is necessary to manage dependencies, compile sub-systems efficiently, and ensure ease of setup.
-%    \texttt{Makefile} is a traditional and efficient tool for this.
-%    To further simplify the process, \texttt{CMake} will be used on top of it.
-%    By generating \texttt{makefile}s using a short script, \texttt{CMake} reduces the complexity and manual effort of this stage, while providing cross-platform support.
-%
-%    The processor sub-system will be implemented in \texttt{C} due to its simplicity and low-level nature.
-%    \texttt{C} allows the programmer to work close to the hardware by offering direct memory manipulation and minimal abstractions, which is crucial when developing an emulator that must simulate processor-level operations.
-%
-%    However, both the assembler and compiler require more complex operations, such as string manipulation and the use of advanced data structures like lists, hash maps, and trees.
-%    While \texttt{C} does not natively provide these, \texttt{C++} offers extensive standard libraries which includes efficient implementations of required data structures.
-%    This makes \texttt{C++} a more suitable choice for these sub-systems, as it allows for faster development and reduces the need for third-party libraries.
-
     \section{Research}\label{sec:research}
 
     For processor research, the primary source will be the RISC-V architecture, which is a well-known and widely-adopted RISC processor.
@@ -203,8 +206,6 @@
     Additionally, both the Compiler Design and Principles of Programming Languages modules will serve as indispensable resources for this sub-system.
 
     \section{Legal, Social, Ethical \& Professional Considerations}\label{sec:considerations}
-
-    %This project does not require any considerations of these natures.
 
     The toolchain being developed is for educational purposes and will not be commercially released.
     Additionally, as each sub-system is custom designed, there are no copyright or licensing issues.
