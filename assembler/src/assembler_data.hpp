@@ -20,6 +20,10 @@ namespace assembler {
             interrupt_label = "interrupt_handler";
         }
 
+        explicit Data(pre_processor::Data &data) : Data(data.cli_args) {
+            lines = data.lines;
+        }
+
         /** Add a new chunk. */
         void add_chunk(std::unique_ptr<Chunk> chunk);
 

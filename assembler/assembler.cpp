@@ -15,7 +15,7 @@ extern "C" {
 #include "assembler_data.hpp"
 #include "parser.hpp"
 
-/** Handle message list: print messages and empty the list, return if there was an error. */
+/** Handle message list: debug_print messages and empty the list, return if there was an error. */
 bool handle_messages(message::List &list) {
     list.for_each_message([](message::Message &msg) {
         msg.print(std::cerr);
@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
     }
 
     // Construct data structure for parsing
-    assembler::Data data(pre_data.cli_args);
+    assembler::Data data(pre_data);
 
     if (parse_data(data, messages) == EXIT_FAILURE) {
         return EXIT_FAILURE;

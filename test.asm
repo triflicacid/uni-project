@@ -1,7 +1,7 @@
-jal print
-exit
+jal debug_print
+exit 42
 
-print:
+debug_print:
 load $r1, message
 syscall 5
 jmp $rip

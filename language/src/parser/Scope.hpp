@@ -76,7 +76,7 @@ namespace language::parser {
 
     [[nodiscard]] std::vector<const parser::SymbolDeclaration *> symbols() const;
 
-    /** DEBUG: print symbols to stream */
+    /** DEBUG: debug_print symbols to stream */
     void debug_print(std::ostream &stream, const std::string &prefix = "");
   };
 }

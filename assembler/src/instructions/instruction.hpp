@@ -47,6 +47,8 @@ namespace assembler::instruction {
 
         [[nodiscard]] uint64_t compile() const;
 
+        void debug_print(std::ostream &os) const;
+
         void print(std::ostream &os) const;
     };
 

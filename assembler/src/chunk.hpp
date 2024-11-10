@@ -22,7 +22,7 @@ namespace assembler {
         /** Are we representing data? */
         [[nodiscard]] bool is_data() const { return m_is_data; }
 
-        [[nodiscard]] uint16_t get_bytes() const { return m_size; }
+        [[nodiscard]] uint16_t size() const { return m_size; }
 
         [[nodiscard]] int get_source_line() const { return m_source_line; }
 

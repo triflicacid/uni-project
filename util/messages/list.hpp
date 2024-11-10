@@ -29,6 +29,6 @@ namespace message {
         void add(List &other);
     };
 
-    /** Handle message list: print messages and empty the list, return if there was an error. */
+    /** Handle message list: debug_print messages and empty the list, return if there was an error. */
     bool print_and_check(List &list);
 }

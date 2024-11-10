@@ -30,7 +30,7 @@ namespace assembler {
             return 0;
 
         const auto &last = buffer.back();
-        return last->offset + last->get_bytes();
+        return last->offset + last->size();
     }
 
     void Data::write(std::ostream &stream) const {
@@ -61,12 +61,12 @@ namespace assembler {
             }
 
             chunk->write(stream);
-            offset += chunk->get_bytes();
+            offset += chunk->size();
         }
     }
 
     void Data::add_chunk(std::unique_ptr<Chunk> chunk) {
-        offset += chunk->get_bytes();
+        offset += chunk->size();
         buffer.push_back(std::move(chunk));
     }
 }

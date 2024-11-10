@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[10pt]{article}
 \usepackage[margin=0.75in]{geometry}
 \usepackage{makecell}
 \usepackage{longtable}
@@ -47,11 +47,12 @@ The output file is provided after the \texttt{-o} flag.
 The following optional flags are available:
 \begin{itemize}
     \item \texttt{-d}: enables debug mode.
-    In this mode, detailed results from each step are output to the console.
+    In this mode, detailed results from each step are output to \texttt{stdout}.
     \item \texttt{--no-pre-process}: skips the pre-processing step.
     \item \texttt{--no-compile}: skips the compilation step.
     \textbf{Note} in this case, the \texttt{-o} flag is not compulsory.
     \item \texttt{-p <filename>}: writes the post-processed source to \texttt{filename}.
+    \item \texttt{-r <filename>}: reconstruct the assembly from the compiled output and write it to \texttt{filename}.
 \end{itemize}
 
 \subsection{Process Flow}
@@ -116,7 +117,7 @@ Directives are prefixed with a percent (\%) symbol.
     \hline
     End & \texttt{\%end} & Marks the end of a macro definition. \\
     \hline
-    Include File & \texttt{\%include [lib:]<path>} & \makecell[l]{Reads the file contents of \texttt{<path>} and inserts into source.\\%
+    Include File & \texttt{\%include [lib:]<path>} & \makecell[l]{Reads the file contents of \texttt{<path>.asm} and inserts into source.\\%
     \textbf{Note} the \texttt{lib:} prefix navigates to the library directory.} \\
     \hline
     Macro Definition & \texttt{\%macro <name> [<args ...>]} & \makecell[l]{(Re-)Defines a macro with the given name and arguments.\\%

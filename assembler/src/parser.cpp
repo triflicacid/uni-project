@@ -152,7 +152,7 @@ namespace assembler::parser {
 
                 if (data.cli_args.debug) {
                     std::cout << "\tArg: ";
-                    argument.print();
+                    argument.debug_print();
                     std::cout << std::endl;
                 }
 
@@ -181,7 +181,7 @@ namespace assembler::parser {
 
                     for (int j = 0; j < arguments.size(); j++) {
                         stream << '\t' << j + 1 << ": ";
-                        arguments[j].print(stream);
+                        arguments[j].debug_print(stream);
 
                         if (j < arguments.size() - 1) stream << std::endl;
                     }
@@ -218,6 +218,11 @@ namespace assembler::parser {
                 }
             }
         }
+
+        // reconstruct assembly?
+        if (data.cli_args.reconstructed_asm_file) {
+            reconstruct_assembly(data, data.cli_args.reconstructed_asm_file->stream);
+        }
     }
 
     bool parse_directive(Data &data, int line_idx, int &col, const std::string &directive, message::List &msgs) {
@@ -243,7 +248,7 @@ namespace assembler::parser {
             // insert buffer into a Chunk
             auto chunk = std::make_unique<Chunk>(line_idx, data.offset);
             chunk->set(std::move(bytes));
-            data.offset += chunk->get_bytes();
+            data.offset += chunk->size();
             data.buffer.push_back(std::move(chunk));
 
             return true;
@@ -799,5 +804,23 @@ namespace assembler::parser {
         }
 
         col++;
+    }
+
+    void reconstruct_assembly(const Data &data, std::ostream &os) {
+        for (auto &chunk : data.buffer) {
+            if (chunk->is_data()) {
+                os << ".byte" << std::hex;
+
+                for (const auto &byte : *chunk->get_data()) {
+                    os << " 0x" << (int) byte;
+                }
+
+                os << std::dec << std::endl;
+            } else {
+                auto &inst = *chunk->get_instruction();
+                inst.print(os);
+                os << std::endl;
+            }
+        }
     }
 }

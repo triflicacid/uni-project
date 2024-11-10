@@ -21,7 +21,7 @@ namespace assembler {
         } else {
             std::cout << " - instruction 0x" << std::hex << get_instruction()->compile() << std::dec << std::endl
                       << '\t';
-            get_instruction()->print(os);
+            get_instruction()->debug_print(os);
         }
     }
 
@@ -38,11 +38,13 @@ namespace assembler {
 
     void Chunk::set(std::unique_ptr<std::vector<uint8_t>> bytes) {
         m_is_data = true;
+        m_size = bytes->size();
         m_bytes = std::move(bytes);
     }
 
     void Chunk::set(std::unique_ptr<instruction::Instruction> instruction) {
         m_is_data = false;
+        m_size = sizeof(uint64_t);
         m_instruction = std::move(instruction);
     }
 }

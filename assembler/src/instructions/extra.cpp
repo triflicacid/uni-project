@@ -45,6 +45,7 @@ namespace assembler::instruction::transform {
         // original: "b $addr"
         // "load $ip, $addr"
         instruction->signature = &Signature::_load;
+        instruction->overload = 0;
         instruction->args.emplace_front(ArgumentType::Register, REG_IP);
         instructions.push_back(std::move(instruction));
     }
@@ -63,6 +64,7 @@ namespace assembler::instruction::transform {
         if (overload) {
             auto code_instruction = std::make_unique<Instruction>(*instruction);
             code_instruction->signature = &Signature::_load;
+            code_instruction->overload = 0;
             code_instruction->args.emplace_back(ArgumentType::Register, REG_RET);
             code_instruction->args.emplace_back(ArgumentType::Immediate, code);
             instructions.push_back(std::move(code_instruction));
@@ -70,6 +72,7 @@ namespace assembler::instruction::transform {
 
         // "syscall <opcode: exit>"
         instruction->signature = &Signature::_syscall;
+        instruction->overload = 0;
         instruction->args.emplace_back(ArgumentType::Immediate, SYSCALL_EXIT);
         instructions.push_back(std::move(instruction));
     }
@@ -79,7 +82,9 @@ namespace assembler::instruction::transform {
         // original: "int <value>"
         // "or $isr, <value>"
         instruction->signature = &Signature::_or;
-        instruction->args.emplace_back(ArgumentType::Register, REG_ISR);
+        instruction->overload = 1;
+        instruction->args.emplace_front(ArgumentType::Register, REG_ISR);
+        instruction->args.emplace_front(ArgumentType::Register, REG_ISR);
         instructions.push_back(std::move(instruction));
     }
 
@@ -89,6 +94,7 @@ namespace assembler::instruction::transform {
         // original: "rti"
         // "load $ip, $iip"
         instruction->signature = &Signature::_load;
+        instruction->overload = 0;
         instruction->args.emplace_back(ArgumentType::Register, REG_IP);
         instruction->args.emplace_back(ArgumentType::Register, REG_IIP);
         instructions.push_back(std::move(instruction));
@@ -96,6 +102,7 @@ namespace assembler::instruction::transform {
         // "and $flag, ~<in interrupt>"
         instruction = std::make_unique<Instruction>(*instruction);
         instruction->signature = &Signature::_and;
+        instruction->overload = 1;
         instruction->args[0].update(ArgumentType::Register, REG_FLAG);
         instruction->args[1].update(ArgumentType::Register, REG_FLAG);
         instruction->args.emplace_back(ArgumentType::Immediate, ~FLAG_IN_INTERRUPT);
@@ -115,12 +122,14 @@ namespace assembler::instruction::transform {
 
         // "load $r, $i[:32]"
         instruction->signature = &Signature::_load;
+        instruction->overload = 0;
         instruction->args[1].update(ArgumentType::Immediate, imm & 0xffffffff);
         instructions.push_back(std::move(instruction));
 
         // "loadu $r, $i[32:]"
         instruction = std::make_unique<Instruction>(*instruction);
         instruction->signature = &Signature::_loadu;
+        instruction->overload = 0;
         instruction->args[1].set_data(imm >> 32);
         instructions.push_back(std::move(instruction));
     }
@@ -130,6 +139,7 @@ namespace assembler::instruction::transform {
         // original: "zero $r"
         // "load $r, 0"
         instruction->signature = &Signature::_load;
+        instruction->overload = 0;
         instruction->args.emplace_back(ArgumentType::Immediate, 0);
         instructions.push_back(std::move(instruction));
     }

@@ -59,7 +59,7 @@ namespace language::parser {
     [[nodiscard]] const types::FunctionType *
     func_get(const std::string &name, const types::FunctionType *overload) const;
 
-    /** DEBUG: print all scopes to stream */
+    /** DEBUG: debug_print all scopes to stream */
     void debug_print(std::ostream &stream, const std::string &prefix = "") const;
   };
 }

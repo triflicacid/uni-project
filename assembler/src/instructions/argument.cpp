@@ -27,7 +27,7 @@ namespace assembler::instruction {
         return type_accepts(target, m_type);
     }
 
-    void Argument::print(std::ostream &out) {
+    void Argument::debug_print(std::ostream &out) {
         switch (m_type) {
             case ArgumentType::Immediate:
             case ArgumentType::DecimalImmediate:
@@ -47,6 +47,30 @@ namespace assembler::instruction {
                 break;
             case ArgumentType::Label:
                 out << "label \"" << *get_label() << "\"";
+                break;
+            default:;
+        }
+    }
+
+    void Argument::print(std::ostream &os) {
+        switch (m_type) {
+            case ArgumentType::Immediate:
+                os << m_data;
+                break;
+            case ArgumentType::DecimalImmediate:
+                os << *(double *) &m_data;
+                break;
+            case ArgumentType::Address:
+                os << "(0x" << std::hex << m_data << std::dec << ")";
+                break;
+            case ArgumentType::Register:
+                os << "$" << parser::register_to_string(m_data);
+                break;
+            case ArgumentType::RegisterIndirect:
+                os << get_reg_indirect()->offset << "($" << parser::register_to_string(get_reg_indirect()->reg) << ")";
+                break;
+            case ArgumentType::Label:
+                os << *get_label();
                 break;
             default:;
         }

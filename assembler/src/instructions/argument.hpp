@@ -62,7 +62,9 @@ namespace assembler::instruction {
         /** Set value to a label. */
         void set_label(const std::string &label);
 
-        void print(std::ostream &out = std::cout);
+        void debug_print(std::ostream &out = std::cout);
+
+        void print(std::ostream &os = std::cout);
 
         void set_reg_indirect(uint8_t reg, int32_t offset);
 

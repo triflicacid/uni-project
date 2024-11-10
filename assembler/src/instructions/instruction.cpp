@@ -8,7 +8,7 @@
 #include <processor/src/constants.h>
 
 namespace assembler::instruction {
-    void Instruction::print(std::ostream &os) const {
+    void Instruction::debug_print(std::ostream &os) const {
         os << "Signature '" << signature->mnemonic;
 
         for (ArgumentType type: signature->arguments[overload]) {
@@ -20,8 +20,17 @@ namespace assembler::instruction {
 
         for (Argument arg: args) {
             os << "\t- ";
-            arg.print();
+            arg.debug_print(os);
             os << std::endl;
+        }
+    }
+
+    void Instruction::print(std::ostream &os) const {
+        os << signature->mnemonic;
+
+        for (Argument arg: args) {
+            os << " ";
+            arg.print(os);
         }
     }
 
