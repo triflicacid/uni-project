@@ -799,7 +799,8 @@ namespace assembler::parser {
                 inst.print(os);
             }
 
-            os << "\t; " << chunk->location() << "+" << chunk->offset << std::endl;
+            // include debug info in comment?
+            if (data.cli_args.debug) os << "\t; " << chunk->location() << "+" << chunk->offset << std::endl;
         }
     }
 }

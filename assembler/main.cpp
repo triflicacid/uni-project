@@ -86,9 +86,9 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
                 std::cout << "Unknown/repeated flag " << argv[i] << "\n";
                 return EXIT_FAILURE;
             }
-        } else if (!opts.input_file) {
+        } else if (!opts.source) {
             if (auto stream = named_fstream::open(argv[i], std::ios::in)) {
-                opts.input_file = std::move(stream);
+                opts.source = std::move(stream);
             } else {
                 std::cout << "positional #" << i << ": failed to open file " << argv[i];
                 return EXIT_FAILURE;
@@ -100,7 +100,7 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
     }
 
     // Check if all files are present
-    if (!opts.input_file) {
+    if (!opts.source) {
         std::cout << "Expected input file to be provided\n";
         return EXIT_FAILURE;
     }
@@ -111,13 +111,13 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
     }
 
     if (opts.debug)
-        std::cout << "source file: " << opts.input_file->path << std::endl
+        std::cout << "source file: " << opts.source->path << std::endl
             << "post-processed file: " << (opts.post_processing_file ? opts.post_processing_file->path : "(null)") << std::endl
             << "reconstruction file: " << (opts.reconstructed_asm_file ? opts.reconstructed_asm_file->path : "(null)") << std::endl
             << "output file: " << opts.output_file->path << std::endl;
 
     // check that lib directory exists
-    opts.lib_path = weakly_canonical(canonical(opts.output_file->path) / lib_path_suffix);
+    opts.lib_path = weakly_canonical(std::filesystem::current_path() / lib_path_suffix);
 
     if (!exists(opts.lib_path)) {
         std::cout << "library path " << opts.lib_path << " does not exist" << std::endl;

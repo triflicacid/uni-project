@@ -290,6 +290,8 @@ I.e., \texttt{.data} is the same as \texttt{.data 0}.
 
 If the \texttt{-r} flag is provided, the assembly source will be reconstructed.
 This reconstruction is a one-to-one matching to the compiled machine code, as all pseudo-instructions have been expanded by this point.
+
+If the debug flag, \texttt{-d}, is present, additional debug info is printed to the file as comments.
 Each line is suffixed by a comment in the form
 
 \begin{lstlisting}[style=assembly]

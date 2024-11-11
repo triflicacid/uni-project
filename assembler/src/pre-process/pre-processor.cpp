@@ -7,7 +7,7 @@
 
 namespace assembler {
     void read_source_file(pre_processor::Data &data, message::List &msgs) {
-        auto &handle = *data.cli_args.input_file;
+        auto &handle = *data.cli_args.source;
         data.file_path = handle.path;
         std::string str;
 
