@@ -52,7 +52,7 @@ namespace assembler::instruction {
         }
     }
 
-    void Argument::print(std::ostream &os) {
+    void Argument::print(std::ostream &os) const {
         switch (m_type) {
             case ArgumentType::Immediate:
                 os << m_data;

@@ -17,25 +17,27 @@ namespace assembler::parser {
 
         for (int line_idx = 0; line_idx < data.lines.size(); line_idx++) {
             const auto &line = data.lines[line_idx];
+            Location loc = line.first;
 
             // Extract first item
-            int start = 0, i = 0;
-            skip_to_break(line.data, i);
+            int start = 0, &i = loc.columnref(0);
+            skip_to_break(line.second, i);
 
             // Do we have a directive?
-            if (line.data[0] == '.') {
-                std::string directive = line.data.substr(start + 1, i - 1);
-                skip_whitespace(line.data, i);
+            if (line.second[0] == '.') {
+                std::string directive = line.second.substr(start + 1, i - 1);
+                skip_whitespace(line.second, i);
 
-                if (!parse_directive(data, line_idx, i, directive, msgs)) {
+                if (!parse_directive(data, loc, line_idx, directive, msgs)) {
                     std::unique_ptr<message::Message> msg;
+                    loc.column(start);
 
                     if (msgs.has_message_of(message::Error)) {
-                        msg = std::make_unique<message::Message>(message::Note, data.file_path, line_idx, start);
-                        msg->set_message("whilst parsing directive ." + directive);
+                        msg = std::make_unique<message::Message>(message::Note, loc);
+                        msg->get() << "whilst parsing directive ." << directive;
                     } else {
-                        msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, start);
-                        msg->set_message("unknown directive ." + directive);
+                        msg = std::make_unique<message::Message>(message::Error, loc);
+                        msg->get() << "unknown directive ." << directive;
                     }
 
                     msgs.add(std::move(msg));
@@ -46,13 +48,13 @@ namespace assembler::parser {
             }
 
             // Do we have a label?
-            if (line.data[i - 1] == ':') {
-                std::string label_name = line.data.substr(start, i - 1);
+            if (line.second[i - 1] == ':') {
+                std::string label_name = line.second.substr(start, i - 1);
 
                 // Check if valid label name
                 if (!is_valid_label_name(label_name)) {
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, start);
-                    msg->set_message("invalid label: '" + label_name + "'");
+                    auto msg = std::make_unique<message::Message>(message::Error, line.first.copy().column(start));
+                    msg->get() << "invalid label '" << label_name + "'";
                     msgs.add(std::move(msg));
                     return;
                 }
@@ -63,27 +65,25 @@ namespace assembler::parser {
 
                 if (auto label = data.labels.find(label_name); label == data.labels.end()) {
                     // Create a new label
-                    data.labels.insert({label_name, {line.n, start, data.offset}});
+                    data.labels.insert({label_name, {line.first, data.offset}});
                 } else {
                     // Warn user that the label already exists (error if main)
-                    auto level = label_name == data.main_label || label_name == data.interrupt_label ? message::Error
-                                                                                                     : message::Warning;
-                    auto msg = std::make_unique<message::Message>(level, data.file_path, line.n, start);
-                    msg->set_message("Re-declaration of label " + label_name);
+                    auto level = label_name == data.main_label || label_name == data.interrupt_label
+                            ? message::Error
+                            : message::Warning;
+                    auto msg = std::make_unique<message::Message>(level, line.first.copy().column(start));
+                    msg->get() << "re-declaration of label " << label_name;
                     msgs.add(std::move(msg));
 
-                    msg = std::make_unique<message::Message>(message::Note, data.file_path, label->second.line,
-                                                             label->second.col);
-                    msg->set_message("Previously declared here");
+                    msg = std::make_unique<message::Message>(message::Note, label->second.loc);
+                    msg->get() << "previously declared here";
                     msgs.add(std::move(msg));
 
                     // Exit if error
-                    if (level == message::Error)
-                        return;
+                    if (level == message::Error) return;
 
                     // Update label's information
-                    label->second.line = line.n;
-                    label->second.col = start;
+                    label->second.loc = line.first;
                     label->second.addr = data.offset;
                 }
 
@@ -91,17 +91,17 @@ namespace assembler::parser {
                 data.replace_label(label_name, data.offset);
 
                 // End of input?
-                if (i == line.data.size()) {
+                if (i == line.second.size()) {
                     continue;
                 }
 
-                skip_whitespace(line.data, i);
+                skip_whitespace(line.second, i);
                 start = i;
-                skip_to_break(line.data, i);
+                skip_to_break(line.second, i);
             }
 
             // Interpret as an instruction mnemonic
-            std::string mnemonic = line.data.substr(start, i - start);
+            std::string mnemonic = line.second.substr(start, i - start);
 
             if (data.cli_args.debug)
                 std::cout << "[" << line_idx + 1 << ":" << start << "] Mnemonic " << mnemonic << "\n";
@@ -111,8 +111,8 @@ namespace assembler::parser {
             auto signature = instruction::find_signature(mnemonic, options);
 
             if (signature == nullptr) {
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, start);
-                msg->set_message("unknown mnemonic '" + mnemonic + "'");
+                auto msg = std::make_unique<message::Message>(message::Error, line.first.copy().column(start));
+                msg->get() << "unknown mnemonic '" << mnemonic << "'";
                 msgs.add(std::move(msg));
                 return;
             }
@@ -120,29 +120,25 @@ namespace assembler::parser {
             // structure to accumulate parsed arguments
             std::deque<instruction::Argument> arguments;
 
-            while (i < line.data.size()) {
-                skip_whitespace(line.data, i);
+            while (i < line.second.size()) {
+                skip_whitespace(line.second, i);
 
                 // parse argument
                 instruction::Argument argument;
-                parse_arg(data, line_idx, i, msgs, argument);
+                parse_arg(data, loc, line_idx, msgs, argument);
 
                 // tell user which argument it was if error was encountered
                 if (msgs.has_message_of(message::Error)) {
-                    auto msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n, 0);
-                    msg->set_message("While parsing mnemonic " + mnemonic + ", argument " +
-                                     std::to_string(arguments.size() + 1));
+                    auto msg = std::make_unique<message::Message>(message::Note, line.first);
+                    msg->get() << "while parsing mnemonic " << mnemonic << ", argument " << arguments.size() + 1;
                     msgs.add(std::move(msg));
-
                     return;
                 }
 
                 // must end in break character
-                if (i < line.data.size() && line.data[i] != ' ' && line.data[i] != ',') {
-                    std::string ch(1, line.data[i]);
-
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, i);
-                    msg->set_message("expected ' ' or ',', got '" + ch + "'");
+                if (i < line.second.size() && line.second[i] != ' ' && line.second[i] != ',') {
+                    auto msg = std::make_unique<message::Message>(message::Error, line.first.copy().column(i));
+                    msg->get() << "expected ' ' or ',', got '" << line.second[i] << "'";
                     msgs.add(std::move(msg));
                     return;
                 }
@@ -157,22 +153,24 @@ namespace assembler::parser {
                 }
 
                 // Skip next
-                if (line.data[i] == ',')
+                if (line.second[i] == ',')
                     i++;
             }
 
             // parse instruction
             std::vector<std::unique_ptr<instruction::Instruction>> instructions;
-            bool ok = parse_instruction(data, line_idx, start, msgs, mnemonic, arguments, instructions);
+            loc.column(start);
+            bool ok = parse_instruction(data, loc, msgs, mnemonic, arguments, instructions);
 
             // check if error occurred
             // - if so, add arguments as note
             // - otherwise, if instruction is empty, generate error in place
             if (bool was_error = msgs.has_message_of(message::Error); was_error || !ok) {
-                std::stringstream stream;
+                auto msg = std::make_unique<message::Message>(was_error ? message::Note : message::Error, line.first.copy().column(start));
+                auto &stream = msg->get();
+
                 stream << (was_error ? "while parsing" : "unknown arguments for")
-                       << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) signature->opcode << std::dec
-                       << ")";
+                       << " mnemonic " << mnemonic << " (opcode 0x" << std::hex << (int) signature->opcode << std::dec << ')';
 
                 if (arguments.empty()) {
                     stream << std::endl;
@@ -187,17 +185,13 @@ namespace assembler::parser {
                     }
                 }
 
-                auto msg = std::make_unique<message::Message>(was_error ? message::Note : message::Error,
-                                                              data.file_path,
-                                                              line.n, start);
-                msg->set_message(stream);
                 msgs.add(std::move(msg));
                 return;
             }
 
             // insert each instruction into a Chunk
             for (auto &instruction: instructions) {
-                auto chunk = std::make_unique<Chunk>(line_idx, data.offset);
+                auto chunk = std::make_unique<Chunk>(line.first, data.offset);
                 chunk->set(std::move(instruction));
                 data.add_chunk(std::move(chunk));
             }
@@ -208,10 +202,8 @@ namespace assembler::parser {
             if (!chunk->is_data()) {
                 for (const auto &instruction = chunk->get_instruction(); auto &arg: instruction->args) {
                     if (arg.is_label()) {
-                        auto line = data.lines[chunk->get_source_line()];
-
-                        auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, 0);
-                        msg->set_message("unresolved label reference '" + *arg.get_label() + "'");
+                        auto msg = std::make_unique<message::Message>(message::Error, chunk->location());
+                        msg->get() << "unresolved reference to label " << *arg.get_label();
                         msgs.add(std::move(msg));
                         return;
                     }
@@ -225,12 +217,12 @@ namespace assembler::parser {
         }
     }
 
-    bool parse_directive(Data &data, int line_idx, int &col, const std::string &directive, message::List &msgs) {
+    bool parse_directive(Data &data, Location &loc, int line_idx, const std::string &directive, message::List &msgs) {
         if (directive == "byte" || directive == "data" || directive == "word") {
             uint8_t size = directive == "byte" ? 1 : directive == "word" ? 8 : 4;
             std::unique_ptr<std::vector<uint8_t>> bytes;
 
-            if (!parse_data(data, line_idx, col, size, msgs, bytes)) {
+            if (!parse_data(data, loc, line_idx, size, msgs, bytes)) {
                 return false;
             }
 
@@ -242,11 +234,11 @@ namespace assembler::parser {
             }
 
             if (data.cli_args.debug) {
-                std::cout << "[" << line_idx + 1 << ":0] ." << directive << ": size " << bytes->size() << " bytes\n";
+                std::cout << loc << " ." << directive << ": size " << bytes->size() << " bytes" << std::endl;
             }
 
             // insert buffer into a Chunk
-            auto chunk = std::make_unique<Chunk>(line_idx, data.offset);
+            auto chunk = std::make_unique<Chunk>(loc, data.offset);
             chunk->set(std::move(bytes));
             data.offset += chunk->size();
             data.buffer.push_back(std::move(chunk));
@@ -254,47 +246,43 @@ namespace assembler::parser {
             return true;
         }
 
-        auto &line = data.lines[line_idx];
+        auto &line = data.lines[loc.line()];
 
         if (directive == "space" || directive == "org") {
-            skip_whitespace(line.data, col);
+            int col = loc.column();
+            skip_whitespace(line.second, col);
 
             uint64_t value;
             bool is_double;
-            if (!parse_number(line.data, col, value, is_double)) {
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-                msg->set_message("expected number");
+            if (!parse_number(line.second, col, value, is_double)) {
+                auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(col));
+                msg->get() << "expected number";
                 msgs.add(std::move(msg));
                 return false;
             }
 
             if (is_double) {
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-                msg->set_message("number of bytes cannot be decimal!");
+                auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(col));
+                msg->get() << "number of bytes cannot be decimal!";
                 msgs.add(std::move(msg));
                 return false;
             }
 
             if (directive == "space") {
-                if (data.cli_args.debug) {
-                    std::cout << "[" << line_idx + 1 << ":0] .space: insert " << value << " null bytes\n";
-                }
+                if (data.cli_args.debug)
+                    std::cout << loc << " .space: insert " << value << " null bytes" << std::endl;
 
                 // increment offset as desired
                 data.offset += value;
             } else {
-                if (data.cli_args.debug) {
-                    std::cout << "[" << line_idx + 1 << ":0] .org: move from 0x" << std::hex << data.offset << " to 0x"
+                if (data.cli_args.debug)
+                    std::cout << loc << " .org: move from 0x" << std::hex << data.offset << " to 0x"
                               << value << std::dec << std::endl;
-                }
 
                 if (value < data.offset) {
-                    std::stringstream stream;
-                    stream << ".org: decreasing offset to 0x" << std::hex << value << " (was 0x" << data.offset
+                    auto msg = std::make_unique<message::Message>(message::Warning, line.first.copy().column(col));
+                    msg->get() << ".org: decreasing offset to 0x" << std::hex << value << " (was 0x" << data.offset
                            << std::dec << ")";
-
-                    auto msg = std::make_unique<message::Message>(message::Warning, data.file_path, line.n, col);
-                    msg->set_message(stream);
                     msgs.add(std::move(msg));
                 }
 
@@ -308,7 +296,7 @@ namespace assembler::parser {
         return false;
     }
 
-    bool parse_instruction(const Data &data, int line_idx, int &col, message::List &msgs,
+    bool parse_instruction(const Data &data, Location &loc, message::List &msgs,
                            const std::string &mnemonic,
                            const std::deque<instruction::Argument> &arguments,
                            std::vector<std::unique_ptr<instruction::Instruction>> &instructions) {
@@ -324,7 +312,7 @@ namespace assembler::parser {
 
         // custom parser?
         if (signature->parse) {
-            signature->parse(data, line_idx, col, instruction, options, msgs);
+            signature->parse(data, loc, instruction, options, msgs);
 
             if (msgs.has_message_of(message::Error)) {
                 return false;
@@ -342,8 +330,8 @@ namespace assembler::parser {
                 auto entry = instruction::conditional_postfix_map.find(str);
 
                 if (entry == instruction::conditional_postfix_map.end()) {
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
-                    msg->set_message("unknown conditional test '" + str + "'");
+                    auto msg = std::make_unique<message::Message>(message::Error, loc);
+                    msg->get() << "unknown conditional test '" << str << "'";
                     msgs.add(std::move(msg));
                     return false;
                 }
@@ -356,8 +344,8 @@ namespace assembler::parser {
                 instruction->set_conditional_test(entry->second);
             }
         } else if (!options.empty() && dot == std::string::npos) {
-            auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
-            msg->set_message("unexpected options after " + signature->mnemonic + ": '" + options + "'");
+            auto msg = std::make_unique<message::Message>(message::Error, loc);
+            msg->get() << "unexpected options after " << signature->mnemonic << ": '" << options << "'";
             msgs.add(std::move(msg));
             return false;
         }
@@ -370,8 +358,8 @@ namespace assembler::parser {
                 auto entry = instruction::datatype_postfix_map.find(str);
 
                 if (entry == instruction::datatype_postfix_map.end()) {
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
-                    msg->set_message("unknown datatype specifier '" + str + "'");
+                    auto msg = std::make_unique<message::Message>(message::Error, loc);
+                    msg->get() << "unknown datatype specifier '" << str << "'";
                     msgs.add(std::move(msg));
                     return false;
                 }
@@ -379,8 +367,8 @@ namespace assembler::parser {
                 instruction->add_datatype_specifier(entry->second);
             }
         } else if (dot != std::string::npos) {
-            auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
-            msg->set_message("unexpected dot-options after " + signature->mnemonic + ": '" + options.substr(dot) + "'");
+            auto msg = std::make_unique<message::Message>(message::Error, loc);
+            msg->get() << "unexpected dot-options after " << signature->mnemonic << ": '" << options.substr(dot) << "'";
             msgs.add(std::move(msg));
             return false;
         }
@@ -409,25 +397,26 @@ namespace assembler::parser {
         }
 
         if (overload == -1) {
-            std::stringstream stream;
+            auto msg = std::make_unique<message::Message>(message::Error, loc);
+            auto &stream = msg->get();
             stream << "no match for mnemonic " << signature->mnemonic << " with arguments ";
 
-            for (auto &arg: arguments)
+            for (auto &arg: arguments) {
                 stream << instruction::Argument::type_to_string(arg.get_type()) << " ";
+            }
 
             stream << "- available overloads:";
 
             for (auto &args: signature->arguments) {
-                stream << "\n\t- " << signature->mnemonic;
+                stream << std::endl << "\t- " << signature->mnemonic;
 
                 if (!args.empty()) {
-                    for (auto &arg: args)
+                    for (auto &arg: args) {
                         stream << " " << instruction::Argument::type_to_string(arg);
+                    }
                 }
             }
 
-            auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
-            msg->set_message(stream);
             msgs.add(std::move(msg));
             return false;
         }
@@ -445,7 +434,7 @@ namespace assembler::parser {
         return true;
     }
 
-    bool parse_data(const Data &data, int line_idx, int &col, uint8_t size, message::List &msgs,
+    bool parse_data(const Data &data, Location &loc, int line_idx, uint8_t size, message::List &msgs,
                     std::unique_ptr<std::vector<uint8_t>> &bytes) {
         auto &line = data.lines[line_idx];
 
@@ -454,10 +443,11 @@ namespace assembler::parser {
         uint64_t value; // used to store result from various functions
         bytes = std::make_unique<std::vector<uint8_t>>();
 
-        skip_whitespace(line.data, col);
+        int &col = loc.columnref();
+        skip_whitespace(line.second, col);
 
-        while (col < line.data.size()) {
-            if (line.data[col] == '"') {
+        while (col < line.second.size()) {
+            if (line.second[col] == '"') {
                 if (str_start == -1) {
                     str_start = col++;
                     continue;
@@ -470,27 +460,27 @@ namespace assembler::parser {
             } else if (str_start > -1) {
                 // interpret as character literal
                 // escape sequence, or normal character?
-                if (line.data[col] == '\\') {
+                if (line.second[col] == '\\') {
                     // decode escape sequence, or insert raw if fail
-                    if (!decode_escape_seq(line.data, ++col, value)) {
-                        value = (uint8_t) line.data[col++];
+                    if (!decode_escape_seq(line.second, ++col, value)) {
+                        value = (uint8_t) line.second[col++];
                     }
                 } else {
-                    value = (uint8_t) line.data[col++];
+                    value = (uint8_t) line.second[col++];
                 }
-            } else if (line.data[col] == '\'') {
+            } else if (line.second[col] == '\'') {
                 // character literal
-                parse_character_literal(data, line_idx, ++col, msgs, value);
+                col++;
+                parse_character_literal(data, loc, line_idx, msgs, value);
 
                 if (msgs.has_message_of(message::Error)) {
                     return false;
                 }
-            } else if (parse_number(line.data, col, value, is_decimal)) {
+            } else if (parse_number(line.second, col, value, is_decimal)) {
                 // numeric literal
             } else {
-                std::string ch(1, line.data[col]);
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
-                msg->set_message("unexpected character '" + ch + "' in data list");
+                auto msg = std::make_unique<message::Message>(message::Error, loc);
+                msg->get() << "unexpected character '" << line.second[col] << "' in data list";
                 msgs.add(std::move(msg));
                 return false;
             }
@@ -519,18 +509,18 @@ namespace assembler::parser {
             }
 
             // skip any whitespace, if not in a string
-            if (str_start == -1) skip_whitespace(line.data, col);
+            if (str_start == -1) skip_whitespace(line.second, col);
         }
 
         // still in string?
         if (str_start > -1) {
-            std::string ch(1, line.data[col - 1]);
-            auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col - 1);
-            msg->set_message("unterminated string literal; expected '\"', got '" + ch + "'");
+            col--;
+            auto msg = std::make_unique<message::Message>(message::Error, loc);
+            msg->get() << "unterminated string literal; expected '\"', got '" << line.second[col] << "'";
             msgs.add(std::move(msg));
 
-            msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n, str_start);
-            msg->set_message("string literal opened here");
+            msg = std::make_unique<message::Message>(message::Note, loc.copy().column(str_start));
+            msg->get() << "string literal opened here";
             msgs.add(std::move(msg));
             return false;
         }
@@ -538,8 +528,9 @@ namespace assembler::parser {
         return true;
     }
 
-    void parse_arg(const Data &data, int line_idx, int &col, message::List &msgs, instruction::Argument &argument) {
-        auto line = data.lines[line_idx];
+    void parse_arg(const Data &data, Location &loc, int line_idx, message::List &msgs, instruction::Argument &argument) {
+        auto &line = data.lines[line_idx];
+        int &col = loc.columnref();
         int start;
 
         // store value - this is used for both immediate and register indirect
@@ -548,8 +539,9 @@ namespace assembler::parser {
         bool number_decimal = false; // was source of `value` a decimal?
 
         // immediate - character literal
-        if (line.data[col] == '\'') {
-            parse_character_literal(data, line_idx, ++col, msgs, value);
+        if (line.second[col] == '\'') {
+            col++;
+            parse_character_literal(data, loc, line_idx, msgs, value);
 
             // Any errors?
             if (msgs.has_message_of(message::Error)) {
@@ -562,14 +554,14 @@ namespace assembler::parser {
         }
 
         // register?
-        if (line.data[col] == '$') {
+        if (line.second[col] == '$') {
             start = col++;
-            int reg = parse_register(line.data, col);
+            int reg = parse_register(line.second, col);
 
             // is register unknown?
             if (reg == -1) {
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, start);
-                msg->set_message("unknown register");
+                auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
+                msg->get() << "unknown register";
                 msgs.add(std::move(msg));
                 return;
             }
@@ -580,11 +572,11 @@ namespace assembler::parser {
         }
 
         // label?
-        if (std::isalpha(line.data[col])) {
+        if (std::isalpha(line.second[col])) {
             // extract label
             start = col;
-            skip_to_break(line.data, col);
-            auto label = line.data.substr(start, col - start);
+            skip_to_break(line.second, col);
+            auto label = line.second.substr(start, col - start);
             col++;
 
             // if already exists, substitute immediately
@@ -599,11 +591,11 @@ namespace assembler::parser {
 
         // if integer, parse it
         // this could be immediate, or register indirect
-        if (line.data[col] == '-' || std::isdigit(line.data[col])) {
+        if (line.second[col] == '-' || std::isdigit(line.second[col])) {
             start = col;
 
             // parse number
-            if (parse_number(line.data, col, value, number_decimal)) {
+            if (parse_number(line.second, col, value, number_decimal)) {
                 // mark as found... this could become a register indirect!
                 found_number = true;
             } else {
@@ -613,47 +605,41 @@ namespace assembler::parser {
         }
 
         // brackets? address?
-        if (line.data[col] == '(') {
+        if (line.second[col] == '(') {
             start = ++col;
 
             // register?
-            if (line.data[col] == '$') {
+            if (line.second[col] == '$') {
                 col++;
 
                 // if constant was decimal, this is bad
                 if (found_number && number_decimal) {
-                    std::stringstream stream;
-                    stream << "offset in register-indirect cannot be a decimal! (got " << *(double *) &value << ")";
-
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-                    msg->set_message(stream);
+                    auto msg = std::make_unique<message::Message>(message::Error, loc);
+                    msg->get() << "offset in register-indirect cannot be a decimal! (got " << *(double *) &value << ")";
                     msgs.add(std::move(msg));
                     return;
                 }
 
                 // parse register
-                int reg = parse_register(line.data, col);
+                int reg = parse_register(line.second, col);
 
                 // is register unknown?
                 if (reg == -1) {
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, start);
-                    msg->set_message("unknown register");
+                    auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
+                    msg->get() << "unknown register";
                     msgs.add(std::move(msg));
                     return;
                 }
 
                 // ending bracket?
-                if (line.data[col] != ')') {
-                    std::string ch(1, line.data[col]);
-
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-                    msg->set_message("expected ')', got '" + ch + "'");
+                if (line.second[col] != ')') {
+                    auto msg = std::make_unique<message::Message>(message::Error, loc);
+                    msg->get() << "expected ')', got '" << line.second[col] << "'";
                     msgs.add(std::move(msg));
 
-                    msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n, start - 1);
-                    msg->set_message("group opened here");
+                    msg = std::make_unique<message::Message>(message::Note, loc.copy().column(start - 1));
+                    msg->get() << "group opened here";
                     msgs.add(std::move(msg));
-
                     return;
                 }
 
@@ -666,44 +652,37 @@ namespace assembler::parser {
 
             // if found number, MUST have been register, so this is bad
             if (found_number) {
-                std::string ch(1, line.data[col]);
-
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-                msg->set_message("expected '$' for register-indirect, found '" + ch + "' after '('");
+                auto msg = std::make_unique<message::Message>(message::Error, loc);
+                msg->get() << "expected '$' for register-indirect, found '" << line.second[col] << "' after '('";
                 msgs.add(std::move(msg));
                 return;
             }
 
             // parse as number
-            if (!parse_number(line.data, col, value, number_decimal)) {
-                std::string ch(1, line.data[col]);
-
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, start);
-                msg->set_message("expected memory address, found '" + ch + "' after '('");
+            if (!parse_number(line.second, col, value, number_decimal)) {
+                auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
+                msg->get() << "expected memory address, found '" << line.second[col] << "' after '('";
                 msgs.add(std::move(msg));
                 return;
             }
 
             // disallow decimals
             if (number_decimal) {
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, start);
-                msg->set_message("memory address cannot be a decimal!");
+                auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
+                msg->get() << "memory address cannot be a decimal!";
                 msgs.add(std::move(msg));
                 return;
             }
 
             // ending bracket?
-            if (line.data[col] != ')') {
-                std::string ch(1, line.data[col]);
-
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-                msg->set_message("expected ')', got '" + ch + "'");
+            if (line.second[col] != ')') {
+                auto msg = std::make_unique<message::Message>(message::Error, loc);
+                msg->get() << "expected ')', got '" << line.second[col] << "'";
                 msgs.add(std::move(msg));
 
-                msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n, start - 1);
-                msg->set_message("group opened here");
+                msg = std::make_unique<message::Message>(message::Note, loc.copy().column(start - 1));
+                msg->get() << "group opened here";
                 msgs.add(std::move(msg));
-
                 return;
             }
 
@@ -723,10 +702,8 @@ namespace assembler::parser {
             return;
         }
 
-        std::string ch(1, line.data[col]);
-
-        auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-        msg->set_message("unexpected character '" + ch + "'");
+        auto msg = std::make_unique<message::Message>(message::Error, loc);
+        msg->get() << "unexpected character '" << line.second[col] << "'";
         msgs.add(std::move(msg));
     }
 
@@ -780,25 +757,26 @@ namespace assembler::parser {
         return -1;
     }
 
-    void parse_character_literal(const Data &data, int line_idx, int &col, message::List &msgs, uint64_t &value) {
+    void parse_character_literal(const Data &data, Location &loc, int line_idx, message::List &msgs, uint64_t &value) {
         auto &line = data.lines[line_idx];
+        int &col = loc.columnref();
 
         // Escape character
-        if (line.data[col] == '\\') {
-            if (!decode_escape_seq(line.data, ++col, value)) {
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-                msg->set_message("invalid escape sequence");
+        if (line.second[col] == '\\') {
+            if (!decode_escape_seq(line.second, ++col, value)) {
+                auto msg = std::make_unique<message::Message>(message::Error, loc);
+                msg->get() << "invalid escape sequence";
                 msgs.add(std::move(msg));
                 return;
             }
         } else {
-            value = (uint8_t) line.data[col++];
+            value = (uint8_t) line.second[col++];
         }
 
         // Check for ending apostrophe
-        if (line.data[col] != '\'') {
-            auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, col);
-            msg->set_message("expected apostrophe to terminate character literal");
+        if (line.second[col] != '\'') {
+            auto msg = std::make_unique<message::Message>(message::Error, loc);
+            msg->get() << "expected apostrophe to terminate character literal";
             msgs.add(std::move(msg));
             return;
         }
@@ -821,8 +799,7 @@ namespace assembler::parser {
                 inst.print(os);
             }
 
-            os << "\t; source_line=" << chunk->get_source_line() << ", offset=" << chunk->offset;
-            os << std::endl;
+            os << "\t; " << chunk->location() << "+" << chunk->offset << std::endl;
         }
     }
 }

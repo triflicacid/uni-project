@@ -1,10 +1,11 @@
-jal debug_print
-exit 42
+%include lib:syscall
 
-debug_print:
-load $r1, message
-syscall 5
-jmp $rip
+main:
+    ; get number of arguments
+    print_str s_num_args
+    load $r1, (0x0) ;(0xfffff)
+    syscall 1
+    exit
 
-message:
-.byte "Hello!"
+s_num_args:
+    .byte "number of arguments: "

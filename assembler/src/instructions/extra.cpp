@@ -147,8 +147,10 @@ namespace assembler::instruction::transform {
 
 namespace assembler::instruction::parse {
     void
-    convert(const Data &data, int line_idx, int &col, std::unique_ptr<Instruction> &instruction, std::string &options,
+    convert(const Data &data, Location &loc, std::unique_ptr<Instruction> &instruction, std::string &options,
             message::List &msgs) {
+        int &col = loc.columnref();
+
         for (uint8_t i = 0; i < 2; i++) {
             // parse datatype
             bool found = false;
@@ -166,12 +168,9 @@ namespace assembler::instruction::parse {
                         if (options[0] == '2') {
                             options = options.substr(1);
                         } else {
-                            std::string ch(1, options[0]);
-                            auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx,
-                                                                          col);
-                            msg->set_message("cvt: expected '2' after first datatype, got '" + ch + "'");
+                            auto msg = std::make_unique<message::Message>(message::Error, loc);
+                            msg->get() << "cvt: expected '2' after first datatype, got '" << options[0] << "'";
                             msgs.add(std::move(msg));
-
                             return;
                         }
                     }
@@ -181,10 +180,9 @@ namespace assembler::instruction::parse {
             }
 
             if (!found) {
-                auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line_idx, col);
-                msg->set_message("cvt: expected datatype. Syntax: cvt(d1)2(d2)");
+                auto msg = std::make_unique<message::Message>(message::Error, loc);
+                msg->get() << "cvt: expected datatype. Syntax: cvt(d1)2(d2)";
                 msgs.add(std::move(msg));
-
                 return;
             }
         }

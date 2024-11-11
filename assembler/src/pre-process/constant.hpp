@@ -1,11 +1,11 @@
 #pragma once
 
 #include <string>
+#include "util/location.hpp"
 
 namespace assembler::pre_processor {
     struct Constant {
-        int line;
-        int col;
+        Location loc;
         std::string value;
     };
 }

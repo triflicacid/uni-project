@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "instructions/instruction.hpp"
 
 namespace assembler {
@@ -10,12 +12,12 @@ namespace assembler {
     private:
         bool m_is_data; // Is data or an instruction?
         uint16_t m_size;
-        int m_source_line; // Index of source line
+        Location m_source; // source location
         std::unique_ptr<instruction::Instruction> m_instruction = nullptr;
         std::unique_ptr<std::vector<uint8_t>> m_bytes = nullptr;
 
     public:
-        Chunk(int line_idx, uint32_t offset) : offset(offset), m_source_line(line_idx), m_is_data(true), m_size(0) {}
+        Chunk(Location source, uint32_t offset) : m_source(std::move(source)), offset(offset), m_is_data(true), m_size(0) {}
 
         void print(std::ostream &os);
 
@@ -24,7 +26,7 @@ namespace assembler {
 
         [[nodiscard]] uint16_t size() const { return m_size; }
 
-        [[nodiscard]] int get_source_line() const { return m_source_line; }
+        [[nodiscard]] const Location &location() const { return m_source; }
 
         [[nodiscard]] std::unique_ptr<instruction::Instruction> &get_instruction() { return m_instruction; }
 

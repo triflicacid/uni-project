@@ -14,7 +14,7 @@ namespace assembler::instruction {
         bool is_full_word; // expect full-word immediates?
         // custom parse function -- takes place just after mnemonic extraction from options, before test and datatype parsed
         // modify options as necessary
-        void (*parse)(const Data &data, int line_idx, int &col, std::unique_ptr<Instruction> &instruction,
+        void (*parse)(const Data &data, Location &loc, std::unique_ptr<Instruction> &instruction,
                       std::string &options, message::List &msgs);
 
         // custom function to intercept instruction. If called, instruction IS NOT added to instruction vector.

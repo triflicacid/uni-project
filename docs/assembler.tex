@@ -48,6 +48,8 @@ The following optional flags are available:
 \begin{itemize}
     \item \texttt{-d}: enables debug mode.
     In this mode, detailed results from each step are output to \texttt{stdout}.
+    \item \texttt{-l <path>}: path of the library directory (see \texttt{\%include}).
+    The library path is calculated by \texttt{<executable path>/<lib path>}, with a default \texttt{<lib path>=url}.
     \item \texttt{--no-pre-process}: skips the pre-processing step.
     \item \texttt{--no-compile}: skips the compilation step.
     \textbf{Note} in this case, the \texttt{-o} flag is not compulsory.
@@ -118,7 +120,7 @@ Directives are prefixed with a percent (\%) symbol.
     End & \texttt{\%end} & Marks the end of a macro definition. \\
     \hline
     Include File & \texttt{\%include [lib:]<path>} & \makecell[l]{Reads the file contents of \texttt{<path>.asm} and inserts into source.\\%
-    \textbf{Note} the \texttt{lib:} prefix navigates to the library directory.} \\
+    \textbf{Note} the \texttt{lib:} prefix navigates to the library directory (specified by the \texttt{-l} flag).} \\
     \hline
     Macro Definition & \texttt{\%macro <name> [<args ...>]} & \makecell[l]{(Re-)Defines a macro with the given name and arguments.\\%
     See the below section for more information.} \\
@@ -291,12 +293,12 @@ This reconstruction is a one-to-one matching to the compiled machine code, as al
 Each line is suffixed by a comment in the form
 
 \begin{lstlisting}[style=assembly]
-... ; source_line=<int>, offset=<int>
+... ; <source>+<offset>
 \end{lstlisting}
 
 where
 \begin{itemize}
-    \item \texttt{source\_line} is the corresponding source line number.
+    \item \texttt{source} is the \texttt{<file>:<line>} of its original location (prior to pre-processing and expansion of pseudo-instructions).
     \item \texttt{offset} is the byte offset of this line in RAM.
     (This is equal to \$ip for an instruction.)
 \end{itemize}

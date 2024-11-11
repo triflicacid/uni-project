@@ -2,8 +2,7 @@
 
 namespace assembler {
     struct Label {
-        int line{};
-        int col{};
-        uint64_t addr{};
+        Location loc;
+        uint64_t addr = 0;
     };
 }

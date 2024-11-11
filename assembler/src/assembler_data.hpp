@@ -8,7 +8,7 @@ namespace assembler {
     struct Data {
         CliArguments &cli_args;
         std::filesystem::path file_path; // Name of source file
-        std::vector<Line> lines; // List of source file lines
+        std::vector<pre_processor::Line> lines; // List of source file lines
         std::map<std::string, Label> labels;
         uint16_t offset; // byte offset into source
         std::string main_label; // Contain "main" label name

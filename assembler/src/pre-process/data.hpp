@@ -3,12 +3,13 @@
 #include <map>
 
 #include "constant.hpp"
-#include "line.hpp"
 #include "macro.hpp"
-#include "location-info.hpp"
-#include "cli_options.hpp"
+#include "cli_arguments.hpp"
+#include "util/location.hpp"
 
 namespace assembler::pre_processor {
+    typedef std::pair<Location, std::string> Line;
+
     struct Data {
         CliArguments &cli_args; // CLI options to program
         std::filesystem::path executable; // Path to executable
@@ -16,7 +17,7 @@ namespace assembler::pre_processor {
         std::vector<Line> lines; // List of source file lines
         std::map<std::string, Constant> constants; // Map of constant values (%define)
         std::map<std::string, Macro> macros; // Map of macros
-        std::map<std::filesystem::path, LocationInformation> included_files; // Maps included files to where they were included
+        std::map<std::filesystem::path, Location> included_files; // Maps included files to where they were included
 
         explicit Data(CliArguments &args) : cli_args(args) {}
 
@@ -29,7 +30,7 @@ namespace assembler::pre_processor {
         void set_executable(const std::string &path);
 
         /** Writes `lines` to buffer. */
-        std::string write_lines();
+        std::ostream &write_lines(std::ostream &os) const;
 
         /** Merge given data with this. Insert lines starting at `index`. */
         void merge(Data &other, int line_index = -1);

@@ -50,6 +50,6 @@ namespace assembler::instruction::transform {
 namespace assembler::instruction::parse {
     // cvt(d1)2(d2)
     void
-    convert(const Data &data, int line_idx, int &col, std::unique_ptr<Instruction> &instruction, std::string &options,
+    convert(const Data &data, Location &loc, std::unique_ptr<Instruction> &instruction, std::string &options,
             message::List &msgs);
 }

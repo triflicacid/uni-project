@@ -1,10 +1,9 @@
 #include <cstdlib>
 #include <string>
 #include <iostream>
-#include <fstream>
 #include <cstring>
 
-#include "src/cli_options.hpp"
+#include "assembler/src/cli_arguments.hpp"
 #include "src/pre-process/pre-processor.hpp"
 #include "messages/list.hpp"
 
@@ -28,6 +27,8 @@ bool handle_messages(message::List &list) {
 
 /** Parse command-line arguments. */
 int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
+    std::string lib_path_suffix = "lib";
+
     for (int i = 1; i < argc; ++i) {
         if (argv[i][0] == '-') {
             if (argv[i][1] == 'd' && !opts.debug) {
@@ -35,9 +36,7 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
                 opts.debug = true;
             } else if (argv[i][1] == 'o' && !opts.output_file) {
                 // Provide output file
-                i++;
-
-                if (i == argc) {
+                if (++i == argc) {
                     std::cout << "-o: expected file path\n";
                     return EXIT_FAILURE;
                 }
@@ -50,9 +49,7 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
                 }
             } else if (argv[i][1] == 'p' && !opts.post_processing_file) {
                 // Provide post-process output file
-                i++;
-
-                if (i >= argc) {
+                if (++i >= argc) {
                     std::cout << "-p: expected file path\n";
                     return EXIT_FAILURE;
                 }
@@ -65,9 +62,7 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
                 }
             } else if (argv[i][1] == 'r' && !opts.reconstructed_asm_file) {
                 // Provide file to write reconstructed asm to
-                i++;
-
-                if (i >= argc) {
+                if (++i >= argc) {
                     std::cout << "-r: expected file path\n";
                     return EXIT_FAILURE;
                 }
@@ -78,6 +73,9 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
                     std::cout << "-r: failed to open file " << argv[i];
                     return EXIT_FAILURE;
                 }
+            } else if (argv[i][1] == 'l') {
+                // Provide library path
+                lib_path_suffix = ++i < argc ? argv[i] : "";
             } else if (opts.do_pre_processing && strcmp(argv[i] + 1, "-no-pre-process") == 0) {
                 // Skip pre-processing
                 opts.do_pre_processing = false;
@@ -109,6 +107,26 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
 
     if (!opts.output_file && opts.do_compilation) {
         std::cout << "Expected output file to be provided (-o <file>)\n";
+        return EXIT_FAILURE;
+    }
+
+    if (opts.debug)
+        std::cout << "source file: " << opts.input_file->path << std::endl
+            << "post-processed file: " << (opts.post_processing_file ? opts.post_processing_file->path : "(null)") << std::endl
+            << "reconstruction file: " << (opts.reconstructed_asm_file ? opts.reconstructed_asm_file->path : "(null)") << std::endl
+            << "output file: " << opts.output_file->path << std::endl;
+
+    // check that lib directory exists
+    opts.lib_path = weakly_canonical(canonical(opts.output_file->path) / lib_path_suffix);
+
+    if (!exists(opts.lib_path)) {
+        std::cout << "library path " << opts.lib_path << " does not exist" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    if (opts.debug) std::cout << "library path: " << opts.lib_path << std::endl;
+    if (!is_directory(opts.lib_path)) {
+        std::cout << "library path " << opts.lib_path << " does not point to a directory" << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -154,11 +172,10 @@ int pre_process_data(assembler::pre_processor::Data &data, message::List &messag
     // Write post-processed content to file?
     if (auto &file = data.cli_args.post_processing_file) {
         // Write post-processed content to the output stream
-        std::string content = data.write_lines();
-        file->stream << content;
+        data.write_lines(file->stream);
 
         if (data.cli_args.debug)
-            std::cout << "Written " << content.size() << " bytes of post-processed source to " << file->path << "\n";
+            std::cout << "Written post-processed source to " << file->path << "\n";
     }
 
     return EXIT_SUCCESS;
@@ -215,9 +232,6 @@ int main(int argc, char **argv) {
     message::List messages;
 
     // Read source file into lines
-    if (opts.debug)
-        std::cout << "Reading source file '" << opts.input_file->path << "'\n";
-
     assembler::read_source_file(pre_data, messages);
 
     // Check if error

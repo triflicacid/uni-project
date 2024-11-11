@@ -13,21 +13,22 @@ namespace assembler {
 
         for (int i = 0; std::getline(handle.stream, str); i++) {
             if (!str.empty())
-                data.lines.push_back({i + 1, str});
+                data.lines.emplace_back(Location(handle.path, i), str);
         }
     }
 
-    void read_source_file(const std::string &filepath, pre_processor::Data &data, message::List &msgs) {
+    void read_source_file(const std::filesystem::path &filepath, pre_processor::Data &data, message::List &msgs) {
         data.file_path = filepath;
         std::ifstream file(filepath);
 
         if (!file.is_open()) {
-            auto msg = std::make_unique<message::Message>(message::Error, data.file_path, -1, -1);
-            msg->set_message("cannot read file " + filepath);
+            Location loc(filepath);
+            auto msg = std::make_unique<message::Message>(message::Error, loc);
+            msg->get() << "cannot read file " << filepath;
             msgs.add(std::move(msg));
 
-            msg = std::make_unique<message::Message>(message::Note, data.file_path, -1, -1);
-            msg->set_message("attempted to open file from " + std::filesystem::current_path().string());
+            msg = std::make_unique<message::Message>(message::Note, loc);
+            msg->get() << "attempted to open file from " << std::filesystem::current_path();
             msgs.add(std::move(msg));
 
             return;
@@ -37,7 +38,7 @@ namespace assembler {
 
         for (int i = 0; std::getline(file, str); i++) {
             if (!str.empty())
-                data.lines.push_back({i + 1, str});
+                data.lines.emplace_back(Location(filepath, i), str);
         }
 
         file.close();
@@ -51,10 +52,10 @@ namespace assembler {
             auto &line = data.lines[lines_idx];
 
             // Trim leading and trailing whitespace
-            trim(line.data);
+            trim(line.second);
 
             // is the line empty?
-            if (line.data.empty()) {
+            if (line.second.empty()) {
                 data.lines.erase(data.lines.begin() + lines_idx);
                 lines_idx--;
                 continue;
@@ -63,11 +64,11 @@ namespace assembler {
             // Remove comments
             bool in_string = false, was_comment = false;
 
-            for (int i = 0; i < line.data.size(); i++) {
-                if (line.data[i] == '"') {
+            for (int i = 0; i < line.second.size(); i++) {
+                if (line.second[i] == '"') {
                     in_string = !in_string;
-                } else if (!in_string && line.data[i] == ';') {
-                    line.data = line.data.substr(0, i);
+                } else if (!in_string && line.second[i] == ';') {
+                    line.second = line.second.substr(0, i);
                     was_comment = true;
                     break;
                 }
@@ -75,9 +76,9 @@ namespace assembler {
 
             // Remove any whitespace which may be left over after comment was removed
             if (was_comment) {
-                rtrim(line.data);
+                rtrim(line.second);
 
-                if (line.data.empty()) {
+                if (line.second.empty()) {
                     data.lines.erase(data.lines.begin() + lines_idx);
                     lines_idx--;
                     continue;
@@ -85,12 +86,12 @@ namespace assembler {
             }
 
             // Section header?
-            if (starts_with(line.data, ".section")) {
+            if (starts_with(line.second, ".section")) {
                 continue;
             }
 
             // Have we found a directive?
-            if (line.data[0] == '%') {
+            if (line.second[0] == '%') {
                 process_directive(data, 1, lines_idx, line, current_macro, msgs);
 
                 if (msgs.has_message_of(message::Error)) {
@@ -108,20 +109,18 @@ namespace assembler {
             for (const auto &pair: data.constants) {
                 size_t index = 0;
 
-                while ((index = line.data.find(pair.first, index)) != std::string::npos) {
-                    if (data.cli_args.debug) {
-                        std::cout << "[" << line.n << ":" << index << "] CONSTANT: substitute symbol " << pair.first
-                                  << "\n";
-                    }
+                while ((index = line.second.find(pair.first, index)) != std::string::npos) {
+                    if (data.cli_args.debug)
+                        std::cout << line.first << " CONSTANT: substitute symbol " << pair.first << std::endl;
 
-                    line.data.replace(index, pair.first.size(), pair.second.value);
+                    line.second.replace(index, pair.first.size(), pair.second.value);
                     index += pair.second.value.size();
                 }
             }
 
             // If in macro, add to body
             if (current_macro) {
-                current_macro->second.lines.push_back(line.data);
+                current_macro->second.lines.push_back(line.second);
 
                 // Remove line from normal program
                 data.lines.erase(data.lines.begin() + lines_idx);
@@ -132,74 +131,65 @@ namespace assembler {
 
             // Extract mnemonic
             int i = 0;
-            skip_non_whitespace(line.data, i);
-            std::string mnemonic = line.data.substr(0, i);
+            skip_non_whitespace(line.second, i);
+            std::string mnemonic = line.second.substr(0, i);
 
             // Have we a macro?
             auto macro_exists = data.macros.find(mnemonic);
 
             if (macro_exists != data.macros.end()) {
-                if (data.cli_args.debug) {
-                    std::cout << "[" << line.n << ":0] CALL TO MACRO " << mnemonic << "\n";
-                    std::cout << "\tArgs: ";
-                }
+                if (data.cli_args.debug)
+                    std::cout << line.first << " CALL TO MACRO " << mnemonic << std::endl << "\tArgs:";
 
                 // Collect arguments
                 std::vector<std::string> arguments;
                 int j;
 
                 while (true) {
-                    skip_whitespace(line.data, i);
+                    skip_whitespace(line.second, i);
 
                     // Extract argument data
                     j = i;
-                    skip_to_break(line.data, i);
+                    skip_to_break(line.second, i);
 
                     // Check if argument is the empty string
                     if (i == j)
                         break;
 
                     // Add to argument list
-                    std::string argument = line.data.substr(j, i - j);
+                    std::string argument = line.second.substr(j, i - j);
                     arguments.push_back(argument);
 
-                    if (data.cli_args.debug) {
+                    if (data.cli_args.debug)
                         std::cout << argument << " ";
-                    }
 
-                    if (line.data[i] == ',')
+                    if (line.second[i] == ',')
                         i++;
 
-                    if (i == line.data.size())
+                    if (i == line.second.size())
                         break;
                 }
 
                 if (data.cli_args.debug) {
-                    if (arguments.empty()) {
-                        std::cout << "(none)";
-                    }
-
-                    std::cout << "\n";
+                    if (arguments.empty()) std::cout << "(none)";
+                    std::cout << std::endl;
                 }
 
                 // Check that argument sizes match
                 if (macro_exists->second.params.size() != arguments.size()) {
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n,
-                                                                  (int) mnemonic.size());
-                    msg->set_message(
-                            "macro " + mnemonic + " expects " + std::to_string(macro_exists->second.params.size())
-                            + " argument(s), received " + std::to_string(arguments.size()));
+                    auto msg = std::make_unique<message::Message>(message::Error, Location(line.first).column(mnemonic.size()));
+                    msg->get() << "macro " << mnemonic + " expects " << macro_exists->second.params.size()
+                            << " argument(s), received " << arguments.size();
                     msgs.add(std::move(msg));
 
-                    msg = std::make_unique<message::Message>(message::Note, data.file_path, macro_exists->second.line,
-                                                             macro_exists->second.col);
-                    msg->set_message("macro \"" + mnemonic + "\" defined here");
+                    msg = std::make_unique<message::Message>(message::Note, macro_exists->second.loc);
+                    msg->get() << "macro \"" << mnemonic << "\" defined here";
                     msgs.add(std::move(msg));
-
                     return;
                 }
 
                 // Remove this line from the program - it will be replaced soon
+                auto old_line = line;
                 data.lines.erase(data.lines.begin() + lines_idx);
 
                 int insert_idx = lines_idx;
@@ -228,7 +218,7 @@ namespace assembler {
                     }
 
                     // Add modified macro line to program body
-                    data.lines.insert(data.lines.begin() + insert_idx++, {line.n, macro_line});
+                    data.lines.insert(data.lines.begin() + insert_idx++, {old_line.first, macro_line});
                 }
 
                 // We have inserted the macro's body now, so we continue
@@ -237,16 +227,16 @@ namespace assembler {
         }
     }
 
-    void process_directive(pre_processor::Data &data, int i, int line_idx, Line &line,
+    void process_directive(pre_processor::Data &data, int i, int line_idx, pre_processor::Line &line,
                            std::pair<std::string, pre_processor::Macro> *&current_macro, message::List &msgs) {
         // Extract directive name
         int j = i;
-        skip_alphanum(line.data, i);
-        std::string directive = line.data.substr(j, i - j);
+        skip_alphanum(line.second, i);
+        std::string directive = line.second.substr(j, i - j);
         to_lowercase(directive);
 
         if (data.cli_args.debug) {
-            std::cout << "[" << line.n << ":" << j << "] DIRECTIVE: '" << directive << "'\n";
+            std::cout << line.first << " DIRECTIVE: '" << directive << "'\n";
         }
 
         // If we are in a macro, our options are limited
@@ -254,35 +244,34 @@ namespace assembler {
             if (directive == "end") {
                 if (data.cli_args.debug) {
                     std::cout << "\tEnd definition of " << current_macro->first << " - "
-                              << current_macro->second.lines.size()
-                              << " lines\n";
+                              << current_macro->second.lines.size() << " lines" << std::endl;
                 }
 
                 current_macro = nullptr;
             } else {
-                auto error = std::make_unique<message::Message>(message::Error, data.file_path, line.n, 0);
-                error->set_message("unknown/invalid directive in %macro body: %" + directive);
+                auto error = std::make_unique<message::Message>(message::Error, line.first);
+                error->get() << "unknown/invalid directive in %macro body: %" << directive;
                 msgs.add(std::move(error));
                 return;
             }
         } else {
             if (directive == "define") {
                 // %define [SYMBOL] [VALUE] - creates a new constant
-                skip_alpha(line.data, i);
-                skip_whitespace(line.data, i);
+                skip_alpha(line.second, i);
+                skip_whitespace(line.second, i);
 
                 // Extract constant name
                 j = i;
-                skip_non_whitespace(line.data, i);
-                std::string constant = line.data.substr(j, i - j);
+                skip_non_whitespace(line.second, i);
+                std::string constant = line.second.substr(j, i - j);
 
                 if (data.cli_args.debug) {
                     std::cout << "\tConstant: " << constant;
                 }
 
                 // Get value
-                skip_whitespace(line.data, i);
-                std::string value = line.data.substr(i);
+                skip_whitespace(line.second, i);
+                std::string value = line.second.substr(i);
 
                 if (data.cli_args.debug) {
                     std::cout << "; Value = \"" << value << "\"\n";
@@ -293,64 +282,56 @@ namespace assembler {
 
                 if (exists != data.constants.end()) {
                     // Warn user of potential mishap
-                    auto msg = std::make_unique<message::Message>(message::Warning, data.file_path, line.n, j);
-                    msg->set_message("Re-definition of constant " + constant + " (previously defined at "
-                                     + std::to_string(exists->second.line) + ':' + std::to_string(exists->second.col) +
-                                     ')');
+                    auto msg = std::make_unique<message::Message>(message::Warning, Location(line.first).column(j));
+                    msg->get() << "Re-definition of constant " << constant << " (previously defined at "
+                                     << exists->second.loc << ')';
                     msgs.add(std::move(msg));
 
                     // Update value.
                     exists->second.value = value;
-                    exists->second.line = line.n;
-                    exists->second.col = j;
+                    exists->second.loc = line.first.copy().column(j);
                 } else {
                     // Add to constant dictionary
-                    data.constants.insert({constant, {line.n, j, value}});
+                    data.constants.insert({constant, {line.first.copy().column(j), value}});
                 }
             } else if (directive == "include") {
                 // %include [FILEPATH]
-                skip_non_whitespace(line.data, i);
-                skip_whitespace(line.data, i);
+                skip_non_whitespace(line.second, i);
+                skip_whitespace(line.second, i);
 
                 // Extract file path
-                std::string file_path = line.data.substr(i);
+                std::string file_path = line.second.substr(i);
 
                 if (data.cli_args.debug) {
                     std::cout << "\tFile path '" + file_path + "'\n";
-                    std::cout << "\tBase directory '" + data.file_path.parent_path().string() + "'\n";
                 }
 
-                // Append current base directory
-                std::filesystem::path full_path = data.file_path.parent_path();
+                // Get file's full path
+                std::filesystem::path full_path;
 
-                // Library path?
                 if (starts_with(file_path, "lib:")) {
-                    full_path = data.executable.parent_path() / "lib" / std::filesystem::path(
-                            file_path.substr(4) + ".asm");
+                    full_path = data.cli_args.lib_path / std::filesystem::path(file_path.substr(4) + ".asm");
                 } else {
                     full_path = data.file_path.parent_path() / std::filesystem::path(file_path + ".asm");
                 }
 
                 if (data.cli_args.debug) {
-                    std::cout << "\tFull path '" + full_path.string() + "'\n";
-                    std::cout << "\tNew base directory '" + full_path.parent_path().string() + "'\n";
+                    std::cout << "\tFull path " << full_path << std::endl;
                 }
 
                 // Set-up pre-processing data
-                pre_processor::Data include_data(data);
+                pre_processor::Data include_data(data.cli_args);
                 message::List include_messages;
 
                 // Read included file
-                // TODO check that this is OK
                 read_source_file(full_path.string(), include_data, include_messages);
 
                 if (include_messages.has_message_of(message::Error)) {
                     msgs.add(include_messages);
 
-                    auto msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n, i);
-                    msg->set_message("attempted to %include file here");
+                    auto msg = std::make_unique<message::Message>(message::Note, line.first.copy().column(i));
+                    msg->get() << "attempted to %include file here";
                     msgs.add(std::move(msg));
-
                     return;
                 }
 
@@ -362,12 +343,12 @@ namespace assembler {
                 auto circular_include = data.included_files.find(canonical_path);
 
                 if (circular_include != data.included_files.end()) {
-                    auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, i);
-                    msg->set_message("circular %include: " + full_path.string());
+                    auto msg = std::make_unique<message::Message>(message::Error, line.first.copy().column(i));
+                    msg->get() << "circular %include: " << full_path;
                     msgs.add(std::move(msg));
 
                     msg = std::make_unique<message::Message>(message::Note, circular_include->second);
-                    msg->set_message("file " + canonical_path.string() + " previously included here");
+                    msg->get() << "file " << canonical_path << " previously included here";
                     msgs.add(std::move(msg));
 
                     return;
@@ -375,7 +356,7 @@ namespace assembler {
 
                 // Add to circular references map
                 include_data.included_files.insert(data.included_files.begin(), data.included_files.end());
-                include_data.included_files.insert({canonical_path, {data.file_path, line.n, i}});
+                include_data.included_files.insert({canonical_path, line.first.copy().column(i)});
 
                 // Pre-process included file
                 pre_process(include_data, include_messages);
@@ -389,14 +370,14 @@ namespace assembler {
                 data.merge(include_data, line_idx + 1);
             } else if (directive == "macro") {
                 // %macro [NAME] <args...>
-                skip_alpha(line.data, i);
-                skip_whitespace(line.data, i);
+                skip_alpha(line.second, i);
+                skip_whitespace(line.second, i);
 
                 // Extract macro's name
                 j = i;
                 int macro_name_index = i;
-                skip_non_whitespace(line.data, i);
-                std::string macro_name = line.data.substr(j, i - j);
+                skip_non_whitespace(line.second, i);
+                std::string macro_name = line.second.substr(j, i - j);
 
                 if (data.cli_args.debug) {
                     std::cout << "\tName: '" << macro_name << "'; Args: ";
@@ -404,8 +385,8 @@ namespace assembler {
 
                 // Check if name is valid
                 if (!is_valid_label_name(macro_name)) {
-                    auto error = std::make_unique<message::Message>(message::Error, data.file_path, line.n, 0);
-                    error->set_message("invalid macro name \"" + macro_name + "\"");
+                    auto error = std::make_unique<message::Message>(message::Error, line.first);
+                    error->get() << "invalid macro name \"" << macro_name << "\"";
                     msgs.add(std::move(error));
                     return;
                 }
@@ -415,42 +396,41 @@ namespace assembler {
 
                 if (macro_exists != data.macros.end()) {
                     // Warn user of potential mishap
-                    auto msg = std::make_unique<message::Message>(message::Warning, data.file_path, line.n, j);
-                    msg->set_message("Re-definition of macro " + macro_name + " (previously defined at "
-                                     + std::to_string(macro_exists->second.line) + ':' + std::to_string(
-                            macro_exists->second.col) + ')');
+                    auto msg = std::make_unique<message::Message>(message::Warning, line.first.copy().column(j));
+                    msg->get() << "re-definition of macro " << macro_name;
+                    msgs.add(std::move(msg));
+
+                    msg = std::make_unique<message::Message>(message::Note, macro_exists->second.loc);
+                    msg->get() << "previously defined here";
                     msgs.add(std::move(msg));
 
                     // Update value.
-                    macro_exists->second.line = line.n;
-                    macro_exists->second.col = j;
+                    macro_exists->second.loc = line.first;
                 }
 
                 // Collect parameters
                 std::vector<std::string> macro_params;
 
                 while (true) {
-                    skip_whitespace(line.data, i);
+                    skip_whitespace(line.second, i);
 
-                    if (i == line.data.size())
+                    if (i == line.second.size())
                         break;
 
                     // Extract parameter name
                     j = i;
-                    skip_non_whitespace(line.data, i);
-                    std::string parameter = line.data.substr(j, i - j);
+                    skip_non_whitespace(line.second, i);
+                    std::string parameter = line.second.substr(j, i - j);
 
                     // Check if name is valid
                     if (!is_valid_label_name(parameter)) {
-                        auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, 0);
-                        msg->set_message("invalid parameter name \"" + parameter + "\"");
+                        auto msg = std::make_unique<message::Message>(message::Error, line.first);
+                        msg->get() << "invalid parameter name \"" << parameter << '"';
                         msgs.add(std::move(msg));
 
-                        msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n,
-                                                                 macro_name_index);
-                        msg->set_message("in definition of macro \"" + macro_name + "\"");
+                        msg = std::make_unique<message::Message>(message::Note, line.first.copy().column(macro_name_index));
+                        msg->get() << "in definition of macro \"" << macro_name << '"';
                         msgs.add(std::move(msg));
-
                         return;
                     }
 
@@ -458,36 +438,33 @@ namespace assembler {
                     auto param_exists = std::ranges::find(macro_params.begin(), macro_params.end(), parameter);
 
                     if (param_exists != macro_params.end()) {
-                        auto msg = std::make_unique<message::Message>(message::Error, data.file_path, line.n, j);
-                        msg->set_message("duplicate parameter \"" + parameter + "\"");
+                        auto msg = std::make_unique<message::Message>(message::Error, line.first.copy().column(j));
+                        msg->get() << "duplicate parameter \"" << parameter << '"';
                         msgs.add(std::move(msg));
 
-                        msg = std::make_unique<message::Message>(message::Note, data.file_path, line.n,
-                                                                 macro_name_index);
-                        msg->set_message("in definition of macro \"" + macro_name + "\"");
+                        msg = std::make_unique<message::Message>(message::Note, line.first.copy().column(macro_name_index));
+                        msg->get() << "in definition of macro \"" << macro_name + '"';
                         msgs.add(std::move(msg));
-
                         return;
                     }
 
                     // Add top parameter list
                     macro_params.push_back(parameter);
 
-                    if (data.cli_args.debug) {
+                    if (data.cli_args.debug)
                         std::cout << parameter << " ";
-                    }
 
                     // Break form the loop?
-                    if (i > line.data.size())
+                    if (i > line.second.size())
                         break;
                 }
 
                 if (data.cli_args.debug)
-                    std::cout << "\n";
+                    std::cout << std::endl;
 
                 // Insert/update macro
                 if (macro_exists == data.macros.end()) {
-                    data.macros.insert({macro_name, pre_processor::Macro(line.n, macro_name_index, macro_params)});
+                    data.macros.insert({macro_name, pre_processor::Macro(line.first.copy().column(macro_name_index), macro_params)});
                     macro_exists = data.macros.find(macro_name);
                 } else {
                     macro_exists->second.params = macro_params;
@@ -510,9 +487,9 @@ namespace assembler {
                     data.lines.pop_back();
                 }
             } else {
-                auto error = std::make_unique<message::Message>(message::Error, data.file_path, line.n, 0);
-                error->set_message("unknown directive %" + directive);
-                msgs.add(std::move(error));
+                auto msg = std::make_unique<message::Message>(message::Error, line.first);
+                msg->get() << "unknown directive %" << directive;
+                msgs.add(std::move(msg));
                 return;
             }
         }

@@ -28,9 +28,10 @@ namespace assembler::instruction {
     void Instruction::print(std::ostream &os) const {
         os << signature->mnemonic;
 
-        for (Argument arg: args) {
+        for (int i = 0; i < args.size(); i++) {
             os << " ";
-            arg.print(os);
+            args[i].print(os);
+            if (i + 1 < args.size()) os << ",";
         }
     }
 

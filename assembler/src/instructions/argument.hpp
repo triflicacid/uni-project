@@ -64,7 +64,7 @@ namespace assembler::instruction {
 
         void debug_print(std::ostream &out = std::cout);
 
-        void print(std::ostream &os = std::cout);
+        void print(std::ostream &os = std::cout) const;
 
         void set_reg_indirect(uint8_t reg, int32_t offset);
 

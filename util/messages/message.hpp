@@ -1,49 +1,39 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
-
-#include "assembler/src/pre-process/location-info.hpp"
+#include "location.hpp"
 
 namespace message {
-  enum Level {
-    Note,
-    Warning,
-    Error
-  };
+    enum Level {
+        Note,
+        Warning,
+        Error
+    };
 
-  class Message {
+    class Message {
     protected:
-    int m_line;
-    int m_col;
-    std::filesystem::path m_file;
-    Level m_level;
-    std::string m_msg;
+        Location m_loc;
+        Level m_level;
+        std::stringstream m_msg;
 
-    /** Print varying type line e.g., 'ERROR!' */
-    void print_type_suffix();
-
-    virtual void _set_message(std::string msg);
+        /** Print varying type line e.g., 'ERROR!' */
+        void print_type_suffix(std::ostream &os);
 
     public:
-    Message(Level level, std::filesystem::path filename, int line, int col);
+        Message(Level level, Location loc) : m_level(level), m_loc(std::move(loc)) {}
 
-    Message(Level level, const assembler::pre_processor::LocationInformation &loc);
+        std::stringstream &get() { return m_msg; }
 
-    std::string *get_message() { return &m_msg; }
+        /** Get message code, or -1. */
+        virtual int get_code() { return -1; }
 
-    /** Get message code, or -1. */
-    virtual int get_code() { return -1; }
+        Level get_level() { return m_level; }
 
-    void set_message(const std::string &msg);
+        virtual void print(std::ostream &os);
+    };
 
-    void set_message(const std::stringstream &stream);
-
-    Level get_level() { return m_level; }
-
-    virtual void print(std::ostream &os);
-  };
-
-  /** Get level from int, where lowest is 0 */
-  Level level_from_int(int level);
+    /** Get level from int, where lowest is 0 */
+    Level level_from_int(int level);
 }

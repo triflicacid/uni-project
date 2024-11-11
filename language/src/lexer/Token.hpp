@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "Location.hpp"
+#include "location.hpp"
 
 namespace language::lexer {
   /** This class describes a basic token. */

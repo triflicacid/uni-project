@@ -5,14 +5,12 @@ namespace assembler::pre_processor {
         executable = canonical(std::filesystem::path(path));
     }
 
-    std::string Data::write_lines() {
-        std::stringstream stream;
-
+    std::ostream &Data::write_lines(std::ostream &os) const {
         for (const auto &line: lines) {
-            stream << line.data << '\n';
+            os << line.second << std::endl;
         }
 
-        return stream.str();
+        return os;
     }
 
     void Data::merge(Data &other, int line_index) {
