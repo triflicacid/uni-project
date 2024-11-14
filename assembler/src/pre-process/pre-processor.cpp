@@ -157,7 +157,7 @@ namespace assembler {
                         break;
 
                     // Add to argument list
-                    std::string argument = line.second.substr(j, i - j);
+                    std::string argument = line.second.substr(j, i - j + 1);
                     arguments.push_back(argument);
 
                     if (data.cli_args.debug)
