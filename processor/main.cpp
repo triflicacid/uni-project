@@ -30,6 +30,18 @@ int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
                     std::cerr << arg << ": failed to open file '" << argv[i] << "'";
                     return EXIT_FAILURE;
                 }
+            } else if (arg == "-dall") {
+                args.debug.set_all(true);
+            } else if (arg == "-dcpu") {
+                args.debug.cpu = !args.debug.cpu;
+            } else if (arg == "-dmem") {
+                args.debug.mem = !args.debug.mem; // TODO implement
+            } else if (arg == "-dzflag") {
+                args.debug.zflag = !args.debug.zflag;
+            } else if (arg == "-dcond") {
+                args.debug.conditionals = !args.debug.conditionals;
+            } else if (arg == "-derr") {
+                args.debug.errs = !args.debug.errs;
             } else {
                 std::cerr << "unknown flag " << arg;
                 return EXIT_FAILURE;
@@ -69,10 +81,6 @@ int main(int argc, char **argv) {
     if (parse_arguments(argc, argv, args) != EXIT_SUCCESS) {
         return EXIT_FAILURE;
     }
-
-    args.debug.cpu = true;
-    args.debug.errs = true;
-    args.debug.flags = true;
 
     // create and initialise CPU
     CPU cpu(args.output_file ? args.output_file->stream : std::cout, args.input_file ? args.input_file->stream : std::cin, args.debug);

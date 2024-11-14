@@ -440,18 +440,21 @@
 
     \medskip
     \begin{lstlisting}[style=bashconsole]
-$ ./processor <input_file> [flags]
+$ ./processor <source_file> [flags]
     \end{lstlisting}
 
     Where the program has the following flags:
     \begin{itemize}
         \item \texttt{-o <output\_file>} - defaults to \texttt{stdout}, output is written here (not including debug messages).
         \item \texttt{-i <input\_file>} - defaults to \texttt{stdin}, input is read from here.
+        \item \texttt{-d$x$} - toggles the $x$ debug flag, where $x$ is one of
+        \begin{itemize}
+            \item \texttt{all} - enables all debug flags.
+            \item \texttt{cond} - checks on the conditional guard on instructions (only emitted when a guard is present).
+            \item \texttt{cpu} - operation execution messages.
+            \item \texttt{err} - print more detailed error messages (rather than relying solely on internal error handling).
+            \item \texttt{mem} - memory reads and writes.
+            \item \texttt{zflag} - updates to the \texttt{zero} flag.
+        \end{itemize}
     \end{itemize}
-
-    \subsection{Debugging}
-
-    There are no flags to control debugging.
-    Rather, the debugging level is controlled by the \texttt{DEBUG} macro in \texttt{src/debug.h}, forming a bitmask of possible debug fields.
-    This file may be modified and the application re-compiled for debugging changes to take effect.
 \end{document}

@@ -53,7 +53,7 @@ void processor::CPU::test_is_zero(constants::registers::reg reg) {
         flag_reset(constants::flag::zero);
     }
 
-    if (debug.flags)
+    if (debug.zflag)
         std::cout << DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register $" << constants::registers::to_string(reg) << " -> " <<
                   (flag_test(constants::flag::zero) ? ANSI_GREEN "set" : ANSI_RED "reset") << ANSI_RESET << std::endl;
 }
@@ -703,26 +703,26 @@ void processor::CPU::execute(uint64_t inst) {
         // extract cmp bits from both the instruction and the flag register
         auto flag_bits = static_cast<cmp::flag>(regs[registers::flag] & cmp_bits);
 
-        if (debug.flags) std::cout << DEBUG_STR ANSI_CYAN " conditional" ANSI_RESET ": " << constants::cmp::to_string(test_bits) << " -> ";
+        if (debug.conditionals) std::cout << DEBUG_STR ANSI_CYAN " conditional" ANSI_RESET ": " << constants::cmp::to_string(test_bits) << " -> ";
 
         // special case for [N]Z test, otherwise compare directly
         if (flag_test(int(test_bits), flag::zero)) {
             bool zero_flag = flag_test(flag::zero);
 
             if ((test_bits == cmp::nz && zero_flag) || (test_bits == cmp::z && !zero_flag)) {
-                if (debug.flags)
+                if (debug.conditionals)
                     std::cout << ANSI_RED "fail" ANSI_RESET " ($flag: 0x" << std::hex << int(flag_bits) << std::dec
                               << ")" << std::endl;
                 return;
             }
         } else if (test_bits != flag_bits) {
-            if (debug.flags)
+            if (debug.conditionals)
                 std::cout << ANSI_RED "fail" ANSI_RESET " ($flag: 0x" << std::hex << int(flag_bits) << std::dec << ")"
                           << std::endl;
             return;
         }
 
-        if (debug.flags) std::cout << ANSI_GREEN "pass" ANSI_RESET << std::endl;
+        if (debug.conditionals) std::cout << ANSI_GREEN "pass" ANSI_RESET << std::endl;
     }
 
     switch (opcode) {
