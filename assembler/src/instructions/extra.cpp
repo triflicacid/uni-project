@@ -64,8 +64,8 @@ namespace assembler::instruction::transform {
             auto code_instruction = std::make_unique<Instruction>(*instruction);
             code_instruction->signature = &Signature::_load;
             code_instruction->overload = 0;
-            code_instruction->args.emplace_back(ArgumentType::Immediate, code);
-            code_instruction->args.emplace_back(ArgumentType::Register, constants::registers::ret);
+            code_instruction->args.emplace_front(ArgumentType::Immediate, code);
+            code_instruction->args.emplace_front(ArgumentType::Register, constants::registers::ret);
             instructions.push_back(std::move(code_instruction));
         }
 
@@ -154,36 +154,34 @@ namespace assembler::instruction::parse {
             // parse datatype
             bool found = false;
 
-            for (auto &pair: datatype_postfix_map) {
-                if (starts_with(options, pair.first)) {
-                    found = true;
-                    instruction->add_datatype_specifier(pair.second);
+            int j = 0;
+            auto dt = constants::inst::datatype::from_string(options, j);
 
-                    // increase position
-                    options = options.substr(pair.first.length());
+            if (dt) {
+                instruction->add_datatype_specifier(dt.value());
 
-                    // if first datatype, expect '2'
-                    if (i == 0) {
-                        if (options[0] == '2') {
-                            options = options.substr(1);
-                        } else {
-                            auto msg = std::make_unique<message::Message>(message::Error, loc);
-                            msg->get() << "cvt: expected '2' after first datatype, got '" << options[0] << "'";
-                            msgs.add(std::move(msg));
-                            return;
-                        }
+                // increase position
+                options = options.substr(j);
+
+                // if first datatype, expect '2'
+                if (i == 0) {
+                    if (options[0] == '2') {
+                        options = options.substr(1);
+                    } else {
+                        auto msg = std::make_unique<message::Message>(message::Error, loc);
+                        msg->get() << "cvt: expected '2' after first datatype, got '" << options[0] << "'";
+                        msgs.add(std::move(msg));
+                        return;
                     }
-
-                    break;
                 }
+
+                continue;
             }
 
-            if (!found) {
-                auto msg = std::make_unique<message::Message>(message::Error, loc);
-                msg->get() << "cvt: expected datatype. Syntax: cvt(d1)2(d2)";
-                msgs.add(std::move(msg));
-                return;
-            }
+            auto msg = std::make_unique<message::Message>(message::Error, loc);
+            msg->get() << "cvt: expected datatype. Syntax: cvt(d1)2(d2)";
+            msgs.add(std::move(msg));
+            return;
         }
     }
 }

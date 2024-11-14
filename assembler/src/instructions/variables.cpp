@@ -8,29 +8,6 @@
 namespace assembler::instruction {
     using namespace constants;
 
-    std::unordered_map<std::string, cmp> conditional_postfix_map = {
-            {"z",   cmp::z},
-            {"nz",  cmp::nz},
-            {"neq", cmp::ne},
-            {"ne",  cmp::ne},
-            {"eq",  cmp::eq},
-            {"lte", cmp::le},
-            {"lt",  cmp::lt},
-            {"le",  cmp::le},
-            {"gte", cmp::ge},
-            {"gt",  cmp::gt},
-            {"ge",  cmp::ge},
-    };
-
-    std::map<std::string, inst::datatype> datatype_postfix_map = {
-            {"hu", inst::u32},
-            {"u",  inst::u64},
-            {"hi", inst::s32},
-            {"i",  inst::s64},
-            {"f",  inst::flt},
-            {"d",  inst::dbl}
-    };
-
     Signature *find_signature(const std::string &mnemonic, std::string &options) {
         for (auto &signature: signature_list) {
             if (starts_with(mnemonic, signature.mnemonic)) {

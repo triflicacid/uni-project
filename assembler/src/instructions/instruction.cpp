@@ -38,11 +38,11 @@ namespace assembler::instruction {
                                                                                            args(std::move(arguments)),
                                                                                            overload(0), test(0x0) {}
 
-    void Instruction::set_conditional_test(constants::cmp mask) {
+    void Instruction::set_conditional_test(constants::cmp::flag mask) {
         test = 0x80 | static_cast<uint8_t>(mask); // indicate test is provided
     }
 
-    void Instruction::add_datatype_specifier(constants::inst::datatype mask) {
+    void Instruction::add_datatype_specifier(constants::inst::datatype::dt mask) {
         datatypes.push_back(mask);
     }
 

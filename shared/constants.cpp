@@ -16,15 +16,15 @@ std::map<std::string, registers::reg> registers::map = {
         {"k2",   registers::k2},
 };
 
-std::string registers::to_string(registers::reg r) {
-    if (r >= registers::count)
+std::string registers::to_string(reg r) {
+    if (r >= count)
         return "?";
 
     for (const auto &pair : map) {
         if (pair.second == r) return pair.first;
     }
 
-    return "r" + std::to_string(r - registers::r1 + 1);
+    return "r" + std::to_string(r - r1 + 1);
 }
 
 std::optional<registers::reg> registers::from_string(const std::string &s) {
@@ -47,7 +47,78 @@ std::optional<registers::reg> registers::from_string(const std::string &s, int &
         while (i < s.size() && std::isdigit(s[i]))
             off = 10 * off + (s[i++] - '0');
 
-        return static_cast<reg>(off - 1 + registers::r1);
+        return static_cast<reg>(off - 1 + r1);
+    }
+
+    return {};
+}
+
+std::unordered_map<std::string, cmp::flag> constants::cmp::map = {
+        {"z",   cmp::z},
+        {"nz",  cmp::nz},
+        {"neq", cmp::ne},
+        {"ne",  cmp::ne},
+        {"eq",  cmp::eq},
+        {"lte", cmp::le},
+        {"lt",  cmp::lt},
+        {"le",  cmp::le},
+        {"gte", cmp::ge},
+        {"gt",  cmp::gt},
+        {"ge",  cmp::ge},
+};
+
+std::string cmp::to_string(flag v) {
+    for (const auto &pair : map) {
+        if (pair.second == v) return pair.first;
+    }
+
+    return "?";
+}
+
+std::optional<cmp::flag> cmp::from_string(const std::string &s) {
+    int i = 0;
+    return from_string(s, i);
+}
+
+std::optional<cmp::flag> cmp::from_string(const std::string &s, int &i) {
+    for (const auto &pair : map) {
+        if (s.substr(i, pair.first.length()) == pair.first) {
+            i += (int) pair.first.length();
+            return pair.second;
+        }
+    }
+
+    return {};
+}
+
+std::unordered_map<std::string, inst::datatype::dt> inst::datatype::map = {
+        {"hu", u32},
+        {"u",  u64},
+        {"hi", s32},
+        {"i",  s64},
+        {"f",  flt},
+        {"d",  dbl}
+};
+
+std::string inst::datatype::to_string(dt v) {
+    for (const auto &pair : map) {
+        if (pair.second == v) return pair.first;
+    }
+
+    return "?";
+}
+
+std::optional<inst::datatype::dt> inst::datatype::from_string(const std::string &s) {
+    int i = 0;
+    return from_string(s, i);
+}
+
+std::optional<inst::datatype::dt> inst::datatype::from_string(const std::string &s, int &i) {
+    for (const auto &pair : map) {
+        if (s.substr(i, pair.first.length()) == pair.first) {
+            i += (int) pair.first.length();
+            return pair.second;
+        }
     }
 
     return {};

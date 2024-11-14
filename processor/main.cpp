@@ -72,6 +72,7 @@ int main(int argc, char **argv) {
 
     args.debug.cpu = true;
     args.debug.errs = true;
+    args.debug.flags = true;
 
     // create and initialise CPU
     CPU cpu(args.output_file ? args.output_file->stream : std::cout, args.input_file ? args.input_file->stream : std::cin, args.debug);
@@ -112,7 +113,7 @@ int main(int argc, char **argv) {
 #endif
     auto err_code = cpu.get_error();
     uint64_t code = err_code ? err_code : cpu.get_return_value();
-    if (args.debug.cpu) std::cout << DEBUG_STR " processor exited with code 0x" << std::hex << code << std::dec << std::endl;
+    if (args.debug.cpu) std::cout << DEBUG_STR " processor exited with code " << code << std::endl;
 
     return EXIT_SUCCESS;
 }

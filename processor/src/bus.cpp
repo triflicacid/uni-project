@@ -6,13 +6,13 @@
 #include <stdio.h>
 #endif
 
-void processor::bus::store(uint64_t addr, uint8_t size, uint64_t value) {
+void processor::bus::store(uint64_t addr, uint8_t size, uint64_t bytes) {
 #if DEBUG & DEBUG_DRAM
     printf(DEBUG_STR ANSI_YELLOW " bus store" ANSI_RESET ": %d-bit value 0x%llx to address 0x%llx\n", size, value,
            addr);
 #endif
 
-    mem.store(addr, size, value);
+    mem.store(addr, size, bytes);
 }
 
 uint64_t processor::bus::load(uint64_t addr, uint8_t size) const {

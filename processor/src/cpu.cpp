@@ -8,7 +8,7 @@
 #include "debug.hpp"
 
 template<typename LHS, typename RHS>
-static constants::cmp calculate_cmp_flag(LHS lhs, RHS rhs) {
+static constants::cmp::flag calculate_cmp_flag(LHS lhs, RHS rhs) {
     using namespace constants;
     uint32_t flag = 0;
     if (lhs < rhs) flag |= static_cast<uint32_t>(cmp::lt);
@@ -16,7 +16,7 @@ static constants::cmp calculate_cmp_flag(LHS lhs, RHS rhs) {
     if (lhs == rhs) flag |= static_cast<uint32_t>(cmp::eq);
     if (rhs == 0) flag |= static_cast<uint32_t>(cmp::z);
 
-    return static_cast<cmp>(flag);
+    return static_cast<cmp::flag>(flag);
 }
 
 void processor::CPU::raise_error(constants::error::code code, uint64_t val) {
@@ -46,53 +46,6 @@ bool processor::CPU::fetch_reg_reg_val(uint64_t inst, constants::registers::reg 
     return is_running();
 }
 
-// given four compare bits in binary form `0bABBB` A = zero, BBB = cmp flag, return string repr
-static std::string cmp_bit_str(constants::cmp bits) {
-    using namespace constants;
-    switch (bits) {
-        case cmp::z:
-            return "z";
-        case cmp::nz:
-            return "nz";
-        case cmp::ne:
-            return "ne";
-        case cmp::eq:
-            return "eq";
-        case cmp::lt:
-            return "lt";
-        case cmp::le:
-            return "le";
-        case cmp::gt:
-            return "gt";
-        case cmp::ge:
-            return "ge";
-        case cmp::na:
-        default:
-            return "?";
-    }
-}
-
-// given three data type bits, return string repr
-static std::string datatype_bit_str(constants::inst::datatype bits) {
-    using namespace constants::inst;
-    switch (bits) {
-        case u32:
-            return "hu";
-        case u64:
-            return "u";
-        case s32:
-            return "hi";
-        case s64:
-            return "i";
-        case flt:
-            return "f";
-        case dbl:
-            return "d";
-        default:
-            return "?";
-    }
-}
-
 void processor::CPU::test_is_zero(constants::registers::reg reg) {
     if (regs[reg] == 0) {
         flag_set(constants::flag::zero);
@@ -101,8 +54,8 @@ void processor::CPU::test_is_zero(constants::registers::reg reg) {
     }
 
     if (debug.flags)
-        std::cout << DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register $" << constants::registers::to_string(reg) << " : " <<
-                  (flag_test(constants::flag::zero) ? ANSI_GREEN "SET" : ANSI_RED "RESET") << ANSI_RESET;
+        std::cout << DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register $" << constants::registers::to_string(reg) << " -> " <<
+                  (flag_test(constants::flag::zero) ? ANSI_GREEN "set" : ANSI_RED "reset") << ANSI_RESET << std::endl;
 }
 
 // load <reg> <value> -- load value into register
@@ -171,47 +124,47 @@ void processor::CPU::exec_compare(uint64_t inst) {
     using namespace constants;
 
     // fetch data type bits
-    auto datatype = static_cast<inst::datatype>((inst >> inst::header_size) & 0x7);
+    auto datatype = static_cast<inst::datatype::dt>((inst >> inst::header_size) & 0x7);
 
     // fetch register, check if OK
-    constants::registers::reg reg = get_arg_reg(inst, inst::header_size + inst::datatype_size);
+    constants::registers::reg reg = get_arg_reg(inst, inst::header_size + inst::datatype::size);
     if (!check_register(reg)) return raise_error(error::reg, reg);
 
     // fetch and resolve value, check if OK
-    uint64_t value = get_arg_value(inst, inst::header_size + inst::datatype_size + inst::reg_size,
-                                   datatype == inst::dbl);
+    uint64_t value = get_arg_value(inst, inst::header_size + inst::datatype::size + inst::reg_size,
+                                   datatype == inst::datatype::dbl);
     if (!is_running()) return;
 
     // deduce comparison flag depending on datatype
-    cmp flag;
+    cmp::flag flag;
 
     switch (datatype) {
-        case inst::u64: {
+        case inst::datatype::u64: {
             uint64_t lhs = regs[reg];
             flag = calculate_cmp_flag(lhs, value);
         }
             break;
-        case inst::u32: {
+        case inst::datatype::u32: {
             auto *lhs = (uint32_t *) &regs[reg], *rhs = (uint32_t *) &value;
             flag = calculate_cmp_flag(*lhs, *rhs);
         }
             break;
-        case inst::s64: {
+        case inst::datatype::s64: {
             auto *lhs = (int64_t *) &regs[reg], *rhs = (int64_t *) &value;
             flag = calculate_cmp_flag(*lhs, *rhs);
         }
             break;
-        case inst::s32: {
+        case inst::datatype::s32: {
             auto *lhs = (int32_t *) &regs[reg], *rhs = (int32_t *) &value;
             flag = calculate_cmp_flag(*lhs, *rhs);
         }
             break;
-        case inst::flt: {
+        case inst::datatype::flt: {
             auto *lhs = (float *) &regs[reg], *rhs = (float *) &value;
             flag = calculate_cmp_flag(*lhs, *rhs);
         }
             break;
-        case inst::dbl: {
+        case inst::datatype::dbl: {
             auto *lhs = (double *) &regs[reg], *rhs = (double *) &value;
             flag = calculate_cmp_flag(*lhs, *rhs);
         }
@@ -227,9 +180,9 @@ void processor::CPU::exec_compare(uint64_t inst) {
     regs[registers::flag] = (regs[registers::flag] & ~0xf) | (int(flag) & 0xf);
 
     if (debug.cpu) {
-        std::cout << DEBUG_STR " cmp: datatype=" << datatype_bit_str(datatype) << " (0x" << datatype << std::endl
-                  << DEBUG_STR " cmp: register $" << constants::registers::to_string(reg) << " (0x" << regs[reg] << ") vs 0x" << value
-                  << " = " ANSI_CYAN << cmp_bit_str(flag) << std::endl << std::dec << ANSI_RESET;
+        std::cout << DEBUG_STR " cmp: datatype=" << inst::datatype::to_string(datatype) << " (0x" << datatype << std::endl
+                  << DEBUG_STR " cmp: register $" << registers::to_string(reg) << " (0x" << regs[reg] << ") vs 0x" << value
+                  << " = " ANSI_CYAN << cmp::to_string(flag) << std::endl << std::dec << ANSI_RESET;
     }
 }
 
@@ -325,50 +278,52 @@ void processor::CPU::exec_shift_right(uint64_t inst) {
 
 // macro for arithmetic operation
 #define ARITH_OPERATION(OPERATOR, INJECT) \
-  uint8_t datatype = (inst >> constants::inst::header_size) & 0x7;\
+  auto datatype = static_cast<constants::inst::datatype::dt>((inst >> constants::inst::header_size) & 0x7);\
   constants::registers::reg reg_src, reg_dst;\
   uint64_t value, result;\
-  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, constants::inst::datatype_size, datatype == constants::inst::dbl))\
+  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, constants::inst::datatype::size, datatype == constants::inst::datatype::dbl))\
     return;\
-  if (debug.cpu) std::cout << DEBUG_STR " arithmetic operation: ";\
-  switch (static_cast<constants::inst::datatype>(datatype)) {\
-    case constants::inst::u64: {\
+  if (debug.cpu) std::cout << DEBUG_STR " arithmetic operation (on type " << constants::inst::datatype::to_string(datatype) << "): ";\
+  switch (datatype) {\
+    case constants::inst::datatype::u64: {\
       auto *rhs = (int32_t *) &value;\
-      result = regs[reg_src] OPERATOR *rhs;\
-      if (debug.cpu) std::cout << regs[reg_src] << " " #OPERATOR " " << *rhs << " = " << result << std::endl;\
+      auto res = regs[reg_src] OPERATOR *rhs;                  \
+      result = res;                                    \
+      if (debug.cpu) std::cout << regs[reg_src] << " " #OPERATOR " " << *rhs << " = " << res << std::endl;\
       break;\
     }\
-    case constants::inst::u32: {\
+    case constants::inst::datatype::u32: {\
       auto *lhs = (uint32_t *) &regs[reg_src];\
       auto *rhs = (int32_t *) &value;\
-      result = *lhs OPERATOR *rhs;\
-      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << result << std::endl;\
+      auto res = *lhs OPERATOR *rhs;      \
+      result = res;                                    \
+      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << res << std::endl;\
     }\
     break;\
-    case constants::inst::s64: {\
+    case constants::inst::datatype::s64: {\
       auto *lhs = (int64_t *) &regs[reg_src];\
       auto *rhs = (int32_t *) &value;\
       int64_t res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
-      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << result << std::endl;\
+      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << res << std::endl;\
     }\
     break;\
-    case constants::inst::s32: {\
+    case constants::inst::datatype::s32: {\
       auto *lhs = (int32_t *) &regs[reg_src], *rhs = (int32_t *) &value, res = *lhs + *rhs;\
       result = *(uint64_t *) &res;\
-      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << result << std::endl;\
+      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << res << std::endl;\
     }\
     break;\
-    case constants::inst::flt: {\
+    case constants::inst::datatype::flt: {\
       auto *lhs = (float *) &regs[reg_src], *rhs = (float *) &value, res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
-      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << result << std::endl;\
+      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << res << std::endl;\
     }\
     break;\
-    case constants::inst::dbl: {\
+    case constants::inst::datatype::dbl: {\
       auto *lhs = (double *) &regs[reg_src], *rhs = (double *) &value, res = *lhs OPERATOR *rhs;\
       result = *(uint64_t *) &res;\
-      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << result << std::endl;\
+      if (debug.cpu) std::cout << *lhs << " " #OPERATOR " " << *rhs << " = " << res << std::endl;\
     }\
     break;\
     default:\
@@ -561,8 +516,8 @@ void processor::CPU::exec_jal(uint64_t inst) {
 }
 
 template<typename T>
-static uint64_t cast_value(constants::inst::datatype dt, T src) {
-    using namespace constants::inst;
+static uint64_t cast_value(constants::inst::datatype::dt dt, T src) {
+    using namespace constants::inst::datatype;
     switch (dt) {
         case u32: {
             uint32_t tmp = src;
@@ -599,39 +554,39 @@ void processor::CPU::exec_convert(uint64_t inst) {
 
     // extra datatypes to convert from/to
     uint8_t pos = header_size;
-    auto d1 = static_cast<datatype>((inst >> pos) & 0x7);
-    auto d2 = static_cast<datatype>((inst >> (pos += datatype_size)) & 0x7);
+    auto d1 = static_cast<datatype::dt>((inst >> pos) & 0x7);
+    auto d2 = static_cast<datatype::dt>((inst >> (pos += datatype::size)) & 0x7);
 
     // extra source and destination registers
-    constants::registers::reg reg_dst = get_arg_reg(inst, pos += datatype_size);
+    constants::registers::reg reg_dst = get_arg_reg(inst, pos += datatype::size);
     constants::registers::reg reg_src = get_arg_reg(inst, pos += reg_size);
 
     uint64_t value = regs[reg_src];
     switch (d1) {
-        case u32:
+        case datatype::u32:
             value = cast_value(d2, *(uint32_t *) &value);
             break;
-        case u64:
+        case datatype::u64:
             value = cast_value(d2, value);
             break;
-        case s32:
+        case datatype::s32:
             value = cast_value(d2, *(int32_t *) &value);
             break;
-        case s64:
+        case datatype::s64:
             value = cast_value(d2, *(int64_t *) &value);
             break;
-        case flt:
+        case datatype::flt:
             value = cast_value(d2, *(float *) &value);
             break;
-        case dbl:
+        case datatype::dbl:
             value = cast_value(d2, *(double *) &value);
             break;
         default:;
     }
 
     if (debug.cpu)
-        std::cout << DEBUG_STR " cvt: convert from " << datatype_bit_str(d1) << " in reg "
-                  << constants::registers::to_string(reg_src) << " to " << datatype_bit_str(d2) << " in reg "
+        std::cout << DEBUG_STR " cvt: convert from " << constants::inst::datatype::to_string(d1) << " in reg "
+                  << constants::registers::to_string(reg_src) << " to " << constants::inst::datatype::to_string(d2) << " in reg "
                   << constants::registers::to_string(reg_dst) << std::endl;
     regs[reg_dst] = value;
     test_is_zero(reg_dst);
@@ -722,10 +677,10 @@ processor::CPU::CPU(std::ostream &os, std::istream &is, const Debug &debug) : os
 }
 
 uint64_t processor::CPU::fetch() {
-    uint64_t $ip = regs[constants::registers::ip];
+    uint64_t ip = regs[constants::registers::ip];
 
-    if (!check_memory($ip)) return raise_error(constants::error::segfault, $ip, 0);
-    return data_bus.load($ip, sizeof(uint64_t));
+    if (!check_memory(ip)) return raise_error(constants::error::segfault, ip, 0);
+    return data_bus.load(ip, sizeof(uint64_t));
 }
 
 void processor::CPU::execute(uint64_t inst) {
@@ -741,14 +696,14 @@ void processor::CPU::execute(uint64_t inst) {
     }
 
     // extract conditional test bits
-    cmp test_bits = static_cast<cmp>((inst >> inst::cmp_offset) & inst::cmp_mask);
+    auto test_bits = static_cast<cmp::flag>((inst >> inst::cmp_offset) & inst::cmp_mask);
 
     // test?
     if (test_bits != cmp::na) {
         // extract cmp bits from both the instruction and the flag register
-        cmp flag_bits = static_cast<cmp>(regs[registers::flag] & cmp_bits);
+        auto flag_bits = static_cast<cmp::flag>(regs[registers::flag] & cmp_bits);
 
-        if (debug.cpu) std::cout << DEBUG_STR " conditional test: " << cmp_bit_str(test_bits) << " -> ";
+        if (debug.flags) std::cout << DEBUG_STR ANSI_CYAN " conditional" ANSI_RESET ": " << constants::cmp::to_string(test_bits) << " -> ";
 
         // special case for [N]Z test, otherwise compare directly
         if (flag_test(int(test_bits), flag::zero)) {

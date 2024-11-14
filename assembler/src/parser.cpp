@@ -324,9 +324,10 @@ namespace assembler::parser {
             std::string str = dot == std::string::npos ? options : options.substr(0, dot);
 
             if (!str.empty()) {
-                auto entry = instruction::conditional_postfix_map.find(str);
+                int i = 0;
+                auto mask = constants::cmp::from_string(str, i);
 
-                if (entry == instruction::conditional_postfix_map.end()) {
+                if (!mask) {
                     auto msg = std::make_unique<message::Message>(message::Error, loc);
                     msg->get() << "unknown conditional test '" << str << "'";
                     msgs.add(std::move(msg));
@@ -334,11 +335,11 @@ namespace assembler::parser {
                 }
 
                 if (data.cli_args.debug) {
-                    std::cout << "Conditional test: 0x" << std::hex << (int) entry->second << std::dec << " ('"
-                              << entry->first << "')\n";
+                    std::cout << "Conditional test: 0x" << std::hex << mask.value() << std::dec << " ('"
+                              << str.substr(0, i) << "')\n";
                 }
 
-                instruction->set_conditional_test(entry->second);
+                instruction->set_conditional_test(mask.value());
             }
         } else if (!options.empty() && dot == std::string::npos) {
             auto msg = std::make_unique<message::Message>(message::Error, loc);
@@ -349,19 +350,19 @@ namespace assembler::parser {
 
         if (signature->expect_datatype) {
             if (dot == std::string::npos) {
-                instruction->add_datatype_specifier(constants::inst::u64);
+                instruction->add_datatype_specifier(constants::inst::datatype::u64);
             } else {
                 std::string str = options.substr(dot + 1);
-                auto entry = instruction::datatype_postfix_map.find(str);
+                auto dt = constants::inst::datatype::map.find(str);
 
-                if (entry == instruction::datatype_postfix_map.end()) {
+                if (dt == constants::inst::datatype::map.end()) {
                     auto msg = std::make_unique<message::Message>(message::Error, loc);
                     msg->get() << "unknown datatype specifier '" << str << "'";
                     msgs.add(std::move(msg));
                     return false;
                 }
 
-                instruction->add_datatype_specifier(entry->second);
+                instruction->add_datatype_specifier(dt->second);
             }
         } else if (dot != std::string::npos) {
             auto msg = std::make_unique<message::Message>(message::Error, loc);
@@ -749,7 +750,7 @@ namespace assembler::parser {
             // include debug info in comment?
             if (data.cli_args.debug) {
                 os << "\t; ";
-                if (!chunk->is_data()) os << "0x" << std::hex << chunk->get_instruction()->compile() << std::dec << " ";
+                //if (!chunk->is_data()) os << "0x" << std::hex << chunk->get_instruction()->compile() << std::dec << " ";
                 os << chunk->location() << "+" << chunk->offset << std::endl;
             }
         }
