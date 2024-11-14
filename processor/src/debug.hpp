@@ -1,15 +1,11 @@
 #pragma once
 
-namespace processor {
-    struct Debug {
-        bool cpu = false;
-        bool mem = false;
-        bool zflag = false;
-        bool conditionals = false;
-        bool errs = false;
+namespace processor::debug {
+    extern bool cpu;
+    extern bool mem;
+    extern bool zflag;
+    extern bool conditionals;
+    extern bool errs;
 
-        void set_all(bool b) {
-            cpu = mem = zflag = conditionals = errs = b;
-        }
-    };
+    void set_all(bool b);
 }

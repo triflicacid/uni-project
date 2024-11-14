@@ -5,20 +5,16 @@
 #include "bus.hpp"
 #include "constants.hpp"
 #include "debug.hpp"
+#include "core.hpp"
 
 namespace processor {
-    class CPU {
-        const Debug &debug;
-        std::array<uint64_t, constants::registers::count> regs{};  // register store
-        bus data_bus{};  // connected to bus to access memory
-        std::ostream &os;
-        std::istream &is;
+    class CPU : public Core {
         uint64_t addr_interrupt_handler{};
 
         [[nodiscard]] static bool flag_test(uint64_t bitstr, constants::flag v) { return bitstr & int(v); }
-        [[nodiscard]] bool flag_test(constants::flag v) const { return regs[constants::registers::flag] & int(v); }
-        void flag_set(constants::flag v) { regs[constants::registers::flag] |= int(v); }
-        void flag_reset(constants::flag v) { regs[constants::registers::flag] &= ~int(v); }
+        [[nodiscard]] bool flag_test(constants::flag v) const { return reg(constants::registers::flag) & int(v); }
+        void flag_set(constants::flag v) { reg(constants::registers::flag, reg(constants::registers::flag) | int(v)); }
+        void flag_reset(constants::flag v) { reg(constants::registers::flag, reg(constants::registers::flag) & ~int(v)); }
         void halt() { flag_reset(constants::flag::is_running); }
 
         template<typename T>
@@ -72,22 +68,20 @@ namespace processor {
         void exec_syscall(uint64_t inst);
 
     public:
-        CPU(std::ostream &os, std::istream &is, const Debug &debug);
-
-        bus &get_bus() { return data_bus; }
+        CPU(std::ostream &os, std::istream &is);
 
         void set_interrupt_handler(uint64_t addr) { addr_interrupt_handler = addr; }
 
         // sets $ip, use carefully while running
-        void jump(uint64_t val) { regs[constants::registers::ip] = val; }
+        void jump(uint64_t val) { reg(constants::registers::ip, val); }
 
         // read $ret
-        [[nodiscard]] uint64_t get_return_value() const { return regs[constants::registers::ret]; }
+        [[nodiscard]] uint64_t get_return_value() const { return reg(constants::registers::ret); }
 
         [[nodiscard]] bool is_running() const { return flag_test(constants::flag::is_running); }
 
         [[nodiscard]] constants::error::code get_error() const { return static_cast<constants::error::code>(
-                    (regs[constants::registers::flag] >> constants::error::offset) & constants::error::mask); }
+                    (reg(constants::registers::flag) >> constants::error::offset) & constants::error::mask); }
 
         // halt cpu, set error code bits, $ret=val
         void raise_error(constants::error::code code, uint64_t val);
@@ -117,12 +111,6 @@ namespace processor {
 
         // print error details (doesn't print if no error)
         void print_error(bool prefix) const;
-
-        // print contents of stack as hexadecimal bytes
-        void print_stack() const;
-
-        // print contents of all registers as hexadecimal
-        void print_registers() const;
 
         // check if the given address is valid
         [[nodiscard]] static bool check_memory(uint64_t addr) { return addr < dram::size; }

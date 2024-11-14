@@ -31,17 +31,17 @@ int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
                     return EXIT_FAILURE;
                 }
             } else if (arg == "-dall") {
-                args.debug.set_all(true);
+                processor::debug::set_all(true);
             } else if (arg == "-dcpu") {
-                args.debug.cpu = !args.debug.cpu;
+                processor::debug::cpu = !processor::debug::cpu;
             } else if (arg == "-dmem") {
-                args.debug.mem = !args.debug.mem; // TODO implement
+                processor::debug::mem = !processor::debug::mem; // TODO implement
             } else if (arg == "-dzflag") {
-                args.debug.zflag = !args.debug.zflag;
+                processor::debug::zflag = !processor::debug::zflag;
             } else if (arg == "-dcond") {
-                args.debug.conditionals = !args.debug.conditionals;
+                processor::debug::conditionals = !processor::debug::conditionals;
             } else if (arg == "-derr") {
-                args.debug.errs = !args.debug.errs;
+                processor::debug::errs = !processor::debug::errs;
             } else {
                 std::cerr << "unknown flag " << arg;
                 return EXIT_FAILURE;
@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
     using namespace processor;
 
     // parse command line arguments
+    debug::set_all(false);
     CliArguments args;
 
     if (parse_arguments(argc, argv, args) != EXIT_SUCCESS) {
@@ -83,7 +84,7 @@ int main(int argc, char **argv) {
     }
 
     // create and initialise CPU
-    CPU cpu(args.output_file ? args.output_file->stream : std::cout, args.input_file ? args.input_file->stream : std::cin, args.debug);
+    CPU cpu(args.output_file ? args.output_file->stream : std::cout, args.input_file ? args.input_file->stream : std::cin);
 
     // determine file size
     auto &stream = args.source_file->stream;
@@ -91,7 +92,7 @@ int main(int argc, char **argv) {
     size_t file_size = stream.tellg();
     stream.seekg(std::ios::beg);
 
-    if (args.debug.cpu) std::cout << DEBUG_STR " reading source file " << args.source_file->path << "... " << file_size << " bytes read" << std::endl;
+    if (debug::cpu) std::cout << DEBUG_STR " reading source file " << args.source_file->path << "... " << file_size << " bytes read" << std::endl;
 
     // error if file size exceeds buffer size
     if (file_size >= dram::size) {
@@ -104,24 +105,22 @@ int main(int argc, char **argv) {
     stream.read((char *) &addr_entry, sizeof(addr_entry));
     stream.read((char *) &addr_interrupt, sizeof(addr_interrupt));
 
-    if (args.debug.cpu) std::cout << DEBUG_STR " entry point: 0x" << std::hex << addr_entry << "; interrupt handler: 0x" << addr_interrupt << std::dec << std::endl;
+    if (debug::cpu) std::cout << DEBUG_STR " entry point: 0x" << std::hex << addr_entry << "; interrupt handler: 0x" << addr_interrupt << std::dec << std::endl;
     cpu.jump(addr_entry);
     cpu.set_interrupt_handler(addr_interrupt);
 
     // copy code into processor's memory
-    stream.read((char *) cpu.get_bus().mem.data(), file_size);
+    cpu.read(stream, file_size);
 
     // start processor
     cpu.step_cycle();
 
+    // print error (if any) and notify user of exit code
     cpu.print_error(true);
 
-#if DEBUG & DEBUG_CPU
-    printf(DEBUG_STR " process exited with code 0x%x\n", cpu_exit_code(&cpu));
-#endif
     auto err_code = cpu.get_error();
     uint64_t code = err_code ? err_code : cpu.get_return_value();
-    if (args.debug.cpu) std::cout << DEBUG_STR " processor exited with code " << code << std::endl;
+    if (debug::cpu) std::cout << DEBUG_STR " processor exited with code " << code << std::endl;
 
     return EXIT_SUCCESS;
 }
