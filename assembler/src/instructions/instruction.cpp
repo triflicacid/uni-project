@@ -27,6 +27,15 @@ namespace assembler::instruction {
     void Instruction::print(std::ostream &os) const {
         os << signature->mnemonic;
 
+        if (test & 0x80) {
+            os << constants::cmp::to_string(static_cast<constants::cmp::flag>(test & constants::inst::cmp_mask));
+        }
+
+        // TODO correct formatting for `cvt` instruction
+        for (const auto &datatype : datatypes) {
+            os << "." << constants::inst::datatype::to_string(datatype);
+        }
+
         for (int i = 0; i < args.size(); i++) {
             os << " ";
             args[i].print(os);
