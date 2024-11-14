@@ -12,9 +12,10 @@ namespace processor {
         uint64_t addr_interrupt_handler{};
 
         [[nodiscard]] static bool flag_test(uint64_t bitstr, constants::flag v) { return bitstr & int(v); }
-        [[nodiscard]] bool flag_test(constants::flag v) const { return reg(constants::registers::flag) & int(v); }
-        void flag_set(constants::flag v) { reg(constants::registers::flag, reg(constants::registers::flag) | int(v)); }
-        void flag_reset(constants::flag v) { reg(constants::registers::flag, reg(constants::registers::flag) & ~int(v)); }
+        [[nodiscard]] bool flag_test(constants::flag v, bool silent = false) const { return reg(constants::registers::flag, silent) & int(v); }
+        void flag_set(constants::flag v, bool silent = false) { reg_set(constants::registers::flag, reg(constants::registers::flag, silent) | int(v), silent); }
+        void flag_reset(constants::flag v) {
+            reg_set(constants::registers::flag, reg(constants::registers::flag) & ~int(v)); }
         void halt() { flag_reset(constants::flag::is_running); }
 
         template<typename T>
@@ -73,7 +74,7 @@ namespace processor {
         void set_interrupt_handler(uint64_t addr) { addr_interrupt_handler = addr; }
 
         // sets $ip, use carefully while running
-        void jump(uint64_t val) { reg(constants::registers::ip, val); }
+        void jump(uint64_t val) { reg_set(constants::registers::ip, val); }
 
         // read $ret
         [[nodiscard]] uint64_t get_return_value() const { return reg(constants::registers::ret); }

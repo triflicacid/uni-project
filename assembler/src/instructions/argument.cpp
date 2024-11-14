@@ -100,9 +100,9 @@ namespace assembler::instruction {
             case ArgumentType::Value:
                 return "<value>";
             case ArgumentType::Register:
-                return "<reg>";
+                return "<reg_copy>";
             case ArgumentType::RegisterIndirect:
-                return "<addr: reg>";
+                return "<addr: reg_copy>";
             default:
                 return "";
         }

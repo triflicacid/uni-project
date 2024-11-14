@@ -42,6 +42,8 @@ int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
                 processor::debug::conditionals = !processor::debug::conditionals;
             } else if (arg == "-derr") {
                 processor::debug::errs = !processor::debug::errs;
+            } else if (arg == "-dreg") {
+                processor::debug::reg = !processor::debug::reg;
             } else {
                 std::cerr << "unknown flag " << arg;
                 return EXIT_FAILURE;

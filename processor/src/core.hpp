@@ -2,20 +2,27 @@
 
 #include <array>
 #include <cstdint>
+#include <iostream>
 #include "constants.hpp"
 #include "bus.hpp"
+#include "debug.hpp"
 
 namespace processor {
     class Core {
-        std::array<uint64_t, constants::registers::count> m_regs; // register store
-        bus m_bus; // connected bus to access memory
+        std::array<uint64_t, constants::registers::count> m_regs{}; // register store
+        bus m_bus{}; // connected bus to access memory
 
     protected:
-        [[nodiscard]] uint64_t reg(constants::registers::reg r) const { return m_regs[r]; }
+        [[nodiscard]] uint64_t reg(constants::registers::reg r, bool silent = false) const;
+
         template<typename T>
-        [[nodiscard]] T reg(constants::registers::reg r) const { return *(T*) &m_regs[r]; }
-        void reg(constants::registers::reg r, uint64_t val) { m_regs[r] = val; }
-        void reg(constants::registers::reg rd, constants::registers::reg rs) { m_regs[rd] = m_regs[rs]; }
+        [[nodiscard]] T reg(constants::registers::reg r, bool silent = false) const {
+            if (debug::reg && !silent) std::cout << DEBUG_STR ANSI_BRIGHT_YELLOW " reg_copy" ANSI_RESET ": access $" << constants::registers::to_string(r) << " -> 0x" << std::hex << m_regs[r] << std::dec << std::endl;
+            return *(T*) &m_regs[r];
+        }
+
+        void reg_set(constants::registers::reg r, uint64_t val, bool silent = false);
+        void reg_copy(constants::registers::reg rd, constants::registers::reg rs, bool silent = false);
         void reg_upper(constants::registers::reg r, uint32_t val) { *(uint32_t *) &m_regs[r] = val; }
 
         [[nodiscard]] uint64_t mem_load(uint64_t addr, uint8_t size);

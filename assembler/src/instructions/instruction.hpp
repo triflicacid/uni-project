@@ -87,7 +87,7 @@ namespace assembler::instruction {
         /** Write data-type bits. */
         void data_type(uint8_t bits);
 
-        /** Write argument: `<reg>` */
+        /** Write argument: `<reg_copy>` */
         void arg_reg(uint8_t reg);
 
         /** Write argument: immediate. */

@@ -10,23 +10,38 @@ processor::Core::Core(std::ostream &os, std::istream &is) : os(os), is(is) {
 
     // clear and configure key registers
     memset(m_regs.data(), 0, sizeof(m_regs));
-    reg(registers::imr, 0xffffffffffffffff);
-    reg(registers::sp, dram::size);
-    reg(registers::fp, registers::sp);
+    reg_set(registers::imr, 0xffffffffffffffff);
+    reg_set(registers::sp, dram::size);
+    reg_copy(registers::fp, registers::sp);
 
     // clear memory
     m_bus.mem.clear();
 }
 
+uint64_t processor::Core::reg(constants::registers::reg r, bool silent) const {
+    if (debug::reg && !silent) std::cout << DEBUG_STR ANSI_BRIGHT_YELLOW " reg" ANSI_RESET ": access $" << constants::registers::to_string(r) << " -> 0x" << std::hex << m_regs[r] << std::dec << std::endl;
+    return m_regs[r];
+}
+
+void processor::Core::reg_set(constants::registers::reg r, uint64_t val, bool silent) {
+    if (debug::reg && !silent) std::cout << DEBUG_STR ANSI_BRIGHT_YELLOW " reg" ANSI_RESET ": set $" << constants::registers::to_string(r) << " to 0x" << std::hex << val << std::dec << std::endl;
+    m_regs[r] = val;
+}
+
+void processor::Core::reg_copy(constants::registers::reg rd, constants::registers::reg rs, bool silent) {
+    if (debug::reg && !silent) std::cout << DEBUG_STR ANSI_BRIGHT_YELLOW " reg" ANSI_RESET ": copy $" << constants::registers::to_string(rs) << " into $" << constants::registers::to_string(rd) << " -> 0x" << std::hex << m_regs[rs] << std::dec << std::endl;
+    m_regs[rd] = m_regs[rs];
+}
+
 uint64_t processor::Core::mem_load(uint64_t addr, uint8_t size) {
-    if (debug::mem) std::cout << DEBUG_STR " mem: access " << size << " bytes from address 0x" << std::hex << addr << " -> ";
+    if (debug::mem) std::cout << DEBUG_STR ANSI_YELLOW " mem" ANSI_RESET ": access " << (int) size << " bytes from address 0x" << std::hex << addr << " -> ";
     uint64_t data = m_bus.load(addr, size);
     if (debug::mem) std::cout << "0x" << data << std::dec << std::endl;
     return data;
 }
 
 void processor::Core::mem_store(uint64_t addr, uint8_t size, uint64_t data) {
-    if (debug::mem) std::cout << DEBUG_STR " mem: store data 0x" << std::hex << data << " of " << std::dec << size << " bytes at address 0x" << std::hex << addr << std::dec << std::endl;
+    if (debug::mem) std::cout << DEBUG_STR ANSI_YELLOW " mem" ANSI_RESET ": store data 0x" << std::hex << data << " of " << std::dec << size << " bytes at address 0x" << std::hex << addr << std::dec << std::endl;
     m_bus.store(addr, size, data);
 }
 
