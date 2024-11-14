@@ -6,6 +6,9 @@
 #include <instructions/instruction.hpp>
 
 namespace assembler::parser {
+    /** Return 'ch' or eol. */
+    void emit_ch(std::ostream &os, const std::string &s, int i);
+
     /** Parse lines into chunks. */
     void parse(Data &data, message::List &msgs);
 

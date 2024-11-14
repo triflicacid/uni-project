@@ -9,6 +9,13 @@
 #include "constants.hpp"
 
 namespace assembler::parser {
+    void emit_ch(std::ostream &os, const std::string &s, int i) {
+        if (i < s.length())
+            os << "'" << s[i] << "'";
+        else
+            os << "eol";
+    }
+
     void parse(Data &data, message::List &msgs) {
         data.offset = 0;
 
@@ -135,7 +142,8 @@ namespace assembler::parser {
                 // must end in break character
                 if (i < line.second.size() && line.second[i] != ' ' && line.second[i] != ',') {
                     auto msg = std::make_unique<message::Message>(message::Error, line.first.copy().column(i));
-                    msg->get() << "expected ' ' or ',', got '" << line.second[i] << "'";
+                    msg->get() << "expected ' ' or ',', got ";
+                    emit_ch(msg->get(), line.second, i);
                     msgs.add(std::move(msg));
                     return;
                 }
@@ -514,7 +522,8 @@ namespace assembler::parser {
         if (str_start > -1) {
             col--;
             auto msg = std::make_unique<message::Message>(message::Error, loc);
-            msg->get() << "unterminated string literal; expected '\"', got '" << line.second[col] << "'";
+            msg->get() << "unterminated string literal; expected '\"', got ";
+            emit_ch(msg->get(), line.second, col);
             msgs.add(std::move(msg));
 
             msg = std::make_unique<message::Message>(message::Note, loc.copy().column(str_start));
@@ -632,7 +641,8 @@ namespace assembler::parser {
                 // ending bracket?
                 if (line.second[col] != ')') {
                     auto msg = std::make_unique<message::Message>(message::Error, loc);
-                    msg->get() << "expected ')', got '" << line.second[col] << "'";
+                    msg->get() << "expected ')', got ";
+                    emit_ch(msg->get(), line.second, col);
                     msgs.add(std::move(msg));
 
                     msg = std::make_unique<message::Message>(message::Note, loc.copy().column(start - 1));
@@ -675,7 +685,8 @@ namespace assembler::parser {
             // ending bracket?
             if (line.second[col] != ')') {
                 auto msg = std::make_unique<message::Message>(message::Error, loc);
-                msg->get() << "expected ')', got '" << line.second[col] << "'";
+                msg->get() << "expected ')', got ";
+                emit_ch(msg->get(), line.second, col);
                 msgs.add(std::move(msg));
 
                 msg = std::make_unique<message::Message>(message::Note, loc.copy().column(start - 1));
