@@ -8,7 +8,7 @@
 #include "util.hpp"
 
 extern "C" {
-#include "processor/src/constants.h"
+#include "processor/src/constants.hpp"
 }
 
 namespace assembler::parser {
@@ -352,7 +352,7 @@ namespace assembler::parser {
 
         if (signature->expect_datatype) {
             if (dot == std::string::npos) {
-                instruction->add_datatype_specifier(DATATYPE_U64);
+                instruction->add_datatype_specifier(processor::constants::inst::u64);
             } else {
                 std::string str = options.substr(dot + 1);
                 auto entry = instruction::datatype_postfix_map.find(str);
@@ -707,18 +707,18 @@ namespace assembler::parser {
         msgs.add(std::move(msg));
     }
 
-    std::map<std::string, uint8_t> register_map = {
-            {"ip",   REG_IP},
-            {"rip",  REG_RIP},
-            {"sp",   REG_SP},
-            {"fp",   REG_FP},
-            {"flag", REG_FLAG},
-            {"isr",  REG_ISR},
-            {"imr",  REG_IMR},
-            {"iip",  REG_IIP},
-            {"ret",  REG_RET},
-            {"k1",   REG_K1},
-            {"k2",   REG_K2},
+    std::map<std::string, processor::constants::registers::reg> register_map = {
+            {"ip",   processor::constants::registers::ip},
+            {"rip",  processor::constants::registers::rip},
+            {"sp",   processor::constants::registers::sp},
+            {"fp",   processor::constants::registers::fp},
+            {"flag", processor::constants::registers::flag},
+            {"isr",  processor::constants::registers::isr},
+            {"imr",  processor::constants::registers::imr},
+            {"iip",  processor::constants::registers::iip},
+            {"ret",  processor::constants::registers::ret},
+            {"k1",   processor::constants::registers::k1},
+            {"k2",   processor::constants::registers::k2},
     };
 
     std::string register_to_string(uint8_t offset) {
@@ -730,7 +730,7 @@ namespace assembler::parser {
         }
 
         // assume we are a general register
-        return "r" + std::to_string(offset - REG_GPR + 1);
+        return "r" + std::to_string(offset - processor::constants::registers::r1 + 1);
     }
 
     int parse_register(const std::string &s, int &i) {
@@ -743,7 +743,7 @@ namespace assembler::parser {
                 number = number * 10 + s[i++] - '0';
             }
 
-            return REG_GPR + number - 1;
+            return processor::constants::registers::r1 + number - 1;
         }
 
         // check register map
@@ -800,7 +800,11 @@ namespace assembler::parser {
             }
 
             // include debug info in comment?
-            if (data.cli_args.debug) os << "\t; " << chunk->location() << "+" << chunk->offset << std::endl;
+            if (data.cli_args.debug) {
+                os << "\t; ";
+                if (!chunk->is_data()) os << "0x" << std::hex << chunk->get_instruction()->compile() << std::dec << " ";
+                os << chunk->location() << "+" << chunk->offset << std::endl;
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ namespace assembler::parser {
     void parse_arg(const Data &data, Location &loc, int line_idx, message::List &msgs, instruction::Argument &argument);
 
     /** Map of register names to offsets. */
-    extern std::map<std::string, uint8_t> register_map;
+    extern std::map<std::string, processor::constants::registers::reg> register_map;
 
     /** Given a string, return register offset, or -1. */
     int parse_register(const std::string &string, int &index);

@@ -1,0 +1,147 @@
+#pragma once
+
+#include <ostream>
+#include <functional>
+#include "bus.hpp"
+#include "constants.hpp"
+#include "debug.hpp"
+
+// halt CPU, raise error with CODE, write VAL to $ret, and return RET
+#define CPU_RAISE_ERROR(CODE, VAL, RET) { \
+  CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING); \
+  REG(REG_FLAG) |= (CODE & FLAG_ERR_MASK) << FLAG_ERR_OFFSET; \
+  REG(REG_RET) = VAL; \
+  return RET; \
+}
+
+namespace processor {
+    class CPU {
+        const Debug &debug;
+        std::array<uint64_t, constants::registers::count> regs{};  // register store
+        bus data_bus{};  // connected to bus to access memory
+        std::ostream &os;
+        std::istream &is;
+        uint64_t addr_interrupt_handler{};
+
+        [[nodiscard]] static bool flag_test(uint64_t bitstr, constants::flag v) { return bitstr & int(v); }
+        [[nodiscard]] bool flag_test(constants::flag v) const { return regs[constants::registers::flag] & int(v); }
+        void flag_set(constants::flag v) { regs[constants::registers::flag] |= int(v); }
+        void flag_reset(constants::flag v) { regs[constants::registers::flag] &= ~int(v); }
+        void halt() { flag_reset(constants::flag::is_running); }
+
+        template<typename T>
+        void push(T val);
+
+        // set the zero flag based on contents of the register
+        void test_is_zero(processor::constants::registers::reg reg);
+
+        // extract `<reg>` argument from data
+        processor::constants::registers::reg _arg_reg(uint32_t data);
+
+        // extract `<addr>` argument from data
+        uint32_t _arg_addr(uint32_t data);
+
+        // extract `<register indirect>` address argument from word, return offset
+        uint32_t _arg_reg_indirect(uint32_t data);
+
+        // get argument `<reg>`
+        [[nodiscard]] processor::constants::registers::reg get_arg_reg(uint64_t inst, uint8_t pos);
+
+        // extract `<value>` argument from word, fetch value
+        // cast_imm_double: if true, cast imm to double (as 32-bit imm only, so float)
+        [[nodiscard]] uint64_t get_arg_value(uint64_t word, uint8_t pos, bool cast_imm_double);
+
+        // extract `<addr>` argument from word (returns address, doesn't extract value)
+        [[nodiscard]] uint64_t get_arg_addr(uint64_t word, uint8_t pos);
+
+        // fetch `<reg> <reg> <value>`, return if OK. Index into instruction `HEADER_SIZE + offset`
+        // pass `is_double` to `get_arg` of value
+        [[nodiscard]] bool fetch_reg_reg_val(uint64_t inst, constants::registers::reg &reg1, constants::registers::reg &reg2, uint64_t &value, uint8_t offset, bool is_double);
+
+        // opcode execution instructions
+        void exec_load(uint64_t inst);
+        void exec_load_upper(uint64_t inst);
+        void exec_store(uint64_t inst);
+        void exec_compare(uint64_t inst);
+        void exec_convert(uint64_t inst);
+        void exec_not(uint64_t inst);
+        void exec_and(uint64_t inst);
+        void exec_or(uint64_t inst);
+        void exec_xor(uint64_t inst);
+        void exec_shift_left(uint64_t inst);
+        void exec_shift_right(uint64_t inst);
+        void exec_add(uint64_t inst);
+        void exec_sub(uint64_t inst);
+        void exec_mul(uint64_t inst);
+        void exec_div(uint64_t inst);
+        void exec_mod(uint64_t inst);
+        void exec_jal(uint64_t inst);
+        void exec_push(uint64_t inst);
+        void exec_syscall(uint64_t inst);
+
+    public:
+        CPU(std::ostream &os, std::istream &is, const Debug &debug);
+
+        bus &get_bus() { return data_bus; }
+
+        void set_interrupt_handler(uint64_t addr) { addr_interrupt_handler = addr; }
+
+        // sets $ip, use carefully while running
+        void jump(uint64_t val) { regs[constants::registers::ip] = val; }
+
+        // read $ret
+        [[nodiscard]] uint64_t get_return_value() const { return regs[constants::registers::ret]; }
+
+        [[nodiscard]] bool is_running() const { return flag_test(constants::flag::is_running); }
+
+        [[nodiscard]] constants::error::code get_error() const { return static_cast<constants::error::code>(
+                    (regs[constants::registers::flag] >> constants::error::offset) & constants::error::mask); }
+
+        // halt cpu, set error code bits, $ret=val
+        void raise_error(constants::error::code code, uint64_t val);
+
+        // same as raise_error, but returns ret from function
+        uint64_t raise_error(constants::error::code code, uint64_t val, uint64_t ret);
+
+        // test if there is an interrupt THAT IS NOT BEING HANDLED
+        [[nodiscard]] bool is_interrupt() const;
+
+        // handle interrupt - jump to handler
+        // note, does not check $imr or $isr
+        void handle_interrupt();
+
+        // fetch next instruction, DO NOT increment $ip
+        [[nodiscard]] uint64_t fetch();
+
+        // execute the given instruction
+        void execute(uint64_t inst);
+
+        // execute a single step in the fetch-execute cycle
+        // argument `step` is for debug output only
+        void step(int step = -1);
+
+        // run the fetch-execute cycle (call step() until halt)
+        void step_cycle();
+
+        // print error details (doesn't print if no error)
+        void print_error(bool prefix) const;
+
+        // print contents of stack as hexadecimal bytes
+        void print_stack() const;
+
+        // print contents of all registers as hexadecimal
+        void print_registers() const;
+
+        // check if the given address is valid
+        [[nodiscard]] static bool check_memory(uint64_t addr) { return addr < dram::size; }
+
+        // check if the given register is valid
+        [[nodiscard]] static bool check_register(uint8_t off) { return off < constants::registers::count; }
+    };
+
+// given a string name, return register offset (or -1)
+    int string_to_register(const std::string &s);
+
+// given a register offset, return string name
+    std::string register_to_string(int offset);
+}

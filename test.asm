@@ -1,5 +1,4 @@
 %include lib:syscall
-
 main:
     ; get number of arguments
     print_str s_num_args

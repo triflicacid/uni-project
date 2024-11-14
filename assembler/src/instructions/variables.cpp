@@ -1,4 +1,4 @@
-#include <processor/src/constants.h>
+#include "processor/src/constants.hpp"
 
 #include "instruction.hpp"
 #include "extra.hpp"
@@ -6,27 +6,29 @@
 #include "util.hpp"
 
 namespace assembler::instruction {
-    std::unordered_map<std::string, uint8_t> conditional_postfix_map = {
-            {"z",   CMP_Z},
-            {"nz",  CMP_NZ},
-            {"neq", CMP_NE},
-            {"ne",  CMP_NE},
-            {"eq",  CMP_EQ},
-            {"lte", CMP_LE},
-            {"lt",  CMP_LT},
-            {"le",  CMP_LE},
-            {"gte", CMP_GE},
-            {"gt",  CMP_GT},
-            {"ge",  CMP_GE},
+    using namespace processor:: constants;
+
+    std::unordered_map<std::string, cmp> conditional_postfix_map = {
+            {"z",   cmp::z},
+            {"nz",  cmp::nz},
+            {"neq", cmp::ne},
+            {"ne",  cmp::ne},
+            {"eq",  cmp::eq},
+            {"lte", cmp::le},
+            {"lt",  cmp::lt},
+            {"le",  cmp::le},
+            {"gte", cmp::ge},
+            {"gt",  cmp::gt},
+            {"ge",  cmp::ge},
     };
 
-    std::map<std::string, uint8_t> datatype_postfix_map = {
-            {"hu", DATATYPE_U32},
-            {"u",  DATATYPE_U64},
-            {"hi", DATATYPE_S32},
-            {"i",  DATATYPE_S64},
-            {"f",  DATATYPE_F},
-            {"d",  DATATYPE_D}
+    std::map<std::string, inst::datatype> datatype_postfix_map = {
+            {"hu", inst::u32},
+            {"u",  inst::u64},
+            {"hi", inst::s32},
+            {"i",  inst::s64},
+            {"f",  inst::flt},
+            {"d",  inst::dbl}
     };
 
     Signature *find_signature(const std::string &mnemonic, std::string &options) {
@@ -54,43 +56,43 @@ namespace assembler::instruction {
     const std::deque reg_reg_val = {ArgumentType::Register, ArgumentType::Register, ArgumentType::Value};
 
     const Signature
-            Signature::_add = {"add", OP_ADD, true, true, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_add = {"add", inst::_add, true, true, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
-            Signature::_and = {"and", OP_AND, true, false, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_and = {"and", inst::_and, true, false, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
-//    Signature::_call = { "call", OP_CALL, true, false, { { ArgumentType::Address } }, false, nullptr },
-    Signature::_cvt = {"cvt", OP_CONVERT, true, false,
+//    Signature::_call = { "call", inst::_call, true, false, { { ArgumentType::Address } }, false, nullptr },
+    Signature::_cvt = {"cvt", inst::_convert, true, false,
                        {{ArgumentType::Register}, {ArgumentType::Register, ArgumentType::Register}}, false,
                        parse::convert, transform::transform_reg_reg},
-            Signature::_div = {"div", OP_DIV, true, true, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_div = {"div", inst::_div, true, true, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
-            Signature::_jal = {"jal", OP_JAL, true, false, {{ArgumentType::Value}, reg_val}, false, nullptr,
+            Signature::_jal = {"jal", inst::_jal, true, false, {{ArgumentType::Value}, reg_val}, false, nullptr,
                                transform::transform_jal},
-            Signature::_load = {"load", OP_LOAD, true, false, {reg_val}, false, nullptr, nullptr},
-            Signature::_loadu = {"loadu", OP_LOAD_UPPER, true, false, {reg_val}, false, nullptr, nullptr},
-            Signature::_mod = {"mod", OP_MOD, true, false, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_load = {"load", inst::_load, true, false, {reg_val}, false, nullptr, nullptr},
+            Signature::_loadu = {"loadu", inst::_load_upper, true, false, {reg_val}, false, nullptr, nullptr},
+            Signature::_mod = {"mod", inst::_mod, true, false, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
-            Signature::_mul = {"mul", OP_MUL, true, true, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_mul = {"mul", inst::_mul, true, true, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
-            Signature::_nop = {"nop", OP_NOP, false, false, {{}}, false, nullptr, nullptr},
-            Signature::_not = {"not", OP_NOT, true, false,
+            Signature::_nop = {"nop", inst::_nop, false, false, {{}}, false, nullptr, nullptr},
+            Signature::_not = {"not", inst::_not, true, false,
                                {{ArgumentType::Register}, {ArgumentType::Register, ArgumentType::Register}}, false,
                                nullptr, transform::transform_reg_reg},
-            Signature::_or = {"or", OP_OR, true, false, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_or = {"or", inst::_or, true, false, {reg_val, reg_reg_val}, false, nullptr,
                               transform::transform_reg_reg_val},
-            Signature::_push = {"push", OP_PUSH, true, false, {{ArgumentType::Value}}, false, nullptr, nullptr},
-//    Signature::_ret = { "ret", OP_RET, true, false, { { } }, false, nullptr, nullptr },
-    Signature::_shl = {"shl", OP_SHL, true, false, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_push = {"push", inst::_push, true, false, {{ArgumentType::Value}}, false, nullptr, nullptr},
+//    Signature::_ret = { "ret", inst::_ret, true, false, { { } }, false, nullptr, nullptr },
+    Signature::_shl = {"shl", inst::_shl, true, false, {reg_val, reg_reg_val}, false, nullptr,
                        transform::transform_reg_reg_val},
-            Signature::_shr = {"shr", OP_SHR, true, false, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_shr = {"shr", inst::_shr, true, false, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
-            Signature::_store = {"store", OP_STORE, true, false, {{ArgumentType::Register, ArgumentType::Address}},
+            Signature::_store = {"store", inst::_store, true, false, {{ArgumentType::Register, ArgumentType::Address}},
                                  false, nullptr, nullptr},
-            Signature::_sub = {"sub", OP_SUB, true, true, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_sub = {"sub", inst::_sub, true, true, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
-            Signature::_syscall = {"syscall", OP_SYSCALL, true, false, {{ArgumentType::Value}}, false, nullptr,
+            Signature::_syscall = {"syscall", inst::_syscall, true, false, {{ArgumentType::Value}}, false, nullptr,
                                    nullptr},
-            Signature::_xor = {"xor", OP_XOR, true, false, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_xor = {"xor", inst::_xor, true, false, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val};
 
     std::vector<Signature> signature_list = {

@@ -7,6 +7,7 @@
 #include <deque>
 #include <unordered_map>
 #include <messages/message.hpp>
+#include "processor/src/constants.hpp"
 
 #include "argument.hpp"
 
@@ -14,10 +15,10 @@ namespace assembler::instruction {
     struct Signature;
 
     /** Map conditional postfix to bits. */
-    extern std::unordered_map<std::string, uint8_t> conditional_postfix_map;
+    extern std::unordered_map<std::string, processor::constants::cmp> conditional_postfix_map;
 
     /** Map data-type postfix to bits. */
-    extern std::map<std::string, uint8_t> datatype_postfix_map;
+    extern std::map<std::string, processor::constants::inst::datatype> datatype_postfix_map;
 
     /** List of all instruction signatures. Use list over map to preserve insertion order. */
     extern std::vector<Signature> signature_list;
@@ -33,14 +34,14 @@ namespace assembler::instruction {
         // MSB - perform test, or skip?
         uint8_t test;
         // datatype specifier(s), only included if signature.expect_datatype
-        std::vector<uint8_t> datatypes;
+        std::vector<processor::constants::inst::datatype> datatypes;
 
     public:
         Instruction(const Signature *signature, std::deque<Argument> arguments);
 
-        void set_conditional_test(uint8_t mask);
+        void set_conditional_test(processor::constants::cmp mask);
 
-        void add_datatype_specifier(uint8_t mask);
+        void add_datatype_specifier(processor::constants::inst::datatype mask);
 
         /** Offset addresses by the given amount. */
         void offset_addresses(uint16_t offset);
