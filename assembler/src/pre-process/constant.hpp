@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "util/location.hpp"
+#include "location.hpp"
 
 namespace assembler::pre_processor {
     struct Constant {

@@ -5,7 +5,7 @@
 #include "constant.hpp"
 #include "macro.hpp"
 #include "cli_arguments.hpp"
-#include "util/location.hpp"
+#include "location.hpp"
 
 namespace assembler::pre_processor {
     typedef std::pair<Location, std::string> Line;

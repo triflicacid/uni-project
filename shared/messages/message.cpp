@@ -1,10 +1,7 @@
 #include <iostream>
 
 #include "message.hpp"
-
-extern "C" {
-#include "util.h"
-}
+#include "shell.hpp"
 
 namespace message {
     void Message::print_type_suffix(std::ostream &os) {

@@ -5,6 +5,6 @@ include_directories(src)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../out)
 add_executable(visualiser
-        ../util/util.cpp ../util/messages/message.cpp ../util/messages/list.cpp
+        ../shared/util.cpp ../shared/messages/message.cpp ../shared/messages/list.cpp
         src/assembly.cpp
         main.cpp)

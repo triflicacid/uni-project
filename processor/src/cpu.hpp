@@ -6,14 +6,6 @@
 #include "constants.hpp"
 #include "debug.hpp"
 
-// halt CPU, raise error with CODE, write VAL to $ret, and return RET
-#define CPU_RAISE_ERROR(CODE, VAL, RET) { \
-  CLEAR_BIT(REG(REG_FLAG), FLAG_IS_RUNNING); \
-  REG(REG_FLAG) |= (CODE & FLAG_ERR_MASK) << FLAG_ERR_OFFSET; \
-  REG(REG_RET) = VAL; \
-  return RET; \
-}
-
 namespace processor {
     class CPU {
         const Debug &debug;

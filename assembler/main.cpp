@@ -6,11 +6,6 @@
 #include "assembler/src/cli_arguments.hpp"
 #include "src/pre-process/pre-processor.hpp"
 #include "messages/list.hpp"
-
-extern "C" {
-#include "util.h"
-}
-
 #include "assembler_data.hpp"
 #include "parser.hpp"
 

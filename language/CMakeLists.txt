@@ -4,7 +4,7 @@ project(language LANGUAGES CXX)
 include_directories("src")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../bin)
-add_executable(language ../util/util.cpp ../util/messages/message.cpp ../util/messages/MessageWithSource.cpp ../util/messages/list.cpp
+add_executable(language ../shared/util.cpp ../shared/messages/message.cpp ../shared/messages/MessageWithSource.cpp ../shared/messages/list.cpp
         src/LanguageOptions.cpp src/Source.cpp src/lexer/Lexer.cpp src/lexer/Token.cpp src/parser/Scope.cpp src/parser/ScopeManager.cpp
         src/parser/SymbolDeclaration.cpp src/parser/Parser.cpp src/types/Type.cpp src/types/UserType.cpp src/types/FunctionType.cpp
         src/statement/Function.cpp src/statement/FunctionCall.cpp src/Program.cpp

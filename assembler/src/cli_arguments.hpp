@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/named_fstream.hpp"
+#include "named_fstream.hpp"
 #include <memory>
 
 namespace assembler {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util.h"
+#include "shell.hpp"
 #include <cstdint>
 
 namespace processor::constants {
@@ -33,9 +33,9 @@ namespace processor::constants {
     }
 
     enum class flag {
-        zero = BIT3,
-        is_running = BIT4,
-        in_interrupt = BIT8,
+        zero = 0x8,
+        is_running = 0x10,
+        in_interrupt = 0x100,
         error = 0xe0,
     };
 
@@ -88,7 +88,7 @@ namespace processor::constants {
         constexpr uint32_t op_mask = 0x3f;
         constexpr uint8_t op_size = 6;
 
-        constexpr uint64_t test_bit = BIT6;
+        constexpr uint64_t test_bit = 0x40;
         constexpr uint64_t cmp_offset = 6;
         constexpr uint64_t cmp_mask = 0xf;
         constexpr uint8_t cmp_size = 4;
