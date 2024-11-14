@@ -2,7 +2,6 @@
 #include "signature.hpp"
 
 #include <util.hpp>
-#include "processor/src/constants.hpp"
 
 namespace assembler::instruction::transform {
     void
@@ -33,7 +32,7 @@ namespace assembler::instruction::transform {
                   int overload) {
         if (instruction->args.size() == 1) {
             // add $rip as register
-            instruction->args.emplace_front(ArgumentType::Register, processor::constants::registers::rip);
+            instruction->args.emplace_front(ArgumentType::Register, constants::registers::rip);
             instruction->overload++;
         }
 
@@ -46,7 +45,7 @@ namespace assembler::instruction::transform {
         // "load $ip, $addr"
         instruction->signature = &Signature::_load;
         instruction->overload = 0;
-        instruction->args.emplace_front(ArgumentType::Register, processor::constants::registers::ip);
+        instruction->args.emplace_front(ArgumentType::Register, constants::registers::ip);
         instructions.push_back(std::move(instruction));
     }
 
@@ -66,14 +65,14 @@ namespace assembler::instruction::transform {
             code_instruction->signature = &Signature::_load;
             code_instruction->overload = 0;
             code_instruction->args.emplace_back(ArgumentType::Immediate, code);
-            code_instruction->args.emplace_back(ArgumentType::Register, processor::constants::registers::ret);
+            code_instruction->args.emplace_back(ArgumentType::Register, constants::registers::ret);
             instructions.push_back(std::move(code_instruction));
         }
 
         // "syscall <opcode: exit>"
         instruction->signature = &Signature::_syscall;
         instruction->overload = 0;
-        instruction->args.emplace_back(ArgumentType::Immediate, (int) processor::constants::syscall::exit);
+        instruction->args.emplace_back(ArgumentType::Immediate, (int) constants::syscall::exit);
         instructions.push_back(std::move(instruction));
     }
 
@@ -83,8 +82,8 @@ namespace assembler::instruction::transform {
         // "or $isr, <value>"
         instruction->signature = &Signature::_or;
         instruction->overload = 1;
-        instruction->args.emplace_front(ArgumentType::Register, processor::constants::registers::isr);
-        instruction->args.emplace_front(ArgumentType::Register, processor::constants::registers::isr);
+        instruction->args.emplace_front(ArgumentType::Register, constants::registers::isr);
+        instruction->args.emplace_front(ArgumentType::Register, constants::registers::isr);
         instructions.push_back(std::move(instruction));
     }
 
@@ -95,17 +94,17 @@ namespace assembler::instruction::transform {
         // "load $ip, $iip"
         instruction->signature = &Signature::_load;
         instruction->overload = 0;
-        instruction->args.emplace_back(ArgumentType::Register, processor::constants::registers::ip);
-        instruction->args.emplace_back(ArgumentType::Register, processor::constants::registers::iip);
+        instruction->args.emplace_back(ArgumentType::Register, constants::registers::ip);
+        instruction->args.emplace_back(ArgumentType::Register, constants::registers::iip);
         instructions.push_back(std::move(instruction));
 
         // "and $flag, ~<in interrupt>"
         instruction = std::make_unique<Instruction>(*instruction);
         instruction->signature = &Signature::_and;
         instruction->overload = 1;
-        instruction->args[0].update(ArgumentType::Register, processor::constants::registers::flag);
-        instruction->args[1].update(ArgumentType::Register, processor::constants::registers::flag);
-        instruction->args.emplace_back(ArgumentType::Immediate, ~static_cast<uint32_t>(processor::constants::flag::in_interrupt));
+        instruction->args[0].update(ArgumentType::Register, constants::registers::flag);
+        instruction->args[1].update(ArgumentType::Register, constants::registers::flag);
+        instruction->args.emplace_back(ArgumentType::Immediate, ~static_cast<uint32_t>(constants::flag::in_interrupt));
         instructions.push_back(std::move(instruction));
     }
 

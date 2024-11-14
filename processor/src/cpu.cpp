@@ -8,9 +8,8 @@
 #include "debug.hpp"
 
 template<typename LHS, typename RHS>
-static processor::constants::cmp calculate_cmp_flag(LHS lhs, RHS rhs) {
-    using namespace processor::constants;
-
+static constants::cmp calculate_cmp_flag(LHS lhs, RHS rhs) {
+    using namespace constants;
     uint32_t flag = 0;
     if (lhs < rhs) flag |= static_cast<uint32_t>(cmp::lt);
     else if (lhs > rhs) flag |= static_cast<uint32_t>(cmp::gt);
@@ -20,13 +19,13 @@ static processor::constants::cmp calculate_cmp_flag(LHS lhs, RHS rhs) {
     return static_cast<cmp>(flag);
 }
 
-void processor::CPU::raise_error(processor::constants::error::code code, uint64_t val) {
+void processor::CPU::raise_error(constants::error::code code, uint64_t val) {
     flag_reset(constants::flag::is_running);
     regs[constants::registers::flag] |= (int(code) & constants::error::mask) << constants::error::offset;
     regs[constants::registers::ret] = val;
 }
 
-uint64_t processor::CPU::raise_error(processor::constants::error::code code, uint64_t val, uint64_t ret) {
+uint64_t processor::CPU::raise_error(constants::error::code code, uint64_t val, uint64_t ret) {
     raise_error(code, val);
     return ret;
 }
@@ -48,8 +47,8 @@ bool processor::CPU::fetch_reg_reg_val(uint64_t inst, constants::registers::reg 
 }
 
 // given four compare bits in binary form `0bABBB` A = zero, BBB = cmp flag, return string repr
-static std::string cmp_bit_str(processor::constants::cmp bits) {
-    using namespace processor::constants;
+static std::string cmp_bit_str(constants::cmp bits) {
+    using namespace constants;
     switch (bits) {
         case cmp::z:
             return "z";
@@ -74,8 +73,8 @@ static std::string cmp_bit_str(processor::constants::cmp bits) {
 }
 
 // given three data type bits, return string repr
-static std::string datatype_bit_str(processor::constants::inst::datatype bits) {
-    using namespace processor::constants::inst;
+static std::string datatype_bit_str(constants::inst::datatype bits) {
+    using namespace constants::inst;
     switch (bits) {
         case u32:
             return "hu";
@@ -94,7 +93,7 @@ static std::string datatype_bit_str(processor::constants::inst::datatype bits) {
     }
 }
 
-void processor::CPU::test_is_zero(processor::constants::registers::reg reg) {
+void processor::CPU::test_is_zero(constants::registers::reg reg) {
     if (regs[reg] == 0) {
         flag_set(constants::flag::zero);
     } else {
@@ -102,7 +101,7 @@ void processor::CPU::test_is_zero(processor::constants::registers::reg reg) {
     }
 
     if (debug.flags)
-        std::cout << DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register " << register_to_string(reg) << " : " <<
+        std::cout << DEBUG_STR ANSI_CYAN " zero flag" ANSI_RESET ": register $" << constants::registers::to_string(reg) << " : " <<
                   (flag_test(constants::flag::zero) ? ANSI_GREEN "SET" : ANSI_RED "RESET") << ANSI_RESET;
 }
 
@@ -123,8 +122,8 @@ void processor::CPU::exec_load(uint64_t inst) {
     regs[reg] = value;
 
     if (debug.cpu)
-        std::cout << DEBUG_STR " load: load value 0x" << std::hex << value << std::dec << " into register "
-                  << register_to_string(reg) << std::endl;
+        std::cout << DEBUG_STR " load: load value 0x" << std::hex << value << std::dec << " into register $"
+                  << constants::registers::to_string(reg) << std::endl;
     test_is_zero(reg);
 }
 
@@ -142,8 +141,8 @@ void processor::CPU::exec_load_upper(uint64_t inst) {
     ((uint32_t *) &regs[reg])[1] = *(uint32_t *) &value;
 
     if (debug.cpu)
-        std::cout << DEBUG_STR " loadu: load value 0x" << std::hex << value << std::dec << " into register "
-                  << register_to_string(reg) << "'s upper half" << std::endl;
+        std::cout << DEBUG_STR " loadu: load value 0x" << std::hex << value << std::dec << " into register $"
+                  << constants::registers::to_string(reg) << "'s upper half" << std::endl;
     test_is_zero(reg);
 }
 
@@ -161,7 +160,7 @@ void processor::CPU::exec_store(uint64_t inst) {
     data_bus.store(addr, sizeof(uint64_t), regs[reg]);
 
     if (debug.cpu)
-        std::cout << DEBUG_STR " store: copy register " << register_to_string(reg) << " (0x" << std::hex << regs[reg]
+        std::cout << DEBUG_STR " store: copy register $" << constants::registers::to_string(reg) << " (0x" << std::hex << regs[reg]
                   << ") to address 0x" << addr << std::dec << std::endl;
     test_is_zero(reg);
 }
@@ -229,7 +228,7 @@ void processor::CPU::exec_compare(uint64_t inst) {
 
     if (debug.cpu) {
         std::cout << DEBUG_STR " cmp: datatype=" << datatype_bit_str(datatype) << " (0x" << datatype << std::endl
-                  << DEBUG_STR " cmp: register " << register_to_string(reg) << " (0x" << regs[reg] << ") vs 0x" << value
+                  << DEBUG_STR " cmp: register $" << constants::registers::to_string(reg) << " (0x" << regs[reg] << ") vs 0x" << value
                   << " = " ANSI_CYAN << cmp_bit_str(flag) << std::endl << std::dec << ANSI_RESET;
     }
 }
@@ -247,7 +246,7 @@ void processor::CPU::exec_not(uint64_t inst) {
     regs[reg_dst] = ~regs[reg_src];
 
     if (debug.cpu)
-        std::cout << DEBUG_STR " not: " << register_to_string(reg_dst) << " = ~0x" << std::hex << regs[reg_src]
+        std::cout << DEBUG_STR " not: " << constants::registers::to_string(reg_dst) << " = ~0x" << std::hex << regs[reg_src]
                   << " = 0x" << regs[reg_dst] << std::dec << std::endl;
     test_is_zero(reg_dst);
 }
@@ -262,7 +261,7 @@ void processor::CPU::exec_and(uint64_t inst) {
     regs[reg_dst] = regs[reg_src] & value;
 
     if (debug.cpu)
-        std::cout << DEBUG_STR " and: " << register_to_string(reg_src) << " (0x" << std::hex << regs[reg_src]
+        std::cout << DEBUG_STR " and: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << regs[reg_src]
                   << ") & 0x" << value << " = 0x" << regs[reg_dst] << std::dec << std::endl;
     test_is_zero(reg_dst);
 }
@@ -277,7 +276,7 @@ void processor::CPU::exec_or(uint64_t inst) {
     regs[reg_dst] = regs[reg_src] | value;
 
     if (debug.cpu)
-        std::cout << DEBUG_STR " or: " << register_to_string(reg_src) << " (0x" << std::hex << regs[reg_src] << ") | 0x"
+        std::cout << DEBUG_STR " or: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << regs[reg_src] << ") | 0x"
                   << value << " = 0x" << regs[reg_dst] << std::dec << std::endl;
     test_is_zero(reg_dst);
 }
@@ -291,7 +290,7 @@ void processor::CPU::exec_xor(uint64_t inst) {
 
     regs[reg_dst] = regs[reg_src] ^ value;
     if (debug.cpu)
-        std::cout << DEBUG_STR " xor: " << register_to_string(reg_src) << " (0x" << std::hex << regs[reg_src]
+        std::cout << DEBUG_STR " xor: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << regs[reg_src]
                   << ") ^ 0x" << value << " = 0x" << regs[reg_dst] << std::dec << std::endl;
     test_is_zero(reg_dst);
 }
@@ -554,7 +553,7 @@ void processor::CPU::exec_jal(uint64_t inst) {
 
     if (debug.cpu)
         std::cout << DEBUG_STR " jal: cache $ip (0x" << std::hex << regs[registers::ip] << ") in "
-                  << register_to_string(reg) << "; jump to 0x" << value << std::dec << std::endl;
+                  << constants::registers::to_string(reg) << "; jump to 0x" << value << std::dec << std::endl;
 
     // cache + jump
     regs[reg] = regs[registers::ip];
@@ -562,8 +561,8 @@ void processor::CPU::exec_jal(uint64_t inst) {
 }
 
 template<typename T>
-static uint64_t cast_value(processor::constants::inst::datatype dt, T src) {
-    using namespace processor::constants::inst;
+static uint64_t cast_value(constants::inst::datatype dt, T src) {
+    using namespace constants::inst;
     switch (dt) {
         case u32: {
             uint32_t tmp = src;
@@ -632,13 +631,13 @@ void processor::CPU::exec_convert(uint64_t inst) {
 
     if (debug.cpu)
         std::cout << DEBUG_STR " cvt: convert from " << datatype_bit_str(d1) << " in reg "
-                  << register_to_string(reg_src) << " to " << datatype_bit_str(d2) << " in reg "
-                  << register_to_string(reg_dst) << std::endl;
+                  << constants::registers::to_string(reg_src) << " to " << datatype_bit_str(d2) << " in reg "
+                  << constants::registers::to_string(reg_dst) << std::endl;
     regs[reg_dst] = value;
     test_is_zero(reg_dst);
 }
 
-processor::constants::registers::reg processor::CPU::_arg_reg(uint32_t data) {
+constants::registers::reg processor::CPU::_arg_reg(uint32_t data) {
     return static_cast<constants::registers::reg>(data);
 }
 
@@ -647,7 +646,7 @@ uint32_t processor::CPU::_arg_addr(uint32_t data) {
     return data;
 }
 
-processor::constants::registers::reg processor::CPU::get_arg_reg(uint64_t inst, uint8_t pos) {
+constants::registers::reg processor::CPU::get_arg_reg(uint64_t inst, uint8_t pos) {
     return static_cast<constants::registers::reg>(inst >> pos);
 }
 
@@ -892,29 +891,6 @@ static const std::array<std::string, 11> register_strings = {
         "$k1",
         "$k2"
 };
-
-int processor::string_to_register(const std::string &s) {
-    for (int i = 0; i < register_strings.size(); i++) {
-        if (register_strings[i] == s) {
-            return i;
-        }
-    }
-
-    if (s[0] == 'r')
-        return std::stoi(s.substr(1)) + constants::registers::r1;
-
-    return -1;
-}
-
-std::string processor::register_to_string(int offset) {
-    if (offset < 0 || offset >= constants::registers::count)
-        return "?";
-
-    if (offset < register_strings.size())
-        return register_strings[offset];
-
-    return "r" + std::to_string(offset - constants::registers::r1);
-}
 
 void processor::CPU::print_registers() const {
     using namespace constants::registers;

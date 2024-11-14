@@ -1,7 +1,7 @@
 #include "assembler_data.hpp"
 #include "instructions/signature.hpp"
 
-#include "processor/src/constants.hpp"
+#include "constants.hpp"
 
 namespace assembler {
     void Data::replace_label(const std::string &label, uint32_t address) const {
@@ -47,7 +47,7 @@ namespace assembler {
 
         // interrupt handler
         label = labels.find(interrupt_label);
-        value = label == labels.end() ? processor::constants::default_interrupt_handler : label->second.addr;
+        value = label == labels.end() ? constants::default_interrupt_handler : label->second.addr;
         stream.write((char *) &value, sizeof(value));
 
         if (cli_args.debug)

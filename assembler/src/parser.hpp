@@ -27,15 +27,6 @@ namespace assembler::parser {
      * Provide arg type: one of Immediate, Register, Value, Address. */
     void parse_arg(const Data &data, Location &loc, int line_idx, message::List &msgs, instruction::Argument &argument);
 
-    /** Map of register names to offsets. */
-    extern std::map<std::string, processor::constants::registers::reg> register_map;
-
-    /** Given a string, return register offset, or -1. */
-    int parse_register(const std::string &string, int &index);
-
-    /** Given register offset, return string. */
-    std::string register_to_string(uint8_t offset);
-
     /** Parse character. String assumed to have started with an apostrophe, with <index> pointing after this. */
     void parse_character_literal(const Data &data, Location &loc, int line_idx, message::List &msgs, uint64_t &value);
 

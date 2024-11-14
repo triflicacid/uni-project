@@ -2,8 +2,11 @@
 
 #include "shell.hpp"
 #include <cstdint>
+#include <optional>
+#include <map>
+#include <string>
 
-namespace processor::constants {
+namespace constants {
     // default address of the interrupt handler
     constexpr uint64_t default_interrupt_handler = 0x400;
 
@@ -30,6 +33,13 @@ namespace processor::constants {
             k2,
             r1, // start of general registers
         };
+
+        extern std::map<std::string, constants::registers::reg> map;
+
+        std::string to_string(reg r);
+
+        std::optional<reg> from_string(const std::string &s);
+        std::optional<reg> from_string(const std::string &s, int &i);
     }
 
     enum class flag {

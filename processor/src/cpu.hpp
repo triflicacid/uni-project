@@ -25,10 +25,10 @@ namespace processor {
         void push(T val);
 
         // set the zero flag based on contents of the register
-        void test_is_zero(processor::constants::registers::reg reg);
+        void test_is_zero(constants::registers::reg reg);
 
         // extract `<reg>` argument from data
-        processor::constants::registers::reg _arg_reg(uint32_t data);
+        constants::registers::reg _arg_reg(uint32_t data);
 
         // extract `<addr>` argument from data
         uint32_t _arg_addr(uint32_t data);
@@ -37,7 +37,7 @@ namespace processor {
         uint32_t _arg_reg_indirect(uint32_t data);
 
         // get argument `<reg>`
-        [[nodiscard]] processor::constants::registers::reg get_arg_reg(uint64_t inst, uint8_t pos);
+        [[nodiscard]] constants::registers::reg get_arg_reg(uint64_t inst, uint8_t pos);
 
         // extract `<value>` argument from word, fetch value
         // cast_imm_double: if true, cast imm to double (as 32-bit imm only, so float)
@@ -130,10 +130,4 @@ namespace processor {
         // check if the given register is valid
         [[nodiscard]] static bool check_register(uint8_t off) { return off < constants::registers::count; }
     };
-
-// given a string name, return register offset (or -1)
-    int string_to_register(const std::string &s);
-
-// given a register offset, return string name
-    std::string register_to_string(int offset);
 }

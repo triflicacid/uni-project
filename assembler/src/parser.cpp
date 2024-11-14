@@ -6,10 +6,7 @@
 #include <bit>
 
 #include "util.hpp"
-
-extern "C" {
-#include "processor/src/constants.hpp"
-}
+#include "constants.hpp"
 
 namespace assembler::parser {
     void parse(Data &data, message::List &msgs) {
@@ -352,7 +349,7 @@ namespace assembler::parser {
 
         if (signature->expect_datatype) {
             if (dot == std::string::npos) {
-                instruction->add_datatype_specifier(processor::constants::inst::u64);
+                instruction->add_datatype_specifier(constants::inst::u64);
             } else {
                 std::string str = options.substr(dot + 1);
                 auto entry = instruction::datatype_postfix_map.find(str);
@@ -556,10 +553,10 @@ namespace assembler::parser {
         // register?
         if (line.second[col] == '$') {
             start = col++;
-            int reg = parse_register(line.second, col);
+            auto reg = constants::registers::from_string(line.second, col);
 
             // is register unknown?
-            if (reg == -1) {
+            if (!reg) {
                 auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
                 msg->get() << "unknown register";
                 msgs.add(std::move(msg));
@@ -567,7 +564,7 @@ namespace assembler::parser {
             }
 
             // update argument
-            argument.update(instruction::ArgumentType::Register, reg);
+            argument.update(instruction::ArgumentType::Register, reg.value());
             return;
         }
 
@@ -621,10 +618,10 @@ namespace assembler::parser {
                 }
 
                 // parse register
-                int reg = parse_register(line.second, col);
+                auto reg = constants::registers::from_string(line.second, col);
 
                 // is register unknown?
-                if (reg == -1) {
+                if (!reg) {
                     auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
                     msg->get() << "unknown register";
                     msgs.add(std::move(msg));
@@ -646,7 +643,7 @@ namespace assembler::parser {
                 col++;
 
                 // update argument
-                argument.set_reg_indirect(reg, (int32_t) value);
+                argument.set_reg_indirect(reg.value(), (int32_t) value);
                 return;
             }
 
@@ -705,56 +702,6 @@ namespace assembler::parser {
         auto msg = std::make_unique<message::Message>(message::Error, loc);
         msg->get() << "unexpected character '" << line.second[col] << "'";
         msgs.add(std::move(msg));
-    }
-
-    std::map<std::string, processor::constants::registers::reg> register_map = {
-            {"ip",   processor::constants::registers::ip},
-            {"rip",  processor::constants::registers::rip},
-            {"sp",   processor::constants::registers::sp},
-            {"fp",   processor::constants::registers::fp},
-            {"flag", processor::constants::registers::flag},
-            {"isr",  processor::constants::registers::isr},
-            {"imr",  processor::constants::registers::imr},
-            {"iip",  processor::constants::registers::iip},
-            {"ret",  processor::constants::registers::ret},
-            {"k1",   processor::constants::registers::k1},
-            {"k2",   processor::constants::registers::k2},
-    };
-
-    std::string register_to_string(uint8_t offset) {
-        // is a special register?
-        for (auto &pair: register_map) {
-            if (offset == pair.second) {
-                return pair.first;
-            }
-        }
-
-        // assume we are a general register
-        return "r" + std::to_string(offset - processor::constants::registers::r1 + 1);
-    }
-
-    int parse_register(const std::string &s, int &i) {
-        // general purpose registers
-        if (s[i] == 'r' && std::isdigit(s[i + 1])) {
-            i++;
-            int number = s[i++] - '0';
-
-            if (std::isdigit(s[i])) {
-                number = number * 10 + s[i++] - '0';
-            }
-
-            return processor::constants::registers::r1 + number - 1;
-        }
-
-        // check register map
-        for (auto &pair: register_map) {
-            if (starts_with(s, i, pair.first)) {
-                i += (int) pair.first.size();
-                return pair.second;
-            }
-        }
-
-        return -1;
     }
 
     void parse_character_literal(const Data &data, Location &loc, int line_idx, message::List &msgs, uint64_t &value) {

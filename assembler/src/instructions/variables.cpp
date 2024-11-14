@@ -1,4 +1,4 @@
-#include "processor/src/constants.hpp"
+#include "constants.hpp"
 
 #include "instruction.hpp"
 #include "extra.hpp"
@@ -6,7 +6,7 @@
 #include "util.hpp"
 
 namespace assembler::instruction {
-    using namespace processor:: constants;
+    using namespace constants;
 
     std::unordered_map<std::string, cmp> conditional_postfix_map = {
             {"z",   cmp::z},

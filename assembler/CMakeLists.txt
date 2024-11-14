@@ -8,4 +8,4 @@ add_executable(assembler
         ../shared/util.cpp src/assembler_data.cpp src/chunk.cpp src/parser.cpp
         src/instructions/argument.cpp src/instructions/instruction.cpp src/instructions/variables.cpp
         src/instructions/extra.cpp ../shared/messages/message.cpp ../shared/messages/list.cpp
-        src/pre-process/data.cpp src/pre-process/pre-processor.cpp main.cpp)
+        ../shared/constants.cpp src/pre-process/data.cpp src/pre-process/pre-processor.cpp main.cpp)

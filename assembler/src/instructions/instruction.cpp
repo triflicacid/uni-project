@@ -4,7 +4,7 @@
 #include "instruction.hpp"
 #include "signature.hpp"
 
-#include "processor/src/constants.hpp"
+#include "constants.hpp"
 
 namespace assembler::instruction {
     void Instruction::debug_print(std::ostream &os) const {
@@ -38,11 +38,11 @@ namespace assembler::instruction {
                                                                                            args(std::move(arguments)),
                                                                                            overload(0), test(0x0) {}
 
-    void Instruction::set_conditional_test(processor::constants::cmp mask) {
+    void Instruction::set_conditional_test(constants::cmp mask) {
         test = 0x80 | static_cast<uint8_t>(mask); // indicate test is provided
     }
 
-    void Instruction::add_datatype_specifier(processor::constants::inst::datatype mask) {
+    void Instruction::add_datatype_specifier(constants::inst::datatype mask) {
         datatypes.push_back(mask);
     }
 
@@ -125,7 +125,7 @@ namespace assembler::instruction {
     }
 
     void InstructionBuilder::opcode(uint8_t opcode) {
-        write(processor::constants::inst::op_size, opcode & processor::constants::inst::op_mask);
+        write(constants::inst::op_size, opcode & constants::inst::op_mask);
     }
 
     void InstructionBuilder::write(uint8_t length, uint64_t data) {
@@ -142,7 +142,7 @@ namespace assembler::instruction {
     }
 
     void InstructionBuilder::no_conditional_test() {
-        write(4, static_cast<uint64_t>(processor::constants::cmp::na));
+        write(4, static_cast<uint64_t>(constants::cmp::na));
     }
 
     void InstructionBuilder::conditional_test(uint8_t bits) {
@@ -159,11 +159,11 @@ namespace assembler::instruction {
                 write(8, reg);
                 return;
             case NextArgument::AsValue:
-                write(2, processor::constants::inst::arg::reg);
+                write(2, constants::inst::arg::reg);
                 write(32, reg);
                 break;
             case NextArgument::AsAddress:
-                write(1, processor::constants::inst::arg::reg_indirect & 0x1);
+                write(1, constants::inst::arg::reg_indirect & 0x1);
                 write(32, reg);
                 break;
         }
@@ -172,7 +172,7 @@ namespace assembler::instruction {
     }
 
     void InstructionBuilder::arg_imm(uint32_t imm) {
-        write(2, processor::constants::inst::arg::imm);
+        write(2, constants::inst::arg::imm);
         write(32, imm);
 
         m_next = NextArgument::None;
@@ -183,10 +183,10 @@ namespace assembler::instruction {
             case NextArgument::None:
                 return;
             case NextArgument::AsValue:
-                write(2, processor::constants::inst::arg::mem);
+                write(2, constants::inst::arg::mem);
                 break;
             case NextArgument::AsAddress:
-                write(1, processor::constants::inst::arg::mem & 0x1);
+                write(1, constants::inst::arg::mem & 0x1);
                 break;
         }
 
@@ -200,10 +200,10 @@ namespace assembler::instruction {
             case NextArgument::None:
                 return;
             case NextArgument::AsValue:
-                write(2, processor::constants::inst::arg::reg_indirect);
+                write(2, constants::inst::arg::reg_indirect);
                 break;
             case NextArgument::AsAddress:
-                write(1, processor::constants::inst::arg::reg_indirect & 0x1);
+                write(1, constants::inst::arg::reg_indirect & 0x1);
                 break;
         }
 
