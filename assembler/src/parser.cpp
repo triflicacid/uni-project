@@ -11,9 +11,9 @@
 namespace assembler::parser {
     void emit_ch(std::ostream &os, const std::string &s, int i) {
         if (i < s.length())
-            os << "'" << s[i] << "'";
+            *os << "'" << s[i] << "'";
         else
-            os << "eol";
+            *os << "eol";
     }
 
     void parse(Data &data, message::List &msgs) {
@@ -746,13 +746,13 @@ namespace assembler::parser {
     void reconstruct_assembly(const Data &data, std::ostream &os) {
         for (auto &chunk : data.buffer) {
             if (chunk->is_data()) {
-                os << ".byte" << std::hex;
+                *os << ".byte" << std::hex;
 
                 for (const auto &byte : *chunk->get_data()) {
-                    os << " 0x" << (int) byte;
+                    *os << " 0x" << (int) byte;
                 }
 
-                os << std::dec;
+                *os << std::dec;
             } else {
                 auto &inst = *chunk->get_instruction();
                 inst.print(os);
@@ -760,9 +760,9 @@ namespace assembler::parser {
 
             // include debug info in comment?
             if (data.cli_args.debug) {
-                os << "\t; ";
-                //if (!chunk->is_data()) os << "0x" << std::hex << chunk->get_instruction()->compile() << std::dec << " ";
-                os << chunk->location() << "+" << chunk->offset << std::endl;
+                *os << "\t; ";
+                //if (!chunk->is_data()) *os << "0x" << std::hex << chunk->get_instruction()->compile() << std::dec << " ";
+                *os << chunk->location() << "+" << chunk->offset << std::endl;
             }
         }
     }

@@ -55,23 +55,23 @@ namespace assembler::instruction {
     void Argument::print(std::ostream &os) const {
         switch (m_type) {
             case ArgumentType::Immediate:
-                os << m_data;
+                *os << m_data;
                 break;
             case ArgumentType::DecimalImmediate:
-                os << *(double *) &m_data;
+                *os << *(double *) &m_data;
                 break;
             case ArgumentType::Address:
-                os << "(0x" << std::hex << m_data << std::dec << ")";
+                *os << "(0x" << std::hex << m_data << std::dec << ")";
                 break;
             case ArgumentType::Register:
-                os << "$" << constants::registers::to_string(static_cast<constants::registers::reg>(m_data));
+                *os << "$" << constants::registers::to_string(static_cast<constants::registers::reg>(m_data));
                 break;
             case ArgumentType::RegisterIndirect:
-                os << get_reg_indirect()->offset << "($" << constants::registers::to_string(
+                *os << get_reg_indirect()->offset << "($" << constants::registers::to_string(
                         static_cast<constants::registers::reg>(get_reg_indirect()->reg)) << ")";
                 break;
             case ArgumentType::Label:
-                os << *get_label();
+                *os << *get_label();
                 break;
             default:;
         }

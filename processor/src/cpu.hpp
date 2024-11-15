@@ -69,7 +69,7 @@ namespace processor {
         void exec_syscall(uint64_t inst);
 
     public:
-        CPU(std::ostream &os, std::istream &is);
+        CPU() : Core(), addr_interrupt_handler(constants::default_interrupt_handler) {}
 
         void set_interrupt_handler(uint64_t addr) { addr_interrupt_handler = addr; }
 

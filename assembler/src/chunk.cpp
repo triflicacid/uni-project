@@ -4,17 +4,17 @@
 
 namespace assembler {
     void Chunk::print(std::ostream &os) {
-        os << "Chunk at +0x" << std::hex << offset << std::dec << " of " << m_size << " bytes";
+        *os << "Chunk at +0x" << std::hex << offset << std::dec << " of " << m_size << " bytes";
 
         if (m_is_data) {
-            os << " - data:" << std::endl << '\t' << std::uppercase << std::hex;
+            *os << " - data:" << std::endl << '\t' << std::uppercase << std::hex;
 
             const auto bytes = *get_data();
 
             for (int i = 0; i < bytes.size(); i++) {
-                os << std::setw(2) << std::setfill('0') << (int) bytes[i];
+                *os << std::setw(2) << std::setfill('0') << (int) bytes[i];
 
-                if (i + 1 < bytes.size()) os << " ";
+                if (i + 1 < bytes.size()) *os << " ";
             }
 
             std::cout << std::dec << std::endl;
