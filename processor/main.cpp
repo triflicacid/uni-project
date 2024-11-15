@@ -2,9 +2,6 @@
 #include "debug.hpp"
 #include <iostream>
 #include "cli_arguments.hpp"
-#include "nullbuf.hpp"
-
-static nullstream null_stream;
 
 int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
     for (int i = 1; i < argc; i++) {
@@ -111,11 +108,11 @@ int main(int argc, char **argv) {
     size_t file_size = stream.tellg();
     stream.seekg(std::ios::beg);
 
-    if (debug::cpu) *cpu.ds << DEBUG_STR " reading source file " << args.source_file->path << "... " << file_size << " bytes read" << std::endl;
+    if (debug::cpu) *cpu.ds << "reading source file " << args.source_file->path << "... " << file_size << " bytes read" << std::endl;
 
     // error if file size exceeds buffer size
     if (file_size >= dram::size) {
-        std::cerr << ERROR_STR " source file size of " << file_size << " bytes exceeds memory size of " << dram::size << std::endl;
+        std::cerr << ERROR_STR "source file size of " << file_size << " bytes exceeds memory size of " << dram::size << std::endl;
         return EXIT_FAILURE;
     }
 
@@ -124,7 +121,7 @@ int main(int argc, char **argv) {
     stream.read((char *) &addr_entry, sizeof(addr_entry));
     stream.read((char *) &addr_interrupt, sizeof(addr_interrupt));
 
-    if (debug::cpu) *cpu.ds << DEBUG_STR " entry point: 0x" << std::hex << addr_entry << "; interrupt handler: 0x" << addr_interrupt << std::dec << std::endl;
+    if (debug::cpu) *cpu.ds << "entry point: 0x" << std::hex << addr_entry << "; interrupt handler: 0x" << addr_interrupt << std::dec << std::endl;
     cpu.jump(addr_entry);
     cpu.set_interrupt_handler(addr_interrupt);
 
@@ -139,7 +136,7 @@ int main(int argc, char **argv) {
 
     auto err_code = cpu.get_error();
     uint64_t code = err_code ? err_code : cpu.get_return_value();
-    if (debug::cpu) *cpu.ds << DEBUG_STR " processor exited with code " << code << std::endl;
+    if (debug::cpu) *cpu.ds << "processor exited with code " << code << std::endl;
 
     return EXIT_SUCCESS;
 }

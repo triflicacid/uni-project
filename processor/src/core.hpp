@@ -17,7 +17,7 @@ namespace processor {
 
         template<typename T>
         [[nodiscard]] T reg(constants::registers::reg r, bool silent = false) const {
-            if (debug::reg && !silent) *ds << DEBUG_STR ANSI_BRIGHT_YELLOW " reg_copy" ANSI_RESET ": access $" << constants::registers::to_string(r) << " -> 0x" << std::hex << m_regs[r] << std::dec << std::endl;
+            if (debug::reg && !silent) *ds << ANSI_BRIGHT_YELLOW " reg_copy" ANSI_RESET ": access $" << constants::registers::to_string(r) << " -> 0x" << std::hex << m_regs[r] << std::dec << std::endl;
             return *(T*) &m_regs[r];
         }
 
