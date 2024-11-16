@@ -293,6 +293,35 @@ Logically shift the value in the second register right by \texttt{<value>} and s
     Reg[reg1] <- Reg[reg2] $\gg$ value
 \end{lstlisting}
 
+\subsubsection{Sign Extend}
+
+\begin{lstlisting}[style=assembly]
+    sext <reg> <value> <imm: 8>
+\end{lstlisting}
+
+Extend the signed data of \texttt{<imm>} bits and store as a word in the destination register.
+That is, if the MSB is one, extend with ones, else extend with zeroes.
+\textbf{All} bits not composing the data are set to one or zero.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    if msb = 1 then
+        Reg[reg] <- value | ($\sim$0 << imm)
+    else
+        Reg[reg] <- zero-extend(value, imm)
+\end{lstlisting}
+
+\subsubsection{Zero Extend}
+
+\begin{lstlisting}[style=assembly]
+    zext <reg> <value> <imm: 8>
+\end{lstlisting}
+
+Extend the unsigned data of \texttt{<imm>} bits and store as a word in the destination register.
+
+\begin{lstlisting}[style=rtn,mathescape]
+    Reg[reg] <- value & ((1 << imm) - 1)
+\end{lstlisting}
+
 \subsection{Interrupts}
 
 \subsubsection{Trigger Interrupt}

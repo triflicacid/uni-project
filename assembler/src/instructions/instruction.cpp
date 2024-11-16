@@ -8,38 +8,38 @@
 
 namespace assembler::instruction {
     void Instruction::debug_print(std::ostream &os) const {
-        *os << "Signature '" << signature->mnemonic;
+        os << "Signature '" << signature->mnemonic;
 
         for (ArgumentType type: signature->arguments[overload]) {
-            *os << ' ' << Argument::type_to_string(type);
+            os << ' ' << Argument::type_to_string(type);
         }
 
-        *os << "'; Opcode = 0x" << std::hex << (int) signature->opcode << std::dec << "; "
+        os << "'; Opcode = 0x" << std::hex << (int) signature->opcode << std::dec << "; "
            << args.size() << " argument(s)" << std::endl;
 
         for (Argument arg: args) {
-            *os << "\t- ";
+            os << "\t- ";
             arg.debug_print(os);
-            *os << std::endl;
+            os << std::endl;
         }
     }
 
     void Instruction::print(std::ostream &os) const {
-        *os << signature->mnemonic;
+        os << signature->mnemonic;
 
         if (test & 0x80) {
-            *os << constants::cmp::to_string(static_cast<constants::cmp::flag>(test & constants::inst::cmp_mask));
+            os << constants::cmp::to_string(static_cast<constants::cmp::flag>(test & constants::inst::cmp_mask));
         }
 
         // TODO correct formatting for `cvt` instruction
         for (const auto &datatype : datatypes) {
-            *os << "." << constants::inst::datatype::to_string(datatype);
+            os << "." << constants::inst::datatype::to_string(datatype);
         }
 
         for (int i = 0; i < args.size(); i++) {
-            *os << " ";
+            os << " ";
             args[i].print(os);
-            if (i + 1 < args.size()) *os << ",";
+            if (i + 1 < args.size()) os << ",";
         }
     }
 
@@ -106,6 +106,9 @@ namespace assembler::instruction {
             switch (arg.get_type()) {
                 case ArgumentType::Address:
                     builder.arg_addr(arg.get_data());
+                    break;
+                case ArgumentType::Byte:
+                    builder.write(8, arg.get_data());
                     break;
                 case ArgumentType::Immediate:
                     builder.arg_imm(arg.get_data());

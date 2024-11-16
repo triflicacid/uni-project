@@ -26,6 +26,13 @@ namespace assembler::instruction::transform {
 
         instructions.push_back(std::move(instruction));
     }
+    void transform_last_imm_to_byte(std::vector<std::unique_ptr<Instruction>> &instructions,
+                                    std::unique_ptr<Instruction> instruction, int overload) {
+        auto &arg = instruction->args[instruction->args.size() - 1];
+        arg.update(ArgumentType::Byte, arg.get_data());
+        instructions.push_back(std::move(instruction));
+    }
+
 
     void
     transform_jal(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
@@ -96,10 +103,11 @@ namespace assembler::instruction::transform {
         instruction->overload = 0;
         instruction->args.emplace_back(ArgumentType::Register, constants::registers::ip);
         instruction->args.emplace_back(ArgumentType::Register, constants::registers::iip);
+        auto *p = instruction.get();
         instructions.push_back(std::move(instruction));
 
         // "and $flag, ~<in interrupt>"
-        instruction = std::make_unique<Instruction>(*instruction);
+        instruction = std::make_unique<Instruction>(*p);
         instruction->signature = &Signature::_and;
         instruction->overload = 1;
         instruction->args[0].update(ArgumentType::Register, constants::registers::flag);
@@ -123,10 +131,11 @@ namespace assembler::instruction::transform {
         instruction->signature = &Signature::_load;
         instruction->overload = 0;
         instruction->args[1].update(ArgumentType::Immediate, imm & 0xffffffff);
+        auto *p = instruction.get();
         instructions.push_back(std::move(instruction));
 
         // "loadu $r, $i[32:]"
-        instruction = std::make_unique<Instruction>(*instruction);
+        instruction = std::make_unique<Instruction>(*p);
         instruction->signature = &Signature::_loadu;
         instruction->overload = 0;
         instruction->args[1].set_data(imm >> 32);

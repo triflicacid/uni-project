@@ -8,6 +8,7 @@ namespace assembler::instruction {
     // argument type -- used for signature of type to expect
     enum class ArgumentType : uint8_t {
         Immediate, // <imm>, int
+        Byte, // <imm>, byte
         DecimalImmediate, // PRIVATE. <imm>, double
         Address, // <addr> or PRIVATE <mem>
         Register, // <reg>, no indicator bits

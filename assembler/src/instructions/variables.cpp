@@ -58,8 +58,8 @@ namespace assembler::instruction {
             Signature::_or = {"or", inst::_or, true, false, {reg_val, reg_reg_val}, false, nullptr,
                               transform::transform_reg_reg_val},
             Signature::_push = {"push", inst::_push, true, false, {{ArgumentType::Value}}, false, nullptr, nullptr},
-//    Signature::_ret = { "ret", inst::_ret, true, false, { { } }, false, nullptr, nullptr },
-    Signature::_shl = {"shl", inst::_shl, true, false, {reg_val, reg_reg_val}, false, nullptr,
+            Signature::_sext = {"sext", inst::_sext, true, false, {{ArgumentType::Register, ArgumentType::Value, ArgumentType::Immediate}}, false, nullptr, transform::transform_last_imm_to_byte},
+            Signature::_shl = {"shl", inst::_shl, true, false, {reg_val, reg_reg_val}, false, nullptr,
                        transform::transform_reg_reg_val},
             Signature::_shr = {"shr", inst::_shr, true, false, {reg_val, reg_reg_val}, false, nullptr,
                                transform::transform_reg_reg_val},
@@ -70,7 +70,8 @@ namespace assembler::instruction {
             Signature::_syscall = {"syscall", inst::_syscall, true, false, {{ArgumentType::Value}}, false, nullptr,
                                    nullptr},
             Signature::_xor = {"xor", inst::_xor, true, false, {reg_val, reg_reg_val}, false, nullptr,
-                               transform::transform_reg_reg_val};
+                               transform::transform_reg_reg_val},
+            Signature::_zext = {"zext", inst::_zext, true, false, {{ArgumentType::Register, ArgumentType::Value, ArgumentType::Immediate}}, false, nullptr, transform::transform_last_imm_to_byte};
 
     std::vector<Signature> signature_list = {
             Signature::_add,
@@ -93,6 +94,7 @@ namespace assembler::instruction {
             Signature::_or,
             Signature::_push,
             {"rti", 0x00, true, false, {{}}, false, nullptr, transform::interrupt_return},
+            Signature::_sext,
             Signature::_shl,
             Signature::_shr,
             Signature::_store,
@@ -100,6 +102,7 @@ namespace assembler::instruction {
             Signature::_syscall,
             Signature::_xor,
             {"zero", 0x00, true, false, {{ArgumentType::Register}}, false, nullptr, transform::zero},
+            Signature::_zext,
     };
 
 }

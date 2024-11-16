@@ -7,7 +7,7 @@ namespace assembler::pre_processor {
 
     std::ostream &Data::write_lines(std::ostream &os) const {
         for (const auto &line: lines) {
-            *os << line.second << std::endl;
+            os << line.second << std::endl;
         }
 
         return os;

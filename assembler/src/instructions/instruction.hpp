@@ -60,11 +60,11 @@ namespace assembler::instruction {
         uint8_t m_pos; // current bit
         NextArgument m_next;
 
-        /** Write the given data of length bits raw. */
-        void write(uint8_t length, uint64_t data);
-
     public:
         InstructionBuilder() : m_word(0), m_pos(0), m_next(NextArgument::None) {};
+
+        /** Write the given data of length bits raw. */
+        void write(uint8_t length, uint64_t data);
 
         /** Write opcode. */
         void opcode(uint8_t opcode);

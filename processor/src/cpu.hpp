@@ -59,6 +59,8 @@ namespace processor {
         void exec_xor(uint64_t inst);
         void exec_shift_left(uint64_t inst);
         void exec_shift_right(uint64_t inst);
+        void exec_zero_extend(uint64_t inst);
+        void exec_sign_extend(uint64_t inst);
         void exec_add(uint64_t inst);
         void exec_sub(uint64_t inst);
         void exec_mul(uint64_t inst);

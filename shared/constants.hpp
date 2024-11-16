@@ -159,6 +159,8 @@ namespace constants {
             _xor,
             _shr,
             _shl,
+            _zext,
+            _sext,
             _add,
             _sub,
             _mul,

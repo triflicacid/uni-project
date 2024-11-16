@@ -19,6 +19,10 @@ namespace assembler::instruction::transform {
     void transform_reg_reg_val(std::vector<std::unique_ptr<Instruction>> &instructions,
                                std::unique_ptr<Instruction> instruction, int overload);
 
+    // transform last argument from <imm> to <imm: 8>
+    void transform_last_imm_to_byte(std::vector<std::unique_ptr<Instruction>> &instructions,
+                                    std::unique_ptr<Instruction> instruction, int overload);
+
     void
     transform_jal(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
                   int overload);

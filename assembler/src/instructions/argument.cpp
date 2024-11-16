@@ -30,6 +30,7 @@ namespace assembler::instruction {
     void Argument::debug_print(std::ostream &out) {
         switch (m_type) {
             case ArgumentType::Immediate:
+            case ArgumentType::Byte:
             case ArgumentType::DecimalImmediate:
                 out << "immediate 0x" << std::hex << m_data << std::dec;
                 if (m_type == ArgumentType::DecimalImmediate)
@@ -55,23 +56,24 @@ namespace assembler::instruction {
     void Argument::print(std::ostream &os) const {
         switch (m_type) {
             case ArgumentType::Immediate:
-                *os << m_data;
+            case ArgumentType::Byte:
+                os << m_data;
                 break;
             case ArgumentType::DecimalImmediate:
-                *os << *(double *) &m_data;
+                os << *(double *) &m_data;
                 break;
             case ArgumentType::Address:
-                *os << "(0x" << std::hex << m_data << std::dec << ")";
+                os << "(0x" << std::hex << m_data << std::dec << ")";
                 break;
             case ArgumentType::Register:
-                *os << "$" << constants::registers::to_string(static_cast<constants::registers::reg>(m_data));
+                os << "$" << constants::registers::to_string(static_cast<constants::registers::reg>(m_data));
                 break;
             case ArgumentType::RegisterIndirect:
-                *os << get_reg_indirect()->offset << "($" << constants::registers::to_string(
+                os << get_reg_indirect()->offset << "($" << constants::registers::to_string(
                         static_cast<constants::registers::reg>(get_reg_indirect()->reg)) << ")";
                 break;
             case ArgumentType::Label:
-                *os << *get_label();
+                os << *get_label();
                 break;
             default:;
         }
@@ -93,6 +95,8 @@ namespace assembler::instruction {
             case ArgumentType::Immediate:
             case ArgumentType::DecimalImmediate:
                 return "<imm>";
+            case ArgumentType::Byte:
+                return "<imm: 8>";
             case ArgumentType::Address:
                 return "<addr>";
             case ArgumentType::Label:
@@ -100,9 +104,9 @@ namespace assembler::instruction {
             case ArgumentType::Value:
                 return "<value>";
             case ArgumentType::Register:
-                return "<reg_copy>";
+                return "<reg>";
             case ArgumentType::RegisterIndirect:
-                return "<addr: reg_copy>";
+                return "<addr: reg>";
             default:
                 return "";
         }

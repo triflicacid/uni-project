@@ -1,6 +1,7 @@
 #include "cpu.hpp"
 
 #include <iostream>
+#include <iomanip>
 
 #include "constants.hpp"
 #include "debug.hpp"
@@ -90,7 +91,7 @@ void processor::CPU::exec_load_upper(uint64_t inst) {
     if (!is_running()) return;
 
     // store value in register's upper 32 bits
-    reg_upper(reg, value);
+    reg_set(reg, this->reg(reg) | (value << 32));
 
     if (debug::cpu)
         *ds << "loadu: load value 0x" << std::hex << value << std::dec << " into register $"
@@ -273,6 +274,46 @@ void processor::CPU::exec_shift_right(uint64_t inst) {
         *ds << "shr: 0x" << std::hex << reg(reg_src, true) << std::dec << " >> " << value << " = 0x"
                   << std::hex << reg(reg_dst, true) << std::dec << std::endl;
     test_is_zero(reg_dst);
+}
+
+inline uint64_t zero_extend(uint64_t data, uint8_t size) {
+    uint64_t mask = (1ull << size) - 1;
+    return data & mask;
+}
+
+inline uint64_t sign_extend(uint64_t data, uint8_t size) {
+    uint64_t msb = 1ull << (size - 1);
+    return data & msb
+           ? data | (~0ull << size)
+           : zero_extend(data, size);
+}
+
+// zest <reg> <value> <imm>
+void processor::CPU::exec_zero_extend(uint64_t inst) {
+    auto reg = get_arg_reg(inst, constants::inst::header_size);
+    uint64_t value = get_arg_value(inst, constants::inst::header_size + constants::inst::reg_size, false);
+    if (!is_running()) return;
+    uint8_t size = inst >> (constants::inst::header_size + constants::inst::reg_size + constants::inst::value_size);
+
+    uint64_t result = zero_extend(value, size);
+    reg_set(reg, result);
+    if (debug::cpu)
+        *ds << "zext: extend " << (int) size << "-bit 0x" << std::hex << std::setfill('0') << std::setw(size / 4) << value << " -> 0x" << std::setfill('0') << std::setw(16) << result << std::dec << std::endl;
+    test_is_zero(reg);
+}
+
+// sext <reg> <value> <imm>
+void processor::CPU::exec_sign_extend(uint64_t inst) {
+    auto reg = get_arg_reg(inst, constants::inst::header_size);
+    uint64_t value = get_arg_value(inst, constants::inst::header_size + constants::inst::reg_size, false);
+    if (!is_running()) return;
+    uint8_t size = inst >> (constants::inst::header_size + constants::inst::reg_size + constants::inst::value_size);
+
+    uint64_t result = sign_extend(value, size);
+    reg_set(reg, result);
+    if (debug::cpu)
+        *ds << "sext: extend " << (int) size << "-bit 0x" << std::hex << std::setfill('0') << std::setw(size / 4) << value << " -> 0x" << std::setfill('0') << std::setw(16) << result << std::dec << std::endl;
+    test_is_zero(reg);
 }
 
 // macro for arithmetic operation
@@ -730,6 +771,10 @@ void processor::CPU::execute(uint64_t inst) {
             return exec_shift_left(inst);
         case inst::_shr:
             return exec_shift_right(inst);
+        case inst::_zext:
+            return exec_zero_extend(inst);
+        case inst::_sext:
+            return exec_sign_extend(inst);
         case inst::_add:
             return exec_add(inst);
         case inst::_sub:

@@ -28,7 +28,7 @@
 %end
 
 %macro print_endl
-    load $r1, "\r\n"
+    load $r1, 0x0d0a ; "\r\n"
     syscall 4
 %end
 
