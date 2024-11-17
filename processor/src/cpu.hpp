@@ -75,8 +75,10 @@ namespace processor {
 
         void set_interrupt_handler(uint64_t addr) { addr_interrupt_handler = addr; }
 
-        // sets $ip, use carefully while running
-        void jump(uint64_t val) { reg_set(constants::registers::pc, val); }
+        [[nodiscard]] uint64_t read_pc() const { return reg(constants::registers::pc, true); };
+
+        // sets $pc, use carefully while running
+        void write_pc(uint64_t val) { reg_set(constants::registers::pc, val, true); }
 
         // read $ret
         [[nodiscard]] uint64_t get_return_value() const { return reg(constants::registers::ret); }
@@ -91,6 +93,9 @@ namespace processor {
 
         // same as raise_error, but returns ret from function
         uint64_t raise_error(constants::error::code code, uint64_t val, uint64_t ret);
+
+        // reset $flag
+        void reset_flag();
 
         // test if there is an interrupt THAT IS NOT BEING HANDLED
         [[nodiscard]] bool is_interrupt() const;
@@ -107,7 +112,7 @@ namespace processor {
 
         // execute a single step in the fetch-execute cycle
         // argument `step` is for debug output only
-        void step(int step = -1);
+        void step(int &step);
 
         // run the fetch-execute cycle (call step() until halt)
         void step_cycle();
@@ -121,4 +126,7 @@ namespace processor {
         // check if the given register is valid
         [[nodiscard]] static bool check_register(uint8_t off) { return off < constants::registers::count; }
     };
+
+    /** Read binary file into CPU, use to configure program. */
+    void read_binary_file(CPU &cpu, std::fstream &stream);
 }

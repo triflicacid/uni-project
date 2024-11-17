@@ -3,6 +3,8 @@
 #include <string>
 #include <algorithm>
 #include <cstdint>
+#include <sstream>
+#include <iomanip>
 
 /** Trim string from the left. */
 std::string &ltrim(std::string &s, const char *t = " \t\n\r\f\v");
@@ -65,3 +67,12 @@ bool parse_number(const std::string &string, int &index, uint64_t &value, bool &
 
 /** Return is valid label name: [A-Za-z][0-9A-Za-z]* */
 bool is_valid_label_name(const std::string &label);
+
+/** convert number to hex */
+template<typename T>
+std::string to_hex_string(T value) {
+    std::stringstream s;
+    s << std::setw(sizeof(T) * 2) << std::setfill('0');
+    s << std::hex << value;
+    return s.str();
+}

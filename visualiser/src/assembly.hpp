@@ -7,17 +7,22 @@
 #include "messages/list.hpp"
 
 namespace visualiser::assembly {
-    struct Data {
-        const named_fstream &source; // source assembly file
-        std::unique_ptr<named_fstream> reconstruction; // '-r' assembly reconstruction
-        std::map<uint32_t, std::pair<Location, std::string>> lines; // map byte offset ($ip) to source location
-
-        explicit Data(const named_fstream &source) : source(source) {}
-
-        /** Populate this->lines etc. from reconstructed file. */
-        void populate();
+    struct PCEntry {
+        std::string line; // line in reconstructed source
+        int line_no; // line number in reconstructed source
+        Location loc; // source location
     };
 
-    /** Set of valid assembly file extensions. */
-    extern std::set<std::string> file_extensions;
+    extern std::unique_ptr<named_fstream> source; // source assembly file (reconstruction)
+    extern std::map<uint32_t, PCEntry> pc_to_line; // map byte offset ($pc) to location
+    extern std::map<std::filesystem::path, std::vector<std::string>> files; // map file paths to contents (used for source storing sources)
+
+    // given `source`, populate other variables (such as `lines`)
+    void populate();
+
+    // get location in sources from $pc value
+    std::optional<PCEntry> locate_pc(uint64_t pc);
+
+    // get lines in a file
+    const std::vector<std::string> &get_file_lines(const std::filesystem::path &path);
 }

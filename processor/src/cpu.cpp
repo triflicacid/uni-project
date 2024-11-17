@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 #include "constants.hpp"
 #include "debug.hpp"
@@ -823,7 +824,12 @@ void processor::CPU::handle_interrupt() {
                   << std::dec << std::endl;
 }
 
-void processor::CPU::step(int step) {
+void processor::CPU::reset_flag() {
+    reg_set(constants::registers::flag,
+            (reg(constants::registers::flag) | int(constants::flag::is_running)) & ~int(constants::flag::error));
+}
+
+void processor::CPU::step(int &step) {
     // check if we are in an interrupt
     if (is_interrupt()) {
         handle_interrupt();
@@ -852,14 +858,13 @@ void processor::CPU::step(int step) {
 
     // finally, execute the instruction
     execute(inst);
+    step++;
 }
 
 void processor::CPU::step_cycle() {
-    // set running bit, clear error flag
-    reg_set(constants::registers::flag,
-            (reg(constants::registers::flag) | int(constants::flag::is_running)) & ~int(constants::flag::error));
+    reset_flag();
 
-    for (int cnt = 0; is_running(); cnt++) {
+    for (int cnt = 0; is_running();) {
         step(cnt);
     }
 }
@@ -897,4 +902,22 @@ void processor::CPU::print_error(bool prefix) const {
         default:
             *os << "E-UNKNOWN: unknown error, $ret=0x" << std::hex << reg(registers::ret) << std::dec << std::endl;
     }
+}
+
+void processor::read_binary_file(CPU &cpu, std::fstream &stream) {
+    // determine file size
+    auto cur = stream.tellg();
+    stream.seekg(-1, std::ios::end);
+    size_t file_size = stream.tellg();
+    stream.seekg(cur);
+
+    // read header bytes
+    uint64_t addr_entry, addr_interrupt;
+    stream.read((char *) &addr_entry, sizeof(addr_entry));
+    stream.read((char *) &addr_interrupt, sizeof(addr_interrupt));
+    cpu.write_pc(addr_entry);
+    cpu.set_interrupt_handler(addr_interrupt);
+
+    // read the rest of the file into memory
+    cpu.read(stream, file_size);
 }

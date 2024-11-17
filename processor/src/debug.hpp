@@ -9,4 +9,6 @@ namespace processor::debug {
     extern bool errs;
 
     void set_all(bool b);
+
+    bool any();
 }

@@ -116,17 +116,8 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    // extract words in header
-    uint64_t addr_entry, addr_interrupt;
-    stream.read((char *) &addr_entry, sizeof(addr_entry));
-    stream.read((char *) &addr_interrupt, sizeof(addr_interrupt));
-
-    if (debug::cpu) *cpu.ds << "entry point: 0x" << std::hex << addr_entry << "; interrupt handler: 0x" << addr_interrupt << std::dec << std::endl;
-    cpu.jump(addr_entry);
-    cpu.set_interrupt_handler(addr_interrupt);
-
-    // copy code into processor's memory
-    cpu.read(stream, file_size);
+    // instantiate from file
+    read_binary_file(cpu, stream);
 
     // start processor
     cpu.step_cycle();

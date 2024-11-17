@@ -1,70 +1,26 @@
 #include <iostream>
 #include "assembly.hpp"
-#include "data.hpp"
-#include "util.h"
 #include "util.hpp"
 
-std::set<std::string> visualiser::assembly::file_extensions = {".s", ".S", ".asm"};
+std::unique_ptr<named_fstream> visualiser::assembly::source = nullptr;
+std::map<uint32_t, visualiser::assembly::PCEntry> visualiser::assembly::pc_to_line = {};
+std::map<std::filesystem::path, std::vector<std::string>> visualiser::assembly::files = {};
 
-std::unique_ptr<visualiser::assembly::Data> visualiser::compile_assembly(const visualiser::Data &data) {
-    // create command to run the assembler
-    std::stringstream cmd;
-    cmd << data.cli_args.assembler_path
-        << " " << data.cli_args.source->path
-        << " -o " << (data.cli_args.out_dir / "program")
-        << " -r " << (data.cli_args.out_dir / "program.s");
-
-    if (data.cli_args.assembler_lib) cmd << " -l \"" << data.cli_args.assembler_lib.value() << '"';
-    if (data.cli_args.debug) {
-        cmd << " -d";
-        cmd << " 1> " << data.cli_args.out_dir / "assembler.stdout.log";
-        cmd << " 2> " << data.cli_args.out_dir / "assembler.stderr.log";
-
-        // write command to file
-        std::ofstream file(data.cli_args.out_dir / "assembler.sh");
-        file << "#!/bin/bash" << std::endl << cmd.str() << std::endl;
-        file.close();
-    }
-
-    // run the command as a new process
-    FILE *pipe = popen(cmd.str().c_str(), "r");
-
-    if (!pipe) {
-        std::cout << ANSI_RED "error creating pipe for executing the assembler" ANSI_RESET << std::endl;
-        perror(nullptr);
-        return nullptr;
-    }
-
-    // get exit code
-    int exit_code = pclose(pipe);
-    exit_code = WIFEXITED(exit_code) ? WEXITSTATUS(exit_code) : -1;
-
-    // exit OK?
-    if (exit_code != EXIT_SUCCESS) {
-        std::cout << ANSI_RED "assembler exited with code " << exit_code << ANSI_RED << std::endl;
-        std::cout << ANSI_BLUE "note" << ANSI_RESET << ": command was '" << cmd.str() << '\'';
-        return nullptr;
-    }
-
-    if (data.cli_args.debug) std::cout << "file successfully assembled" << std::endl;
-
-    // create assembly data
-    auto assembly_data = std::make_unique<assembly::Data>(*data.cli_args.source);
-    assembly_data->reconstruction = named_fstream::open(data.cli_args.out_dir / "program.s", std::ios::in);
-
-    return assembly_data;
-}
-
-void visualiser::assembly::Data::populate() {
+void visualiser::assembly::populate() {
     // reset file & other state
-    auto &stream = reconstruction->stream;
+    auto &stream = source->stream;
     stream.clear();
     stream.seekg(std::ios::beg);
-    lines.clear();
+    pc_to_line.clear();
 
-    // read each line
+    // read each line (save in map entry)
+    std::pair<std::filesystem::path, std::vector<std::string>> map_entry = {source->path,{}};
+
     std::string line;
+    int idx = 0;
     while (std::getline(stream, line)) {
+        idx++;
+
         // split into line contents & debug info
         size_t i = line.find(';');
 
@@ -81,7 +37,41 @@ void visualiser::assembly::Data::populate() {
         int line_no = std::stoi(debug_info.substr(j + 1));
         std::string filepath = debug_info.substr(0, j);
 
-        // insert into map
-        lines.insert({offset, {Location(filepath, line_no), line.substr(0, i)}});
+        // insert into (both) maps
+        line = line.substr(0, i);
+        pc_to_line.insert({offset, PCEntry{line, idx, Location(filepath, line_no)}});
+        map_entry.second.push_back(line);
     }
+
+    // add map entry to file dictionary
+    files.insert(map_entry);
+}
+
+std::optional<visualiser::assembly::PCEntry> visualiser::assembly::locate_pc(uint64_t pc) {
+    if (auto it = pc_to_line.find(pc); it != pc_to_line.end()) {
+        return it->second;
+    }
+
+    return {};
+}
+
+const std::vector<std::string> &visualiser::assembly::get_file_lines(const std::filesystem::path &path) {
+    // check if file is already in the dictionary
+    if (auto it = files.find(path); it != files.end()) {
+        return it->second;
+    }
+
+    // open file and read line-by-line
+    std::ifstream file(path);
+    std::pair<std::filesystem::path, std::vector<std::string>> map_entry = {path,{}};
+    std::string line;
+
+    while (std::getline(file, line)) {
+        map_entry.second.push_back(line);
+    }
+
+    // insert into dictionary and return
+    files.insert(map_entry);
+    file.close();
+    return files.find(path)->second;
 }
