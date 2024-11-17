@@ -47,7 +47,7 @@
     \begin{itemize}
         \item The reserved region contains two words.
         \begin{itemize}
-            \item Program entry point (i.e., initial \$ip).
+            \item Program entry point (i.e., initial \$pc).
             \item Address of interrupt handler.
         \end{itemize}
         Note, these addresses refer to offsets in RAM.
@@ -68,9 +68,9 @@
         \hline
         \multicolumn{4}{|c|}{\textbf{Special Registers}} \\
         \hline
-        \$ip & Instruction Pointer &  & Point to next address to execute as an instruction. \\
+        \$pc & Program Counter &  & Point to next address to execute as an instruction. \\
         \hline
-        \$rip & Return Address &  & \makecell[l]{Contains the sub-routiune return address.\\%
+        \$rpc & Return Address &  & \makecell[l]{Contains the sub-routiune return address.\\%
         Must be pushed onto the stack as it is not preserved.} \\
         \hline
         \$sp & Stack Pointer &  & Top address of the stack. \\
@@ -115,7 +115,7 @@
         That is, interrupt \$isr[\(i\)] only triggers if \$imr[\(i\)] is set.\\%
         \textbf{Default}: all bits set.} \\
         \hline
-        \$iip & Interrupt IP & & \makecell[l]{Stores \$ip in occurence of an interrupt.} \\
+        \$pcc & Interrupt Return Address & & \makecell[l]{Stores \$pc in occurence of an interrupt.} \\
         \hline
         \$ret & Return Value Register & & \makecell[l]{Contains value returned from function, syscall, etc.\\%
         Contains process exit code on halt.} \\
@@ -281,17 +281,17 @@
         word instruction = fetch();
         execute(instruction);
 
-        $ip += sizeof(word);
+        $pc += sizeof(word);
     }
 
     void handle_interrupt(void) {
-        $iip = $ip;
+        $ipc = $pc;
         $flag |= FLAG_IN_INTERRUPT;
-        $ip = HANDLER_OFFSET;
+        $pc = HANDLER_OFFSET;
     }
 
     void return_from_interrupt(void) {
-        $ip = $iip;
+        $pc = $ipc;
         $flag &= ~FLAG_IN_INTERRUPT;
     }
     \end{lstlisting}
@@ -348,7 +348,7 @@
 %    The following operations take place:
 %
 %    \texttt{%
-%    Reg[\$ip] = old ip\\%
+%    Reg[\$pc] = old ip\\%
 %    Reg[\$fp] = old fp\\%
 %    Reg[\$sp] = loc(xxx)\\%
 %    }

@@ -3,14 +3,14 @@
 using namespace constants;
 
 std::map<std::string, registers::reg> registers::map = {
-        {"ip",   registers::ip},
-        {"rip",  registers::rip},
+        {"pc",   registers::pc},
+        {"rpc",  registers::rpc},
         {"sp",   registers::sp},
         {"fp",   registers::fp},
         {"flag", registers::flag},
         {"isr",  registers::isr},
         {"imr",  registers::imr},
-        {"iip",  registers::iip},
+        {"ipc",  registers::ipc},
         {"ret",  registers::ret},
         {"k1",   registers::k1},
         {"k2",   registers::k2},

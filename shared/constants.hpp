@@ -21,14 +21,14 @@ namespace constants {
         constexpr uint8_t count = 32;
 
         enum reg : uint8_t {
-            ip = 0,
-            rip,
+            pc = 0,
+            rpc,
             sp,
             fp,
             flag,
             isr,
             imr,
-            iip,
+            ipc,
             ret,
             k1,
             k2,

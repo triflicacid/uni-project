@@ -39,7 +39,7 @@ namespace assembler::instruction::transform {
                   int overload) {
         if (instruction->args.size() == 1) {
             // add $rip as register
-            instruction->args.emplace_front(ArgumentType::Register, constants::registers::rip);
+            instruction->args.emplace_front(ArgumentType::Register, constants::registers::rpc);
             instruction->overload++;
         }
 
@@ -52,7 +52,7 @@ namespace assembler::instruction::transform {
         // "load $ip, $addr"
         instruction->signature = &Signature::_load;
         instruction->overload = 0;
-        instruction->args.emplace_front(ArgumentType::Register, constants::registers::ip);
+        instruction->args.emplace_front(ArgumentType::Register, constants::registers::pc);
         instructions.push_back(std::move(instruction));
     }
 
@@ -101,8 +101,8 @@ namespace assembler::instruction::transform {
         // "load $ip, $iip"
         instruction->signature = &Signature::_load;
         instruction->overload = 0;
-        instruction->args.emplace_back(ArgumentType::Register, constants::registers::ip);
-        instruction->args.emplace_back(ArgumentType::Register, constants::registers::iip);
+        instruction->args.emplace_back(ArgumentType::Register, constants::registers::pc);
+        instruction->args.emplace_back(ArgumentType::Register, constants::registers::ipc);
         auto *p = instruction.get();
         instructions.push_back(std::move(instruction));
 

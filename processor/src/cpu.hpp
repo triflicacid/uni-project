@@ -76,7 +76,7 @@ namespace processor {
         void set_interrupt_handler(uint64_t addr) { addr_interrupt_handler = addr; }
 
         // sets $ip, use carefully while running
-        void jump(uint64_t val) { reg_set(constants::registers::ip, val); }
+        void jump(uint64_t val) { reg_set(constants::registers::pc, val); }
 
         // read $ret
         [[nodiscard]] uint64_t get_return_value() const { return reg(constants::registers::ret); }

@@ -544,12 +544,12 @@ void processor::CPU::exec_jal(uint64_t inst) {
     if (!is_running()) return;
 
     if (debug::cpu)
-        *ds << "jal: cache $ip (0x" << std::hex << this->reg(registers::ip, true) << ") in "
+        *ds << "jal: cache $pc (0x" << std::hex << this->reg(registers::pc, true) << ") in "
                   << constants::registers::to_string(reg) << "; jump to 0x" << value << std::dec << std::endl;
 
     // cache + jump
-    reg_copy(reg, registers::ip);
-    reg_set(registers::ip, value);
+    reg_copy(reg, registers::pc);
+    reg_set(registers::pc, value);
 }
 
 template<typename T>
@@ -700,7 +700,7 @@ uint64_t processor::CPU::get_arg_addr(uint64_t word, uint8_t pos) {
 }
 
 uint64_t processor::CPU::fetch() {
-    uint64_t ip = reg(constants::registers::ip);
+    uint64_t ip = reg(constants::registers::pc);
 
     if (!check_memory(ip)) return raise_error(constants::error::segfault, ip, 0);
     return mem_load(ip, sizeof(uint64_t));
@@ -801,7 +801,6 @@ void processor::CPU::execute(uint64_t inst) {
 
 bool processor::CPU::is_interrupt() const {
     // do not allow interrupt stacking
-    // TODO is this (^) guard required?
     return !flag_test(constants::flag::in_interrupt)
            && (reg(constants::registers::isr) & reg(constants::registers::imr));
 }
@@ -809,18 +808,18 @@ bool processor::CPU::is_interrupt() const {
 void processor::CPU::handle_interrupt() {
     using namespace constants::registers;
 
-    // save $ip to $iip
-    reg_copy(iip, ip);
+    // save $pc to $ipc
+    reg_copy(ipc, pc);
 
     // disable future interrupts
     flag_set(constants::flag::in_interrupt);
 
     // jump to the interrupt handler
-    reg_set(ip, addr_interrupt_handler);
+    reg_set(pc, addr_interrupt_handler);
 
     if (debug::cpu)
         *ds << ANSI_CYAN "interrupt! " ANSI_RESET
-                     "$isr=0x" << std::hex << reg(isr) << ", $imr=0x" << reg(imr) << ", %iip=0x" << reg(iip)
+                     "$isr=0x" << std::hex << reg(isr) << ", $imr=0x" << reg(imr) << ", %iip=0x" << reg(ipc)
                   << std::dec << std::endl;
 }
 
@@ -836,7 +835,7 @@ void processor::CPU::step(int step) {
         else *ds << "cycle #" << step;
         if (debug::reg) *ds << ANSI_RESET << std::endl;
         else {
-            *ds << ANSI_RESET ": $ip=0x" << std::hex << reg(constants::registers::ip) << std::dec;
+            *ds << ANSI_RESET ": $pc=0x" << std::hex << reg(constants::registers::pc) << std::dec;
             if (debug::mem) *ds << std::endl;
             else *ds << ", inst=";
         }
@@ -848,8 +847,8 @@ void processor::CPU::step(int step) {
 
     if (debug::cpu && !debug::mem && !debug::reg) *ds << "0x" << std::hex << inst << std::dec << std::endl;
 
-    // increment $ip
-    reg_set(constants::registers::ip, reg(constants::registers::ip) + sizeof(inst));
+    // increment $pc
+    reg_set(constants::registers::pc, reg(constants::registers::pc) + sizeof(inst));
 
     // finally, execute the instruction
     execute(inst);
@@ -877,8 +876,8 @@ void processor::CPU::print_error(bool prefix) const {
 
     switch (error) {
         case error::opcode:
-            *os << "E-OPCODE: invalid opcode 0x" << std::hex << reg(registers::ret) << " (at $ip=" << std::dec
-               << reg(registers::ip) << ")" << std::endl;
+            *os << "E-OPCODE: invalid opcode 0x" << std::hex << reg(registers::ret) << " (at $pc=" << std::dec
+                << reg(registers::pc) << ")" << std::endl;
             break;
         case error::segfault:
             *os << "E-SEGSEGV: segfault on access of 0x" << std::hex << reg(registers::ret) << std::dec << std::endl;
@@ -893,7 +892,7 @@ void processor::CPU::print_error(bool prefix) const {
             break;
         case error::datatype:
             *os << "E-DATATYPE: invalid datatype specifier 0x" << std::hex << reg(registers::ret) << std::dec
-               << " (at $ip=0x" << reg(registers::ip) << ")" << std::endl;
+                << " (at $pc=0x" << reg(registers::pc) << ")" << std::endl;
             break;
         default:
             *os << "E-UNKNOWN: unknown error, $ret=0x" << std::hex << reg(registers::ret) << std::dec << std::endl;
