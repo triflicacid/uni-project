@@ -11,26 +11,50 @@ int parse_arguments(int argc, char **argv) {
         if (argv[i][0] == '-') {
             if (!strcmp(argv[i], "--asm")) {
                 if (++i == argc) {
-                    std::cout << "--asm: expected file path\n";
+                    std::cout << argv[i - 1] << ": expected file path\n";
                     return EXIT_FAILURE;
                 }
 
                 if (auto stream = named_fstream::open(argv[i], std::ios::in)) {
                     visualiser::assembly::source = std::move(stream);
                 } else {
-                    std::cout << "--asm: failed to open file " << argv[i];
+                    std::cout << argv[i - 1] << ": failed to open file " << argv[i];
                     return EXIT_FAILURE;
                 }
             } else if (!strcmp(argv[i], "--bin")) {
                 if (++i == argc) {
-                    std::cout << "--bin: expected file path\n";
+                    std::cout << argv[i - 1] << ": expected file path\n";
                     return EXIT_FAILURE;
                 }
 
                 if (auto stream = named_fstream::open(argv[i], std::ios::in)) {
                     visualiser::processor::source = std::move(stream);
                 } else {
-                    std::cout << "--bin: failed to open file " << argv[i];
+                    std::cout << argv[i - 1] << ": failed to open file " << argv[i];
+                    return EXIT_FAILURE;
+                }
+            } else if (!strcmp(argv[i], "--stdout")) {
+                if (++i == argc) {
+                    std::cout << argv[i - 1] << ": expected file path\n";
+                    return EXIT_FAILURE;
+                }
+
+                if (auto stream = named_fstream::open(argv[i], std::ios::in)) {
+                    visualiser::processor::piped_stdout = std::move(stream);
+                } else {
+                    std::cout << argv[i - 1] << ": failed to open file " << argv[i];
+                    return EXIT_FAILURE;
+                }
+            } else if (!strcmp(argv[i], "--stdin")) {
+                if (++i == argc) {
+                    std::cout << argv[i - 1] << ": expected file path\n";
+                    return EXIT_FAILURE;
+                }
+
+                if (auto stream = named_fstream::open(argv[i], std::ios::in)) {
+                    visualiser::processor::piped_stdin = std::move(stream);
+                } else {
+                    std::cout << argv[i - 1] << ": failed to open file " << argv[i];
                     return EXIT_FAILURE;
                 }
             } else {

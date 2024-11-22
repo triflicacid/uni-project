@@ -33,7 +33,6 @@ void visualiser::init() {
         tab_content
     });
 
-    // TODO event handling
     main = CatchEvent(body, [&](Event event) {
         if (current_tab == execution::index) {
             return execution::on_event(event);

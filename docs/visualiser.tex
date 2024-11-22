@@ -47,11 +47,17 @@
 
     \medskip
     \begin{lstlisting}[style=bashconsole]
-$ ./visualiser --asm <asm_file> --bin <bin_file>
+$ ./visualiser --asm <asm_file> --bin <bin_file> [flags]
     \end{lstlisting}
 
     The \texttt{--asm} and \texttt{--bin} flags set the source assembly and binary files, respectively.
     The file provided to \texttt{--asm} is the output from the assembler's reconstruction; if not, features such as trace-back will not be enabled.
+
+    The following flags are optional:
+    \begin{itemize}
+        \item \texttt{--stdout <file>} -- pipe the processor's output to this file.
+        \item \texttt{--stdin <file>} -- set the processor's input stream to this file.
+    \end{itemize}
 
     \subsection{Execution Example}
 
