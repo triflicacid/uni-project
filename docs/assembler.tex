@@ -106,7 +106,7 @@ It modifies the source file's contents before being passed to the compiler.
 
 Core to the pre-processor are \textit{directives}, which are commands to the pre-processor.
 Directives are prefixed with a percent (\%) symbol.
-
+\newpage
 \medskip
 \begin{longtable}{|c|l|l|}
     \hline
@@ -120,7 +120,7 @@ Directives are prefixed with a percent (\%) symbol.
     End & \texttt{\%end} & Marks the end of a macro definition. \\
     \hline
     Include File & \texttt{\%include [lib:]<path>} & \makecell[l]{Reads the file contents of \texttt{<path>.asm} and inserts into source.\\%
-    \textbf{Note} the \texttt{lib:} prefix navigates to the library directory (specified by the \texttt{-l} flag).} \\
+    \textbf{Note} the \texttt{lib:} prefix navigates to the library directory\\(specified by the \texttt{-l} flag).} \\
     \hline
     Macro Definition & \texttt{\%macro <name> [<args ...>]} & \makecell[l]{(Re-)Defines a macro with the given name and arguments.\\%
     See the below section for more information.} \\
@@ -302,7 +302,7 @@ where
 \begin{itemize}
     \item \texttt{source} is the \texttt{<file>:<line>} of its original location (prior to pre-processing and expansion of pseudo-instructions).
     \item \texttt{offset} is the byte offset of this line in RAM.
-    (This is equal to \$ip for an instruction.)
+    (This is equal to \$pc for an instruction.)
 \end{itemize}
 
 \end{document}

@@ -32,7 +32,8 @@
 
     \begin{itemize}
         \item This processor will operate a RISC instruction set.
-        \item This processor has a word size of 64 bits, and supports both floats (4 bytes) and doubles (8 bytes).
+        \item This processor has a word size of 64 bits.
+        \item This processor will support both floats (4 bytes) and doubles (8 bytes).
         \item The instruction set will provide methods to load values into and out of registers.
         Then, most operations will be on registers.
         \item Load/store instructions operate on 32-bit immediates.
@@ -42,15 +43,8 @@
     \section{Memory Layout}\label{sec:memory-layout}
 
     The emulator is simple, able to run only one program.
-
-    The memory space has three regions: reserved, RAM, and stack.
+    Therefore, the memory space is basic, with only two regions.
     \begin{itemize}
-        \item The reserved region contains two words.
-        \begin{itemize}
-            \item Program entry point (i.e., initial \$pc).
-            \item Address of interrupt handler.
-        \end{itemize}
-        Note, these addresses refer to offsets in RAM.
         \item RAM is where user code is located.
         \item The stack grows downwards from the top of memory, with its base indicates via the \$sp register.
     \end{itemize}
@@ -115,14 +109,14 @@
         That is, interrupt \$isr[\(i\)] only triggers if \$imr[\(i\)] is set.\\%
         \textbf{Default}: all bits set.} \\
         \hline
-        \$pcc & Interrupt Return Address & & \makecell[l]{Stores \$pc in occurence of an interrupt.} \\
+        \$ipc & Interrupt Return Address & & \makecell[l]{Stores \$pc in occurence of an interrupt.} \\
         \hline
         \$ret & Return Value Register & & \makecell[l]{Contains value returned from function, syscall, etc.\\%
         Contains process exit code on halt.} \\
         \hline \hline
         \multicolumn{4}{|c|}{\textbf{General Purpose Registers}} \\
         \hline
-        \$k1, \$k2 & Internal Registers & & \makecell[l]{Used by pseudo-instructions.} \\
+        \$k1, \$k2 & Internal Registers & & \makecell[l]{Used by pseudo-instructions\\and reserved for use by interrupt handler code} \\
         \hline
         \$r1 -- \$r21 & General &  & Register for general use. \\
         \hline
@@ -262,26 +256,39 @@
 
     \end{itemize}
 
-    \section{Interrupts}\label{sec:interrupts}
+    \section{The Fetch-Execute Cycle \& Interrupts}\label{sec:interrupts}
+
+    The fetch-execute cycle is a cycle of instruction-execution which runs a program.
+    As this processor is designed to only run one program, this cycle iterates only while the \texttt{is\_running} bit in \$flag is set.
+    While said bit is set: the word at \$pc is read, components extracted (such as the opcode, conditional guard, etc.), and subsequent operation executed.
+    This cycle continues unhindered, unless the processor exits, an error is triggered, or an interrupt is registered.
 
     Interrupts are events which, when triggered, alert the processor immediately.
     Interrupts are triggered via the \$isr register and may be used to distinguish between different sources.
     The \$isr is used to mask, or ignore, some interrupts.
-    Note that the interrupt bit must be cleared manually.
-    Also note that while in an interrupt, no other interrupt can be handled.
+    After handling the interrupt, the interrupt bit must be cleared manually (if not, the interrupt will be immediately re-triggered once the handler is exited).
 
-    Below is listed C pseudocode for the fetch-execute cycle to understand interrupt behaviour:
+    The programmer must take care when inside an interrupt handler not to overwrite register contents except the two especially designated \$k$n$ registers.
+    Keep in mind the ramifications of any changes upon resumption of normal execution.
+    It furthermore is not guaranteed that the contents of \$k$n$ registers be preserved across interrupt handler instances.
+
+    One imposed limitation is that interrupts may not be stacked; if in the interrupt handler, it is guaranteed that it will not be interrupted.
+    As such, it is important that only the bit causing the interrupt be cleared, lest pending interrupts be dismissed prematurely.
+
+    Below is listed C-like pseudocode for the fetch-execute cycle to understand interrupt behaviour:
 
     \begin{lstlisting}[style=c,label={lst:lstlisting}]
     void fetch_execute_cycle(void) {
-        if (($isr & $imr) && !($flag & FLAG_IN_INTERRUPT)) {
-            handle_interrupt();
+        while ($flag & FLAG_IS_RUNNING) {
+            if (($isr & $imr) && !($flag & FLAG_IN_INTERRUPT)) {
+                handle_interrupt();
+            }
+
+            uint64_t instruction = fetch();
+            execute(instruction);
+
+            $pc += sizeof(word);
         }
-
-        word instruction = fetch();
-        execute(instruction);
-
-        $pc += sizeof(word);
     }
 
     void handle_interrupt(void) {
@@ -296,7 +303,7 @@
     }
     \end{lstlisting}
 
-    \textbf{Note} the handler offset is at the fixed memory location \texttt{0x400}.
+    \textbf{Note} the handler's offset if fixed once execution begins, but may be altered from its default; see the assembler documentation for further clarification.
 
 %    \section{Calling Convention}\label{sec:calling-convention}
 %
@@ -371,12 +378,15 @@
 
     As a RISC processor, little support is provided by the processor for calling subroutines;
     instead, it is up to compilers or other softwares to decide upon and implement such a convention.
+    However, some basic instructions are provided.
 
-    The process provides one instruction -- \texttt{jal} -- to handle calling a subroutine.
+    The \textt{jal} ``jump-and-link'' instruction is used to call a procedure.
     Given the location in memory of the subroutine, it first caches the old instruction pointer, then loads in the subroutine's address.
-    Note that this return address is not preserved, and hence must be cached by the programmer if multiple nested calls are required, lest the previous return address be overwritten.
+    Note that this return address is not preserved on multiple calls, and hence must be cached by the programmer if multiple nested calls are required to avoid \$rpc from being overwritten.
+    Note, this instruction is atomic; while it may be implemented as a separate \texttt{load} and \texttt{jmp}, an interrupt could theoretically disrupt this.
 
     To return from a subroutine is simple: load the contents of this cache into the instruction pointer register.
+    This service is offered as a pseudo-instruction \texttt{ret}.
 
     \section{System Call}\label{sec:system-call}
 
@@ -435,7 +445,7 @@
 
     \section{Application Overview}
 
-    The application, named \texttt{processor}, is a simple program which implements the processor detailed therein.
+    The application, named \texttt{processor}, is a simple program which implements the processor detailed herein.
     It is called as follows:
 
     \medskip
@@ -459,4 +469,13 @@ $ ./processor <source_file> [flags]
             \item \texttt{zflag} - updates to the \texttt{zero} flag.
         \end{itemize}
     \end{itemize}
+
+    \subsection{Binary Layout}
+
+    A binary consists of a header, followed by program bytes.
+    The header is used to configure the processor; the program is loaded directly into memory at \texttt{0x00}.
+    \begin{enumerate}
+        \item Program entry point (i.e., initial \$pc).
+        \item Address of interrupt handler.
+    \end{enumerate}
 \end{document}

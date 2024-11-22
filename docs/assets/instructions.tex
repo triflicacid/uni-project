@@ -184,7 +184,7 @@ E.g., set \texttt{lt} iff \texttt{\$reg < \$value}.
 Expands to
 
 \begin{lstlisting}[style=assembly]
-    load<cnd> $ip <value>
+    load<cnd> $pc <value>
 \end{lstlisting}
 
 Branch to the given value if the flag's comparison bits match the conditional guard.
@@ -200,24 +200,10 @@ Branch to the given value if the flag's comparison bits match the conditional gu
 Expands to
 
 \begin{lstlisting}[style=assembly]
-    load $ip <value>
+    load $pc <value>
 \end{lstlisting}
 
 An unconditional branch.
-
-\subsubsection{Jump and Link}
-
-\begin{lstlisting}[style=assembly]
-    jal [reg] <addr>
-\end{lstlisting}
-
-Performs a function call: stores the current \texttt{\$ip} in \texttt{\$rip} and jumps to \texttt{<addr>}.
-By default, this register is \texttt{\$rip}; the optional register argument changes this.
-
-\begin{lstlisting}[style=rtn]
-    Reg[reg1] <- Reg[$ip]
-    Reg[$ip] <- addr
-\end{lstlisting}
 
 \subsection{Logical}
 
@@ -322,6 +308,39 @@ Extend the unsigned data of \texttt{<imm>} bits and store as a word in the desti
     Reg[reg] <- value & ((1 << imm) - 1)
 \end{lstlisting}
 
+\subsection{Subroutines}
+
+\subsubsection{Jump and Link}
+
+\begin{lstlisting}[style=assembly]
+    jal [reg] <addr>
+\end{lstlisting}
+
+Performs a function call: stores the current \texttt{\$pc} in \texttt{<reg$_1$>} and jumps to \texttt{<addr>}.
+By default, this register is \texttt{\$rpc}; the optional register argument changes this.
+
+\begin{lstlisting}[style=rtn]
+    Reg[reg1] <- Reg[$pc]
+    Reg[$pc] <- addr
+\end{lstlisting}
+
+\subsubsection{Return}
+
+\textit{Pseudo-instruction}
+
+\begin{lstlisting}[style=assembly]
+    ret [value]
+\end{lstlisting}
+
+Expands to
+
+\begin{lstlisting}[style=assembly]
+    load $ret <value>
+    load $pc $rpc
+\end{lstlisting}
+
+If provided, loads the provided value into \$ret, and loads \$rpc into \$pc.
+
 \subsection{Interrupts}
 
 \subsubsection{Trigger Interrupt}
@@ -351,7 +370,7 @@ Mask the \texttt{\$isr} register; trigger the given interrupt given the bit mask
 Expands to
 
 \begin{lstlisting}[style=assembly]
-    load $iip $ip
+    load $ipc $pc
     and $flag ~FLAG_INTERRUPT_BIT
 \end{lstlisting}
 
@@ -395,5 +414,5 @@ See the system call section for these mappings.
 
 \begin{lstlisting}[style=rtn]
     pop stack frame
-    Reg[$ip] <- old $ip
+    Reg[$pc] <- old $pc
 \end{lstlisting}
