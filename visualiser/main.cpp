@@ -63,16 +63,15 @@ int main(int argc, char **argv) {
     }
 
     // populate assembly data
-    visualiser::assembly::populate();
+    visualiser::assembly::init();
 
     // instantiate the processor
+    visualiser::processor::init();
     processor::debug::cpu = true;
-    processor::read_binary_file(visualiser::processor::cpu, visualiser::processor::source->stream);
-    visualiser::processor::cpu.ds = &visualiser::processor::debug_stream;
 
     // launch application
     visualiser::init();
-    visualiser::start();
+    visualiser::display();
 
     return EXIT_SUCCESS;
 }

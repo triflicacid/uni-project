@@ -9,5 +9,5 @@ namespace visualiser {
 
     void init();
 
-    void start();
+    void display();
 }

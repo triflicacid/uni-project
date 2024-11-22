@@ -76,3 +76,10 @@ std::string to_hex_string(T value) {
     s << std::hex << value;
     return s.str();
 }
+
+/** Clamp value between to bounds: lower is inclusive, upper is not */
+template<typename T>
+inline void clamp(T &value, T min, T max, T max_diff = 1, bool wrap_around = false) {
+    if (value < min) value = wrap_around ? max - max_diff : min;
+    else if (value >= max) value = wrap_around ? min : max - max_diff;
+}

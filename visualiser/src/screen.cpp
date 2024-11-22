@@ -44,6 +44,6 @@ void visualiser::init() {
     });
 }
 
-void visualiser::start() {
+void visualiser::display() {
     visualiser::screen.Loop(visualiser::main);
 }

@@ -1,0 +1,111 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{makecell}
+\usepackage{longtable}
+\usepackage{amsmath, amssymb}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+\include{styles/bashconsole}
+\include{styles/flowchart}
+\include{styles/assembly}
+
+\setlength{\parindent}{0pt}
+
+\title{Visualiser Documentation}
+\author{Ruben Saunders}
+\date{November 2024}
+
+\begin{document}
+    \maketitle
+    \tableofcontents
+
+    \newpage
+
+    \section{Overview}
+
+    The visualiser offers an interactive view into code execution and the interaction between the compiler, the assembler, and the processor.
+    The visualiser
+    \begin{itemize}
+        \item Is machine-code executor, able to run the loaded binary on the processor in a step-wise fashion.
+        \item Has a register view/editor.
+        \item Has a memory view/editor.
+        \item Is a basic debugger.
+        \item Shows the current machine-code instruction, and back-traces it to both the assembly and high-level source code.
+    \end{itemize}
+
+    The application is a TUI (a textual user interface), meaning it runs in the terminal.
+    The interface is tab-based, with a navigation bar along the top.
+    Later sections will cover the content of each tab.
+
+    \subsection{Command-Line Interface}
+
+    The visualiser executable is called as follows:
+
+    \medskip
+    \begin{lstlisting}[style=bashconsole]
+$ ./visualiser --asm <asm_file> --bin <bin_file>
+    \end{lstlisting}
+
+    The \texttt{--asm} and \texttt{--bin} flags set the source assembly and binary files, respectively.
+    The file provided to \texttt{--asm} is the output from the assembler's reconstruction; if not, features such as trace-back will not be enabled.
+
+    \subsection{Execution Example}
+
+    The visualiser relies on output from the assembler.
+    Below is the sequence of steps to go from a source assembly file, to running it on the visualiser.
+    \begin{enumerate}
+        \item Write an assembly source, say \texttt{source.asm}.
+        \item Assemble the file, emitting a reconstruction.
+        \medskip
+        \begin{lstlisting}[style=bashconsole]
+$ ./assembler source.asm -o source -r source.s
+        \end{lstlisting}
+        \item Launch the visualiser.
+        \medskip
+        \begin{lstlisting}[style=bashconsole]
+$ ./visualiser --asm source.s --bin source
+        \end{lstlisting}
+    \end{enumerate}
+
+    \section{Main -- Code Execution}
+
+    The ``main'' tab, this view shows the source and compiler assembly side-by-side.
+
+    \subsection{Layout}
+
+    The top of the screen is split into two panes.
+    \begin{itemize}
+        \item The assembly source is displayed on the left, with its file name displayed.
+        \item The reconstructed compiler assembly is display on the right.
+    \end{itemize}
+    The current line pointed to by \$pc is highlighted in yellow, which is traced back to the source assembly.
+    If enabled, the currently selected line is displayed in cyan, with the corresponding equivalent lines highlighted in light cyan in the other pane.
+
+    Below this is a section for the processor's debug messages, which is hidden by default unless messages are available.
+    The fields below this display the
+    \begin{itemize}
+        \item Processor's status -- either \textit{halted} or \textit{running}.
+        This reflects the \texttt{is\_running} bit in \$flag.
+        \item Cycle -- indicates the processor's current cycle, i.e., number of executed steps.
+        \item Program counter -- the current value of \$pc.
+    \end{itemize}
+
+    \subsection{Keyboard Controls}
+
+    \begin{itemize}
+        \item \texttt{End} -- if line selection is enabled, set the selected line to the end of the file.
+        \item \texttt{Enter} -- if the processor is running, perform a step on the processor, i.e., execute the instruction at \$pc.
+        \item \texttt{Home} -- if line selection is enabled, set the selected line to the start of the file.
+        \item \texttt{j} -- if line selection is enabled, sets \$pc to the first selected line in the compiled assembly.
+        \item \texttt{r} -- resets \$flag: sets \texttt{is\_running} and clears any error bits.
+        \item \texttt{s} -- toggle line selection.
+        \item \texttt{Up/Down arrows} -- if line selection is enabled, moves the active selected line (cyan) up/down in the current file.
+        \item \texttt{Left/Right arrows} -- if line selection is enabled, scrolls through the current panes.
+        The active selected line (cyan) is transferred to the topmost selected line in the new pane.
+    \end{itemize}
+
+\end{document}

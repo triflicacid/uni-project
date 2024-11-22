@@ -57,7 +57,7 @@ namespace assembler::instruction {
         switch (m_type) {
             case ArgumentType::Immediate:
             case ArgumentType::Byte:
-                os << m_data;
+                os << "0x" << std::hex << m_data << std::dec;
                 break;
             case ArgumentType::DecimalImmediate:
                 os << *(double *) &m_data;

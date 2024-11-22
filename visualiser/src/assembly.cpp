@@ -6,7 +6,7 @@ std::unique_ptr<named_fstream> visualiser::assembly::source = nullptr;
 std::map<uint32_t, visualiser::assembly::PCEntry> visualiser::assembly::pc_to_line = {};
 std::map<std::filesystem::path, std::vector<std::string>> visualiser::assembly::files = {};
 
-void visualiser::assembly::populate() {
+void visualiser::assembly::init() {
     // reset file & other state
     auto &stream = source->stream;
     stream.clear();
@@ -39,7 +39,7 @@ void visualiser::assembly::populate() {
 
         // insert into (both) maps
         line = line.substr(0, i);
-        pc_to_line.insert({offset, PCEntry{line, idx, Location(filepath, line_no)}});
+        pc_to_line.insert({offset, PCEntry{offset, line, idx, Location(filepath, line_no)}});
         map_entry.second.push_back(line);
     }
 
@@ -47,12 +47,12 @@ void visualiser::assembly::populate() {
     files.insert(map_entry);
 }
 
-std::optional<visualiser::assembly::PCEntry> visualiser::assembly::locate_pc(uint64_t pc) {
+visualiser::assembly::PCEntry *visualiser::assembly::locate_pc(uint64_t pc) {
     if (auto it = pc_to_line.find(pc); it != pc_to_line.end()) {
-        return it->second;
+        return &it->second;
     }
 
-    return {};
+    return nullptr;
 }
 
 const std::vector<std::string> &visualiser::assembly::get_file_lines(const std::filesystem::path &path) {
@@ -74,4 +74,26 @@ const std::vector<std::string> &visualiser::assembly::get_file_lines(const std::
     files.insert(map_entry);
     file.close();
     return files.find(path)->second;
+}
+
+const visualiser::assembly::PCEntry *visualiser::assembly::locate_line(int line) {
+    for (const auto &[pc, entry] : pc_to_line) {
+        if (entry.line_no == line) {
+            return &entry;
+        }
+    }
+
+    return nullptr;
+}
+
+std::vector<const visualiser::assembly::PCEntry *> visualiser::assembly::locate_asm_line(const std::filesystem::path &path, int line) {
+    std::vector<const visualiser::assembly::PCEntry *> entries;
+
+    for (const auto &[pc, entry] : pc_to_line) {
+        if (entry.origin.path() == path && entry.origin.line() == line) {
+            entries.push_back(&entry);
+        }
+    }
+
+    return entries;
 }
