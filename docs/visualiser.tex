@@ -77,7 +77,20 @@ $ ./visualiser --asm source.s --bin source
         \end{lstlisting}
     \end{enumerate}
 
-    \section{Main -- Code Execution}
+    \subsection{Navigation \& Control Basics}
+
+    As a TUI, everything may be done using keyboard controls.
+    Navigation between key elements is done with the arrow keys (e.g., navigating between tabs, selecting registers in the list).
+
+    To use the tab-specific controls, the tab body must be focused.
+    This can be achieved by pressing the down arrow.
+    Aside from tab-specific controls, the following are global:
+    \begin{itemize}
+        \item \texttt{Ctrl+c} -- exits the application.
+        \item \texttt{F\(n\)} -- selects the \(n^{th}\) tab.
+    \end{itemize}
+
+    \section{Code Execution}
 
     The ``main'' tab, this view shows the source and compiler assembly side-by-side.
 

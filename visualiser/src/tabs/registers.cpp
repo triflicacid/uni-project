@@ -156,16 +156,16 @@ void visualiser::tabs::RegistersTab::init() {
         return vbox({
                         center(text("Register $" + constants::registers::to_string(reg)) | bold | border),
                         hbox({text("Value = "),
-                              text("0x") | color(style::value),
-                              state::inputs::i_hex->Render() | color(style::value)}),
+                              text("0x"),
+                              state::inputs::i_hex->Render() }),
                         hbox({text("Integer = "),
-                              state::inputs::i_int->Render() | color(style::value)}),
+                              state::inputs::i_int->Render()}),
                         hbox({text("Long = "),
-                              state::inputs::i_long->Render() | color(style::value)}),
+                              state::inputs::i_long->Render() }),
                         hbox({text("Float = "),
-                              state::inputs::i_float->Render() | color(style::value)}),
+                              state::inputs::i_float->Render()}),
                         hbox({text("Double = "),
-                              state::inputs::i_double->Render() | color(style::value)}),
+                              state::inputs::i_double->Render()}),
                     }) |
                border;
       });
