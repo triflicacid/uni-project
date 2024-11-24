@@ -12,7 +12,7 @@ namespace processor {
         std::array<uint64_t, constants::registers::count> m_regs{}; // register store
         bus m_bus{}; // connected bus to access memory
 
-    protected:
+    public:
         [[nodiscard]] uint64_t reg(constants::registers::reg r, bool silent = false) const;
 
         template<typename T>
@@ -34,7 +34,6 @@ namespace processor {
         // write a null-terminated C-string, starting at `addr`, to the output stream
         void write_string(uint64_t addr);
 
-    public:
         Core() : os(&std::cout), is(&std::cin), ds(&std::cout) {}
 
         // reset's the core, please call before use

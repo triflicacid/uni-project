@@ -1,48 +1,46 @@
 #include "screen.hpp"
 #include "tabs/execution.hpp"
+#include "tabs/registers.hpp"
+#include "tabs/tab.hpp"
+#include "util.hpp"
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 
-ftxui::Component visualiser::main;
-ftxui::ScreenInteractive visualiser::screen = ftxui::ScreenInteractive::Fullscreen();
+void visualiser::launch() {
+  using namespace ftxui;
+  using namespace tabs;
 
-// our current tab
-static int current_tab = 0;
+  // create tabs
+  CodeExecutionTab tab_code_execution;
+  RegistersTab tab_registers;
+  std::vector<Tab *> tab_list = {&tab_code_execution, &tab_registers};
 
-void visualiser::init() {
-    using namespace ftxui;
-    using namespace tabs;
+  // tab navigation buttons
+  std::vector<std::string> tab_headers = map(tab_list,
+                                             std::function<std::string(Tab *&)>([](auto &t) { return t->title(); }));
+  int current_tab = 0;
+  auto tab_nav = Toggle(&tab_headers, &current_tab);
 
-    // initialise each tab
-    execution::init();
+  // container which selects child based on tab index
+  std::vector<Component> tab_contents = map(tab_list,
+                                            std::function<Component(Tab *&)>([](auto &t) { return t->content(); }));
+  auto tab_container = Container::Tab(tab_contents, &current_tab);
 
-    // create navigation bar
-    auto tab_nav = Container::Horizontal({
-        Button(execution::title, [&] { current_tab = execution::index; }),
-    });
+  // create the main UI
+  auto container = Container::Vertical({
+                                           tab_nav,
+                                           tab_container
+                                       });
 
-    // create tab content
-    auto tab_content = Container::Tab({
-        execution::content,
-    }, &current_tab);
+  auto renderer = Renderer(container, [&] {
+    return vbox({
+                    tab_nav->Render(),
+                    separator(),
+                    tab_container->Render(),
+                });
+  });
 
-    // create the main UI
-    auto body = Container::Vertical({
-        tab_nav,
-        tab_content
-    });
-
-    main = CatchEvent(body, [&](Event event) {
-        if (current_tab == execution::index) {
-            return execution::on_event(event);
-        }
-
-        // what?
-        return false;
-    });
-}
-
-void visualiser::display() {
-    visualiser::screen.Loop(visualiser::main);
+  auto screen = ScreenInteractive::TerminalOutput();
+  screen.Loop(renderer);
 }

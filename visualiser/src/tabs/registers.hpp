@@ -1,11 +1,12 @@
 #pragma once
 
 #include "tab.hpp"
+#include <ftxui/component/component.hpp>
 
 namespace visualiser::tabs {
-  class CodeExecutionTab : public Tab {
+  class RegistersTab : public Tab {
   public:
-    CodeExecutionTab() : Tab("Execution") {}
+    RegistersTab() : Tab("Registers") {}
 
   private:
     void init() override;

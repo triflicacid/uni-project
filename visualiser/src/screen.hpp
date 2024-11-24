@@ -5,10 +5,5 @@
 #include "named_fstream.hpp"
 
 namespace visualiser {
-    extern ftxui::Component main;
-    extern ftxui::ScreenInteractive screen;
-
-    void init();
-
-    void display();
+  void launch();
 }

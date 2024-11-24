@@ -83,3 +83,18 @@ inline void clamp(T &value, T min, T max, T max_diff = 1, bool wrap_around = fal
     if (value < min) value = wrap_around ? max - max_diff : min;
     else if (value >= max) value = wrap_around ? min : max - max_diff;
 }
+
+// courtesy of `http://derekwyatt.org/2011/07/15/functional-map-in-c/`
+template <typename InType,
+        template <typename U>
+        class InContainer,
+        template <typename V>
+        class OutContainer = InContainer,
+        typename OutType = InType>
+OutContainer<OutType> map(InContainer<InType>& input,
+                           std::function<OutType(InType&)> func) {
+    OutContainer<OutType> output;
+    output.resize(input.size());
+    transform(input.begin(), input.end(), output.begin(), func);
+    return output;
+}
