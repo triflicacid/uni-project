@@ -251,6 +251,15 @@ void visualiser::tabs::RegistersTab::init() {
       });
   // TODO make description text wrap
 
-
   content_ = Container::Horizontal({register_list, register_view});
+
+  help_ = Renderer([&] {
+    return create_key_help_pane({
+                                    {"Backspace/Delete", "zeroes the register"},
+                                    {"c", "copies register contents"},
+                                    {"v", "pastes contents into register"},
+                                    {"r", "refresh page"},
+                                    {"Up/Down", "move register selection"},
+                                });
+  });
 }

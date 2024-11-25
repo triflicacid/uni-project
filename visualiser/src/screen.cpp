@@ -8,7 +8,32 @@
 #include <ftxui/component/screen_interactive.hpp>
 
 static int current_tab = 0;
-static ftxui::Component tab_nav, tab_container;
+static ftxui::Component tab_nav, tab_container, tab_help;
+
+ftxui::Element visualiser::tabs::create_key_help_pane(const std::map<std::string, std::string> &keys) {
+  using namespace ftxui;
+  std::vector<Element> children, names, descriptions;
+  static const int rows = 3;
+
+  auto it = keys.begin();
+  for (size_t i = 0; i < keys.size(); i += rows) {
+    names.clear();
+    descriptions.clear();
+
+    for (int j = 0; j < rows && it != keys.end(); j++, it++) {
+      names.push_back(text(it->first + ' ') | bold);
+      descriptions.push_back(text(it->second));
+    }
+
+    children.push_back(vbox(names));
+    children.push_back(vbox(descriptions));
+    children.push_back(separator());
+  }
+
+  // remove last separator()
+  children.pop_back();
+  return hbox(children);
+}
 
 // set current_tab=index & take focus
 static bool force_tab_focus(int index) {
@@ -36,6 +61,10 @@ void visualiser::launch() {
                                             std::function<Component(Tab *&)>([](auto &t) { return t->content(); }));
   tab_container = Container::Tab(tab_contents, &current_tab);
 
+  std::vector<Component> tab_helps = map(tab_list,
+                                            std::function<Component(Tab *&)>([](auto &t) { return t->help(); }));
+  tab_help = Container::Tab(tab_helps, &current_tab);
+
   // create the main UI
   auto container = Container::Vertical({
                                            tab_nav,
@@ -44,16 +73,19 @@ void visualiser::launch() {
 
   auto renderer = Renderer(container, [&] {
     return vbox({
-                    tab_nav->Render(),
-                    separator(),
-                    tab_container->Render(),
-                });
+      vbox({
+          tab_nav->Render(),
+          separator(),
+          tab_container->Render(),
+        }) | border,
+        tab_help->Render() | border,
+    });
   }) | CatchEvent([&](Event e) {
     if (e == Event::F1) return force_tab_focus(0);
     if (e == Event::F2) return force_tab_focus(1);
     return false;
   });
 
-  auto screen = ScreenInteractive::TerminalOutput();
+  auto screen = ScreenInteractive::FitComponent();
   screen.Loop(renderer);
 }

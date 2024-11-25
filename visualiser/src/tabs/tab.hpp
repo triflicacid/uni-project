@@ -2,12 +2,14 @@
 
 #include <ftxui/component/component.hpp>
 #include <utility>
+#include <map>
 
 namespace visualiser::tabs {
   class Tab {
   protected:
     std::string title_;
     ftxui::Component content_;
+    ftxui::Component help_;
 
     virtual void init() = 0;
 
@@ -21,5 +23,15 @@ namespace visualiser::tabs {
       init();
       return content_;
     }
+
+    ftxui::Component help() {
+      if (help_) return help_;
+      init();
+      return help_;
+    }
   };
+
+  // given map of key-descriptions, return help pane
+  ftxui::Element create_key_help_pane(const std::map<std::string, std::string> &keys);
+
 }// namespace visualiser::tabs

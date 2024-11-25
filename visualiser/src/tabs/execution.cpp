@@ -280,4 +280,18 @@ void visualiser::tabs::CodeExecutionTab::init() {
   content_ |= CatchEvent([&](Event event) {
     return on_event(event);
   });
+
+  help_ = Renderer([&] {
+    return create_key_help_pane({
+      {"End", "select last line"},
+      {"Enter", "execute one step"},
+      {"h", "start/stop processor"},
+      {"Home", "select first line"},
+      {"j", "jump to selected line"},
+      {"r", "reset the processor's state"},
+      {"s", "toggle line select"},
+      {"Up/Down", "move selected line"},
+      {"Left/Right", "move selected line's pane"}
+    });
+  });
 }
