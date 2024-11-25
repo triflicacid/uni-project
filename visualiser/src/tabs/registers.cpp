@@ -203,7 +203,7 @@ void visualiser::tabs::RegistersTab::init() {
 
   auto register_list = Renderer(Menu(&state::reg_names, &state::current_reg),
                                 [&] {
-                                  std::vector<Element> left, right;
+                                  std::vector<Element> children, left, right;
 
                                   for (int r = 0; r < constants::registers::count; r++) {
                                     auto name = text("$" + constants::registers::to_string($reg(r)));
@@ -214,9 +214,21 @@ void visualiser::tabs::RegistersTab::init() {
                                                        text("0x" + to_hex_string(read(r))) | style::reg});
                                     if (r == state::current_reg) value |= style::highlight_traced;
                                     right.push_back(value);
+
+                                    // divide special/general purpose registers
+                                    if (r + 1 == constants::registers::r1) {
+                                      children.push_back(hbox(vbox(left), vbox(right)));
+                                      children.push_back(separator());
+                                      left.clear();
+                                      right.clear();
+                                    }
                                   }
 
-                                  return hbox({vbox(left), vbox(right)}) | border;
+                                  if (!left.empty()) {
+                                    children.push_back(hbox(vbox(left), vbox(right)));
+                                  }
+
+                                  return vbox(children) | border;
                                 }) | CatchEvent([&](Event e) {
     return register_list_on_event(e);
   });
