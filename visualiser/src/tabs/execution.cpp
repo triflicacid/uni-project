@@ -17,17 +17,18 @@ namespace state {
   uint64_t current_pc = 0;                          // current value of $pc
   int current_cycle = 0;                            // processor's current cycle
   visualiser::assembly::PCEntry *pc_entry = nullptr;// current PC entry
-  std::vector<ftxui::Element> debug_lines;
+  std::vector<ftxui::Element> debug_lines; // contains lines in the debug field - preserves values
 
-  std::vector<std::string> source_lines, asm_lines;
-  bool show_selected_line = false;
+  std::vector<std::string> source_lines, asm_lines; // lines in each pane
+  bool show_selected_line = false; // show light-blue selected line(s)?
   std::pair<Pane, int> selected_line = {Pane::Source,
                                         1};// selected line in the corresponding source: <pane, line> (line is 1-indexed)
 
-  std::deque<int> source_selected_lines, asm_selected_lines;
-  ftxui::Decorator *source_selected_style, *asm_selected_style;
+  std::deque<int> source_selected_lines, asm_selected_lines; // store selected lines in each pane
+  ftxui::Decorator *source_selected_style, *asm_selected_style; // which style to use when colouring selected lines? (trace-back)
 }// namespace state
 
+// replace '\r\n' with just '\n'
 static std::string normalise_newlines(const std::string &input) {
   return std::regex_replace(input, std::regex("\r\n"), "\n");
 }
@@ -48,7 +49,7 @@ static int get_pane_limit(Pane pane) {
   }
 }
 
-// update selected line information
+// update selected line information - trace lines from current pane to others
 static void update_selected_line() {
   using namespace state;
   if (!show_selected_line) return;

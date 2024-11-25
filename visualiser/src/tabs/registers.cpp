@@ -13,8 +13,9 @@ enum class Field {
 };
 
 namespace state {
-  std::vector<std::string> reg_names;
-  int current_reg = 0;
+  std::vector<std::string> reg_names; // list of register names, used in menu
+  int current_reg = 0; // index of the current register
+  std::optional<uint64_t> copied_reg; // copied register contents
 
   namespace inputs {
     std::string s_hex, s_int, s_long, s_float, s_double;
@@ -22,23 +23,24 @@ namespace state {
   }// namespace inputs
 }// namespace state
 
-static ftxui::MenuEntryOption format_register_item() {
-  using namespace ftxui;
-  return {
-      .transform = [&](const EntryState &st) {
-        size_t idx = st.label.find('=');
-        auto el = hbox({text(st.label.substr(0, idx)),
-                        text(" = "),
-                        text(st.label.substr(idx)) | color(visualiser::style::reg)});
-        if (st.active) el |= visualiser::style::highlight_traced;
-        return el;
-      }};
+// read the given register
+static uint64_t read(int i) {
+  return visualiser::processor::cpu.reg($reg(i), true);
 }
 
-static void sync_inputs() {
-  auto reg = static_cast<constants::registers::reg>(state::current_reg);
-  uint64_t val = visualiser::processor::cpu.reg(reg, true);
+// read the current register
+static uint64_t read() {
+  return read(state::current_reg);
+}
 
+// write to the current register
+static void write(uint64_t v) {
+  visualiser::processor::cpu.reg_set($reg(state::current_reg), v, true);
+}
+
+// ensure all inputs read the correct values
+static void sync_inputs() {
+  uint64_t val = read();
   state::inputs::s_hex = to_hex_string(val);
   state::inputs::s_int = std::to_string(*(int *) &val);
   state::inputs::s_long = std::to_string(val);
@@ -46,52 +48,54 @@ static void sync_inputs() {
   state::inputs::s_double = std::to_string(*(double *) &val);
 }
 
+// same as sync_inputs(), but update register's value first
+static void sync_inputs(uint64_t value) {
+  write(value);
+  sync_inputs();
+}
+
+// update register value from the given input field
 static void update_reg_from_input(Field update) {
-  auto reg = static_cast<constants::registers::reg>(state::current_reg);
+  uint64_t buffer;
 
   switch (update) {
     case Field::Hex: {
       try {
-        uint64_t value = std::stoull(state::inputs::s_hex, nullptr, 16);
-        visualiser::processor::cpu.reg_set(reg, value, true);
+        buffer = std::stoull(state::inputs::s_hex, nullptr, 16);
       } catch (std::exception &e) {}
       break;
     }
     case Field::Int: {
       try {
         int value = std::stoi(state::inputs::s_int);
-        uint64_t buffer = *(uint32_t *) &value;
-        visualiser::processor::cpu.reg_set(reg, buffer, true);
+        buffer = *(uint32_t *) &value;
       } catch (std::exception &e) {}
       break;
     }
     case Field::Long: {
       try {
         long value = std::stoll(state::inputs::s_long);
-        uint64_t buffer = *(uint64_t *) &value;
-        visualiser::processor::cpu.reg_set(reg, buffer, true);
+        buffer = *(uint64_t *) &value;
       } catch (std::exception &e) {}
       break;
     }
     case Field::Float: {
       try {
         float value = std::stof(state::inputs::s_float);
-        uint64_t buffer = *(uint32_t *) &value;
-        visualiser::processor::cpu.reg_set(reg, buffer, true);
+        buffer = *(uint32_t *) &value;
       } catch (std::exception &e) {}
       break;
     }
     case Field::Double: {
       try {
         double value = std::stod(state::inputs::s_double);
-        uint64_t buffer = *(uint64_t *) &value;
-        visualiser::processor::cpu.reg_set(reg, buffer, true);
+        buffer = *(uint64_t *) &value;
       } catch (std::exception &e) {}
       break;
     }
   }
 
-  sync_inputs();
+  sync_inputs(buffer);
 }
 
 static void init_inputs() {
@@ -116,11 +120,40 @@ static void init_inputs() {
                               .on_enter = [] { update_reg_from_input(Field::Double); }});
 }
 
+// event handler for intercepted event in register_list
+static bool register_list_on_event(ftxui::Event &e) {
+  if (e.is_character()) {
+    if (e == ftxui::Event::Character('r')) { // sync input fields
+      sync_inputs();
+      return true;
+    }
+
+    if (e == ftxui::Event::Character('c')) { // copy current register's contents
+      state::copied_reg = read();
+      return true;
+    }
+
+    if (e == ftxui::Event::Character('v')) { // paste register contents (if available)
+      if (state::copied_reg.has_value()) {
+        sync_inputs(state::copied_reg.value());
+      }
+      return true;
+    }
+  }
+
+  if (e == ftxui::Event::Backspace || e == ftxui::Event::Delete) { // clear current register
+    sync_inputs(0);
+    return true;
+  }
+
+  return false;
+}
+
 void visualiser::tabs::RegistersTab::init() {
   using namespace ftxui;
 
   for (int r = 0; r < constants::registers::count; r++) {
-    state::reg_names.push_back("$" + constants::registers::to_string(static_cast<constants::registers::reg>(r)));
+    state::reg_names.push_back("$" + constants::registers::to_string($reg(r)));
   }
 
   init_inputs();
@@ -131,48 +164,43 @@ void visualiser::tabs::RegistersTab::init() {
                                   std::vector<Element> left, right;
 
                                   for (int r = 0; r < constants::registers::count; r++) {
-                                    auto name = text("$" + constants::registers::to_string(
-                                        static_cast<constants::registers::reg>(r)));
+                                    auto name = text("$" + constants::registers::to_string($reg(r)));
                                     if (r == state::current_reg) name |= style::highlight_traced;
                                     left.push_back(name);
 
                                     auto value = hbox({text(" = "),
-                                                       text("0x" + to_hex_string(visualiser::processor::cpu.reg(
-                                                           static_cast<constants::registers::reg>(r), true))) |
+                                                       text("0x" + to_hex_string(read(r))) |
                                                        color(style::reg)});
                                     if (r == state::current_reg) value |= style::highlight_traced;
                                     right.push_back(value);
                                   }
 
-                                  return hbox({vbox(left), vbox(right)});
+                                  return hbox({vbox(left), vbox(right)}) | border;
+                                }) | CatchEvent([&] (Event e) {
+                                  return register_list_on_event(e);
                                 });
 
   auto register_view = Renderer(
       Container::Vertical({state::inputs::i_hex, state::inputs::i_int, state::inputs::i_long, state::inputs::i_float,
                            state::inputs::i_double}),
       [&] {
-        auto reg = static_cast<constants::registers::reg>(state::current_reg);
-
         return vbox({
-                        center(text("Register $" + constants::registers::to_string(reg)) | bold | border),
+                        center(text("Register $" + constants::registers::to_string($reg(state::current_reg))) | bold),
+                        separator(),
                         hbox({text("Value = "),
                               text("0x"),
-                              state::inputs::i_hex->Render() }),
+                              state::inputs::i_hex->Render()}),
                         hbox({text("Integer = "),
                               state::inputs::i_int->Render()}),
                         hbox({text("Long = "),
-                              state::inputs::i_long->Render() }),
+                              state::inputs::i_long->Render()}),
                         hbox({text("Float = "),
                               state::inputs::i_float->Render()}),
                         hbox({text("Double = "),
                               state::inputs::i_double->Render()}),
-                    }) |
-               border;
+                    }) | border;
       });
 
 
-  content_ = Container::Horizontal({
-                                       register_list,
-                                       register_view,
-                                   });
+  content_ = Container::Horizontal({register_list, register_view});
 }

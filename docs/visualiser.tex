@@ -127,4 +127,28 @@ $ ./visualiser --asm source.s --bin source
         The active selected line (cyan) is transferred to the topmost selected line in the new pane.
     \end{itemize}
 
+    \section{Registers}
+
+    This view shows a list of the processor's registers.
+
+    \subsection{Layout}
+
+    The left-hand side of the view displays a list of the processor's registers, accompanied by their 64-bit hexadecimal value.
+    When a register is selected, more information about that register is display in a pane on the right.
+    This pane lists the register's value in hexadecimal, as a decimal integer (32-bit) and long (64-bit), as a float, and as a double.
+    Each may be edited and updated.
+
+    \subsection{Keyboard Controls}
+
+    When an input field is selected, controls work as they ordinarily would in an input box, overriding the below.
+
+    \begin{itemize}
+        \item \texttt{Backspace/Delete} -- zeroes the current register.
+        \item \texttt{c} -- copies the contents of the current register.
+        \item \texttt{r} -- refresh all registers, and the selected register's pane.
+        Useful when a register value has been updated in another tab, and changes have not been loaded.
+        \item \texttt{Up/Down arrows} -- scroll in the register list.
+        \item \texttt{v} -- paste the copied register's value into the current register.
+    \end{itemize}
+
 \end{document}

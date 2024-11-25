@@ -172,3 +172,8 @@ namespace constants {
         };
     }
 }
+
+/** Cast given integer to a register */
+inline constants::registers::reg $reg(int i) {
+  return static_cast<constants::registers::reg>(i);
+}
