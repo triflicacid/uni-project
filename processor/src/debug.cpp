@@ -8,9 +8,9 @@ bool processor::debug::conditionals = false;
 bool processor::debug::errs = false;
 
 void processor::debug::set_all(bool b) {
-    cpu = mem = reg = zflag = conditionals = errs = b;
+  cpu = mem = reg = zflag = conditionals = errs = b;
 }
 
 bool processor::debug::any() {
-    return cpu || mem || reg || zflag || conditionals || errs;
+  return cpu || mem || reg || zflag || conditionals || errs;
 }

@@ -175,9 +175,9 @@ void visualiser::tabs::RegistersTab::init() {
                                   }
 
                                   return hbox({vbox(left), vbox(right)}) | border;
-                                }) | CatchEvent([&] (Event e) {
-                                  return register_list_on_event(e);
-                                });
+                                }) | CatchEvent([&](Event e) {
+    return register_list_on_event(e);
+  });
 
   auto register_view = Renderer(
       Container::Vertical({state::inputs::i_hex, state::inputs::i_int, state::inputs::i_long, state::inputs::i_float,

@@ -48,7 +48,7 @@ void visualiser::launch() {
                     separator(),
                     tab_container->Render(),
                 });
-  }) | CatchEvent([&] (Event e) {
+  }) | CatchEvent([&](Event e) {
     if (e == Event::F1) return force_tab_focus(0);
     if (e == Event::F2) return force_tab_focus(1);
     return false;
