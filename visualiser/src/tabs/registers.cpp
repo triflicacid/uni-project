@@ -197,8 +197,11 @@ void visualiser::tabs::RegistersTab::init() {
                               state::inputs::i_float->Render()}),
                         hbox({text("Double = "),
                               state::inputs::i_double->Render()}),
+                        separator(),
+                        text(constants::registers::describe($reg(state::current_reg)).value()),
                     }) | border;
       });
+  // TODO make description text wrap
 
 
   content_ = Container::Horizontal({register_list, register_view});

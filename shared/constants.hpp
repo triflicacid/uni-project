@@ -41,6 +41,8 @@ namespace constants {
 
         std::optional<reg> from_string(const std::string &s);
         std::optional<reg> from_string(const std::string &s, int &i);
+
+        std::optional<std::string> describe(reg r);
     }
 
     enum class flag {
