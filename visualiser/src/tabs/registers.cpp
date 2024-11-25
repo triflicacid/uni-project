@@ -169,8 +169,7 @@ void visualiser::tabs::RegistersTab::init() {
                                     left.push_back(name);
 
                                     auto value = hbox({text(" = "),
-                                                       text("0x" + to_hex_string(read(r))) |
-                                                       color(style::reg)});
+                                                       text("0x" + to_hex_string(read(r))) | style::reg});
                                     if (r == state::current_reg) value |= style::highlight_traced;
                                     right.push_back(value);
                                   }

@@ -869,7 +869,7 @@ void processor::CPU::step_cycle() {
     }
 }
 
-void processor::CPU::print_error(bool prefix) const {
+void processor::CPU::print_error(std::ostream &os, bool prefix) const {
     using namespace constants;
     uint8_t error = get_error();
 
@@ -877,30 +877,30 @@ void processor::CPU::print_error(bool prefix) const {
         return;
 
     if (prefix)
-        *os << ERROR_STR " ";
+        os << ERROR_STR " ";
 
     switch (error) {
         case error::opcode:
-            *os << "E-OPCODE: invalid opcode 0x" << std::hex << reg(registers::ret) << " (at $pc=" << std::dec
+            os << "E-OPCODE: invalid opcode 0x" << std::hex << reg(registers::ret) << " (at $pc=" << std::dec
                 << reg(registers::pc) << ")" << std::endl;
             break;
         case error::segfault:
-            *os << "E-SEGSEGV: segfault on access of 0x" << std::hex << reg(registers::ret) << std::dec << std::endl;
+            os << "E-SEGSEGV: segfault on access of 0x" << std::hex << reg(registers::ret) << std::dec << std::endl;
             break;
         case error::reg:
-            *os << "E-REG: segfault on access of register at +0x" << std::hex << reg(registers::ret) << std::dec
+            os << "E-REG: segfault on access of register at +0x" << std::hex << reg(registers::ret) << std::dec
                << std::endl;
             break;
         case error::syscall:
-            *os << "E-SYSCALL: syscall call with unknown command 0x" << std::hex << reg(registers::ret) << std::dec
+            os << "E-SYSCALL: syscall call with unknown command 0x" << std::hex << reg(registers::ret) << std::dec
                << std::endl;
             break;
         case error::datatype:
-            *os << "E-DATATYPE: invalid datatype specifier 0x" << std::hex << reg(registers::ret) << std::dec
+            os << "E-DATATYPE: invalid datatype specifier 0x" << std::hex << reg(registers::ret) << std::dec
                 << " (at $pc=0x" << reg(registers::pc) << ")" << std::endl;
             break;
         default:
-            *os << "E-UNKNOWN: unknown error, $ret=0x" << std::hex << reg(registers::ret) << std::dec << std::endl;
+            os << "E-UNKNOWN: unknown error, $ret=0x" << std::hex << reg(registers::ret) << std::dec << std::endl;
     }
 }
 

@@ -121,7 +121,8 @@ namespace processor {
         void step_cycle();
 
         // print error details (doesn't print if no error)
-        void print_error(bool prefix) const;
+        void print_error(std::ostream &os, bool prefix) const;
+        void print_error(bool prefix) const { print_error(*os, prefix); }
 
         // check if the given address is valid
         [[nodiscard]] static bool check_memory(uint64_t addr) { return addr < dram::size; }

@@ -88,6 +88,13 @@ static void update_debug_lines() {
   std::istringstream stream(debug);
   std::string line;
   while (std::getline(stream, line)) state::debug_lines.push_back(ftxui::text(line));
+
+  // add error message to debug, if there is an error
+  if (visualiser::processor::cpu.get_error()) {
+    std::ostringstream es;
+    visualiser::processor::cpu.print_error(es, false);
+    state::debug_lines.push_back(ftxui::text(es.str()) | visualiser::style::error);
+  }
 }
 
 namespace events {
@@ -214,8 +221,9 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
     auto source_pane = vbox({
                                 text(state::pc_entry->origin.path()) | bold,
-                                vbox(std::move(elements)) | frame | border,
-                            });
+                                separator(),
+                                vbox(std::move(elements)),
+                            }) | border;
 
     // pane - view assembly source
     elements.clear();
@@ -231,8 +239,9 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
     auto asm_pane = vbox({
                              text("Compiled Assembly") | bold,
-                             vbox(std::move(elements)) | frame | border,
-                         });
+                             separator(),
+                             vbox(std::move(elements)),
+                         }) | border;
 
     // pane - information
     elements.clear();
@@ -241,29 +250,31 @@ void visualiser::tabs::CodeExecutionTab::init() {
     processor::debug_stream.str("");
     processor::debug_stream.clear();
 
-    elements.push_back(hbox({
-                                text("Status: "),
-                                processor::cpu.is_running()
-                                ? text("Running") | color(Color::GreenLight)
-                                : text("Halted") | color(Color::RedLight),
-                            }));
+    std::vector<Element> children{text("Status: ")};
+    if (processor::cpu.is_running()) {
+      children.push_back(text("Running") | style::ok);
+    } else if (processor::cpu.get_error()) {
+      children.push_back(text("Halted (error)") | style::error);
+    } else {
+      children.push_back(text("Halted") | color(Color::RedLight));
+    }
+    elements.push_back(hbox(children));
+
     elements.push_back(hbox({
                                 text("Cycle: "),
-                                text(std::to_string(state::current_cycle)) | color(style::value),
+                                text(std::to_string(state::current_cycle)) | style::value,
                             }));
     elements.push_back(hbox({
                                 text("$pc: "),
-                                text("0x" + to_hex_string(state::current_pc)) | color(style::reg),
+                                text("0x" + to_hex_string(state::current_pc)) | style::reg,
                             }));
 
     auto info_pane = vbox(elements);
 
     // return pane combination
-    return vbox({hbox({source_pane,
-                       separator(),
-                       asm_pane}),
-                 separator(),
-                 info_pane});
+    return vbox({
+                    hbox({source_pane, asm_pane}),
+                    info_pane});
   });
 
   content_ |= CatchEvent([&](Event event) {
