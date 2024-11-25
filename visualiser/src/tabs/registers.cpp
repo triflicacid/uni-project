@@ -149,6 +149,48 @@ static bool register_list_on_event(ftxui::Event &e) {
   return false;
 }
 
+// generate info for the $flag register, add to children (will be placed in a VBox)
+static void flag_register_info(std::vector<ftxui::Element> &elements) {
+  using namespace ftxui;
+  std::vector<std::string> location, fields;
+  std::vector<Element> values;
+  const uint64_t flag = visualiser::processor::cpu.reg(constants::registers::flag, true);
+  uint64_t field;
+
+  location.emplace_back("Bits 0-2");
+  fields.emplace_back("Comparison");
+  field = flag & constants::cmp_bits;
+  values.push_back(text(constants::cmp::to_string(static_cast<constants::cmp::flag>(field))) | visualiser::style::value);
+
+  location.emplace_back("Bit 3");
+  fields.emplace_back("Zero");
+  field = flag & uint64_t(constants::flag::zero);
+  values.push_back(field ? (text("true") | visualiser::style::ok) : (text("false") | visualiser::style::bad));
+
+  location.emplace_back("Bit 4");
+  fields.emplace_back("Is Running");
+  field = flag & uint64_t(constants::flag::is_running);
+  values.push_back(field ? (text("true") | visualiser::style::ok) : (text("false") | visualiser::style::bad));
+
+  location.emplace_back("Bits 5-7");
+  fields.emplace_back("Error");
+  field = visualiser::processor::cpu.get_error();
+  values.push_back(field ? (text("code " + std::to_string(field)) | visualiser::style::bad) : (text("none") | visualiser::style::ok));
+
+  location.emplace_back("Bit 8");
+  fields.emplace_back("Handling Interrupt");
+  field = flag & uint64_t(constants::flag::in_interrupt);
+  values.push_back(field ? (text("true") | visualiser::style::ok) : (text("false") | visualiser::style::bad));
+
+  // assembly into rows
+  elements.push_back(hbox({
+    vbox(map(location, std::function<Element(std::string&)>([](auto &s) { return text(s); }))),
+    separator(),
+    vbox(map(fields, std::function<Element(std::string&)>([](auto &s) { return text(s); }))),
+    separator(),
+    vbox(values)}) | border);
+}
+
 void visualiser::tabs::RegistersTab::init() {
   using namespace ftxui;
 
@@ -183,8 +225,9 @@ void visualiser::tabs::RegistersTab::init() {
       Container::Vertical({state::inputs::i_hex, state::inputs::i_int, state::inputs::i_long, state::inputs::i_float,
                            state::inputs::i_double}),
       [&] {
-        return vbox({
-                        center(text("Register $" + constants::registers::to_string($reg(state::current_reg))) | bold),
+        auto reg = $reg(state::current_reg);
+        std::vector<Element> children{
+                        center(text("Register $" + constants::registers::to_string(reg)) | bold),
                         separator(),
                         hbox({text("Value = "),
                               text("0x"),
@@ -198,8 +241,13 @@ void visualiser::tabs::RegistersTab::init() {
                         hbox({text("Double = "),
                               state::inputs::i_double->Render()}),
                         separator(),
-                        text(constants::registers::describe($reg(state::current_reg)).value()),
-                    }) | border;
+                        text(constants::registers::describe(reg).value()),
+                    };
+        if (reg == constants::registers::flag) {
+          children.push_back(separator());
+          flag_register_info(children);
+        }
+        return vbox(children) | border;
       });
   // TODO make description text wrap
 

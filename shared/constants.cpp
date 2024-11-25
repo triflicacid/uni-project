@@ -64,7 +64,7 @@ std::optional<std::string> constants::registers::describe(reg r) {
     case fp:
       return "Frame pointer, points to the top of the latest stack frame.";
     case flag:
-      return "Contains various state information about the processor, such as is_running and the result of comparisons.";
+      return "Contains various state information about the processor.";
     case isr:
       return "Interrupt status register, a set bit indicates that this interrupt is pending.";
     case imr:

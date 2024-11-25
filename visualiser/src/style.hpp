@@ -9,5 +9,6 @@ namespace visualiser::style {
   extern ftxui::Decorator reg; // style for a register value
   extern ftxui::Decorator value; // style for a value (e.g., number)
   extern ftxui::Decorator ok; // style for a status:ok string
+  extern ftxui::Decorator bad; // style for, not status:ok but not quite status:error, string
   extern ftxui::Decorator error; // style for a status:error string
 }

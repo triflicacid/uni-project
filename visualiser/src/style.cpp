@@ -8,4 +8,5 @@ Decorator visualiser::style::highlight_traced = bgcolor(Color::LightCyan3) | col
 Decorator visualiser::style::reg = color(Color::RedLight);
 Decorator visualiser::style::ok = color(Color::GreenLight);
 Decorator visualiser::style::error = color(Color::Red);
+Decorator visualiser::style::bad = color(Color::RedLight);
 Decorator visualiser::style::value = color(Color::Violet);

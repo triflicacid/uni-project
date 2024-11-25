@@ -256,7 +256,7 @@ void visualiser::tabs::CodeExecutionTab::init() {
     } else if (processor::cpu.get_error()) {
       children.push_back(text("Halted (error)") | style::error);
     } else {
-      children.push_back(text("Halted") | color(Color::RedLight));
+      children.push_back(text("Halted") | style::bad);
     }
     elements.push_back(hbox(children));
 
