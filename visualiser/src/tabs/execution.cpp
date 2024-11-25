@@ -91,13 +91,13 @@ static void update_debug_lines() {
 }
 
 namespace events {
-  static void on_reset() {
+  static bool on_reset() {
     visualiser::processor::cpu.reset_flag();
+    return true;
   }
 
-  static void on_enter() {
+  static bool on_enter() {
     using namespace visualiser::processor;
-
     if (cpu.is_running()) {
       cpu.step(state::current_cycle);
       state::current_pc = cpu.read_pc();
@@ -105,18 +105,19 @@ namespace events {
     } else {
       state::debug_lines.clear();
     }
+
+    return true;
   }
 
-  static void on_vert_arrow(bool down) {
-    if (!state::show_selected_line) return;
-
+  static bool on_vert_arrow(bool down) {
+    if (!state::show_selected_line) return false;
     state::selected_line.second += down ? 1 : -1;
     update_selected_line();
+    return true;
   }
 
-  static void on_horiz_arrow(bool right) {
-    if (!state::show_selected_line) return;
-
+  static bool on_horiz_arrow(bool right) {
+    if (!state::show_selected_line) return false;
     switch (state::selected_line.first) {
       case Pane::Source:
         if (!right) {
@@ -133,32 +134,43 @@ namespace events {
         }
         break;
       default:
-        return;
+        return false;
     }
+    return true;
   }
 
-  static void on_J() {
+  static bool on_J() {
     if (state::show_selected_line && !state::source_selected_lines.empty()) {
       if (auto entry = visualiser::assembly::locate_line(state::source_selected_lines.front())) {
         state::current_pc = entry->pc;
         visualiser::processor::cpu.write_pc(entry->pc);
+        return true;
       }
     }
+    return false;
   }
 
-  static void on_S() {
+  static bool on_H() { // toggle IS_RUNNING bit in $flag
+    visualiser::processor::cpu.flag_toggle(constants::flag::is_running, true);
+    return true;
+  }
+
+  static bool on_S() {
     state::show_selected_line = !state::show_selected_line;
     update_selected_line();
+    return true;
   }
 
-  static void on_home() {
+  static bool on_home() {
     state::selected_line.second = 0;
     update_selected_line();
+    return true;
   }
 
-  static void on_end() {
+  static bool on_end() {
     state::selected_line.second = INT_MAX;
     update_selected_line();
+    return true;
   }
 }// namespace events
 
@@ -166,32 +178,15 @@ static bool on_event(ftxui::Event &event) {
   using namespace ftxui;
   using namespace events;
 
-  if (event == Event::Return) {
-    on_enter();
-    return true;
-  } else if (event.is_character() && event == Event::Character('j')) {
-    on_J();
-    return true;
-  } else if (event.is_character() && event == Event::Character('s')) {
-    on_S();
-    return true;
-  } else if (event.is_character() && event == Event::Character('r')) {
-    on_reset();
-    return true;
-  } else if (event == Event::Home) {
-    on_home();
-    return true;
-  } else if (event == Event::End) {
-    on_end();
-    return true;
-  } else if (event == Event::ArrowDown || event == Event::ArrowUp) {
-    on_vert_arrow(event == Event::ArrowDown);
-    return true;
-  } else if (event == Event::ArrowLeft || event == Event::ArrowRight) {
-    on_horiz_arrow(event == Event::ArrowRight);
-    return true;
-  }
-
+  if (event == Event::Return) return on_enter();
+  if (event.is_character() && event == Event::Character('j')) return on_J();
+  if (event.is_character() && event == Event::Character('h')) return on_H();
+  if (event.is_character() && event == Event::Character('s')) return on_S();
+  if (event.is_character() && event == Event::Character('r')) return on_reset();
+  if (event == Event::Home) return on_home();
+  if (event == Event::End) return on_end();
+  if (event == Event::ArrowDown || event == Event::ArrowUp) return on_vert_arrow(event == Event::ArrowDown);
+  if (event == Event::ArrowLeft || event == Event::ArrowRight) return on_horiz_arrow(event == Event::ArrowRight);
   return false;
 }
 

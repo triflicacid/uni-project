@@ -11,13 +11,16 @@ namespace processor {
     class CPU : public Core {
         uint64_t addr_interrupt_handler{};
 
+    public:
         [[nodiscard]] static bool flag_test(uint64_t bitstr, constants::flag v) { return bitstr & int(v); }
         [[nodiscard]] bool flag_test(constants::flag v, bool silent = false) const { return reg(constants::registers::flag, silent) & int(v); }
         void flag_set(constants::flag v, bool silent = false) { reg_set(constants::registers::flag, reg(constants::registers::flag, silent) | int(v), silent); }
         void flag_reset(constants::flag v) {
             reg_set(constants::registers::flag, reg(constants::registers::flag) & ~int(v)); }
+        void flag_toggle(constants::flag v, bool silent = false) { reg_set(constants::registers::flag, reg(constants::registers::flag, silent) ^ int(v), silent); }
         void halt() { flag_reset(constants::flag::is_running); }
 
+    private:
         template<typename T>
         void push(T val);
 

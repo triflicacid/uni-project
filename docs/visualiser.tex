@@ -118,6 +118,7 @@ $ ./visualiser --asm source.s --bin source
     \begin{itemize}
         \item \texttt{End} -- if line selection is enabled, set the selected line to the end of the file.
         \item \texttt{Enter} -- if the processor is running, perform a step on the processor, i.e., execute the instruction at \$pc.
+        \item \texttt{h} -- toggles the \texttt{is\_running} bit in \$flag.
         \item \texttt{Home} -- if line selection is enabled, set the selected line to the start of the file.
         \item \texttt{j} -- if line selection is enabled, sets \$pc to the first selected line in the compiled assembly.
         \item \texttt{r} -- resets \$flag: sets \texttt{is\_running} and clears any error bits.
