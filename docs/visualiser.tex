@@ -159,4 +159,37 @@ $ ./visualiser --asm source.s --bin source
         \item \texttt{v} -- paste the copied register's value into the current register.
     \end{itemize}
 
+    \section{Memory}
+
+    This view displays a section of memory in a grid view.
+
+    \subsection{Layout}
+
+    The main component in this tab is the grid of memory cells.
+    Violet values along the side indicate the base address of each row, with the values along the top marking offsets.
+    The range of addresses shown i this grid are indicates in the title.
+
+    Once the grid is focused, the current address will be highlighted.
+    Moving this cursor will be detailed in the next section, but note that if the user tries to move the cursor beyond the view's borders, the view will attempt to scroll if possible.
+
+    Below the grid is a dropdown and textbox, used for viewing and editing memory more than one byte at a time.
+    The dropdown dictates the datatype of the data being read.
+    This may be changed by focusing the dropdown and pressing \texttt{Enter}, then using the arrow keys to navigate the list, and pressing \texttt{Enter} again to select the value.
+    The textbox next to this displays data of this type.
+
+    \subsection{Keyboard Controls}
+
+    These controls only take effect when the memory grid is in focus.
+
+    \begin{itemize}
+        \item \texttt{[0-9a-zA-Z]} -- modifies the byte in memory.
+        Specifically, the lower four bits are overwritten with this value, while the old bytes are shifted into the upper half.
+        \item Arrow keys -- navigate the memory view, moving the cursor in the given direction.
+        \item \texttt{Backspace/Delete} -- zeroes the current byte.
+        \item \texttt{Ctrl+PageUp/Down} -- navigates to the absolute start/end of the processor's memory region.
+        \item \texttt{Enter} -- move focus to the textbox.
+        \item \texttt{Home/End} -- navigate to the start/end of the current line.
+        \item \texttt{PageUp/Down} -- navigates to the start/end of the memory view.
+        \item \texttt{Tab} - move focus to the datatype dropdown.
+    \end{itemize}
 \end{document}
