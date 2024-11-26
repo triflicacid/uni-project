@@ -207,12 +207,12 @@ void visualiser::tabs::RegistersTab::init() {
 
                                   for (int r = 0; r < constants::registers::count; r++) {
                                     auto name = text("$" + constants::registers::to_string($reg(r)));
-                                    if (r == state::current_reg) name |= style::highlight_traced;
+                                    if (r == state::current_reg) name |= style::highlight;
                                     left.push_back(name);
 
                                     auto value = hbox({text(" = "),
                                                        text("0x" + to_hex_string(read(r), 8)) | style::reg});
-                                    if (r == state::current_reg) value |= style::highlight_traced;
+                                    if (r == state::current_reg) value |= style::highlight;
                                     right.push_back(value);
 
                                     // divide special/general purpose registers

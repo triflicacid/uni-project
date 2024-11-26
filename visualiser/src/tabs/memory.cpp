@@ -13,10 +13,18 @@ enum class Field {
 };
 
 namespace state {
-  uint64_t base_address = 0;
-  uint64_t current_addr = 0;
+  int constexpr rows = 6;
+  int constexpr cols = 16;
+  int constexpr page_size = rows * cols;
 
-  std::array<std::array<std::pair<ftxui::Component, std::string>, 16>, 6> inputs;
+  uint64_t base_address = 0;
+  std::pair<int, int> pos{0, 0}; // current position (x, y)
+  std::optional<uint64_t> clipboard;
+
+  // return the current selected address
+  uint64_t current_address() {
+    return base_address + pos.second * cols + pos.first;
+  }
 }// namespace state
 
 // read the given address
@@ -29,103 +37,156 @@ static void write(uint64_t address, uint8_t bytes, uint64_t value) {
   visualiser::processor::cpu.mem_store(address, bytes, value);
 }
 
-// initialise inputs
-static void init_inputs() {
-  uint64_t address = 0, value;
-
-  for (auto &row : state::inputs) {
-    for (auto &[input, string] : row) {
-      value = read(state::base_address + address, 1);
-      string = to_hex_string(value, 1);
-      input = ftxui::Input({
-        .content = &string,
-        .multiline = false,
-        .on_enter = [&string, address] {
-          try {
-            uint64_t value = std::stoul(string, nullptr, 16);
-            write(state::base_address + address, 1, value);
-          } catch (std::exception &e) { }
-        }
-      });
-      address++;
-    }
-  }
+// shift and write to lower nibble of address
+static void shift_and_write_nibble(uint64_t address, uint8_t byte) {
+  uint64_t value = read(address, 1);
+  value = (value << 4) | (byte & 0xf);
+  write(address, 1, value);
 }
 
-// update contents of the inputs
-static void sync_inputs() {
-  uint64_t address = 0, value;
-
-  for (auto &row : state::inputs) {
-    for (auto &[input, string] : row) {
-      value = read(state::base_address + address, 1);
-      string = to_hex_string(value, 1);
-      address++;
-    }
+// validate and update state::pos, return if anything changed
+static bool validate_pos() {
+  using namespace state;
+  bool was_change = false;
+  // check column (x) index
+  if (pos.first < 0) { // wrap around to last row
+    pos.first = cols - 1;
+    pos.second--;
+    was_change = true;
+  } else if (pos.first >= cols) { // wrap around to next row
+    pos.first = 0;
+    pos.second++;
+    was_change = true;
   }
+
+  // check row (y) index
+  if (pos.second < 0) { // shift base address down if possible
+    pos.second = 0;
+    if (state::base_address > 0) state::base_address -= cols;
+    was_change = true;
+  } else if (pos.second >= rows) { // shift base address down if possible
+    pos.second = rows - 1;
+    state::base_address += cols;
+    if (state::base_address + state::page_size) state::base_address = ::processor::dram::size - state::page_size;
+    was_change = true;
+  }
+
+  return was_change;
+}
+
+// translate state::pos by delta and validate
+static bool move_pos(int dx, int dy) {
+  state::pos.first += dx;
+  state::pos.second += dy;
+  return validate_pos();
 }
 
 void visualiser::tabs::MemoryTab::init() {
   using namespace ftxui;
 
-  init_inputs();
+  auto memory_grid = Renderer([&](bool focused) {
+    uint32_t address = 0;
+    std::vector<std::vector<Element>> grid_elements;
 
-  // create grid of inputs
-  std::vector<Component> children;
-  for (auto &row : state::inputs) {
-    std::vector<Component> sub_children;
-    for (auto &[input, _] : row)
-      sub_children.push_back(input);
-    children.push_back(Container::Horizontal(sub_children));
-  }
-  Component memory_container = Container::Vertical(children);
+    // column headers
+    grid_elements.emplace_back();
+    auto *elements = &grid_elements.back();
+    elements->push_back(text(""));
+    elements->push_back(text(""));
+    for (int i = 0; i < state::cols; i++)
+      elements->push_back(text("+" + to_hex_string(address++, 1).substr(1) + " ") | style::value | center);
 
-  content_ = Container::Vertical({
-    Renderer([&] {
-      return hbox({
-        text("Base Address: "),
-        text("0x" + to_hex_string(state::base_address, 4)) | visualiser::style::value
-      }) | center | border;
-    }),
-    Renderer(memory_container, [&] {
-      uint32_t address = 0;
-      std::vector<std::vector<Element>> grid_elements;
+    // add separators
+    grid_elements.emplace_back();
+    elements = &grid_elements.back();
+    elements->push_back(text(""));
+    elements->push_back(text(""));
+    for (int i = 0; i < state::cols; i++)
+      elements->push_back(separator());
 
-      // column headers
-      grid_elements.emplace_back();
-      auto *elements = &grid_elements.back();
-      elements->push_back(text(""));
-      elements->push_back(text(""));
-      for (const auto &_ : state::inputs[0])
-        elements->push_back(text("+" + to_hex_string(address++, 1) + " ") | style::value | center);
-
-      // add separators
+    // memory grid
+    address = state::base_address;
+    for (int y = 0; y < state::rows; y++) {
       grid_elements.emplace_back();
       elements = &grid_elements.back();
-      elements->push_back(text(""));
-      elements->push_back(text(""));
-      for (const auto &_ : state::inputs[0])
-        elements->push_back(separator());
-
-      // memory grid
-      address = state::base_address;
-      for (auto &row : state::inputs) {
-        grid_elements.emplace_back();
-        elements = &grid_elements.back();
-        elements->push_back(text("0x" + to_hex_string(address, 4)) | style::value); // row start address
-        elements->push_back(separator());
-        for (auto &[input, _] : row)
-          elements->push_back(input->Render());
-        address += row.size();
+      elements->push_back(text(to_hex_string(address, 4)) | style::value | align_right); // row start address
+      elements->push_back(separator());
+      for (int x = 0; x < state::cols; x++, address++) {
+        elements->push_back(text(to_hex_string(read(address, 1), 1)));
       }
+    }
 
-      return gridbox(grid_elements);
-    }),
+    // highlight the selected cell
+    if (focused) grid_elements[2 + state::pos.second][2 + state::pos.first] |= style::highlight;
+
+    return vbox({
+      hbox({
+               text("Memory View: "),
+               text("0x" + to_hex_string(state::base_address, 4)) | visualiser::style::value,
+               text(" – "),
+               text("0x" + to_hex_string(state::base_address + state::page_size, 4)) | visualiser::style::value,
+           }) | center,
+      gridbox(grid_elements) | border | center,
+    });
+  });
+
+  memory_grid |= CatchEvent([&](Event e) {
+    if (e == Event::ArrowLeft) {
+      move_pos(-1, 0);
+    } else if (e == Event::ArrowRight) {
+      move_pos(1, 0);
+    } else if (e == Event::ArrowDown) {
+      move_pos(0, 1);
+    } else if (e == Event::ArrowUp) {
+      move_pos(0, -1);
+    } else if (e == Event::Home) {
+      state::pos.first = 0;
+    } else if (e == Event::End) {
+      state::pos.first = state::cols - 1;
+    } else if (e == Event::PageDown) {
+      move_pos(0, state::rows);
+    } else if (e == Event::Special({27, 91, 54, 59, 53, 126})) { // Ctrl+PageDown
+      state::base_address = ::processor::dram::size - state::rows * state::cols;
+    } else if (e == Event::PageUp) {
+      move_pos(0, -state::rows);
+    } else if (e == Event::Special({27, 91, 53, 59, 53, 126})) { // Ctrl+PageUp
+      state::base_address = 0;
+    } else if (e == Event::Backspace || e == Event::Delete) { // clear the given address
+      write(state::current_address(), 1, 0x0);
+    } else if (e.is_character()) {
+      auto ch = e.character()[0];
+      if (std::isdigit(ch)) {
+        shift_and_write_nibble(state::current_address(), ch - '0');
+      } else if (ch >= 'a' && ch <= 'f') {
+        shift_and_write_nibble(state::current_address(), ch - 'a' + 10);
+      } else if (ch >= 'A' && ch <= 'F') {
+        shift_and_write_nibble(state::current_address(), ch - 'A' + 10);
+      } else {
+        return false;
+      }
+      return true;
+    } else {
+      return false;
+    }
+    return true;
+  });
+
+  auto memory_address_editor = Renderer([&] (bool _) {
+    return text("TODO");
+  });
+
+  content_ = Container::Vertical({
+    memory_grid,
+    memory_address_editor,
   });
 
   help_ = Renderer([&] {
     return create_key_help_pane({
-                                    {"r", "refresh page"},
+                                    {"Arrows", "move selection"},
+                                    {"PageUp/Down", "move one page up/down"},
+                                    {"Ctrl+PageUp/Down", "move to start/end of memory"},
+                                    {"Home/End", "move to start/end of line"},
+                                    {"Backspace/Delete", "zero memory location"}
                                 });
   });
 }
