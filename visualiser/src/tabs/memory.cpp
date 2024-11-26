@@ -1,13 +1,15 @@
 #include "memory.hpp"
-#include "constants.hpp"
 #include "processor.hpp"
 #include "style.hpp"
 #include "util.hpp"
+#include "custom_dropdown.hpp"
+#include <ftxui/component/event.hpp>
 
-enum class Field {
-  Hex,
-  Int,
-  Long,
+enum class InputType : int {
+  HexInt,
+  DecInt,
+  HexLong,
+  DecLong,
   Float,
   Double
 };
@@ -19,7 +21,12 @@ namespace state {
 
   uint64_t base_address = 0;
   std::pair<int, int> pos{0, 0}; // current position (x, y)
-  std::optional<uint64_t> clipboard;
+
+  ftxui::Component mem_input;
+  std::string mem_input_content;
+  std::vector<std::string> input_type_values{"int 0x", "int ", "long 0x", "long ", "float ", "double "};
+  ftxui::Component input_type_dropdown;
+  InputType input_type_index;
 
   // return the current selected address
   uint64_t current_address() {
@@ -67,7 +74,7 @@ static bool validate_pos() {
   } else if (pos.second >= rows) { // shift base address down if possible
     pos.second = rows - 1;
     state::base_address += cols;
-    if (state::base_address + state::page_size) state::base_address = ::processor::dram::size - state::page_size;
+    if (state::base_address + state::page_size >= ::processor::dram::size) state::base_address = ::processor::dram::size - state::page_size;
     was_change = true;
   }
 
@@ -81,8 +88,155 @@ static bool move_pos(int dx, int dy) {
   return validate_pos();
 }
 
+// update state::mem_input
+static void sync_mem_input() {
+  uint64_t value = read(state::current_address(), 8);
+  switch (state::input_type_index) {
+    case InputType::HexInt:
+      state::mem_input_content = to_hex_string(*(uint32_t*)&value, 4);
+      break;
+    case InputType::DecInt:
+      state::mem_input_content = std::to_string(*(int32_t*)&value);
+      break;
+    case InputType::HexLong:
+      state::mem_input_content = to_hex_string(value, 8);
+      break;
+    case InputType::DecLong:
+      state::mem_input_content = std::to_string(*(int64_t*)&value);
+      break;
+    case InputType::Float:
+      state::mem_input_content = std::to_string(*(float*)&value);
+      break;
+    case InputType::Double:
+      state::mem_input_content = std::to_string(*(double*)&value);
+      break;
+  }
+}
+
+// called when state::mem_input is submitted
+static void update_mem_input() {
+  uint64_t value;
+  uint8_t bytes;
+  switch (state::input_type_index) {
+    case InputType::HexInt:
+      try {
+        value = std::stoul(state::mem_input_content, nullptr, 16);
+        bytes = 4;
+      } catch (std::exception &e) { }
+      break;
+    case InputType::DecInt:
+      try {
+        int raw = std::stoi(state::mem_input_content);
+        value = *(uint32_t*)&raw;
+        bytes = 4;
+      } catch (std::exception &e) { }
+      break;
+    case InputType::HexLong:
+      try {
+        value = std::stoul(state::mem_input_content, nullptr, 16);
+        bytes = 8;
+      } catch (std::exception &e) { }
+      break;
+    case InputType::DecLong:
+      try {
+        long raw = std::stol(state::mem_input_content);
+        value = *(uint64_t*)&raw;
+        bytes = 8;
+      } catch (std::exception &e) { }
+      break;
+    case InputType::Float:
+      try {
+        float raw = std::stof(state::mem_input_content);
+        value = *(uint32_t*)&raw;
+        bytes = 4;
+      } catch (std::exception &e) { }
+      break;
+    case InputType::Double:
+      try {
+        double raw = std::stod(state::mem_input_content);
+        value = *(uint64_t*)&raw;
+        bytes = 8;
+      } catch (std::exception &e) { }
+      break;
+    default:
+      return;
+  }
+
+  write(state::current_address(), bytes, value);
+}
+
+// catch event in memory grid
+static bool memory_grid_on_event(const ftxui::Event& e) {
+  using namespace ftxui;
+  if (e == Event::Return) {
+    state::mem_input->TakeFocus();
+    sync_mem_input();
+  } else if (e == Event::ArrowLeft) {
+    move_pos(-1, 0);
+    sync_mem_input();
+  } else if (e == Event::ArrowRight) {
+    move_pos(1, 0);
+    sync_mem_input();
+  } else if (e == Event::ArrowDown) {
+    move_pos(0, 1);
+    sync_mem_input();
+  } else if (e == Event::ArrowUp) {
+    move_pos(0, -1);
+    sync_mem_input();
+  } else if (e == Event::Home) {
+    state::pos.first = 0;
+    sync_mem_input();
+  } else if (e == Event::End) {
+    state::pos.first = state::cols - 1;
+    sync_mem_input();
+  } else if (e == Event::PageDown) {
+    move_pos(0, state::rows);
+    sync_mem_input();
+  } else if (e == Event::Special({27, 91, 54, 59, 53, 126})) { // Ctrl+PageDown
+    state::base_address = ::processor::dram::size - state::rows * state::cols;
+    sync_mem_input();
+  } else if (e == Event::PageUp) {
+    move_pos(0, -state::rows);
+    sync_mem_input();
+  } else if (e == Event::Special({27, 91, 53, 59, 53, 126})) { // Ctrl+PageUp
+    state::base_address = 0;
+    sync_mem_input();
+  } else if (e == Event::Backspace || e == Event::Delete) { // clear the given address
+    write(state::current_address(), 1, 0x0);
+    sync_mem_input();
+  } else if (e.is_character()) {
+    auto ch = e.character()[0];
+    if (std::isdigit(ch)) {
+      shift_and_write_nibble(state::current_address(), ch - '0');
+    } else if (ch >= 'a' && ch <= 'f') {
+      shift_and_write_nibble(state::current_address(), ch - 'a' + 10);
+    } else if (ch >= 'A' && ch <= 'F') {
+      shift_and_write_nibble(state::current_address(), ch - 'A' + 10);
+    } else {
+      return false;
+    }
+    sync_mem_input();
+    return true;
+  } else {
+    return false;
+  }
+  return true;
+}
+
 void visualiser::tabs::MemoryTab::init() {
   using namespace ftxui;
+
+  // initialise input fields
+  state::input_type_dropdown = CustomDropdown(&state::input_type_values, (int*)&state::input_type_index, {
+    .radiobox = {
+        .on_change = sync_mem_input
+    }
+  });
+  state::mem_input = Input({ // TODO if selected, highlight datatypes bytes in memory view?
+    .content = &state::mem_input_content,
+    .multiline = false,
+    .on_enter = update_mem_input
+  });
 
   auto memory_grid = Renderer([&](bool focused) {
     uint32_t address = 0;
@@ -130,53 +284,24 @@ void visualiser::tabs::MemoryTab::init() {
     });
   });
 
-  memory_grid |= CatchEvent([&](Event e) {
-    if (e == Event::ArrowLeft) {
-      move_pos(-1, 0);
-    } else if (e == Event::ArrowRight) {
-      move_pos(1, 0);
-    } else if (e == Event::ArrowDown) {
-      move_pos(0, 1);
-    } else if (e == Event::ArrowUp) {
-      move_pos(0, -1);
-    } else if (e == Event::Home) {
-      state::pos.first = 0;
-    } else if (e == Event::End) {
-      state::pos.first = state::cols - 1;
-    } else if (e == Event::PageDown) {
-      move_pos(0, state::rows);
-    } else if (e == Event::Special({27, 91, 54, 59, 53, 126})) { // Ctrl+PageDown
-      state::base_address = ::processor::dram::size - state::rows * state::cols;
-    } else if (e == Event::PageUp) {
-      move_pos(0, -state::rows);
-    } else if (e == Event::Special({27, 91, 53, 59, 53, 126})) { // Ctrl+PageUp
-      state::base_address = 0;
-    } else if (e == Event::Backspace || e == Event::Delete) { // clear the given address
-      write(state::current_address(), 1, 0x0);
-    } else if (e.is_character()) {
-      auto ch = e.character()[0];
-      if (std::isdigit(ch)) {
-        shift_and_write_nibble(state::current_address(), ch - '0');
-      } else if (ch >= 'a' && ch <= 'f') {
-        shift_and_write_nibble(state::current_address(), ch - 'a' + 10);
-      } else if (ch >= 'A' && ch <= 'F') {
-        shift_and_write_nibble(state::current_address(), ch - 'A' + 10);
-      } else {
-        return false;
-      }
-      return true;
-    } else {
-      return false;
-    }
-    return true;
-  });
+  memory_grid |= CatchEvent(memory_grid_on_event);
 
-  auto memory_address_editor = Renderer([&] (bool _) {
-    return text("TODO");
+  auto memory_address_editor = Renderer(Container::Horizontal({
+    state::input_type_dropdown,
+    state::mem_input,
+  }), [&]{
+    return hbox({
+      text("Address "),
+      text("0x" + to_hex_string(state::current_address(), 4)) | style::value,
+      text(" = "),
+      state::input_type_dropdown->Render(),
+      state::mem_input->Render(),
+    });
   });
 
   content_ = Container::Vertical({
     memory_grid,
+    Renderer([]{ return separator(); }),
     memory_address_editor,
   });
 
@@ -186,7 +311,8 @@ void visualiser::tabs::MemoryTab::init() {
                                     {"PageUp/Down", "move one page up/down"},
                                     {"Ctrl+PageUp/Down", "move to start/end of memory"},
                                     {"Home/End", "move to start/end of line"},
-                                    {"Backspace/Delete", "zero memory location"}
+                                    {"Backspace/Delete", "zero memory location"},
+                                    {"Enter", "jump to input box"},
                                 });
   });
 }

@@ -3,6 +3,7 @@
 #include "processor.hpp"
 #include "style.hpp"
 #include "util.hpp"
+#include <ftxui/component/event.hpp>
 
 enum class Field {
   Hex,
