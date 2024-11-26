@@ -69,13 +69,7 @@ bool parse_number(const std::string &string, int &index, uint64_t &value, bool &
 bool is_valid_label_name(const std::string &label);
 
 /** convert number to hex */
-template<typename T>
-std::string to_hex_string(T value) {
-    std::stringstream s;
-    s << std::setw(sizeof(T) * 2) << std::setfill('0');
-    s << std::hex << value;
-    return s.str();
-}
+std::string to_hex_string(uint64_t value, uint8_t size_bytes);
 
 /** Clamp value between to bounds: lower is inclusive, upper is not */
 template<typename T>

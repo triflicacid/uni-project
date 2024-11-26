@@ -254,3 +254,10 @@ bool is_valid_label_name(const std::string &label) {
 
   return true;
 }
+
+std::string to_hex_string(uint64_t value, uint8_t size_bytes) {
+  std::stringstream s;
+  s << std::setw(size_bytes * 2) << std::setfill('0');
+  s << std::hex << value;
+  return s.str();
+}

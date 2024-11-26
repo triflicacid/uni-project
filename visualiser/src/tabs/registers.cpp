@@ -41,7 +41,7 @@ static void write(uint64_t v) {
 // ensure all inputs read the correct values
 static void sync_inputs() {
   uint64_t val = read();
-  state::inputs::s_hex = to_hex_string(val);
+  state::inputs::s_hex = to_hex_string(val, 8);
   state::inputs::s_int = std::to_string(*(int *) &val);
   state::inputs::s_long = std::to_string(val);
   state::inputs::s_float = std::to_string(*(float *) &val);
@@ -211,7 +211,7 @@ void visualiser::tabs::RegistersTab::init() {
                                     left.push_back(name);
 
                                     auto value = hbox({text(" = "),
-                                                       text("0x" + to_hex_string(read(r))) | style::reg});
+                                                       text("0x" + to_hex_string(read(r), 8)) | style::reg});
                                     if (r == state::current_reg) value |= style::highlight_traced;
                                     right.push_back(value);
 

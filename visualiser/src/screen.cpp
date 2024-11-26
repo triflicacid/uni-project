@@ -3,6 +3,7 @@
 #include "tabs/registers.hpp"
 #include "tabs/tab.hpp"
 #include "util.hpp"
+#include "tabs/memory.hpp"
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
@@ -49,7 +50,8 @@ void visualiser::launch() {
   // create tabs
   CodeExecutionTab tab_code_execution;
   RegistersTab tab_registers;
-  std::vector<Tab *> tab_list = {&tab_code_execution, &tab_registers};
+  MemoryTab tab_memory;
+  std::vector<Tab *> tab_list = {&tab_code_execution, &tab_registers, &tab_memory};
 
   // tab navigation buttons
   std::vector<std::string> tab_headers = map(tab_list,
@@ -83,6 +85,7 @@ void visualiser::launch() {
   }) | CatchEvent([&](Event e) {
     if (e == Event::F1) return force_tab_focus(0);
     if (e == Event::F2) return force_tab_focus(1);
+    if (e == Event::F3) return force_tab_focus(2);
     return false;
   });
 

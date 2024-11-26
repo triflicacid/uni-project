@@ -266,7 +266,7 @@ void visualiser::tabs::CodeExecutionTab::init() {
                             }));
     elements.push_back(hbox({
                                 text("$pc: "),
-                                text("0x" + to_hex_string(state::current_pc)) | style::reg,
+                                text("0x" + to_hex_string(state::current_pc, 8)) | style::reg,
                             }));
 
     auto info_pane = vbox(elements);
