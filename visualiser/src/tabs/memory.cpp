@@ -15,10 +15,12 @@ enum class InputType : int {
 };
 
 namespace state {
-  int constexpr rows = 6;
+  int constexpr rows = 16;
   int constexpr cols = 16;
   int constexpr page_size = rows * cols;
 
+  bool show_pc = true;
+  ftxui::Component memory_grid, memory_address_editor;
   uint64_t base_address = 0;
   std::pair<int, int> pos{0, 0}; // current position (x, y)
 
@@ -88,9 +90,25 @@ static bool move_pos(int dx, int dy) {
   return validate_pos();
 }
 
+// return number of bytes we are reading given the InputType
+static int get_number_of_bytes() {
+  switch (state::input_type_index) {
+    case InputType::HexInt:
+    case InputType::DecInt:
+    case InputType::Float:
+      return 4;
+    case InputType::HexLong:
+    case InputType::DecLong:
+    case InputType::Double:
+      return 8;
+    default:
+      return 0;
+  }
+}
+
 // update state::mem_input
 static void sync_mem_input() {
-  uint64_t value = read(state::current_address(), 8);
+  uint64_t value = read(state::current_address(), get_number_of_bytes());
   switch (state::input_type_index) {
     case InputType::HexInt:
       state::mem_input_content = to_hex_string(*(uint32_t*)&value, 4);
@@ -238,7 +256,7 @@ void visualiser::tabs::MemoryTab::init() {
     .on_enter = update_mem_input
   });
 
-  auto memory_grid = Renderer([&](bool focused) {
+  state::memory_grid = Renderer([&](bool focused) {
     uint32_t address = 0;
     std::vector<std::vector<Element>> grid_elements;
 
@@ -270,8 +288,31 @@ void visualiser::tabs::MemoryTab::init() {
       }
     }
 
-    // highlight the selected cell
-    if (focused) grid_elements[2 + state::pos.second][2 + state::pos.first] |= style::highlight;
+    if (focused) {
+      // highlight the selected cell
+      grid_elements[2 + state::pos.second][2 + state::pos.first] |= style::highlight;
+    } else if (state::memory_address_editor->Focused()) {
+      // highlight the bytes we are reading from
+      const int bytes = get_number_of_bytes();
+      address = state::current_address();
+      for (int i = 0, x = state::pos.first, y = state::pos.second; i < bytes; i++, address++) {
+        grid_elements[2 + y][2 + x] |= style::highlight;
+
+        if (++x >= state::cols) {
+          x = 0;
+          y++;
+          if (y >= state::rows) break; // have we now exceeded the memory grid?
+        }
+      }
+    }
+
+    // show $pc?
+    if (state::show_pc) {
+      int offset = static_cast<int>(processor::cpu.read_pc() - state::base_address);
+      if (offset >= 0 && offset < state::page_size) {
+        grid_elements[2 + offset % state::cols][2 + offset % state::rows] |= style::highlight_execution;
+      }
+    }
 
     return vbox({
       hbox({
@@ -284,9 +325,9 @@ void visualiser::tabs::MemoryTab::init() {
     });
   });
 
-  memory_grid |= CatchEvent(memory_grid_on_event);
+  state::memory_grid |= CatchEvent(memory_grid_on_event);
 
-  auto memory_address_editor = Renderer(Container::Horizontal({
+  state::memory_address_editor = Renderer(Container::Horizontal({
     state::input_type_dropdown,
     state::mem_input,
   }), [&]{
@@ -300,9 +341,9 @@ void visualiser::tabs::MemoryTab::init() {
   });
 
   content_ = Container::Vertical({
-    memory_grid,
+    state::memory_grid,
     Renderer([]{ return separator(); }),
-    memory_address_editor,
+    state::memory_address_editor,
   });
 
   help_ = Renderer([&] {
