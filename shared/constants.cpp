@@ -2,6 +2,8 @@
 
 using namespace constants;
 
+bool constants::halt_on_nop = true;
+
 std::map<std::string, registers::reg> registers::map = {
         {"pc",   registers::pc},
         {"rpc",  registers::rpc},

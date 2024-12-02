@@ -460,6 +460,7 @@ $ ./processor <source_file> [flags]
         \item \texttt{-d$x$} - toggles the $x$ debug flag, where $x$ is one of
         \begin{itemize}
             \item \texttt{all} - enables all debug flags.
+            \item \texttt{args} - prints the resolution of each instruction's operands.
             \item \texttt{cond} - checks on the conditional guard on instructions (only emitted when a guard is present).
             \item \texttt{cpu} - operation execution messages.
             \item \texttt{err} - print more detailed error messages (rather than relying solely on internal error handling).
@@ -468,6 +469,9 @@ $ ./processor <source_file> [flags]
             \item \texttt{reg} - register reads and writes.
             \item \texttt{zflag} - updates to the \texttt{zero} flag.
         \end{itemize}
+        \item \texttt{--halt-on-nop yes/no} - sets the ``halt on \texttt{nop}'' behaviour.
+        That is, when a \texttt{nop} is encountered, should we just skip, or halt as a precaution?
+        \textit{Default: yes}.
     \end{itemize}
 
     \subsection{Binary Layout}

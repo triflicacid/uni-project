@@ -8,6 +8,11 @@
 #include "debug.hpp"
 
 namespace processor {
+  /**
+   * Contains core functionality of a processor.
+   * Most methods should *not* be used directly (see the cpu class) and only if needed.
+   * Ideally, these would be marked `protected` but are not as they are needed elsewhere.
+   */
   class Core {
     std::array<uint64_t, constants::registers::count> m_regs{}; // register store
     bus m_bus{}; // connected bus to access memory

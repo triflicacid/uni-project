@@ -38,8 +38,25 @@ int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
           std::cerr << arg << ": failed to open file '" << argv[i] << "'";
           return EXIT_FAILURE;
         }
+      } else if (arg == "--halt-on-nop") {
+        if (++i >= argc) {
+          std::cerr << arg << ": expected a yes or no.";
+          return EXIT_FAILURE;
+        }
+
+        arg = argv[i];
+        if (arg == "yes" || arg == "y" || arg == "Y") {
+          constants::halt_on_nop = true;
+        } else if (arg == "no" || arg == "n" || arg == "N") {
+          constants::halt_on_nop = false;
+        } else {
+          std::cerr << arg << ": expected 'yes' or 'no'.";
+          return EXIT_FAILURE;
+        }
       } else if (arg == "-dall") {
         processor::debug::set_all(true);
+      } else if (arg == "-dargs") {
+        processor::debug::args = !processor::debug::args;
       } else if (arg == "-dcpu") {
         processor::debug::cpu = !processor::debug::cpu;
       } else if (arg == "-dmem") {

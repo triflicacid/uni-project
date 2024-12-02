@@ -2,6 +2,7 @@
 
 namespace processor::debug {
   extern bool cpu;
+  extern bool args;
   extern bool mem;
   extern bool reg;
   extern bool zflag;

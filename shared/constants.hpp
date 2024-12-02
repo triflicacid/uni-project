@@ -15,7 +15,7 @@ namespace constants {
     constexpr uint64_t cmp_bits = 0x7;
 
     // halt on nop instruction?
-    constexpr bool halt_on_nop = true;
+    extern bool halt_on_nop;
 
     namespace registers {
         constexpr uint8_t count = 32;

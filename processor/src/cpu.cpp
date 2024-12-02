@@ -633,28 +633,45 @@ void processor::CPU::exec_convert(uint64_t inst) {
   test_is_zero(reg_dst);
 }
 
+static int current_arg_num = 0; // for debugging, track which argument we are on
+
 constants::registers::reg processor::CPU::_arg_reg(uint32_t data) {
+  if (debug::args)
+    *ds << ANSI_BLUE "arg #" << current_arg_num << ANSI_RESET ": register: $" << constants::registers::to_string(static_cast<constants::registers::reg>(data)) << std::endl;
   return static_cast<constants::registers::reg>(data);
 }
 
 uint32_t processor::CPU::_arg_addr(uint32_t data) {
+  if (debug::args)
+    *ds << ANSI_BLUE "arg #" << current_arg_num << ANSI_RESET ": address: 0x" << std::hex << data << std::dec << std::endl;
   if (!check_memory(data)) return raise_error(constants::error::segfault, data, 0);
   return data;
 }
 
 constants::registers::reg processor::CPU::get_arg_reg(uint64_t inst, uint8_t pos) {
-  return static_cast<constants::registers::reg>(inst >> pos);
+  current_arg_num++;
+  return _arg_reg(inst >> pos);
 }
 
 uint32_t processor::CPU::_arg_reg_indirect(uint32_t data) {
   auto reg = static_cast<constants::registers::reg>(data & 0xff);
+  if (debug::args)
+    *ds << ANSI_BLUE "arg #" << current_arg_num << ANSI_RESET ": register indirect: "
+        << "register $" << constants::registers::to_string(reg);
   if (!check_register(reg)) return raise_error(constants::error::reg, reg, 0);
 
   // recover 24-bit offset, add sign if needed
-  uint32_t offset = (data >> 8) & 0xffffff;
-  if (offset & 0x800000) offset |= 0xFF000000;
+  uint32_t raw_offset = (data >> 8) & 0xffffff;
+  if (raw_offset & 0x800000) raw_offset |= 0xff000000;
+  int32_t offset = *(int32_t*) &offset;
 
-  data = this->reg(reg) + *(int32_t *) &offset;
+  data = this->reg(reg) + offset;
+  if (debug::args) {
+    *ds << " with offset ";
+    if (offset < 0) *ds << "-0x" << std::hex << -offset;
+    else *ds << "+0x" << std::hex << offset;
+    *ds << " yields address 0x" << data << std::dec << std::endl;
+  }
   if (!check_memory(data)) return raise_error(constants::error::segfault, data, 0);
 
   return data;
@@ -662,6 +679,7 @@ uint32_t processor::CPU::_arg_reg_indirect(uint32_t data) {
 
 uint64_t processor::CPU::get_arg_value(uint64_t word, uint8_t pos, bool cast_imm_double) {
   using namespace constants::inst;
+  current_arg_num++;
 
   // switch on indicator bits, extract data after
   auto indicator = static_cast<arg>((word >> pos) & 0x3);
@@ -688,6 +706,7 @@ uint64_t processor::CPU::get_arg_value(uint64_t word, uint8_t pos, bool cast_imm
 
 uint64_t processor::CPU::get_arg_addr(uint64_t word, uint8_t pos) {
   using namespace constants::inst;
+  current_arg_num++;
 
   // switch on indicator bits, extract data after
   uint8_t indicator = (word >> pos) & 0x1;
@@ -712,13 +731,18 @@ uint64_t processor::CPU::fetch() {
 
 void processor::CPU::execute(uint64_t inst) {
   using namespace constants;
+  current_arg_num = 0;
 
   // extract the opcode
   auto opcode = static_cast<inst::op>(inst & inst::op_mask);
 
-  // halt on NOP?
-  if (halt_on_nop && opcode == inst::_nop) {
-    halt();
+  if (opcode == inst::_nop) {
+    if (debug::cpu) *os << "nop: dummy instruction, skipping cycle...";
+    if (halt_on_nop) {
+      if (debug::cpu) *os << " (" ANSI_RED "halting as option is enabled" ANSI_RESET ")";
+      halt();
+    }
+    if (debug::cpu) *os << std::endl;
     return;
   }
 
