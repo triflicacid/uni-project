@@ -99,6 +99,70 @@ int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
   return EXIT_SUCCESS;
 }
 
+static std::ostream *debug_stream = nullptr;
+
+static void handle_debug_message(const processor::debug::Message &msg) {
+  using namespace processor::debug;
+
+  switch (msg.type) {
+    case Message::Cycle: {
+      auto *message = (CycleMessage*)&msg;
+      *debug_stream << ANSI_VIOLET;
+      if (message->n < 0) *debug_stream << "step";
+      else *debug_stream << "cycle #" << message->n;
+      *debug_stream << ANSI_RESET ": $pc=0x" << std::hex << message->pc << ", inst=0x" << message->inst << std::dec << std::endl;
+      break;
+    }
+    case Message::Instruction: {
+      auto *message = (InstructionMessage*)&msg;
+      *debug_stream << message->mnemonic << ": " << message->message.str() << std::endl;
+      break;
+    }
+    case Message::Argument: {
+      auto *message = (ArgumentMessage*)&msg;
+      *debug_stream << ANSI_BLUE "arg #" << message->n << ANSI_RESET ": " ANSI_CYAN << constants::inst::arg_to_string(message->arg_type) << ANSI_RESET << message->message.str() << ANSI_CYAN " resolved to " ANSI_RESET << "0x" << std::hex << message->value << std::dec << std::endl;
+      break;
+    }
+    case Message::Register: {
+      auto *message = (RegisterMessage*)&msg;
+      *debug_stream << ANSI_BRIGHT_YELLOW "reg" ANSI_RESET ": ";
+      if (message->is_write) *debug_stream << "set $" << constants::registers::to_string(message->reg) << " to ";
+      else *debug_stream << "access $" << constants::registers::to_string(message->reg) << " -> ";
+      *debug_stream << "0x" << std::hex << message->value << std::dec << std::endl;
+      break;
+    }
+    case Message::Memory: {
+      auto *message = (MemoryMessage*)&msg;
+      if (message->is_write) *debug_stream << ANSI_YELLOW "mem" ANSI_RESET ": store data 0x" << std::hex << message->value << " of " << std::dec << (int) message->bytes << " bytes at address 0x" << std::hex << message->address << std::dec << std::endl;
+      else *debug_stream << ANSI_YELLOW "mem" ANSI_RESET ": access " << (int) message->bytes << " bytes from address 0x" << std::hex << message->address << " -> 0x" << message->value << std::dec << std::endl;
+      break;
+    }
+    case Message::ZeroFlag: {
+      auto *message = (ZeroFlagMessage*)&msg;
+      *debug_stream << ANSI_CYAN "zero flag" ANSI_RESET ": register $" << constants::registers::to_string(message->reg) << " -> " << (message->state ? ANSI_GREEN "set" : ANSI_RED "reset") << ANSI_RESET << std::endl;
+      break;
+    }
+    case Message::Conditional: {
+      auto *message = (ConditionalMessage*)&msg;
+      *debug_stream << ANSI_CYAN "conditional" ANSI_RESET ": " << constants::cmp::to_string(message->test_bits) << " -> ";
+      if (message->passed) *debug_stream << ANSI_GREEN "pass" ANSI_RESET << std::endl;
+      else *debug_stream << ANSI_RED "fail" ANSI_RESET " ($flag: 0x" << std::hex << (int) message->flag_bits.value() << std::dec << ")" << std::endl;
+      break;
+    }
+    case Message::Interrupt: {
+      auto *message = (InterruptMessage*)&msg;
+      *debug_stream << ANSI_CYAN "interrupt! " ANSI_RESET
+             "$isr=0x" << std::hex << message->isr << ", $imr=0x" << message->imr << ", %iip=0x" << message->ipc << std::dec << std::endl;
+      break;
+    }
+    case Message::Error: {
+      auto *message = (ErrorMessage*)&msg;
+      *debug_stream << ANSI_RED << message->message << ANSI_RESET << std::endl;
+      break;
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   using namespace processor;
 
@@ -114,7 +178,7 @@ int main(int argc, char **argv) {
   CPU cpu;
   if (args.output_file) cpu.os = &args.output_file->stream;
   if (args.input_file) cpu.is = &args.input_file->stream;
-  if (args.debug_file) cpu.ds = &args.debug_file->stream;
+  debug_stream = args.debug_file ? &args.debug_file->stream : &std::cout;
 
   // reset the processor
   cpu.reset();
@@ -126,7 +190,7 @@ int main(int argc, char **argv) {
   stream.seekg(std::ios::beg);
 
   if (debug::cpu)
-    *cpu.ds << "reading source file " << args.source_file->path << "... " << file_size << " bytes read" << std::endl;
+    *debug_stream << "reading source file " << args.source_file->path << "... " << file_size << " bytes read" << std::endl;
 
   // error if file size exceeds buffer size
   if (file_size >= dram::size) {
@@ -141,12 +205,16 @@ int main(int argc, char **argv) {
   // start processor
   cpu.step_cycle();
 
+  // print debug messages
+  for (const auto &m : cpu.get_debug_messages())
+    handle_debug_message(*m);
+
   // print error (if any) and notify user of exit code
   cpu.print_error(true);
 
   auto err_code = cpu.get_error();
   uint64_t code = err_code ? err_code : cpu.get_return_value();
-  if (debug::cpu) *cpu.ds << "processor exited with code " << code << std::endl;
+  if (debug::cpu) *debug_stream << "processor exited with code " << code << std::endl;
 
   return EXIT_SUCCESS;
 }

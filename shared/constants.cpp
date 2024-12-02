@@ -4,6 +4,16 @@ using namespace constants;
 
 bool constants::halt_on_nop = true;
 
+std::string constants::inst::arg_to_string(arg a) {
+  switch (a) {
+    case imm: return "immediate";
+    case reg: return "register";
+    case mem: return "address";
+    case reg_indirect: return "register indirect";
+    default: return "?";
+  }
+}
+
 std::map<std::string, registers::reg> registers::map = {
         {"pc",   registers::pc},
         {"rpc",  registers::rpc},

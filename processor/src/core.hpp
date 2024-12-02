@@ -3,6 +3,9 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <deque>
+#include <memory>
+#include <functional>
 #include "constants.hpp"
 #include "bus.hpp"
 #include "debug.hpp"
@@ -16,16 +19,37 @@ namespace processor {
   class Core {
     std::array<uint64_t, constants::registers::count> m_regs{}; // register store
     bus m_bus{}; // connected bus to access memory
+    std::deque<std::unique_ptr<debug::Message>> debug_message;
 
   public:
-    [[nodiscard]] uint64_t reg(constants::registers::reg r, bool silent = false) const;
+    std::ostream *os; // output stream
+    std::istream *is; // input stream
+    std::optional<std::function<void(const debug::Message&)>> on_add_debug_message;
+
+    // read debug message
+    [[nodiscard]] const std::deque<std::unique_ptr<debug::Message>> &get_debug_messages() const { return debug_message; }
+
+    // remove all debug messages
+    void clear_debug_messages() { debug_message.clear(); }
+
+    // get a reference to the most recent message
+    [[nodiscard]] debug::Message &get_latest_debug_message() const { return *debug_message.back(); }
 
     template<typename T>
-    [[nodiscard]] T reg(constants::registers::reg r, bool silent = false) const {
-      if (debug::reg && !silent)
-        *ds << ANSI_BRIGHT_YELLOW " reg_copy" ANSI_RESET ": access $" << constants::registers::to_string(r) << " -> 0x"
-            << std::hex << m_regs[r] << std::dec << std::endl;
-      return *(T *) &m_regs[r];
+    [[nodiscard]] T* get_latest_debug_message() const { return (T*)debug_message.back().get(); }
+
+    // add a new debug message
+    void add_debug_message(std::unique_ptr<debug::Message> m) {
+      debug_message.push_back(std::move(m));
+      if (on_add_debug_message.has_value()) on_add_debug_message.value()(*debug_message.back());
+    }
+
+    [[nodiscard]] uint64_t reg(constants::registers::reg r, bool silent = false);
+
+    template<typename T>
+    [[nodiscard]] T reg(constants::registers::reg r, bool silent = false) {
+      uint64_t raw = reg(r, silent);
+      return *(T *) &raw;
     }
 
     void reg_set(constants::registers::reg r, uint64_t val, bool silent = false);
@@ -44,20 +68,16 @@ namespace processor {
     // write a null-terminated C-string, starting at `addr`, to the output stream
     void write_string(uint64_t addr);
 
-    Core() : os(&std::cout), is(&std::cin), ds(&std::cout) {}
+    Core() : os(&std::cout), is(&std::cin) {}
 
     // reset's the core, please call before use
     void reset();
 
-    std::ostream *os; // output stream
-    std::istream *is; // input stream
-    std::ostream *ds; // debug stream
-
     // print contents of stack as hexadecimal bytes
-    void print_stack() const;
+    void print_stack();
 
     // print contents of all registers as hexadecimal
-    void print_registers() const;
+    void print_registers();
 
     // print region of memory, assume locations are valid
     void print_memory(uint64_t addr, uint32_t bytes);

@@ -48,15 +48,14 @@ bool processor::CPU::fetch_reg_reg_val(uint64_t inst, constants::registers::reg 
 }
 
 void processor::CPU::test_is_zero(constants::registers::reg reg) {
-  if (this->reg(reg) == 0) {
+  bool is_zero = this->reg(reg) == 0;
+  if (is_zero) {
     flag_set(constants::flag::zero);
   } else {
     flag_reset(constants::flag::zero);
   }
 
-  if (debug::zflag)
-    *ds << ANSI_CYAN "zero flag" ANSI_RESET ": register $" << constants::registers::to_string(reg) << " -> " <<
-        (flag_test(constants::flag::zero, true) ? ANSI_GREEN "set" : ANSI_RED "reset") << ANSI_RESET << std::endl;
+  if (debug::zflag) add_debug_message(std::move(std::make_unique<debug::ZeroFlagMessage>(reg, is_zero)));
 }
 
 // load <reg> <value> -- load value into register
@@ -75,9 +74,11 @@ void processor::CPU::exec_load(uint64_t inst) {
   // assign value to register
   reg_set(reg, value);
 
-  if (debug::cpu)
-    *ds << "load: load value 0x" << std::hex << value << std::dec << " into register $"
-        << constants::registers::to_string(reg) << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("load");
+    msg->stream() << "load value 0x" << std::hex << value << std::dec << " into register $" << constants::registers::to_string(reg);
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg);
 }
 
@@ -94,9 +95,11 @@ void processor::CPU::exec_load_upper(uint64_t inst) {
   // store value in register's upper 32 bits
   reg_set(reg, this->reg(reg) | (value << 32));
 
-  if (debug::cpu)
-    *ds << "loadu: load value 0x" << std::hex << value << std::dec << " into register $"
-        << constants::registers::to_string(reg) << "'s upper half" << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("loadu");
+    msg->stream() << "load value 0x" << std::hex << value << std::dec << " into register $" << constants::registers::to_string(reg) << "'s upper half";
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg);
 }
 
@@ -113,10 +116,11 @@ void processor::CPU::exec_store(uint64_t inst) {
   // store in memory at address
   mem_store(addr, sizeof(uint64_t), this->reg(reg));
 
-  if (debug::cpu)
-    *ds << "store: copy register $" << constants::registers::to_string(reg) << " (0x" << std::hex
-        << this->reg(reg, true)
-        << ") to address 0x" << addr << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("store");
+    msg->stream() << "copy register $" << constants::registers::to_string(reg) << " (0x" << std::hex << this->reg(reg, true) << ") to address 0x" << addr << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg);
 }
 
@@ -182,9 +186,11 @@ void processor::CPU::exec_compare(uint64_t inst) {
   reg_set(registers::flag, (this->reg(registers::flag) & ~0xf) | (int(flag) & 0xf));
 
   if (debug::cpu) {
-    *ds << "cmp: datatype=" << inst::datatype::to_string(datatype) << " (0x" << datatype << std::endl
-        << " cmp: register $" << registers::to_string(reg) << " (0x" << this->reg(reg, true) << ") vs 0x" << value
-        << " = " ANSI_CYAN << cmp::to_string(flag) << std::endl << std::dec << ANSI_RESET;
+    auto msg = std::make_unique<debug::InstructionMessage>("cmp");
+    msg->stream() << "datatype=" << inst::datatype::to_string(datatype) << " (0x" << datatype << ")  |  "
+       << "register $" << registers::to_string(reg) << " (0x" << this->reg(reg, true) << ") vs 0x" << value
+       << " = " ANSI_CYAN << cmp::to_string(flag) << std::dec << ANSI_RESET;
+    add_debug_message(std::move(msg));
   }
 }
 
@@ -200,9 +206,12 @@ void processor::CPU::exec_not(uint64_t inst) {
   // inverse source register, update flag
   reg_set(reg_dst, ~this->reg(reg_src));
 
-  if (debug::cpu)
-    *ds << "not: " << constants::registers::to_string(reg_dst) << " = ~0x" << std::hex << reg(reg_src, true)
-        << " = 0x" << reg(reg_dst, true) << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("not");
+    msg->stream() << constants::registers::to_string(reg_dst) << " = ~0x" << std::hex << reg(reg_src, true)
+                  << " = 0x" << reg(reg_dst, true) << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg_dst);
 }
 
@@ -212,12 +221,14 @@ void processor::CPU::exec_and(uint64_t inst) {
   uint64_t value;
 
   if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
-
   reg_set(reg_dst, this->reg(reg_src) & value);
 
-  if (debug::cpu)
-    *ds << "and: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
-        << ") & 0x" << value << " = 0x" << reg(reg_dst, true) << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("and");
+    msg->stream() << "and: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
+                  << ") & 0x" << value << " = 0x" << reg(reg_dst, true) << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg_dst);
 }
 
@@ -230,9 +241,12 @@ void processor::CPU::exec_or(uint64_t inst) {
 
   reg_set(reg_dst, this->reg(reg_src) | value);
 
-  if (debug::cpu)
-    *ds << "or: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true) << ") | 0x"
-        << value << " = 0x" << reg(reg_dst) << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("or");
+    msg->stream() << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true) << ") | 0x"
+                  << value << " = 0x" << reg(reg_dst) << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg_dst);
 }
 
@@ -244,9 +258,12 @@ void processor::CPU::exec_xor(uint64_t inst) {
   if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
 
   reg_set(reg_dst, this->reg(reg_src) ^ value);
-  if (debug::cpu)
-    *ds << "xor: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
-        << ") ^ 0x" << value << " = 0x" << reg(reg_dst, true) << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("xor");
+    msg->stream() << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
+                  << ") ^ 0x" << value << " = 0x" << reg(reg_dst, true) << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg_dst);
 }
 
@@ -258,9 +275,12 @@ void processor::CPU::exec_shift_left(uint64_t inst) {
   if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
 
   reg_set(reg_dst, reg(reg_src) << value);
-  if (debug::cpu)
-    *ds << "shl: 0x" << std::hex << reg(reg_src, true) << std::dec << " << " << value << " = 0x"
-        << std::hex << reg(reg_dst, true) << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("shl");
+    msg->stream() << "0x" << std::hex << reg(reg_src, true) << std::dec << " << " << value << " = 0x"
+                  << std::hex << reg(reg_dst, true) << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg_dst);
 }
 
@@ -272,9 +292,12 @@ void processor::CPU::exec_shift_right(uint64_t inst) {
   if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
 
   reg_set(reg_dst, reg(reg_src) >> value);
-  if (debug::cpu)
-    *ds << "shr: 0x" << std::hex << reg(reg_src, true) << std::dec << " >> " << value << " = 0x"
-        << std::hex << reg(reg_dst, true) << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("shr");
+    msg->stream() << "0x" << std::hex << reg(reg_src, true) << std::dec << " >> " << value << " = 0x"
+                          << std::hex << reg(reg_dst, true) << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg_dst);
 }
 
@@ -299,9 +322,12 @@ void processor::CPU::exec_zero_extend(uint64_t inst) {
 
   uint64_t result = zero_extend(value, size);
   reg_set(reg, result);
-  if (debug::cpu)
-    *ds << "zext: extend " << (int) size << "-bit 0x" << std::hex << std::setfill('0') << std::setw(size / 4) << value
-        << " -> 0x" << std::setfill('0') << std::setw(16) << result << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("zext");
+    msg->stream() << "extend " << (int) size << "-bit 0x" << std::hex << std::setfill('0') << std::setw(size / 4) << value
+                  << " -> 0x" << std::setfill('0') << std::setw(16) << result << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg);
 }
 
@@ -314,17 +340,22 @@ void processor::CPU::exec_sign_extend(uint64_t inst) {
 
   uint64_t result = sign_extend(value, size);
   reg_set(reg, result);
-  if (debug::cpu)
-    *ds << "sext: extend " << (int) size << "-bit 0x" << std::hex << std::setfill('0') << std::setw(size / 4) << value
-        << " -> 0x" << std::setfill('0') << std::setw(16) << result << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("sext");
+    msg->stream() << "extend " << (int) size << "-bit 0x" << std::hex << std::setfill('0') << std::setw(size / 4) << value
+                               << " -> 0x" << std::setfill('0') << std::setw(16) << result << std::dec;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg);
 }
 
 // macro for arithmetic operation
-#define ARITH_OPERATION(OPERATOR, INJECT) \
+#define ARITH_OPERATION(MNEMONIC, OPERATOR, INJECT) \
   auto datatype = static_cast<constants::inst::datatype::dt>((inst >> constants::inst::header_size) & 0x7);\
   constants::registers::reg reg_src, reg_dst;\
-  uint64_t value, result;\
+  uint64_t value, result; \
+  if (debug::cpu) add_debug_message(std::move(std::make_unique<processor::debug::InstructionMessage>(MNEMONIC))); \
+  std::ostream *ds = debug::cpu ? &get_latest_debug_message<processor::debug::InstructionMessage>()->stream() : nullptr;                                                  \
   if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, constants::inst::datatype::size, datatype == constants::inst::datatype::dbl))\
     return;\
   if (debug::cpu) *ds << "arithmetic operation (on type " << constants::inst::datatype::to_string(datatype) << "): ";\
@@ -381,22 +412,22 @@ void processor::CPU::exec_sign_extend(uint64_t inst) {
 
 // add <reg> <reg> <value>
 void processor::CPU::exec_add(uint64_t inst) {
-  ARITH_OPERATION(+,)
+  ARITH_OPERATION("add",+,)
 }
 
 // sub <reg> <reg> <value>
 void processor::CPU::exec_sub(uint64_t inst) {
-  ARITH_OPERATION(-,)
+  ARITH_OPERATION("sub",-,)
 }
 
 // mul <reg> <reg> <value>
 void processor::CPU::exec_mul(uint64_t inst) {
-  ARITH_OPERATION(*,)
+  ARITH_OPERATION("mul",*,)
 }
 
 // div <reg> <reg> <value>
 void processor::CPU::exec_div(uint64_t inst) {
-  ARITH_OPERATION(/,)
+  ARITH_OPERATION("div",/,)
 }
 
 // mod <reg> <value> <value>
@@ -412,7 +443,11 @@ void processor::CPU::exec_mod(uint64_t inst) {
   int64_t result = lhs % rhs;
   reg_set(reg_dst, result);
 
-  if (debug::cpu) *ds << "mod: " << lhs << " mod " << rhs << " = " << result << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("mod");
+    msg->stream() << lhs << " mod " << rhs << " = " << result;
+    add_debug_message(std::move(msg));
+  }
   test_is_zero(reg_dst);
 }
 
@@ -424,81 +459,84 @@ void processor::CPU::exec_syscall(uint64_t inst) {
   uint64_t value = get_arg_value(inst, inst::header_size, false);
   if (!is_running()) return;
 
+  if (debug::cpu) add_debug_message(std::move(std::make_unique<debug::InstructionMessage>("syscall")));
+  std::ostream *ds = debug::cpu ? &get_latest_debug_message<debug::InstructionMessage>()->stream() : nullptr;
+
   if (debug::cpu) *ds << "syscall: invoke operation " << value << " (";
 
-  switch (static_cast<syscall>(value)) {
+  switch (static_cast<constants::syscall>(value)) {
     case syscall::print_hex:
-      if (debug::cpu) *ds << "print_hex)" << std::endl;
+      if (debug::cpu) *ds << "print_hex)";
       *os << "0x" << std::hex << reg(registers::r1) << std::dec;
       break;
     case syscall::print_int:
-      if (debug::cpu) *ds << "print_int)" << std::endl;
+      if (debug::cpu) *ds << "print_int)";
       *os << reg<int>(registers::r1);
       break;
     case syscall::print_float:
-      if (debug::cpu) *ds << "print_float)" << std::endl;
+      if (debug::cpu) *ds << "print_float)";
       *os << reg<float>(registers::r1);
       break;
     case syscall::print_double:
-      if (debug::cpu) *ds << "print_double)" << std::endl;
+      if (debug::cpu) *ds << "print_double)";
       *os << reg<double>(registers::r1);
       break;
     case syscall::print_char:
-      if (debug::cpu) *ds << "print_char)" << std::endl;
+      if (debug::cpu) *ds << "print_char)";
       *os << reg<char>(registers::r1);
       break;
     case syscall::print_string: {
-      if (debug::cpu) *ds << "print_string)" << std::endl;
+      if (debug::cpu) *ds << "print_string)";
       uint32_t addr = reg(registers::r1);
       if (!check_memory(addr)) return raise_error(error::segfault, addr);
       write_string(addr);
       break;
     }
     case syscall::read_int: {
-      if (debug::cpu) *ds << "read_int)" << std::endl;
+      if (debug::cpu) *ds << "read_int)";
       int n;
       *is >> n;
       reg_set(registers::ret, n);
       break;
     }
     case syscall::read_float: {
-      if (debug::cpu) *ds << "read_float)" << std::endl;
+      if (debug::cpu) *ds << "read_float)";
       float n;
       *is >> n;
       reg_set(registers::ret, *(uint32_t *) &n);
       break;
     }
     case syscall::read_double: {
-      if (debug::cpu) *ds << "read_double)" << std::endl;
+      if (debug::cpu) *ds << "read_double)";
       double n;
       *is >> n;
       reg_set(registers::ret, *(uint64_t *) &n);
       break;
     }
     case syscall::read_char: {
-      if (debug::cpu) *ds << "read_char)" << std::endl;
+      if (debug::cpu) *ds << "read_char)";
       char n;
       *is >> n;
       reg_set(registers::ret, *(uint8_t *) &n);
       break;
     }
     case syscall::read_string: {
-      if (debug::cpu) *ds << "read_string)" << std::endl;
+      if (debug::cpu) *ds << "read_string)";
       uint64_t addr = reg(registers::r1), length = reg(static_cast<registers::reg>(registers::r1 + 1));
       if (!check_memory(addr)) return raise_error(error::segfault, addr);
       read_string(addr, length);
       break;
     }
     case syscall::exit:
-      if (debug::cpu) *ds << "exit)" << std::endl;
+      if (debug::cpu) *ds << "exit)";
       halt();
       break;
     case syscall::print_regs:
-      if (debug::cpu) *ds << "print_regs)" << std::endl;
+      if (debug::cpu) *ds << "print_regs)";
       print_registers();
       break;
     case syscall::print_mem: {
-      if (debug::cpu) *ds << "print_mem)" << std::endl;
+      if (debug::cpu) *ds << "print_mem)";
       uint64_t addr = reg(registers::r1), size = reg(static_cast<registers::reg>(registers::r1 + 1));
       if (!check_memory(addr)) return raise_error(error::segfault, addr);
       if (!check_memory(addr + size - 1)) return raise_error(error::segfault, addr + size - 1);
@@ -506,11 +544,11 @@ void processor::CPU::exec_syscall(uint64_t inst) {
       break;
     }
     case syscall::print_stack:
-      if (debug::cpu) *os << "print_stack)" << std::endl;
+      if (debug::cpu) *os << "print_stack)";
       print_stack();
       break;
     default:
-      if (debug::cpu) *ds << "unknown)" << std::endl;
+      if (debug::cpu) *ds << "unknown)";
       if (debug::errs)
         *os << ANSI_RED "invocation of unknown syscall operation (" << value << ")" << std::endl;
       raise_error(error::syscall, value);
@@ -530,10 +568,11 @@ void processor::CPU::exec_push(uint64_t inst) {
   if (!is_running()) return;
 
   uint32_t data = *(uint32_t *) &value;
-  if (debug::cpu)
-    *ds << "push: value 0x" << std::hex << data << " to $sp = 0x" << reg(constants::registers::sp, true)
-        << std::dec << std::endl;
-
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("push");
+    msg->stream() << "store value 0x" << std::hex << data << " at $sp = 0x" << reg(constants::registers::sp, true) << std::dec;
+    add_debug_message(std::move(msg));
+  }
   push(data);
 }
 
@@ -547,9 +586,11 @@ void processor::CPU::exec_jal(uint64_t inst) {
   uint64_t value = get_arg_value(inst, inst::header_size + inst::reg_size, false);
   if (!is_running()) return;
 
-  if (debug::cpu)
-    *ds << "jal: cache $pc (0x" << std::hex << this->reg(registers::pc, true) << ") in "
-        << constants::registers::to_string(reg) << "; jump to 0x" << value << std::dec << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("jal");
+    msg->stream() << "cache $pc (0x" << std::hex << this->reg(registers::pc, true) << ") in " << constants::registers::to_string(reg) << "; jump to 0x" << value << std::dec;
+    add_debug_message(std::move(msg));
+  }
 
   // cache + jump
   reg_copy(reg, registers::pc);
@@ -625,10 +666,13 @@ void processor::CPU::exec_convert(uint64_t inst) {
     default:;
   }
 
-  if (debug::cpu)
-    *ds << "cvt: convert from " << datatype::to_string(d1) << " in reg_copy "
-        << constants::registers::to_string(reg_src) << " to " << datatype::to_string(d2) << " in reg_copy "
-        << constants::registers::to_string(reg_dst) << std::endl;
+  if (debug::cpu) {
+    auto msg = std::make_unique<debug::InstructionMessage>("cvt");
+    msg->stream() << "cvt: convert from " << datatype::to_string(d1) << " in $"
+                  << constants::registers::to_string(reg_src) << " to " << datatype::to_string(d2) << " in $"
+                  << constants::registers::to_string(reg_dst);
+    add_debug_message(std::move(msg));
+  }
   reg_set(reg_dst, value);
   test_is_zero(reg_dst);
 }
@@ -636,14 +680,20 @@ void processor::CPU::exec_convert(uint64_t inst) {
 static int current_arg_num = 0; // for debugging, track which argument we are on
 
 constants::registers::reg processor::CPU::_arg_reg(uint32_t data) {
-  if (debug::args)
-    *ds << ANSI_BLUE "arg #" << current_arg_num << ANSI_RESET ": register: $" << constants::registers::to_string(static_cast<constants::registers::reg>(data)) << std::endl;
+  if (debug::args) {
+    auto msg = std::make_unique<debug::ArgumentMessage>(constants::inst::arg::reg, current_arg_num);
+    msg->stream() << "$" << constants::registers::to_string(static_cast<constants::registers::reg>(data));
+    add_debug_message(std::move(msg));
+  }
   return static_cast<constants::registers::reg>(data);
 }
 
 uint32_t processor::CPU::_arg_addr(uint32_t data) {
-  if (debug::args)
-    *ds << ANSI_BLUE "arg #" << current_arg_num << ANSI_RESET ": address: 0x" << std::hex << data << std::dec << std::endl;
+  if (debug::args) {
+    auto msg = std::make_unique<debug::ArgumentMessage>(constants::inst::arg::mem, current_arg_num);
+    msg->stream() << "0x" << std::hex << data << std::dec;
+    add_debug_message(std::move(msg));
+  }
   if (!check_memory(data)) return raise_error(constants::error::segfault, data, 0);
   return data;
 }
@@ -655,9 +705,9 @@ constants::registers::reg processor::CPU::get_arg_reg(uint64_t inst, uint8_t pos
 
 uint32_t processor::CPU::_arg_reg_indirect(uint32_t data) {
   auto reg = static_cast<constants::registers::reg>(data & 0xff);
-  if (debug::args)
-    *ds << ANSI_BLUE "arg #" << current_arg_num << ANSI_RESET ": register indirect: "
-        << "register $" << constants::registers::to_string(reg);
+  if (debug::args) add_debug_message(std::move(std::make_unique<debug::ArgumentMessage>(constants::inst::arg::reg_indirect, current_arg_num)));
+  std::ostream *ds = debug::args ? &get_latest_debug_message<debug::ArgumentMessage>()->stream() : nullptr;
+  if (debug::args) *ds << "$" << constants::registers::to_string(reg);
   if (!check_register(reg)) return raise_error(constants::error::reg, reg, 0);
 
   // recover 24-bit offset, add sign if needed
@@ -683,25 +733,32 @@ uint64_t processor::CPU::get_arg_value(uint64_t word, uint8_t pos, bool cast_imm
 
   // switch on indicator bits, extract data after
   auto indicator = static_cast<arg>((word >> pos) & 0x3);
-  uint64_t data = word >> (pos + 2);
+  uint64_t data = word >> (pos + 2), result;
 
   switch (indicator) {
     case arg::imm:
       if (cast_imm_double) {
         double d = *(float *) &data;
-        return *(uint64_t *) &d;
+        result = *(uint64_t *) &d;
+      } else {
+        result = data;
       }
-
-      return data;
+      if (debug::args) add_debug_message(std::move(std::make_unique<debug::ArgumentMessage>(constants::inst::arg::imm, current_arg_num)));
+      break;
     case arg::mem:
-      return mem_load(_arg_addr(data), sizeof(uint64_t));
+      result = mem_load(_arg_addr(data), sizeof(uint64_t));
+      break;
     case arg::reg:
-      return reg(_arg_reg(data));
+      result = reg(_arg_reg(data));
+      break;
     case arg::reg_indirect:
-      return mem_load(_arg_reg_indirect(data), sizeof(uint64_t));
+      result = mem_load(_arg_reg_indirect(data), sizeof(uint64_t));
+      break;
     default:
       return 0;
   }
+  if (debug::args) get_latest_debug_message<debug::ArgumentMessage>()->value = result;
+  return result;
 }
 
 uint64_t processor::CPU::get_arg_addr(uint64_t word, uint8_t pos) {
@@ -710,16 +767,20 @@ uint64_t processor::CPU::get_arg_addr(uint64_t word, uint8_t pos) {
 
   // switch on indicator bits, extract data after
   uint8_t indicator = (word >> pos) & 0x1;
-  uint64_t data = word >> (pos + 1);
+  uint64_t data = word >> (pos + 1), result;
 
   switch (static_cast<arg>(0x2 | indicator)) {
     case arg::mem:
-      return _arg_addr(data);
+      result = _arg_addr(data);
+      break;
     case arg::reg_indirect:
-      return _arg_reg_indirect(data);
+      result = _arg_reg_indirect(data);
+      break;
     default:
       return 0;
   }
+  if (debug::args) get_latest_debug_message<debug::ArgumentMessage>()->value = result;
+  return result;
 }
 
 uint64_t processor::CPU::fetch() {
@@ -751,30 +812,25 @@ void processor::CPU::execute(uint64_t inst) {
 
   // test?
   if (test_bits != cmp::na) {
+    if (debug::conditionals) add_debug_message(std::move(std::make_unique<debug::ConditionalMessage>(test_bits)));
+
     // extract cmp bits from both the instruction and the flag register
     auto flag_bits = static_cast<cmp::flag>(reg(registers::flag) & cmp_bits);
-
-    if (debug::conditionals)
-      *ds << ANSI_CYAN "conditional" ANSI_RESET ": " << constants::cmp::to_string(test_bits) << " -> ";
 
     // special case for [N]Z test, otherwise compare directly
     if (flag_test(int(test_bits), flag::zero)) {
       bool zero_flag = flag_test(flag::zero);
 
       if ((test_bits == cmp::nz && zero_flag) || (test_bits == cmp::z && !zero_flag)) {
-        if (debug::conditionals)
-          *ds << ANSI_RED "fail" ANSI_RESET " ($flag: 0x" << std::hex << int(flag_bits) << std::dec
-              << ")" << std::endl;
+        if (debug::conditionals) get_latest_debug_message<debug::ConditionalMessage>()->fail(flag_bits);
         return;
       }
     } else if (test_bits != flag_bits) {
-      if (debug::conditionals)
-        *ds << ANSI_RED "fail" ANSI_RESET " ($flag: 0x" << std::hex << int(flag_bits) << std::dec << ")"
-            << std::endl;
+      if (debug::conditionals) get_latest_debug_message<debug::ConditionalMessage>()->fail(flag_bits);
       return;
     }
 
-    if (debug::conditionals) *ds << ANSI_GREEN "pass" ANSI_RESET << std::endl;
+    if (debug::conditionals) get_latest_debug_message<debug::ConditionalMessage>()->pass();
   }
 
   switch (opcode) {
@@ -828,7 +884,7 @@ void processor::CPU::execute(uint64_t inst) {
   }
 }
 
-bool processor::CPU::is_interrupt() const {
+bool processor::CPU::is_interrupt() {
   // do not allow interrupt stacking
   return !flag_test(constants::flag::in_interrupt)
          && (reg(constants::registers::isr) & reg(constants::registers::imr));
@@ -846,10 +902,7 @@ void processor::CPU::handle_interrupt() {
   // jump to the interrupt handler
   reg_set(pc, addr_interrupt_handler);
 
-  if (debug::cpu)
-    *ds << ANSI_CYAN "interrupt! " ANSI_RESET
-           "$isr=0x" << std::hex << reg(isr) << ", $imr=0x" << reg(imr) << ", %iip=0x" << reg(ipc)
-        << std::dec << std::endl;
+  if (debug::cpu) add_debug_message(std::move(std::make_unique<debug::InterruptMessage>(reg(isr, true), reg(imr, true), reg(ipc, true))));
 }
 
 void processor::CPU::reset_flag() {
@@ -863,23 +916,13 @@ void processor::CPU::step(int &step) {
     handle_interrupt();
   }
 
-  if (debug::cpu) {
-    *ds << ANSI_VIOLET;
-    if (step < 0) *ds << "step";
-    else *ds << "cycle #" << step;
-    if (debug::reg) *ds << ANSI_RESET << std::endl;
-    else {
-      *ds << ANSI_RESET ": $pc=0x" << std::hex << reg(constants::registers::pc) << std::dec;
-      if (debug::mem) *ds << std::endl;
-      else *ds << ", inst=";
-    }
-  }
+  if (debug::cpu) add_debug_message(std::move(std::make_unique<debug::CycleMessage>(step, reg(constants::registers::pc, true))));
 
   // fetch next instruction, return if halted
   uint64_t inst = fetch();
   if (!is_running()) return;
 
-  if (debug::cpu && !debug::mem && !debug::reg) *ds << "0x" << std::hex << inst << std::dec << std::endl;
+  if (debug::cpu) get_latest_debug_message<debug::CycleMessage>()->inst = inst;
 
   // increment $pc
   reg_set(constants::registers::pc, reg(constants::registers::pc) + sizeof(inst));
@@ -897,7 +940,7 @@ void processor::CPU::step_cycle() {
   }
 }
 
-void processor::CPU::print_error(std::ostream &os, bool prefix) const {
+void processor::CPU::print_error(std::ostream &os, bool prefix) {
   using namespace constants;
   uint8_t error = get_error();
 

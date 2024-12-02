@@ -14,7 +14,7 @@ namespace processor {
   public:
     [[nodiscard]] static bool flag_test(uint64_t bitstr, constants::flag v) { return bitstr & int(v); }
 
-    [[nodiscard]] bool flag_test(constants::flag v, bool silent = false) const {
+    [[nodiscard]] bool flag_test(constants::flag v, bool silent = false) {
       return reg(constants::registers::flag, silent) & int(v);
     }
 
@@ -112,17 +112,17 @@ namespace processor {
 
     void set_interrupt_handler(uint64_t addr) { addr_interrupt_handler = addr; }
 
-    [[nodiscard]] uint64_t read_pc() const { return reg(constants::registers::pc, true); };
+    [[nodiscard]] uint64_t read_pc() { return reg(constants::registers::pc, true); };
 
     // sets $pc, use carefully while running
     void write_pc(uint64_t val) { reg_set(constants::registers::pc, val, true); }
 
     // read $ret
-    [[nodiscard]] uint64_t get_return_value() const { return reg(constants::registers::ret); }
+    [[nodiscard]] uint64_t get_return_value() { return reg(constants::registers::ret); }
 
-    [[nodiscard]] bool is_running() const { return flag_test(constants::flag::is_running); }
+    [[nodiscard]] bool is_running() { return flag_test(constants::flag::is_running); }
 
-    [[nodiscard]] constants::error::code get_error() const {
+    [[nodiscard]] constants::error::code get_error() {
       return static_cast<constants::error::code>(
           (reg(constants::registers::flag) >> constants::error::offset) & constants::error::mask);
     }
@@ -137,7 +137,7 @@ namespace processor {
     void reset_flag();
 
     // test if there is an interrupt THAT IS NOT BEING HANDLED
-    [[nodiscard]] bool is_interrupt() const;
+    [[nodiscard]] bool is_interrupt();
 
     // handle interrupt - jump to handler
     // note, does not check $imr or $isr
@@ -157,9 +157,9 @@ namespace processor {
     void step_cycle();
 
     // print error details (doesn't print if no error)
-    void print_error(std::ostream &os, bool prefix) const;
+    void print_error(std::ostream &os, bool prefix);
 
-    void print_error(bool prefix) const { print_error(*os, prefix); }
+    void print_error(bool prefix) { print_error(*os, prefix); }
 
     // check if the given address is valid
     [[nodiscard]] static bool check_memory(uint64_t addr) { return addr < dram::size; }

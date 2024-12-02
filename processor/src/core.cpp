@@ -18,40 +18,41 @@ void processor::Core::reset() {
   m_bus.mem.clear();
 }
 
-uint64_t processor::Core::reg(constants::registers::reg r, bool silent) const {
-  if (debug::reg && !silent)
-    *ds << ANSI_BRIGHT_YELLOW "reg" ANSI_RESET ": access $" << constants::registers::to_string(r) << " -> 0x"
-        << std::hex << m_regs[r] << std::dec << std::endl;
+uint64_t processor::Core::reg(constants::registers::reg r, bool silent) {
+  if (debug::reg && !silent) {
+    auto msg = std::make_unique<debug::RegisterMessage>(r);
+    msg->read(m_regs[r]);
+    add_debug_message(std::move(msg));
+  }
   return m_regs[r];
 }
 
 void processor::Core::reg_set(constants::registers::reg r, uint64_t val, bool silent) {
-  if (debug::reg && !silent)
-    *ds << ANSI_BRIGHT_YELLOW "reg" ANSI_RESET ": set $" << constants::registers::to_string(r) << " to 0x" << std::hex
-        << val << std::dec << std::endl;
+  if (debug::reg && !silent) {
+    auto msg = std::make_unique<debug::RegisterMessage>(r);
+    msg->write(val);
+    add_debug_message(std::move(msg));
+  }
   m_regs[r] = val;
 }
 
 void processor::Core::reg_copy(constants::registers::reg rd, constants::registers::reg rs, bool silent) {
-  if (debug::reg && !silent)
-    *ds << ANSI_BRIGHT_YELLOW "reg" ANSI_RESET ": copy $" << constants::registers::to_string(rs) << " into $"
-        << constants::registers::to_string(rd) << " -> 0x" << std::hex << m_regs[rs] << std::dec << std::endl;
-  m_regs[rd] = m_regs[rs];
+  reg_set(rd, m_regs[rs]);
 }
 
 uint64_t processor::Core::mem_load(uint64_t addr, uint8_t size) {
-  if (debug::mem)
-    *ds << ANSI_YELLOW "mem" ANSI_RESET ": access " << (int) size << " bytes from address 0x" << std::hex << addr
-        << " -> ";
+  if (debug::mem) add_debug_message(std::move(std::make_unique<debug::MemoryMessage>(addr, size)));
   uint64_t data = m_bus.load(addr, size);
-  if (debug::mem) *ds << "0x" << data << std::dec << std::endl;
+  if (debug::mem) get_latest_debug_message<debug::MemoryMessage>()->read(data);
   return data;
 }
 
 void processor::Core::mem_store(uint64_t addr, uint8_t size, uint64_t data) {
-  if (debug::mem)
-    *ds << ANSI_YELLOW "mem" ANSI_RESET ": store data 0x" << std::hex << data << " of " << std::dec << size
-        << " bytes at address 0x" << std::hex << addr << std::dec << std::endl;
+  if (debug::mem) {
+    auto msg = std::make_unique<debug::MemoryMessage>(addr, size);
+    msg->write(data);
+    add_debug_message(std::move(msg));
+  }
   m_bus.store(addr, size, data);
 }
 
@@ -67,7 +68,7 @@ void processor::Core::write_string(uint64_t addr) {
   *os << (const char *) (m_bus.mem.data() + addr);
 }
 
-void processor::Core::print_registers() const {
+void processor::Core::print_registers() {
   using namespace constants::registers;
   uint8_t i;
   *os << std::hex;
@@ -86,7 +87,7 @@ void processor::Core::print_registers() const {
   *os << std::dec;
 }
 
-void processor::Core::print_stack() const {
+void processor::Core::print_stack() {
   uint64_t addr = reg(constants::registers::sp), size = dram::size - addr;
   *os << "STACK: top = 0x" << std::hex << dram::size - 1 << " -> bottom = 0x" << addr << " = $sp + 1 (" << std::dec
       << size << " bytes)" << std::endl;

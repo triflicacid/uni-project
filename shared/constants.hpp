@@ -128,6 +128,8 @@ namespace constants {
             reg_indirect = 0b11,
         };
 
+        std::string arg_to_string(arg a);
+
         namespace datatype {
             constexpr uint8_t size = 3;
 
