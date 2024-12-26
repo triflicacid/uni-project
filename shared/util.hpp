@@ -92,3 +92,12 @@ OutContainer<OutType> map(InContainer<InType>& input,
     transform(input.begin(), input.end(), output.begin(), func);
     return output;
 }
+
+// empty and clear the given stream
+template<typename T>
+void empty_stream(T &s) {
+  s.seekp(0);
+  s.seekg(0);
+  s.str("");
+  s.clear();
+}

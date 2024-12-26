@@ -89,6 +89,6 @@ void visualiser::launch() {
     return false;
   });
 
-  auto screen = ScreenInteractive::FitComponent();
+  auto screen = ScreenInteractive::Fullscreen();
   screen.Loop(renderer);
 }

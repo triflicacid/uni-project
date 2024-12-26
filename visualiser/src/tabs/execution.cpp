@@ -28,15 +28,6 @@ namespace state {
   ftxui::Decorator *source_selected_style, *asm_selected_style; // which style to use when colouring selected lines? (trace-back)
 }// namespace state
 
-// replace '\r\n' with just '\n'
-static std::string normalise_newlines(const std::string &input) {
-  return std::regex_replace(input, std::regex("\r\n"), "\n");
-}
-
-static std::string strip_ansi(const std::string &input) {
-  return std::regex_replace(input, std::regex("\e\\[[0-9;]*[a-zA-Z]"), "");
-}
-
 // get the current pane's line limit
 static int get_pane_limit(Pane pane) {
   switch (pane) {
@@ -77,17 +68,111 @@ static void update_selected_line() {
   }
 }
 
+// given debug message, return Element which represents it
+static ftxui::Element format_debug_message(const processor::debug::Message &msg) {
+  using namespace ftxui;
+  using namespace processor::debug;
+  std::vector<Element> children; // elements to be placed in an HBox
+  std::stringstream os;
+
+  switch (msg.type) {
+    case Message::Cycle: {
+      auto *message = (CycleMessage*)&msg;
+      if (message->n < 0) os << "step";
+      else os << "cycle #" << message->n + 1;
+      children.push_back(text(os.str()) | color(Color::Violet));
+      empty_stream(os);
+      os << ": $pc=0x" << std::hex << message->pc << ", inst=0x" << message->inst << std::dec;
+      children.push_back(text(os.str()));
+      break;
+    }
+    case Message::Instruction: {
+      auto *message = (InstructionMessage*)&msg;
+      os << message->mnemonic << ": " << message->message.str();
+      children.push_back(text(os.str()));
+      break;
+    }
+    case Message::Argument: {
+      auto *message = (ArgumentMessage*)&msg;
+      os << "arg #" << message->n;
+      children.push_back(text(os.str()) | color(Color::Cyan));
+      empty_stream(os);
+      children.push_back(text(": "));
+      children.push_back(text(constants::inst::arg_to_string(message->arg_type) + " ") | color(Color::LightSteelBlue));
+      children.push_back(text(message->message.str()));
+      children.push_back(text(" -> ") | color(Color::LightSteelBlue));
+      os << "0x" << std::hex << message->value << std::dec;
+      children.push_back(text(os.str()));
+      break;
+    }
+    case Message::Register: {
+      auto *message = (RegisterMessage*)&msg;
+      children.push_back(text("reg") | color(Color::LightYellow3));
+      os << ": ";
+      if (message->is_write) os << "set $" << constants::registers::to_string(message->reg) << " to ";
+      else os << "access $" << constants::registers::to_string(message->reg) << " -> ";
+      os << "0x" << std::hex << message->value << std::dec;
+      children.push_back(text(os.str()));
+      break;
+    }
+    case Message::Memory: {
+      auto *message = (MemoryMessage*)&msg;
+      children.push_back(text("mem") | color(Color::Yellow3));
+      if (message->is_write) os << ": store data 0x" << std::hex << message->value << " of " << std::dec << (int) message->bytes << " bytes at address 0x" << std::hex << message->address << std::dec;
+      else os << ": access " << (int) message->bytes << " bytes from address 0x" << std::hex << message->address << " -> 0x" << message->value << std::dec;
+      children.push_back(text(os.str()));
+      break;
+    }
+    case Message::ZeroFlag: {
+      auto *message = (ZeroFlagMessage*)&msg;
+      children.push_back(text("zero flag") | color(Color::Cyan));
+      os << ": register $" << constants::registers::to_string(message->reg) << " -> ";
+      children.push_back(text(os.str()));
+      if (message->state) children.push_back(text("set") | visualiser::style::ok);
+      else children.push_back(text("reset") | visualiser::style::bad);
+      break;
+    }
+    case Message::Conditional: {
+      auto *message = (ConditionalMessage*)&msg;
+      children.push_back(text("conditional") | color(Color::Cyan));
+      os << ": " << constants::cmp::to_string(message->test_bits) << " -> ";
+      children.push_back(text(os.str()));
+      empty_stream(os);
+
+      if (message->passed) children.push_back(text("pass") | visualiser::style::ok);
+      else {
+        children.push_back(text("fail") | visualiser::style::bad);
+        os << " ($flag: 0x" << std::hex << (int) message->flag_bits.value() << std::dec << ")";
+        children.push_back(text(os.str()));
+      }
+      break;
+    }
+    case Message::Interrupt: {
+      auto *message = (InterruptMessage*)&msg;
+      children.push_back(text("interrupt!") | color(Color::CadetBlue));
+      os << "$isr=0x" << std::hex << message->isr << ", $imr=0x" << message->imr << ", %iip=0x" << message->ipc << std::dec;
+      children.push_back(text(os.str()));
+      break;
+    }
+    case Message::Error: {
+      auto *message = (ErrorMessage*)&msg;
+      children.push_back(text(message->message) | visualiser::style::error);
+      break;
+    }
+    default:
+      children.push_back(text("Unknown message") | visualiser::style::bad);
+  }
+
+  return children.size() == 1 ? children.front() : hbox(children);
+}
+
 // update the state's debug message list
 static void update_debug_lines() {
-  if (!processor::debug::any()) return;
-
-  std::string debug = visualiser::processor::debug_stream.str();
-  debug = strip_ansi(normalise_newlines(debug));
-
+  // format CPU's debug messages
   state::debug_lines.clear();
-  std::istringstream stream(debug);
-  std::string line;
-  while (std::getline(stream, line)) state::debug_lines.push_back(ftxui::text(line));
+  for (const auto &msg : visualiser::processor::cpu.get_debug_messages())
+    state::debug_lines.push_back(format_debug_message(*msg));
+  visualiser::processor::cpu.clear_debug_messages();
 
   // add error message to debug, if there is an error
   if (visualiser::processor::cpu.get_error()) {
@@ -245,10 +330,8 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
     // pane - information
     elements.clear();
-    if (::processor::debug::any() && !state::debug_lines.empty())
+    if (!state::debug_lines.empty())
       elements.push_back(vbox(state::debug_lines) | border);
-    processor::debug_stream.str("");
-    processor::debug_stream.clear();
 
     std::vector<Element> children{text("Status: ")};
     if (processor::cpu.is_running()) {

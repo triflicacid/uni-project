@@ -462,7 +462,7 @@ void processor::CPU::exec_syscall(uint64_t inst) {
   if (debug::cpu) add_debug_message(std::move(std::make_unique<debug::InstructionMessage>("syscall")));
   std::ostream *ds = debug::cpu ? &get_latest_debug_message<debug::InstructionMessage>()->stream() : nullptr;
 
-  if (debug::cpu) *ds << "syscall: invoke operation " << value << " (";
+  if (debug::cpu) *ds << "invoke operation " << value << " (";
 
   switch (static_cast<constants::syscall>(value)) {
     case syscall::print_hex:
@@ -737,13 +737,15 @@ uint64_t processor::CPU::get_arg_value(uint64_t word, uint8_t pos, bool cast_imm
 
   switch (indicator) {
     case arg::imm:
+      if (debug::args) add_debug_message(std::move(std::make_unique<debug::ArgumentMessage>(constants::inst::arg::imm, current_arg_num)));
       if (cast_imm_double) {
         double d = *(float *) &data;
         result = *(uint64_t *) &d;
+        if (debug::args) get_latest_debug_message<debug::ArgumentMessage>()->stream() << d;
       } else {
+        if (debug::args) get_latest_debug_message<debug::ArgumentMessage>()->stream() << data;
         result = data;
       }
-      if (debug::args) add_debug_message(std::move(std::make_unique<debug::ArgumentMessage>(constants::inst::arg::imm, current_arg_num)));
       break;
     case arg::mem:
       result = mem_load(_arg_addr(data), sizeof(uint64_t));
