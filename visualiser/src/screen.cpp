@@ -4,6 +4,7 @@
 #include "tabs/tab.hpp"
 #include "util.hpp"
 #include "tabs/memory.hpp"
+#include "tabs/settings.hpp"
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
@@ -51,7 +52,8 @@ void visualiser::launch() {
   CodeExecutionTab tab_code_execution;
   RegistersTab tab_registers;
   MemoryTab tab_memory;
-  std::vector<Tab *> tab_list = {&tab_code_execution, &tab_registers, &tab_memory};
+  SettingsTab tab_settings;
+  std::vector<Tab *> tab_list = {&tab_code_execution, &tab_registers, &tab_memory, &tab_settings};
 
   // tab navigation buttons
   std::vector<std::string> tab_headers = map(tab_list,

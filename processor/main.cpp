@@ -203,11 +203,16 @@ int main(int argc, char **argv) {
   read_binary_file(cpu, stream);
 
   // start processor
-  cpu.step_cycle();
+  cpu.reset_flag();
 
-  // print debug messages
-  for (const auto &m : cpu.get_debug_messages())
-    handle_debug_message(*m);
+  for (int cnt = 0; cpu.is_running();) {
+    cpu.step(cnt);
+
+    // print debug messages
+    for (const auto &m : cpu.get_debug_messages())
+      handle_debug_message(*m);
+    cpu.clear_debug_messages();
+  }
 
   // print error (if any) and notify user of exit code
   cpu.print_error(true);

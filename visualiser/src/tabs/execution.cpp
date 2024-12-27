@@ -161,6 +161,7 @@ static ftxui::Element format_debug_message(const processor::debug::Message &msg)
     }
     default:
       children.push_back(text("Unknown message") | visualiser::style::bad);
+      break;
   }
 
   return children.size() == 1 ? children.front() : hbox(children);
@@ -172,6 +173,7 @@ static void update_debug_lines() {
   state::debug_lines.clear();
   for (const auto &msg : visualiser::processor::cpu.get_debug_messages())
     state::debug_lines.push_back(format_debug_message(*msg));
+//  state::debug_lines.push_back(ftxui::text("Debug messages: " + std::to_string(visualiser::processor::cpu.get_debug_messages().size())));
   visualiser::processor::cpu.clear_debug_messages();
 
   // add error message to debug, if there is an error
@@ -191,6 +193,7 @@ namespace events {
   static bool on_enter() {
     using namespace visualiser::processor;
     if (cpu.is_running()) {
+      cpu.clear_debug_messages();
       cpu.step(state::current_cycle);
       state::current_pc = cpu.read_pc();
       update_debug_lines();
