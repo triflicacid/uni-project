@@ -2,7 +2,7 @@
 #include "processor.hpp"
 #include "style.hpp"
 #include "util.hpp"
-#include "custom_dropdown.hpp"
+#include "components/custom_dropdown.hpp"
 #include <ftxui/component/event.hpp>
 
 enum class InputType : int {

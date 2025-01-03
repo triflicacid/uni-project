@@ -88,6 +88,7 @@ void visualiser::launch() {
     if (e == Event::F1) return force_tab_focus(0);
     if (e == Event::F2) return force_tab_focus(1);
     if (e == Event::F3) return force_tab_focus(2);
+    if (e == Event::F4) return force_tab_focus(3);
     return false;
   });
 

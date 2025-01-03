@@ -24,7 +24,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../out)
 add_executable(visualiser
         ../shared/constants.cpp ../shared/util.cpp ../shared/messages/message.cpp ../shared/messages/list.cpp
         ../processor/src/bus.cpp ../processor/src/core.cpp ../processor/src/cpu.cpp ../processor/src/debug.cpp ../processor/src/dram.cpp
-        src/assembly.cpp src/processor.cpp src/style.cpp src/custom_dropdown.cpp
+        src/assembly.cpp src/processor.cpp src/style.cpp
+        src/components/custom_dropdown.cpp src/components/Scroller.cpp
         src/tabs/execution.cpp src/tabs/memory.cpp src/tabs/registers.cpp src/tabs/settings.cpp
         src/screen.cpp
         main.cpp)
