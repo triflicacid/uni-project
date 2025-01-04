@@ -1,13 +1,11 @@
 #include "execution.hpp"
 #include "assembly.hpp"
 #include "processor.hpp"
-#include "screen.hpp"
 #include "style.hpp"
 #include "util.hpp"
 #include "components/scroller.hpp"
-#include <climits>
-#include <regex>
-
+#include "components/checkbox.hpp"
+#include <ftxui/component/event.hpp>
 
 enum class Pane {
   Assembly,
@@ -32,6 +30,9 @@ namespace state {
   std::vector<ftxui::Element> debug_lines; // contains lines in the debug field - preserves values
 
   bool show_selected_line = false; // show light-blue selected line(s)?
+  ftxui::Component show_selected_line_toggle; // toggle for show_selected_line Boolean
+  bool is_running = false;
+  ftxui::Component is_running_toggle; // toggle for IS_RUNNING
 
   PaneStateData source_pane(Pane::Source);
   PaneStateData asm_pane(Pane::Assembly);
@@ -51,7 +52,6 @@ static void update_align_pane_pc() {
   *state::source_pane.pos_ptr = state::pc_entry->line_no;
 
   // align assembly pane
-  // TODO change file if necessary
   *state::asm_pane.pos_ptr = state::pc_entry->origin.line();
 }
 
@@ -219,10 +219,10 @@ static void update_debug_lines() {
 }
 
 namespace events {
-//  static bool on_reset() {
-//    visualiser::processor::cpu.reset_flag();
-//    return true;
-//  }
+  static bool on_reset() {
+    visualiser::processor::cpu.reset_flag();
+    return true;
+  }
 
   namespace before {
     static bool on_enter(Pane pane) {
@@ -236,6 +236,7 @@ namespace events {
           update_debug_lines();
           update_align_pane_pc();
         } else {
+          state::is_running = false;
           state::debug_lines.clear();
         }
 
@@ -245,15 +246,15 @@ namespace events {
         return false;
       }
     }
-
-    static bool on_H() { // toggle IS_RUNNING bit in $flag
-      visualiser::processor::cpu.flag_toggle(constants::flag::is_running, true);
-      return true;
-    }
   }
 
   namespace after {
 
+  }
+
+  static bool on_H() { // toggle IS_RUNNING bit in $flag
+    visualiser::processor::cpu.flag_toggle(constants::flag::is_running, true);
+    return true;
   }
 
 //  static bool on_vert_arrow(bool down) {
@@ -311,13 +312,19 @@ static void update_selected_pane() {
     : nullptr;
 }
 
+// receive an event in this window
+static bool on_event(ftxui::Event e) {
+  if (e == ftxui::Event::Character('h') && events::on_H()) return true;
+  if (e == ftxui::Event::Character('r') && events::on_reset()) return true;
+  return false;
+}
+
 // receive an event on the given pane
 static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   update_selected_pane();
 
   // we either (a) intercept the event, or (b) pose as middleware to listen to the response
   if (e == ftxui::Event::Return && events::before::on_enter(pane->type)) return true;
-  if (e == ftxui::Event::Character('h') && events::before::on_H()) return true;
 
   int old_selected = *pane->pos_ptr;
 
@@ -340,13 +347,18 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
 
 void visualiser::tabs::CodeExecutionTab::init() {
   using namespace ftxui;
-  const int paneMaxHeight = 10;
+  const int paneMaxHeight = 15, debugMaxHeight = 8;
 
   // ensure $pc fields are all setup correctly
   update_pc(0);
 
+  state::show_selected_line_toggle = create_checkbox("Show Line Selection", state::show_selected_line);
+  state::is_running_toggle = create_checkbox("Is Running", [] {
+    visualiser::processor::cpu.flag_toggle(constants::flag::is_running, true);
+  }, state::is_running);
+
   // pane for source code
-  state::source_pane.component = Scroller(Renderer([](bool f) {
+  state::source_pane.component = Scroller(Renderer([](bool _) {
     std::vector<Element> elements;
     auto &lines = state::source_pane.lines = assembly::get_file_lines(assembly::source->path);
     elements.reserve(lines.size());
@@ -360,11 +372,10 @@ void visualiser::tabs::CodeExecutionTab::init() {
         elements[line - 1] |= *state::source_pane.selected_style;
 
     return vbox(std::move(elements));
-//    return f ? border(vbox(elements)) : vbox(elements);
   }), state::source_pane.pos_ptr) | size(HEIGHT, LESS_THAN, paneMaxHeight);
 
   // pane for original assembly
-   state::asm_pane.component = Scroller(Renderer([](bool f) {
+  state::asm_pane.component = Scroller(Renderer([](bool f) {
     std::vector<Element> elements;
     auto &lines = state::asm_pane.lines = assembly::get_file_lines(state::pc_entry->origin.path());
     elements.reserve(lines.size());
@@ -383,9 +394,13 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
   Component debugComponent = Scroller(Renderer([](bool f) {
     return state::debug_lines.empty() ? text("(None)") : vbox(state::debug_lines);
-  })) | size(HEIGHT, LESS_THAN, 10);
+  })) | size(HEIGHT, LESS_THAN, debugMaxHeight);
 
   Component layout = Container::Vertical({
+    Container::Horizontal({
+      state::show_selected_line_toggle,
+      state::is_running_toggle
+    }),
     Container::Horizontal({
       state::asm_pane.component | CatchEvent([](Event e) {
         return pane_on_event(&state::asm_pane, e);
@@ -402,7 +417,7 @@ void visualiser::tabs::CodeExecutionTab::init() {
     std::vector<Element> elements;
 
     std::vector<Element> children{text("Status: ")};
-    if (processor::cpu.is_running()) {
+    if ((state::is_running = visualiser::processor::cpu.is_running())) {
       children.push_back(text("Running") | style::ok);
     } else if (processor::cpu.get_error()) {
       children.push_back(text("Halted (error)") | style::error);
@@ -422,6 +437,11 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
     return vbox({
       hbox({
+        state::show_selected_line_toggle->Render(),
+        text(" | "),
+        state::is_running_toggle->Render(),
+      }),
+      hbox({
         vbox({
           text(state::pc_entry->origin.path()) | bold,
           separator(),
@@ -436,86 +456,7 @@ void visualiser::tabs::CodeExecutionTab::init() {
       window(text("Debug"), debugComponent->Render(), debugComponent->Focused() ? DOUBLE : LIGHT),
       vbox(elements)
     });
-  });
-
-  // NOTE takes arg - focusable
-//  content_ = Renderer([&](bool _) {
-//    // get source of $pc, update our state if we have a value
-//    if (auto pc_entry = assembly::locate_pc(state::current_pc))
-//      state::pc_entry = pc_entry;
-//
-//    // pane - view source file
-//    std::vector<Element> elements;
-//    auto &lines = state::asm_lines = assembly::get_file_lines(state::pc_entry->origin.path());
-//    elements.reserve(lines.size());
-//    for (const auto &line: lines)
-//      elements.push_back(text(line));
-//
-//    elements[state::pc_entry->origin.line() - 1] |= style::highlight_execution;
-//
-//    if (state::show_selected_line)
-//      for (const auto &line: state::asm_selected_lines)
-//        elements[line - 1] |= *state::asm_selected_style;
-//
-//    auto source_pane = vbox({
-//                                text(state::pc_entry->origin.path()) | bold,
-//                                separator(),
-//                                vbox(std::move(elements)),
-//                            }) | border;
-//
-//    // pane - view assembly source
-//    elements.clear();
-//    lines = state::source_lines = assembly::get_file_lines(assembly::source->path);
-//    for (const auto &line: lines)
-//      elements.push_back(text(line));
-//
-//    elements[state::pc_entry->line_no - 1] |= style::highlight_execution;
-//
-//    if (state::show_selected_line)
-//      for (auto &line: state::source_selected_lines)
-//        elements[line - 1] |= *state::source_selected_style;
-//
-//    auto asm_pane = vbox({
-//                             text("Compiled Assembly") | bold,
-//                             separator(),
-//                             vbox(std::move(elements)),
-//                         }) | border;
-//
-//    // pane - information
-//    elements.clear();
-//    if (!state::debug_lines.empty())
-//      elements.push_back(vbox(state::debug_lines) | border);
-//
-//    std::vector<Element> children{text("Status: ")};
-//    if (processor::cpu.is_running()) {
-//      children.push_back(text("Running") | style::ok);
-//    } else if (processor::cpu.get_error()) {
-//      children.push_back(text("Halted (error)") | style::error);
-//    } else {
-//      children.push_back(text("Halted") | style::bad);
-//    }
-//    elements.push_back(hbox(children));
-//
-//    elements.push_back(hbox({
-//                                text("Cycle: "),
-//                                text(std::to_string(state::current_cycle)) | style::value,
-//                            }));
-//    elements.push_back(hbox({
-//                                text("$pc: "),
-//                                text("0x" + to_hex_string(state::current_pc, 8)) | style::reg,
-//                            }));
-//
-//    auto info_pane = vbox(elements);
-//
-//    // return pane combination
-//    return vbox({
-//                    hbox({source_pane, asm_pane}),
-//                    info_pane});
-//  });
-//
-//  content_ |= CatchEvent([&](Event event) {
-//    return on_event(event);
-//  });
+  }) | CatchEvent(on_event);
 
   help_ = Renderer([&] {
     return create_key_help_pane({

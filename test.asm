@@ -2,7 +2,7 @@
 
 loadi $r5, 0x778899AABBDDEEFF
 print_hex $r5
-%include _endl
+print_endl
 
 zext $r6, $r5, 16
 print_hex $r6
