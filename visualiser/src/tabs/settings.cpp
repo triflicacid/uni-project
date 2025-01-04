@@ -25,10 +25,12 @@ void visualiser::tabs::SettingsTab::init() {
 
   content_ = Renderer(layout, [] {
     return vbox({
-      text("Debug Flags") | center | bold,
-      separator(),
-      state::debug::input_list->Render()
-    }) | border;
+      window(
+          text("Debug Flags"),
+          state::debug::input_list->Render(),
+          LIGHT
+          ),
+    });
   });
 
   help_ = Renderer([&] {
