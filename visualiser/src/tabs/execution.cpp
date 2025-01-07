@@ -211,6 +211,11 @@ static ftxui::Element format_debug_message(const processor::debug::Message &msg)
   return children.size() == 1 ? children.front() : hbox(children);
 }
 
+// test if there is a breakpoint at this $pc
+inline bool test_breakpoint(uint64_t pc) {
+  return state::breakpoints.find(pc) != state::breakpoints.end();
+}
+
 // update $pc, but only in state:: -- use CPU's $pc
 static void update_pc() {
   uint64_t pc = visualiser::processor::cpu.read_pc();
@@ -248,32 +253,56 @@ static void update_debug_lines() {
   }
 }
 
+// execute a single step of the processor, perform necessary state:: updates and mutations
+static void step_processor() {
+  using namespace visualiser::processor;
+  if (cpu.is_running()) {
+    cpu.clear_debug_messages();
+    cpu.step(state::current_cycle);
+    update_pc();
+    update_debug_lines();
+    update_align_pane_pc();
+  } else {
+    state::is_running = false;
+    state::debug_lines.clear();
+  }
+}
+
 namespace events {
   static bool on_reset() {
     visualiser::processor::cpu.reset_flag();
     return true;
   }
 
-  static bool on_enter(visualiser::Type pane) {
-    if (pane == visualiser::Type::Source) {
-      using namespace visualiser::processor;
+  // execute *one* cycle
+  static bool on_space(visualiser::Type pane) {
+    if (!state::pc_entry) return false;
 
-      if (cpu.is_running()) {
-        cpu.clear_debug_messages();
-        cpu.step(state::current_cycle);
-        update_pc();
-        update_debug_lines();
-        update_align_pane_pc();
-      } else {
-        state::is_running = false;
-        state::debug_lines.clear();
+    switch (pane) {
+      case visualiser::Type::Source:
+        // viewing machine code, step processor once
+        step_processor();
+        return true;
+      case visualiser::Type::Assembly: {
+        // step beyond current line
+        int source_line_count = state::asm_pane.file->lines[state::pc_entry->asm_origin.line() - 1].trace.size();
+        for (int i = 0; i < source_line_count; i++)
+          step_processor();
+        return true;
       }
-
-      return true;
-    } else {
-      // TODO
-      return false;
+      default: ;
     }
+
+    return false;
+  }
+
+  // execute until next breakpoint or done
+  static bool on_enter(visualiser::Type pane) {
+    do {
+      step_processor();
+    } while (visualiser::processor::cpu.is_running() && !test_breakpoint(state::current_pc));
+
+    return true;
   }
 
   static bool on_vert_arrow(PaneStateData* pane, bool is_down) {
@@ -333,9 +362,9 @@ namespace events {
 
 // receive an event in this window
 static bool on_event(ftxui::Event e) {
-  if (e == ftxui::Event::Character('h')) return events::on_H();
-  if (e == ftxui::Event::Character('r')) return events::on_reset();
-  if (e == ftxui::Event::Character('s')) return events::on_S();
+  if (e == ftxui::Event::h) return events::on_H();
+  if (e == ftxui::Event::r) return events::on_reset();
+  if (e == ftxui::Event::s) return events::on_S();
   return false;
 }
 
@@ -344,9 +373,10 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   update_selected_pane();
 
   // we either (a) intercept the event, or (b) pose as middleware to listen to the response
+  if (e == ftxui::Event::Character(" ") && events::on_space(pane->type)) return true;
   if (e == ftxui::Event::Return && events::on_enter(pane->type)) return true;
-  if (e == ftxui::Event::Character('j') && events::on_J(pane)) return true;
-  if (e == ftxui::Event::Character('b') && events::on_B(pane)) return true;
+  if (e == ftxui::Event::j && events::on_J(pane)) return true;
+  if (e == ftxui::Event::b && events::on_B(pane)) return true;
 
   int old_selected = *pane->pos_ptr;
 
@@ -381,7 +411,7 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
     // create Elements for each line
     for (auto& line : pane.file->lines) {
       bool is_breakpoint = !line.trace.empty() && std::any_of(line.trace.begin(), line.trace.end(), [](auto& line) {
-        return state::breakpoints.find(line->pc) != state::breakpoints.end();
+        return test_breakpoint(line->pc);
       });
 
       elements.push_back(is_breakpoint
@@ -508,6 +538,8 @@ void visualiser::tabs::CodeExecutionTab::init() {
       {"j", "jump to selected line"},
       {"r", "reset the processor's state"},
       {"s", "toggle line select"},
+      {"Space", "execute current line"},
+      {"Return", "start execution"}
     });
   });
 }
