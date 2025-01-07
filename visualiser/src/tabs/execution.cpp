@@ -18,9 +18,7 @@ struct PaneStateData {
 };
 
 namespace state {
-  uint64_t current_pc = 0;                          // current value of $pc
   int current_cycle = 0;                            // processor's current cycle
-  visualiser::PCLine* pc_entry = nullptr;// current PC entry
   std::vector<ftxui::Element> debug_lines; // contains lines in the debug field - preserves values
 
   bool show_selected_line = false; // show light-blue selected line(s)?
@@ -28,8 +26,6 @@ namespace state {
   bool is_running = false;
   ftxui::Component is_running_toggle; // toggle for IS_RUNNING
   bool do_update_selected_line = false;
-
-  std::set<uint64_t> breakpoints;
 
   PaneStateData source_pane(visualiser::Type::Source);
   PaneStateData asm_pane(visualiser::Type::Assembly);
@@ -40,16 +36,13 @@ namespace state {
 
 // update panes' positions based on state::current_pc
 static void update_align_pane_pc() {
-  // locate $pc in assembly file
-  if (auto pc_entry = visualiser::locate_pc(state::current_pc))
-    state::pc_entry = pc_entry;
-  else return;
+  if (!visualiser::processor::pc_line) return;
 
   // align source pane
-  *state::source_pane.pos_ptr = state::pc_entry->line_no;
+  *state::source_pane.pos_ptr = visualiser::processor::pc_line->line_no;
 
   // align assembly pane
-  *state::asm_pane.pos_ptr = state::pc_entry->asm_origin.line();
+  *state::asm_pane.pos_ptr = visualiser::processor::pc_line->asm_origin.line();
 }
 
 // update state::selected_pane
@@ -81,7 +74,7 @@ static void update_selected_line() {
     if (location)
       asm_pane.selected_lines.push_back(location->asm_origin.line());
   } else if (selected_pane->type == visualiser::Type::Assembly) {
-    auto locations = visualiser::locate_asm_line(pc_entry->asm_origin.path(), selected_line);
+    auto locations = visualiser::locate_asm_line(visualiser::processor::pc_line->asm_origin.path(), selected_line);
     for (auto &location: locations)
       source_pane.selected_lines.push_back(location->line_no);
   }
@@ -103,7 +96,7 @@ static ftxui::Decorator* get_line_highlight_style(visualiser::Type pane) {
 }
 
 // get PC's Location
-static Location get_pc_location_in_pane(visualiser::PCLine* pc_entry, visualiser::Type pane) {
+static Location get_pc_location_in_pane(const visualiser::PCLine* pc_entry, visualiser::Type pane) {
   switch (pane) {
     case visualiser::Type::Source:
       return Location(visualiser::source->path, pc_entry->line_no);
@@ -212,28 +205,8 @@ static ftxui::Element format_debug_message(const processor::debug::Message &msg)
 }
 
 // test if there is a breakpoint at this $pc
-inline bool test_breakpoint(uint64_t pc) {
-  return state::breakpoints.find(pc) != state::breakpoints.end();
-}
-
-// update $pc, but only in state:: -- use CPU's $pc
-static void update_pc() {
-  uint64_t pc = visualiser::processor::cpu.read_pc();
-  state::current_pc = pc;
-
-  // attempt to trace new PC
-  if (auto pc_entry = visualiser::locate_pc(pc))
-    state::pc_entry = pc_entry;
-}
-
-// update $pc -- sets both CPU's actual pc, state::current_pc, and state::pc_entry
-static void update_pc(uint64_t val) {
-  state::current_pc = val;
-  visualiser::processor::cpu.write_pc(val);
-
-  // attempt to trace new PC
-  if (auto pc_entry = visualiser::locate_pc(val))
-    state::pc_entry = pc_entry;
+inline bool test_breakpoint(const visualiser::PCLine* pc) {
+  return visualiser::processor::breakpoints.find(pc) != visualiser::processor::breakpoints.end();
 }
 
 // update the state's debug message list
@@ -276,7 +249,7 @@ namespace events {
 
   // execute *one* cycle
   static bool on_space(visualiser::Type pane) {
-    if (!state::pc_entry) return false;
+    if (!visualiser::processor::pc_line) return false;
 
     switch (pane) {
       case visualiser::Type::Source:
@@ -285,7 +258,7 @@ namespace events {
         return true;
       case visualiser::Type::Assembly: {
         // step beyond current line
-        int source_line_count = state::asm_pane.file->lines[state::pc_entry->asm_origin.line() - 1].trace.size();
+        int source_line_count = state::asm_pane.file->lines[visualiser::processor::pc_line->asm_origin.line() - 1].trace.size();
         for (int i = 0; i < source_line_count; i++)
           step_processor();
         return true;
@@ -300,7 +273,7 @@ namespace events {
   static bool on_enter(visualiser::Type pane) {
     do {
       step_processor();
-    } while (visualiser::processor::cpu.is_running() && !test_breakpoint(state::current_pc));
+    } while (visualiser::processor::cpu.is_running() && !test_breakpoint(visualiser::processor::pc_line));
 
     return true;
   }
@@ -327,12 +300,12 @@ namespace events {
 
     // toggle the breakpoint at the first traced line
     auto line = lines.front();
-    auto breakpoint = state::breakpoints.find(line->pc);
+    auto breakpoint = visualiser::processor::breakpoints.find(line);
 
-    if (breakpoint == state::breakpoints.end()) {
-      state::breakpoints.insert(line->pc);
+    if (breakpoint == visualiser::processor::breakpoints.end()) {
+      visualiser::processor::breakpoints.insert(line);
     } else {
-      state::breakpoints.erase(breakpoint);
+      visualiser::processor::breakpoints.erase(breakpoint);
     }
 
     return true;
@@ -346,7 +319,7 @@ namespace events {
   static bool on_J(PaneStateData* pane) {
     if (state::show_selected_line && !state::source_pane.selected_lines.empty()) {
       if (auto entry = visualiser::locate_line(state::source_pane.selected_lines.front())) {
-        update_pc(entry->pc);
+        visualiser::processor::update_pc(entry->pc);
         return true;
       }
     }
@@ -397,6 +370,16 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   return handled;
 }
 
+// return Element wrapping the current line
+static ftxui::Element wrap_line(const visualiser::FileLine &line) {
+  // test if there is a breakpoint on this line
+  if (!line.trace.empty() && std::any_of(line.trace.begin(), line.trace.end(), test_breakpoint)) {
+    return hbox(ftxui::text("⬤ ") | color(ftxui::Color::Red), ftxui::text(line.line));
+  }
+
+  return ftxui::text(line.line);
+}
+
 // create a pane Scroller()
 static ftxui::Component create_pane_component(PaneStateData& pane) {
   using namespace ftxui;
@@ -404,19 +387,13 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
   return Scroller(Renderer([&pane](bool f) {
     using namespace visualiser;
     std::vector<Element> elements;
-    Location location = get_pc_location_in_pane(state::pc_entry, pane.type);
+    Location location = get_pc_location_in_pane(visualiser::processor::pc_line, pane.type);
     pane.file = get_file(location.path());
     elements.reserve(pane.file->lines.size());
 
     // create Elements for each line
     for (auto& line : pane.file->lines) {
-      bool is_breakpoint = !line.trace.empty() && std::any_of(line.trace.begin(), line.trace.end(), [](auto& line) {
-        return test_breakpoint(line->pc);
-      });
-
-      elements.push_back(is_breakpoint
-                         ? hbox(text("⬤ ") | color(Color::Red), text(line.line))
-                         : text(line.line));
+      elements.push_back(wrap_line(line));
     }
 
     // highlight the $pc line
@@ -436,9 +413,6 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
 void visualiser::tabs::CodeExecutionTab::init() {
   using namespace ftxui;
   const int paneMaxHeight = 15, debugMaxHeight = 8;
-
-  // ensure $pc fields are all setup correctly
-  update_pc(0);
 
   state::show_selected_line_toggle = create_checkbox("Show Line Selection", state::show_selected_line);
   state::is_running_toggle = create_checkbox("Is Running", [] {
@@ -492,7 +466,7 @@ void visualiser::tabs::CodeExecutionTab::init() {
                             }));
     elements.push_back(hbox({
                                 text("$pc: "),
-                                text("0x" + to_hex_string(state::current_pc, 8)) | style::reg,
+                                text("0x" + to_hex_string(visualiser::processor::pc, 8)) | style::reg,
                             }));
 
     // flag: update the selected line? (set on arrow keypress)
@@ -516,7 +490,7 @@ void visualiser::tabs::CodeExecutionTab::init() {
       }),
       hbox({
         vbox({
-          text(state::pc_entry->asm_origin.path()) | bold,
+          text(visualiser::processor::pc_line->asm_origin.path()) | bold,
           separator(),
           state::asm_pane.component->Render(),
         }) | (state::asm_pane.component->Focused() ? borderDouble : border),

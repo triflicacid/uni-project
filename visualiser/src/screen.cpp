@@ -67,23 +67,26 @@ void visualiser::launch() {
 
   std::vector<Component> tab_helps = map(tab_list,
                                             std::function<Component(Tab *&)>([](auto &t) { return t->help(); }));
-  tab_help = Container::Tab(tab_helps, &current_tab);
 
   // create the main UI
-  auto container = Container::Vertical({
+  Component container = Container::Vertical({
                                            tab_nav,
                                            tab_container
                                        });
 
-  auto renderer = Renderer(container, [&] {
-    return vbox({
-      vbox({
-          tab_nav->Render(),
-          separator(),
-          tab_container->Render(),
-        }) | border,
-        tab_help->Render() | border,
-    });
+  Component renderer = Renderer(container, [&] {
+    Element main_content = vbox({
+                                 tab_nav->Render(),
+                                 separator(),
+                                 tab_container->Render(),
+                             }) | border;
+
+    // include help pane if provided
+    if (Component help_content = tab_list[current_tab]->help()) {
+      return vbox(main_content, help_content->Render() | border);
+    }
+
+    return vbox(main_content);
   }) | CatchEvent([&](Event e) {
     if (e == Event::F1) return force_tab_focus(0);
     if (e == Event::F2) return force_tab_focus(1);

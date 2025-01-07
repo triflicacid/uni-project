@@ -33,15 +33,15 @@ void visualiser::tabs::SettingsTab::init() {
     });
   });
 
-  help_ = Renderer([&] {
-    return text("");
-    return create_key_help_pane({
-                                    {"Arrows", "move selection"},
-                                    {"PageUp/Down", "move one page up/down"},
-                                    {"Ctrl+PageUp/Down", "move to start/end of memory"},
-                                    {"Home/End", "move to start/end of line"},
-                                    {"Backspace/Delete", "zero memory location"},
-                                    {"Enter", "jump to input box"},
-                                });
-  });
+//  help_ = Renderer([&] {
+//    return text("");
+//    return create_key_help_pane({
+//                                    {"Arrows", "move selection"},
+//                                    {"PageUp/Down", "move one page up/down"},
+//                                    {"Ctrl+PageUp/Down", "move to start/end of memory"},
+//                                    {"Home/End", "move to start/end of line"},
+//                                    {"Backspace/Delete", "zero memory location"},
+//                                    {"Enter", "jump to input box"},
+//                                });
+//  });
 }

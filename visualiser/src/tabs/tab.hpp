@@ -8,10 +8,18 @@ namespace visualiser::tabs {
   class Tab {
   protected:
     std::string title_;
-    ftxui::Component content_;
-    ftxui::Component help_;
+    bool called_init_ = false;
+    ftxui::Component content_; // ain tab content, cannot be null
+    ftxui::Component help_; // help pane, may be null
 
     virtual void init() = 0;
+
+    void init_() {
+      if (!called_init_) {
+        init();
+        called_init_ = true;
+      }
+    }
 
   public:
     explicit Tab(std::string title) : title_(std::move(title)), content_(nullptr) {}
@@ -19,14 +27,12 @@ namespace visualiser::tabs {
     [[nodiscard]] const std::string &title() const { return title_; }
 
     ftxui::Component content() {
-      if (content_) return content_;
-      init();
+      init_();
       return content_;
     }
 
     ftxui::Component help() {
-      if (help_) return help_;
-      init();
+      init_();
       return help_;
     }
   };
