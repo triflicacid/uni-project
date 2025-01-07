@@ -11,7 +11,7 @@ namespace visualiser::assembly {
     uint64_t pc;
     std::string line; // line in reconstructed source
     int line_no; // line number in reconstructed source
-    Location origin; // source location
+    Location asm_origin, lang_origin; // source locations
   };
 
   extern std::unique_ptr<named_fstream> source; // source assembly file (reconstruction)

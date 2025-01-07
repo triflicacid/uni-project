@@ -39,7 +39,7 @@ void visualiser::assembly::init() {
 
     // insert into (both) maps
     line = line.substr(0, i);
-    pc_to_line.insert({offset, PCEntry{offset, line, idx, Location(filepath, line_no)}});
+    pc_to_line.insert({offset, PCEntry{offset, line, idx, Location(filepath, line_no), Location("fake")}});
     map_entry.second.push_back(line);
   }
 
@@ -91,7 +91,7 @@ visualiser::assembly::locate_asm_line(const std::filesystem::path &path, int lin
   std::vector<const visualiser::assembly::PCEntry *> entries;
 
   for (const auto &[pc, entry]: pc_to_line) {
-    if (entry.origin.path() == path && entry.origin.line() == line) {
+    if (entry.asm_origin.path() == path && entry.asm_origin.line() == line) {
       entries.push_back(&entry);
     }
   }
