@@ -18,7 +18,6 @@ struct PaneStateData {
   std::vector<std::string> lines; // lines in each pane
   int *pos_ptr; // pointer top ScrollerBase::selected_
   std::deque<int> selected_lines; // store selected lines in each pane
-  ftxui::Decorator *selected_style; // which style to use when colouring selected lines? (trace-back)
 
   PaneStateData(Pane type) : type(type) {}
 };
@@ -33,9 +32,11 @@ namespace state {
   ftxui::Component show_selected_line_toggle; // toggle for show_selected_line Boolean
   bool is_running = false;
   ftxui::Component is_running_toggle; // toggle for IS_RUNNING
+  bool do_update_selected_line = false;
 
   PaneStateData source_pane(Pane::Source);
   PaneStateData asm_pane(Pane::Assembly);
+  std::array<PaneStateData*, 2> panes{&source_pane, &asm_pane};
   PaneStateData* selected_pane = nullptr;
   int selected_line = 0; // current line which is selected
 }// namespace state
@@ -55,31 +56,53 @@ static void update_align_pane_pc() {
   *state::asm_pane.pos_ptr = state::pc_entry->origin.line();
 }
 
+// update state::selected_pane
+static void update_selected_pane() {
+  state::selected_pane =
+    state::source_pane.component->Focused() ? &state::source_pane
+  : state::asm_pane.component->Focused() ? &state::asm_pane
+  : nullptr;
+}
+
 // update selected line information - trace lines from current pane to others
 static void update_selected_line() {
   using namespace state;
+  update_selected_pane();
   if (!show_selected_line || !selected_pane) return;
 
+  // ensure selected line is in bounds
   clamp(selected_line, 1, (int) selected_pane->lines.size() + 1);
-  source_pane.selected_lines.clear();
-  asm_pane.lines.clear();
+
+  // clear selection
+  for (PaneStateData* pane : state::panes)
+    pane->selected_lines.clear();
+
+  // select the current line
+  selected_pane->selected_lines.push_back(selected_line);
 
   if (selected_pane->type == Pane::Source) {
-    source_pane.selected_lines.push_back(selected_line);
     auto location = visualiser::assembly::locate_line(selected_line);
     if (location) asm_pane.selected_lines.push_back(location->origin.line());
-
-    source_pane.selected_style = &visualiser::style::highlight_selected;
-    asm_pane.selected_style = &visualiser::style::highlight_traced;
   } else if (selected_pane->type == Pane::Assembly) {
-    asm_pane.selected_lines.push_back(selected_line);
-    asm_pane.selected_style = &visualiser::style::highlight_selected;
-    source_pane.selected_style = &visualiser::style::highlight_traced;
-
     auto locations = visualiser::assembly::locate_asm_line(pc_entry->origin.path(), selected_line);
     for (auto &location: locations)
       source_pane.selected_lines.push_back(location->line_no);
   }
+}
+
+// ensure the selected lines in each pane are in view
+static void update_pane_positions_from_selection() {
+  for (PaneStateData* pane : state::panes) {
+    auto min = std::min_element(pane->selected_lines.begin(), pane->selected_lines.end());
+    if (min != pane->selected_lines.end()) {
+      *pane->pos_ptr = *min;
+    }
+  }
+}
+
+// get the line highlight colour for the given pane
+static ftxui::Decorator* get_line_highlight_style(Pane pane) {
+  return state::selected_pane && pane == state::selected_pane->type ? &visualiser::style::highlight_selected : &visualiser::style::highlight_traced;
 }
 
 // given debug message, return Element which represents it
@@ -249,7 +272,20 @@ namespace events {
   }
 
   namespace after {
+    static bool on_vert_arrow(PaneStateData* pane, bool is_down) {
+      if (!state::show_selected_line) return false;
 
+      state::selected_line += is_down ? 1 : -1;
+      update_selected_line();
+      update_pane_positions_from_selection();
+      return state::selected_line < 0 || state::selected_line >= state::selected_pane->lines.size();
+    }
+
+    static bool on_horiz_arrow(PaneStateData* pane, bool is_right) {
+      if (!state::show_selected_line) return false;
+      state::do_update_selected_line = true;
+      return true;
+    }
   }
 
   static bool on_H() { // toggle IS_RUNNING bit in $flag
@@ -257,36 +293,6 @@ namespace events {
     return true;
   }
 
-//  static bool on_vert_arrow(bool down) {
-//    if (!state::show_selected_line) return false;
-//    state::selected.second += down ? 1 : -1;
-//    update_selected_line();
-//    return true;
-//  }
-//
-//  static bool on_horiz_arrow(bool right) {
-//    if (!state::show_selected_line) return false;
-//    switch (state::selected.first) {
-//      case Pane::Source:
-//        if (!right) {
-//          state::selected.first = Pane::Assembly;
-//          state::selected.second = state::asm_selected_lines.empty() ? 0 : state::asm_selected_lines.front();
-//          update_selected_line();
-//        }
-//        break;
-//      case Pane::Assembly:
-//        if (right) {
-//          state::selected.first = Pane::Source;
-//          state::selected.second = state::source_selected_lines.empty() ? 0 : state::source_selected_lines.front();
-//          update_selected_line();
-//        }
-//        break;
-//      default:
-//        return false;
-//    }
-//    return true;
-//  }
-//
 //  static bool on_J() {
 //    if (state::show_selected_line && !state::source_selected_lines.empty()) {
 //      if (auto entry = visualiser::assembly::locate_line(state::source_selected_lines.front())) {
@@ -296,26 +302,19 @@ namespace events {
 //    }
 //    return false;
 //  }
-//
-//  static bool on_S() {
-//    state::show_selected_line = !state::show_selected_line;
-//    update_selected_line();
-//    return true;
-//  }
-}// namespace events
 
-// update state::selected_pane
-static void update_selected_pane() {
-  state::selected_pane =
-      state::source_pane.component->Focused() ? &state::source_pane
-    : state::asm_pane.component->Focused() ? &state::asm_pane
-    : nullptr;
-}
+  static bool on_S() {
+    state::show_selected_line = !state::show_selected_line;
+    update_selected_line();
+    return true;
+  }
+}// namespace events
 
 // receive an event in this window
 static bool on_event(ftxui::Event e) {
   if (e == ftxui::Event::Character('h') && events::on_H()) return true;
   if (e == ftxui::Event::Character('r') && events::on_reset()) return true;
+  if (e == ftxui::Event::Character('s') && events::on_S()) return true;
   return false;
 }
 
@@ -331,6 +330,9 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   // forward event to pane's component
   bool handled = pane->component->OnEvent(e);
 
+  if (auto is_down = e == ftxui::Event::ArrowDown; (is_down || e == ftxui::Event::ArrowUp) && events::after::on_vert_arrow(pane, is_down)) return true;
+  if (auto is_right = e == ftxui::Event::ArrowRight; (is_right || e == ftxui::Event::ArrowLeft) && events::after::on_horiz_arrow(pane, is_right)) return handled;
+
   // did the event change the pane's position?
   if (int new_selected = *pane->pos_ptr; new_selected != old_selected) {
     // scroll other panes to match
@@ -338,9 +340,6 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
     if (pane->type != Pane::Source) *state::source_pane.pos_ptr += delta;
     if (pane->type != Pane::Assembly) *state::asm_pane.pos_ptr += delta;
   }
-
-  // update pane selection info
-  update_selected_pane();
 
   return handled;
 }
@@ -367,9 +366,11 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
     elements[state::pc_entry->line_no - 1] |= style::highlight_execution;
 
-    if (state::show_selected_line)
+    if (state::show_selected_line && state::selected_pane) {
+      auto style = get_line_highlight_style(Pane::Source);
       for (auto &line: state::source_pane.selected_lines)
-        elements[line - 1] |= *state::source_pane.selected_style;
+        elements[line - 1] |= *style;
+    }
 
     return vbox(std::move(elements));
   }), state::source_pane.pos_ptr) | size(HEIGHT, LESS_THAN, paneMaxHeight);
@@ -384,12 +385,13 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
     elements[state::pc_entry->origin.line() - 1] |= style::highlight_execution;
 
-    if (state::show_selected_line)
+    if (state::show_selected_line && state::selected_pane) {
+      auto style = get_line_highlight_style(Pane::Assembly);
       for (const auto &line: state::asm_pane.selected_lines)
-        elements[line - 1] |= *state::asm_pane.selected_style;
+        elements[line - 1] |= *style;
+    }
 
     return vbox(std::move(elements));
-//    return f ? border(vbox(elements)) : vbox(elements);
   }), state::asm_pane.pos_ptr) | size(HEIGHT, LESS_THAN, paneMaxHeight);
 
   Component debugComponent = Scroller(Renderer([](bool f) {
@@ -434,6 +436,18 @@ void visualiser::tabs::CodeExecutionTab::init() {
                                 text("$pc: "),
                                 text("0x" + to_hex_string(state::current_pc, 8)) | style::reg,
                             }));
+
+    if (state::do_update_selected_line) {
+      if (state::selected_pane) {
+        // transition selected line to the new pane
+        update_selected_pane();
+        state::selected_line = state::selected_pane->selected_lines.empty() ? 0 : state::selected_pane->selected_lines.front();
+
+        update_selected_line();
+        update_pane_positions_from_selection();
+      }
+      state::do_update_selected_line = false;
+    }
 
     return vbox({
       hbox({
