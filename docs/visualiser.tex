@@ -98,7 +98,8 @@ $ ./visualiser --asm source.s --bin source
 
     \subsection{Layout}
 
-    The top of the screen is split into two panes.
+    At the top of the screen are two checkboxes, one which toggles line selection, and the other which determines if the processor is currently running.
+    Below this is the source code of the processor, split into the following panes:
     \begin{itemize}
         \item The assembly source is displayed on the left, with its file name displayed.
         \item The reconstructed compiler assembly is display on the right.
@@ -117,17 +118,18 @@ $ ./visualiser --asm source.s --bin source
 
     \subsection{Keyboard Controls}
 
+    The pane's displaying file contents behave as scrollable windows.
+    They may be navigated by the arrow keys as well as by the scroll wheel.
+
     \begin{itemize}
-        \item \texttt{End} -- if line selection is enabled, set the selected line to the end of the file.
-        \item \texttt{Enter} -- if the processor is running, perform a step on the processor, i.e., execute the instruction at \$pc.
+        \item \texttt{Return} -- commends the fetch-execute cycle, executes until a breakpoint is encountered or the program halts.
+        \item \texttt{Space} -- executes the current line.
+        In the machine code pane, this is equivalent to a single CPU cycle.
+        \item \texttt{b} -- toggles a breakpoint for the selected line.
         \item \texttt{h} -- toggles the \texttt{is\_running} bit in \$flag.
-        \item \texttt{Home} -- if line selection is enabled, set the selected line to the start of the file.
         \item \texttt{j} -- if line selection is enabled, sets \$pc to the first selected line in the compiled assembly.
         \item \texttt{r} -- resets \$flag: sets \texttt{is\_running} and clears any error bits.
         \item \texttt{s} -- toggle line selection.
-        \item \texttt{Up/Down arrows} -- if line selection is enabled, moves the active selected line (cyan) up/down in the current file.
-        \item \texttt{Left/Right arrows} -- if line selection is enabled, scrolls through the current panes.
-        The active selected line (cyan) is transferred to the topmost selected line in the new pane.
     \end{itemize}
 
     \section{Registers}
