@@ -27,7 +27,7 @@ namespace visualiser::assembly {
   // get lines in a file
   const std::vector<std::string> &get_file_lines(const std::filesystem::path &path);
 
-  // given line number is reconstructed source, return $pc entry
+  // given line number in reconstructed source, return $pc entry
   const PCEntry *locate_line(int line);
 
   // given a Location in assembly, return a list of PCEntries

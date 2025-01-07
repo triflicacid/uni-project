@@ -247,45 +247,41 @@ namespace events {
     return true;
   }
 
-  namespace before {
-    static bool on_enter(Pane pane) {
-      if (pane == Pane::Source) {
-        using namespace visualiser::processor;
+  static bool on_enter(Pane pane) {
+    if (pane == Pane::Source) {
+      using namespace visualiser::processor;
 
-        if (cpu.is_running()) {
-          cpu.clear_debug_messages();
-          cpu.step(state::current_cycle);
-          update_pc();
-          update_debug_lines();
-          update_align_pane_pc();
-        } else {
-          state::is_running = false;
-          state::debug_lines.clear();
-        }
-
-        return true;
+      if (cpu.is_running()) {
+        cpu.clear_debug_messages();
+        cpu.step(state::current_cycle);
+        update_pc();
+        update_debug_lines();
+        update_align_pane_pc();
       } else {
-        // TODO
-        return false;
+        state::is_running = false;
+        state::debug_lines.clear();
       }
+
+      return true;
+    } else {
+      // TODO
+      return false;
     }
   }
 
-  namespace after {
-    static bool on_vert_arrow(PaneStateData* pane, bool is_down) {
-      if (!state::show_selected_line) return false;
+  static bool on_vert_arrow(PaneStateData* pane, bool is_down) {
+    if (!state::show_selected_line) return false;
 
-      state::selected_line += is_down ? 1 : -1;
-      update_selected_line();
-      update_pane_positions_from_selection();
-      return state::selected_line < 0 || state::selected_line >= state::selected_pane->lines.size();
-    }
+    state::selected_line += is_down ? 1 : -1;
+    update_selected_line();
+    update_pane_positions_from_selection();
+    return state::selected_line < 0 || state::selected_line >= state::selected_pane->lines.size();
+  }
 
-    static bool on_horiz_arrow(PaneStateData* pane, bool is_right) {
-      if (!state::show_selected_line) return false;
-      state::do_update_selected_line = true;
-      return true;
-    }
+  static bool on_horiz_arrow(PaneStateData* pane, bool is_right) {
+    if (!state::show_selected_line) return false;
+    state::do_update_selected_line = true;
+    return true;
   }
 
   static bool on_H() { // toggle IS_RUNNING bit in $flag
@@ -293,15 +289,15 @@ namespace events {
     return true;
   }
 
-//  static bool on_J() {
-//    if (state::show_selected_line && !state::source_selected_lines.empty()) {
-//      if (auto entry = visualiser::assembly::locate_line(state::source_selected_lines.front())) {
-//        update_pc(entry->pc);
-//        return true;
-//      }
-//    }
-//    return false;
-//  }
+  static bool on_J(PaneStateData* pane) {
+    if (state::show_selected_line && !state::source_pane.selected_lines.empty()) {
+      if (auto entry = visualiser::assembly::locate_line(state::source_pane.selected_lines.front())) {
+        update_pc(entry->pc);
+        return true;
+      }
+    }
+    return false;
+  }
 
   static bool on_S() {
     state::show_selected_line = !state::show_selected_line;
@@ -323,22 +319,23 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   update_selected_pane();
 
   // we either (a) intercept the event, or (b) pose as middleware to listen to the response
-  if (e == ftxui::Event::Return && events::before::on_enter(pane->type)) return true;
+  if (e == ftxui::Event::Return && events::on_enter(pane->type)) return true;
+  if (e == ftxui::Event::Character('j') && events::on_J(pane)) return true;
 
   int old_selected = *pane->pos_ptr;
 
   // forward event to pane's component
   bool handled = pane->component->OnEvent(e);
 
-  if (auto is_down = e == ftxui::Event::ArrowDown; (is_down || e == ftxui::Event::ArrowUp) && events::after::on_vert_arrow(pane, is_down)) return true;
-  if (auto is_right = e == ftxui::Event::ArrowRight; (is_right || e == ftxui::Event::ArrowLeft) && events::after::on_horiz_arrow(pane, is_right)) return handled;
+  if (auto is_down = e == ftxui::Event::ArrowDown; (is_down || e == ftxui::Event::ArrowUp) && events::on_vert_arrow(pane, is_down)) return true;
+  if (auto is_right = e == ftxui::Event::ArrowRight; (is_right || e == ftxui::Event::ArrowLeft) && events::on_horiz_arrow(pane, is_right)) return handled;
 
   // did the event change the pane's position?
   if (int new_selected = *pane->pos_ptr; new_selected != old_selected) {
     // scroll other panes to match
     int delta = new_selected - old_selected;
-    if (pane->type != Pane::Source) *state::source_pane.pos_ptr += delta;
-    if (pane->type != Pane::Assembly) *state::asm_pane.pos_ptr += delta;
+    for (PaneStateData* p : state::panes)
+      if (pane->type != p->type) *p->pos_ptr += delta;
   }
 
   return handled;
