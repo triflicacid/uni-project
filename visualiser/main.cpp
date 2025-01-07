@@ -2,7 +2,7 @@
 #include <iostream>
 #include "screen.hpp"
 #include "named_fstream.hpp"
-#include "assembly.hpp"
+#include "data.hpp"
 #include "processor.hpp"
 
 /** Parse command-line arguments. */
@@ -16,7 +16,7 @@ int parse_arguments(int argc, char **argv) {
         }
 
         if (auto stream = named_fstream::open(argv[i], std::ios::in)) {
-          visualiser::assembly::source = std::move(stream);
+          visualiser::source = std::move(stream);
         } else {
           std::cout << argv[i - 1] << ": failed to open file " << argv[i];
           return EXIT_FAILURE;
@@ -68,7 +68,7 @@ int parse_arguments(int argc, char **argv) {
   }
 
   // Check if all files are present
-  if (!visualiser::assembly::source) {
+  if (!visualiser::source) {
     std::cout << "Expected assembly source file to be provided";
     return EXIT_FAILURE;
   }
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   }
 
   // populate assembly data
-  visualiser::assembly::init();
+  visualiser::init();
 
   // instantiate the processor
   visualiser::processor::init();
