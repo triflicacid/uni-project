@@ -5,12 +5,13 @@
 #include "util.hpp"
 #include "tabs/memory.hpp"
 #include "tabs/settings.hpp"
+#include "tabs/sources.hpp"
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 
 static int current_tab = 0;
-static ftxui::Component tab_nav, tab_container, tab_help;
+static ftxui::Component tab_nav, tab_container;
 
 ftxui::Element visualiser::tabs::create_key_help_pane(const std::map<std::string, std::string> &keys) {
   using namespace ftxui;
@@ -52,21 +53,19 @@ void visualiser::launch() {
   CodeExecutionTab tab_code_execution;
   RegistersTab tab_registers;
   MemoryTab tab_memory;
+  SourcesTab tab_sources;
   SettingsTab tab_settings;
-  std::vector<Tab *> tab_list = {&tab_code_execution, &tab_registers, &tab_memory, &tab_settings};
+  std::vector<Tab*> tab_list = {&tab_code_execution, &tab_registers, &tab_memory, &tab_sources, &tab_settings};
 
   // tab navigation buttons
   std::vector<std::string> tab_headers = map(tab_list,
-                                             std::function<std::string(Tab *&)>([](auto &t) { return t->title(); }));
+                                             std::function<std::string(Tab*&)>([](auto& t) { return t->title(); }));
   tab_nav = Toggle(&tab_headers, &current_tab);
 
   // container which selects child based on tab index
   std::vector<Component> tab_contents = map(tab_list,
-                                            std::function<Component(Tab *&)>([](auto &t) { return t->content(); }));
+                                            std::function<Component(Tab*&)>([](auto& t) { return t->content(); }));
   tab_container = Container::Tab(tab_contents, &current_tab);
-
-  std::vector<Component> tab_helps = map(tab_list,
-                                            std::function<Component(Tab *&)>([](auto &t) { return t->help(); }));
 
   // create the main UI
   Component container = Container::Vertical({
@@ -92,9 +91,10 @@ void visualiser::launch() {
     if (e == Event::F2) return force_tab_focus(1);
     if (e == Event::F3) return force_tab_focus(2);
     if (e == Event::F4) return force_tab_focus(3);
+    if (e == Event::F5) return force_tab_focus(4);
     return false;
   });
 
-  auto screen = ScreenInteractive::Fullscreen();
+  ScreenInteractive screen = ScreenInteractive::Fullscreen();
   screen.Loop(renderer);
 }

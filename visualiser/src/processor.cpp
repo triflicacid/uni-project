@@ -34,3 +34,7 @@ void visualiser::processor::update_pc(uint64_t val) {
   cpu.write_pc(val);
   pc_line = visualiser::locate_pc(val);
 }
+
+bool visualiser::line_has_breakpoint(const visualiser::FileLine &line) {
+  return !line.trace.empty() && std::any_of(line.trace.begin(), line.trace.end(), processor::test_breakpoint);
+}

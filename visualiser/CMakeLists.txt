@@ -26,7 +26,7 @@ add_executable(visualiser
         ../processor/src/bus.cpp ../processor/src/core.cpp ../processor/src/cpu.cpp ../processor/src/debug.cpp ../processor/src/dram.cpp
         src/data.cpp src/processor.cpp src/style.cpp
         src/components/checkbox.cpp src/components/custom_dropdown.cpp src/components/Scroller.cpp
-        src/tabs/execution.cpp src/tabs/memory.cpp src/tabs/registers.cpp src/tabs/settings.cpp
+        src/tabs/sources.cpp src/tabs/execution.cpp src/tabs/memory.cpp src/tabs/registers.cpp src/tabs/settings.cpp
         src/screen.cpp
         main.cpp)
 

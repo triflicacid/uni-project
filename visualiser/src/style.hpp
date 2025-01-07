@@ -12,4 +12,8 @@ namespace visualiser::style {
   extern ftxui::Decorator ok; // style for a status:ok string
   extern ftxui::Decorator bad; // style for, not status:ok but not quite status:error, string
   extern ftxui::Decorator error; // style for a status:error string
+  extern ftxui::Decorator breakpoint_colour;
+  extern std::string breakpoint_icon;
+
+  ftxui::Element breakpoint_prefix();
 }

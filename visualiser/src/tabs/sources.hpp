@@ -1,12 +1,11 @@
 #pragma once
 
 #include "tab.hpp"
-#include "data.hpp"
 
 namespace visualiser::tabs {
-  class CodeExecutionTab : public Tab {
+  class SourcesTab : public Tab {
   public:
-    CodeExecutionTab() : Tab("Execution") {}
+    SourcesTab() : Tab("Sources") {}
 
   private:
     void init() override;

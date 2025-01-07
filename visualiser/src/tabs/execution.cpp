@@ -204,11 +204,6 @@ static ftxui::Element format_debug_message(const processor::debug::Message &msg)
   return children.size() == 1 ? children.front() : hbox(children);
 }
 
-// test if there is a breakpoint at this $pc
-inline bool test_breakpoint(const visualiser::PCLine* pc) {
-  return visualiser::processor::breakpoints.find(pc) != visualiser::processor::breakpoints.end();
-}
-
 // update the state's debug message list
 static void update_debug_lines() {
   // format CPU's debug messages
@@ -273,7 +268,7 @@ namespace events {
   static bool on_enter(visualiser::Type pane) {
     do {
       step_processor();
-    } while (visualiser::processor::cpu.is_running() && !test_breakpoint(visualiser::processor::pc_line));
+    } while (visualiser::processor::cpu.is_running() && !visualiser::processor::test_breakpoint(visualiser::processor::pc_line));
 
     return true;
   }
@@ -373,8 +368,8 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
 // return Element wrapping the current line
 static ftxui::Element wrap_line(const visualiser::FileLine &line) {
   // test if there is a breakpoint on this line
-  if (!line.trace.empty() && std::any_of(line.trace.begin(), line.trace.end(), test_breakpoint)) {
-    return hbox(ftxui::text("⬤ ") | color(ftxui::Color::Red), ftxui::text(line.line));
+  if (visualiser::line_has_breakpoint(line)) {
+    return hbox(visualiser::style::breakpoint_prefix(), ftxui::text(line.line));
   }
 
   return ftxui::text(line.line);

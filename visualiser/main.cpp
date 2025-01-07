@@ -17,6 +17,7 @@ int parse_arguments(int argc, char **argv) {
 
         if (auto stream = named_fstream::open(argv[i], std::ios::in)) {
           visualiser::source = std::move(stream);
+          visualiser::source->canonicalise();
         } else {
           std::cout << argv[i - 1] << ": failed to open file " << argv[i];
           return EXIT_FAILURE;

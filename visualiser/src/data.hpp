@@ -20,17 +20,19 @@ namespace visualiser {
     Location asm_origin, lang_origin; // source locations
   };
 
-  struct FileLine {
-    int n;
-    std::string line;
-    std::vector<const PCLine*> trace;
-  };
+  struct FileLine;
 
   struct File {
     std::filesystem::path path;
     Type type;
     std::vector<FileLine> lines;
     bool loaded;
+  };
+
+  struct FileLine {
+    int n;
+    std::string line;
+    std::vector<const PCLine*> trace;
   };
 
   extern std::unique_ptr<named_fstream> source; // source assembly file (reconstruction)
