@@ -39,8 +39,12 @@ static ftxui::Element generate_file_element(const visualiser::File& file) {
   ftxui::Element base = ftxui::text(file.path.string());
 
   if (int breakpoints = file.count_breakpoints()) {
-    std::string content = breakpoints == 1 ? "" : std::to_string(breakpoints) + "×";
-    base = ftxui::hbox(base, ftxui::text(" (" + content + visualiser::style::breakpoint_icon + ")"));
+    base = ftxui::hbox({
+     ftxui::text("(" + (breakpoints == 1 ? "" : std::to_string(breakpoints) + "×")),
+     ftxui::text(visualiser::style::breakpoint_icon) | visualiser::style::breakpoint_colour,
+     ftxui::text(") "),
+     base
+    });
   }
 
   return state::menu_focus_component->Focused() && selected() == &file
@@ -149,7 +153,7 @@ namespace events {
 
   static bool on_b(ftxui::Event& e) {
     auto& line = selected_line();
-    visualiser::processor::toggle_breakpoint(line.trace.front());
+    if (!line.trace.empty()) line.trace.front()->toggle_breakpoint();
     return true;
   }
 

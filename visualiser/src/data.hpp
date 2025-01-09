@@ -18,6 +18,12 @@ namespace visualiser {
     std::string line; // line in reconstructed source
     int line_no; // line number in reconstructed source
     Location asm_origin, lang_origin; // source locations
+
+    // test if this $pc has a breakpoint
+    bool has_breakpoint() const;
+
+    // toggle breakpoint for this $pc
+    void toggle_breakpoint() const;
   };
 
   struct FileLine;

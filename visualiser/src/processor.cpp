@@ -34,12 +34,3 @@ void visualiser::processor::update_pc(uint64_t val) {
   cpu.write_pc(val);
   pc_line = visualiser::locate_pc(val);
 }
-
-void visualiser::processor::toggle_breakpoint(const visualiser::PCLine* pc) {
-  auto breakpoint = visualiser::processor::breakpoints.find(pc);
-  if (breakpoint == visualiser::processor::breakpoints.end()) {
-    visualiser::processor::breakpoints.insert(pc);
-  } else {
-    visualiser::processor::breakpoints.erase(breakpoint);
-  }
-}

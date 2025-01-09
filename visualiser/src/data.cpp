@@ -140,14 +140,26 @@ int visualiser::File::count_breakpoints() const {
 }
 
 bool visualiser::FileLine::has_breakpoint() const {
-  return !trace.empty() && std::any_of(trace.begin(), trace.end(), processor::test_breakpoint);
+  return !trace.empty() && std::any_of(trace.begin(), trace.end(), [](auto* line) { return line->has_breakpoint(); });
 }
 
 bool visualiser::FileLine::contains_pc(uint64_t pc) const {
-  return !trace.empty() && std::any_of(trace.begin(), trace.end(), [pc](auto& line) { return line->pc == pc; });
+  return !trace.empty() && std::any_of(trace.begin(), trace.end(), [pc](auto* line) { return line->pc == pc; });
 }
 
 std::optional<uint64_t> visualiser::FileLine::pc() const {
   if (trace.empty()) return {};
   return trace.front()->pc;
+}
+
+bool visualiser::PCLine::has_breakpoint() const {
+  return processor::breakpoints.find(this) != visualiser::processor::breakpoints.end();
+}
+
+void visualiser::PCLine::toggle_breakpoint() const {
+  if (has_breakpoint()) {
+    processor::breakpoints.erase(this);
+  } else {
+    processor::breakpoints.insert(this);
+  }
 }

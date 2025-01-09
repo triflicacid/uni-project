@@ -269,7 +269,7 @@ namespace events {
   static bool on_enter(visualiser::Type pane) {
     do {
       step_processor();
-    } while (visualiser::processor::cpu.is_running() && !visualiser::processor::test_breakpoint(visualiser::processor::pc_line));
+    } while (visualiser::processor::cpu.is_running() && !visualiser::processor::pc_line->has_breakpoint());
 
     return true;
   }
@@ -289,14 +289,12 @@ namespace events {
     return true;
   }
 
-  static bool on_B(PaneStateData* pane) { // toggle breakpoint
-    // lookup our current location in this pane
+  static bool on_B(PaneStateData* pane) {
+    // lookup our current location in this pane and toggle breakpoint
     auto &lines = state::selected_pane->file->lines[state::selected_line - 1].trace;
     if (lines.empty()) return false;
 
-    // toggle the breakpoint at the first traced line
-    visualiser::processor::toggle_breakpoint(lines.front());
-
+    lines.front()->toggle_breakpoint();
     return true;
   }
 

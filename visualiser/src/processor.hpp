@@ -28,12 +28,4 @@ namespace visualiser::processor {
 
   // update $pc -- sets both CPU's actual pc, state::current_pc, and state::pc_entry
   void update_pc(uint64_t val);
-
-  // test if there is a breakpoint at this $pc
-  inline bool test_breakpoint(const visualiser::PCLine* pc) {
-    return visualiser::processor::breakpoints.find(pc) != visualiser::processor::breakpoints.end();
-  }
-
-  // toggle the given breakpoint
-  void toggle_breakpoint(const visualiser::PCLine* pc);
 }
