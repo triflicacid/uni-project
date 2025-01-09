@@ -107,6 +107,7 @@ $ ./visualiser --asm source.s --bin source
     \end{itemize}
     The current line pointed to by \$pc is highlighted in yellow, which is traced back to the source assembly.
     If enabled, the currently selected line is displayed in cyan, with the corresponding equivalent lines highlighted in light cyan in the other pane.
+    Breakpoints are indicated by a {\color{red} \(\bullet\)} preceding the line.
 
     Below this is a section for the processor's debug messages, which is hidden by default unless messages are available.
     The fields below this display the
@@ -209,10 +210,12 @@ $ ./visualiser --asm source.s --bin source
     assembly sources (files inputted to the assembler);
     and high-level source files (files inputted to the compiler).
     The list may be navigated to select files, wherein there contents are displayed on the right-hand pane.
+    The number of breakpoints in a file, if any, are indicated by \(n \times\){\color{red}\(\bullet\)} preceding the filepath.
 
     The right-hand pane displays the contents of the selected file.
     The pane may be selected and arrow keys used to change which line is selected (the line highlighted in blue).
     The line containing the current \$pc is also highlighted in yellow.
+    Breakpoints are indicated by a {\color{red}\(\bullet\)} preceding the line.
 
     \subsection{Keyboard Controls}
 
@@ -223,8 +226,8 @@ $ ./visualiser --asm source.s --bin source
     The following controls only take effect when the file pane is in focus.
 
     \begin{itemize}
-        \item{[} and \texttt{]} -- both change the file and line selection by tracing the selected line forwards or backwards, respectively.
-        That is, is a source (\texttt{.s}) line is selected, \texttt{[} will select the line in an assembly (\texttt{.asm}) source, whereas \texttt{]} does nothing.
+        \item \texttt{[} and \texttt{]} -- both change the file and line selection by tracing the selected line forwards or backwards, respectively.
+        That is, if a source (\texttt{.s}) line is selected, \texttt{[} will select the line in an assembly (\texttt{.asm}) source, whereas \texttt{]} does nothing.
         \item \texttt{b} -- toggle the breakpoint on the selected line.
         \item \texttt{j} -- jumps to the current line, i.e., sets \$pc to the location of the selected line.
     \end{itemize}
