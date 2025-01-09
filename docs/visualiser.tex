@@ -200,11 +200,42 @@ $ ./visualiser --asm source.s --bin source
 
     \section{Sources}
 
-    To be completed.
+    This tab displays all the source files used in the program.
+
+    \subsection{Layout}
+
+    The pane on the left categorises the files into which source layer they fit into:
+    machine code (the reconstructed assembly provided via \texttt{--asm});
+    assembly sources (files inputted to the assembler);
+    and high-level source files (files inputted to the compiler).
+    The list may be navigated to select files, wherein there contents are displayed on the right-hand pane.
+
+    The right-hand pane displays the contents of the selected file.
+    The pane may be selected and arrow keys used to change which line is selected (the line highlighted in blue).
+    The line containing the current \$pc is also highlighted in yellow.
+
+    \subsection{Keyboard Controls}
+
+    \begin{itemize}
+        \item \texttt{e} -- changes the file and line selection to point to the location of the current \$pc.
+    \end{itemize}
+
+    The following controls only take effect when the file pane is in focus.
+
+    \begin{itemize}
+        \item{[} and \texttt{]} -- both change the file and line selection by tracing the selected line forwards or backwards, respectively.
+        That is, is a source (\texttt{.s}) line is selected, \texttt{[} will select the line in an assembly (\texttt{.asm}) source, whereas \texttt{]} does nothing.
+        \item \texttt{b} -- toggle the breakpoint on the selected line.
+        \item \texttt{j} -- jumps to the current line, i.e., sets \$pc to the location of the selected line.
+    \end{itemize}
 
     \section{Settings}
 
     Contains various visualiser settings.
+
+    \subsection{Layout}
+
+    The tab contains several bordered windows, grouping common settings together.
 
     \paragraph*{Debug Flags}
     Controls the debug flags of the processor.
