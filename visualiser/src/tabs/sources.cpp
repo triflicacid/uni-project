@@ -4,14 +4,12 @@
 #include "util.hpp"
 #include "style.hpp"
 #include "components/scroller.hpp"
-#include "components/checkbox.hpp"
 
 namespace state {
   static ftxui::Component menu_focus_component; // if focused, highlight selected file
   static std::vector<const visualiser::File*> files;
   static int menu_selected; // Menu::selected_
   static ftxui::Component file_pane;
-  static bool show_selected = false;
   static int selected_line = 1; // 1-indexed
 }
 
@@ -119,7 +117,6 @@ namespace events {
   static bool on_left_bracket(ftxui::Event& e) { // ']'
     const visualiser::File* file = selected();
     const visualiser::FileLine& file_line = file->lines[state::selected_line - 1];
-    std::cerr << "Traced " << file_line.trace.size() << " lines" << std::endl;
     if (file_line.trace.empty()) return true;
 
     const visualiser::PCLine* pc_line = file_line.trace.front();
@@ -150,6 +147,17 @@ namespace events {
     visualiser::processor::toggle_breakpoint(line.trace.front());
     return true;
   }
+
+  static bool on_e(ftxui::Event& e) {
+    // lookup line associated to $pc, jump to its origin (in source)
+    if (auto* pc = visualiser::locate_pc(visualiser::processor::pc)) {
+      state::selected_line = pc->line_no;
+      state::menu_selected = 0; // first file (i.e., source)
+      state::file_pane->TakeFocus();
+    }
+
+    return false;
+  }
 }
 
 static bool file_pane_on_event(ftxui::Event e) {
@@ -160,25 +168,17 @@ static bool file_pane_on_event(ftxui::Event e) {
   if (e == ftxui::Event::b) return events::on_b(e);
   if (e == ftxui::Event::Character("]")) return events::on_right_bracket(e);
   if (e == ftxui::Event::Character("[")) return events::on_left_bracket(e);
-
   return false;
 }
 
 static bool on_event(ftxui::Event e) {
-  if (e == ftxui::Event::s) {
-    state::show_selected = !state::show_selected;
-    return true;
-  }
-
+  if (e == ftxui::Event::e) return events::on_e(e);
   return false;
 }
 
 void visualiser::tabs::SourcesTab::init() {
   using namespace ftxui;
   const int paneMaxHeight = 25;
-
-  // toggle for show_selected
-  Component show_selected_toggle = create_checkbox("Show Line Selection", state::show_selected);
 
   // create menu containing file names
   std::vector<std::string> file_names;
@@ -190,17 +190,22 @@ void visualiser::tabs::SourcesTab::init() {
   }
 
   // create pane which will contain selected file's content
-  state::file_pane = Scroller(Renderer([](bool f) {
+  state::file_pane = Scroller(Renderer([](bool focused) {
     // create Elements for each line of the file
     const File* file = selected();
     std::vector<Element> elements;
     elements.reserve(file->lines.size());
     for (auto& line : file->lines) {
       elements.push_back(wrap_line(line));
+
+      // is line being executed? (and not selected)
+      if ((!focused || line.n != state::selected_line) && !line.trace.empty() && line.trace.front()->pc == processor::pc ) {
+        elements.back() |= style::highlight_execution;
+      }
     }
 
     // highlight the selected line
-    if (state::show_selected) {
+    if (focused) {
       elements[state::selected_line - 1] |= style::highlight_selected;
     }
 
@@ -208,7 +213,6 @@ void visualiser::tabs::SourcesTab::init() {
   })) | size(HEIGHT, LESS_THAN, paneMaxHeight) | CatchEvent(file_pane_on_event);
 
   Component layout = Container::Vertical({
-    show_selected_toggle,
     state::menu_focus_component = Container::Horizontal({
         Menu({
           .entries = file_names,
@@ -219,7 +223,7 @@ void visualiser::tabs::SourcesTab::init() {
       })
   });
 
-  content_ = Renderer(layout, [show_selected_toggle] {
+  content_ = Renderer(layout, [] {
     std::vector<Element> elements;
 
     // sort source files into correct lists
@@ -235,7 +239,6 @@ void visualiser::tabs::SourcesTab::init() {
 
     return hbox({
       vbox({
-              show_selected_toggle->Render(),
               window(
                   text("Machine Code"),
                   vbox(generate_file_element(*source_file)),
@@ -265,7 +268,7 @@ void visualiser::tabs::SourcesTab::init() {
   help_ = Renderer([] {
     return create_key_help_pane({
       {"b", "toggle line breakpoint"},
-      {"s", "toggle line select"},
+      {"e", "jump to $pc"},
       {"[", "trace line backwards"},
       {"]", "trace line forwards"},
     });
