@@ -27,6 +27,8 @@ namespace visualiser {
     Type type;
     std::vector<FileLine> lines;
     bool loaded;
+
+    std::string to_string() const;
   };
 
   struct FileLine {

@@ -109,3 +109,11 @@ const visualiser::PCLine *visualiser::locate_line(int line) {
 
   return nullptr;
 }
+
+std::string visualiser::File::to_string() const {
+  std::stringstream stream;
+  for (auto& line : lines)
+    stream << line.line << std::endl;
+
+  return stream.str();
+}

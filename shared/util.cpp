@@ -1,6 +1,7 @@
 #include "util.hpp"
 
 #include <utility>
+#include <numeric>
 
 std::string &ltrim(std::string &s, const char *t) {
   s.erase(0, s.find_first_not_of(t));
@@ -260,4 +261,10 @@ std::string to_hex_string(uint64_t value, uint8_t size_bytes) {
   s << std::setw(size_bytes * 2) << std::setfill('0');
   s << std::hex << value;
   return s.str();
+}
+
+std::string join(const std::vector<std::string>& items, const std::string& delim) {
+  return items.empty()
+    ? ""
+    : std::accumulate(++items.begin(), items.end(), *items.begin(), [&delim](auto& a, auto& b) { return a + delim + b; });
 }

@@ -25,7 +25,7 @@ add_executable(visualiser
         ../shared/constants.cpp ../shared/util.cpp ../shared/messages/message.cpp ../shared/messages/list.cpp
         ../processor/src/bus.cpp ../processor/src/core.cpp ../processor/src/cpu.cpp ../processor/src/debug.cpp ../processor/src/dram.cpp
         src/data.cpp src/processor.cpp src/style.cpp
-        src/components/checkbox.cpp src/components/custom_dropdown.cpp src/components/Scroller.cpp
+        src/components/checkbox.cpp src/components/custom_dropdown.cpp src/components/either.cpp src/components/scroller.cpp
         src/tabs/sources.cpp src/tabs/execution.cpp src/tabs/memory.cpp src/tabs/registers.cpp src/tabs/settings.cpp
         src/screen.cpp
         main.cpp)

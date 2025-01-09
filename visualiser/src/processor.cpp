@@ -35,6 +35,15 @@ void visualiser::processor::update_pc(uint64_t val) {
   pc_line = visualiser::locate_pc(val);
 }
 
-bool visualiser::line_has_breakpoint(const visualiser::FileLine &line) {
+bool visualiser::line_has_breakpoint(const visualiser::FileLine& line) {
   return !line.trace.empty() && std::any_of(line.trace.begin(), line.trace.end(), processor::test_breakpoint);
+}
+
+void visualiser::processor::toggle_breakpoint(const visualiser::PCLine* pc) {
+  auto breakpoint = visualiser::processor::breakpoints.find(pc);
+  if (breakpoint == visualiser::processor::breakpoints.end()) {
+    visualiser::processor::breakpoints.insert(pc);
+  } else {
+    visualiser::processor::breakpoints.erase(breakpoint);
+  }
 }

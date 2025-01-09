@@ -4,7 +4,7 @@
 
 namespace state {
   namespace debug {
-    ftxui::Component input_list;
+    static ftxui::Component input_list;
   }
 }// namespace state
 

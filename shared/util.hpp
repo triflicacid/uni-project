@@ -101,3 +101,6 @@ void empty_stream(T &s) {
   s.str("");
   s.clear();
 }
+
+// join a vector of strings by a delimeter
+std::string join(const std::vector<std::string>& items, const std::string& delim);

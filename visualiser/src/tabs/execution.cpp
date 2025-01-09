@@ -18,20 +18,20 @@ struct PaneStateData {
 };
 
 namespace state {
-  int current_cycle = 0;                            // processor's current cycle
-  std::vector<ftxui::Element> debug_lines; // contains lines in the debug field - preserves values
+  static int current_cycle = 0;                            // processor's current cycle
+  static std::vector<ftxui::Element> debug_lines; // contains lines in the debug field - preserves values
 
-  bool show_selected_line = false; // show light-blue selected line(s)?
-  ftxui::Component show_selected_line_toggle; // toggle for show_selected_line Boolean
-  bool is_running = false;
-  ftxui::Component is_running_toggle; // toggle for IS_RUNNING
-  bool do_update_selected_line = false;
+  static bool show_selected_line = false; // show light-blue selected line(s)?
+  static ftxui::Component show_selected_line_toggle; // toggle for show_selected_line Boolean
+  static bool is_running = false;
+  static ftxui::Component is_running_toggle; // toggle for IS_RUNNING
+  static bool do_update_selected_line = false;
 
-  PaneStateData source_pane(visualiser::Type::Source);
-  PaneStateData asm_pane(visualiser::Type::Assembly);
-  std::array<PaneStateData*, 2> panes{&source_pane, &asm_pane};
-  PaneStateData* selected_pane = nullptr;
-  int selected_line = 0; // current line which is selected
+  static PaneStateData source_pane(visualiser::Type::Source);
+  static PaneStateData asm_pane(visualiser::Type::Assembly);
+  static std::array<PaneStateData*, 2> panes{&source_pane, &asm_pane};
+  static PaneStateData* selected_pane = nullptr;
+  static int selected_line = 0; // current line which is selected
 }// namespace state
 
 // update panes' positions based on state::current_pc
@@ -102,6 +102,7 @@ static Location get_pc_location_in_pane(const visualiser::PCLine* pc_entry, visu
       return Location(visualiser::source->path, pc_entry->line_no);
     case visualiser::Type::Assembly:
       return pc_entry->asm_origin;
+    default: std::exit(-1);
   }
 }
 
@@ -294,14 +295,7 @@ namespace events {
     if (lines.empty()) return false;
 
     // toggle the breakpoint at the first traced line
-    auto line = lines.front();
-    auto breakpoint = visualiser::processor::breakpoints.find(line);
-
-    if (breakpoint == visualiser::processor::breakpoints.end()) {
-      visualiser::processor::breakpoints.insert(line);
-    } else {
-      visualiser::processor::breakpoints.erase(breakpoint);
-    }
+    visualiser::processor::toggle_breakpoint(lines.front());
 
     return true;
   }

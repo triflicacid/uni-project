@@ -14,13 +14,13 @@ enum class Field {
 };
 
 namespace state {
-  std::vector<std::string> reg_names; // list of register names, used in menu
-  int current_reg = 0; // index of the current register
-  std::optional<uint64_t> copied_reg; // copied register contents
+  static std::vector<std::string> reg_names; // list of register names, used in menu
+  static int current_reg = 0; // index of the current register
+  static std::optional<uint64_t> copied_reg; // copied register contents
 
   namespace inputs {
-    std::string s_hex, s_int, s_long, s_float, s_double;
-    ftxui::Component i_hex, i_int, i_long, i_float, i_double;
+    static std::string s_hex, s_int, s_long, s_float, s_double;
+    static ftxui::Component i_hex, i_int, i_long, i_float, i_double;
   }// namespace inputs
 }// namespace state
 

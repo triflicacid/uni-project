@@ -19,19 +19,19 @@ namespace state {
   int constexpr cols = 16;
   int constexpr page_size = rows * cols;
 
-  bool show_pc = true;
-  ftxui::Component memory_grid, memory_address_editor;
-  uint64_t base_address = 0;
-  std::pair<int, int> pos{0, 0}; // current position (x, y)
+  static bool show_pc = true;
+  static ftxui::Component memory_grid, memory_address_editor;
+  static uint64_t base_address = 0;
+  static std::pair<int, int> pos{0, 0}; // current position (x, y)
 
-  ftxui::Component mem_input;
-  std::string mem_input_content;
-  std::vector<std::string> input_type_values{"int 0x", "int ", "long 0x", "long ", "float ", "double "};
-  ftxui::Component input_type_dropdown;
-  InputType input_type_index;
+  static ftxui::Component mem_input;
+  static std::string mem_input_content;
+  static std::vector<std::string> input_type_values{"int 0x", "int ", "long 0x", "long ", "float ", "double "};
+  static ftxui::Component input_type_dropdown;
+  static InputType input_type_index;
 
   // return the current selected address
-  uint64_t current_address() {
+  static uint64_t current_address() {
     return base_address + pos.second * cols + pos.first;
   }
 }// namespace state
