@@ -362,7 +362,7 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
 // return Element wrapping the current line
 static ftxui::Element wrap_line(const visualiser::FileLine &line) {
   // test if there is a breakpoint on this line
-  if (visualiser::line_has_breakpoint(line)) {
+  if (line.has_breakpoint()) {
     return hbox(visualiser::style::breakpoint_prefix(), ftxui::text(line.line));
   }
 

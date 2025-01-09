@@ -37,8 +37,3 @@ namespace visualiser::processor {
   // toggle the given breakpoint
   void toggle_breakpoint(const visualiser::PCLine* pc);
 }
-
-namespace visualiser {
-  // does the given FileLine have a breakpoint?
-  bool line_has_breakpoint(const visualiser::FileLine& line);
-}

@@ -29,12 +29,18 @@ namespace visualiser {
     bool loaded;
 
     std::string to_string() const;
+
+    // return the number of breakpoints in thes file
+    int count_breakpoints() const;
   };
 
   struct FileLine {
     int n;
     std::string line;
     std::vector<const PCLine*> trace;
+
+    // test if there is a breakpoint in this line
+    bool has_breakpoint() const;
   };
 
   extern std::unique_ptr<named_fstream> source; // source assembly file (reconstruction)

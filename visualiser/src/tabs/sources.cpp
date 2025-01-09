@@ -34,6 +34,12 @@ inline const visualiser::File* selected() {
 // given file, generate element
 static ftxui::Element generate_file_element(const visualiser::File& file) {
   ftxui::Element base = ftxui::text(file.path.string());
+
+  if (int breakpoints = file.count_breakpoints()) {
+    std::string content = breakpoints == 1 ? "" : std::to_string(breakpoints) + "×";
+    base = ftxui::hbox(base, ftxui::text(" (" + content + visualiser::style::breakpoint_icon + ")"));
+  }
+
   return state::menu_focus_component->Focused() && selected() == &file
     ? base | visualiser::style::highlight
     : base;
@@ -42,7 +48,7 @@ static ftxui::Element generate_file_element(const visualiser::File& file) {
 // return Element wrapping the current line
 static ftxui::Element wrap_line(const visualiser::FileLine &line) {
   // test if there is a breakpoint on this line
-  if (visualiser::line_has_breakpoint(line)) {
+  if (line.has_breakpoint()) {
     return hbox(visualiser::style::breakpoint_prefix(), ftxui::text(line.line));
   }
 

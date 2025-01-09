@@ -1,6 +1,7 @@
 #include <iostream>
 #include "data.hpp"
 #include "util.hpp"
+#include "processor.hpp"
 
 std::unique_ptr<named_fstream> visualiser::source = nullptr;
 std::map<uint32_t, visualiser::PCLine> visualiser::pc_to_line = {};
@@ -124,8 +125,20 @@ const visualiser::PCLine *visualiser::locate_line(int line) {
 
 std::string visualiser::File::to_string() const {
   std::stringstream stream;
-  for (auto& line : lines)
+  for (const FileLine& line : lines)
     stream << line.line << std::endl;
 
   return stream.str();
+}
+
+int visualiser::File::count_breakpoints() const {
+  int count = 0;
+  for (const FileLine& line : lines)
+    count += line.has_breakpoint();
+
+  return count;
+}
+
+bool visualiser::FileLine::has_breakpoint() const {
+  return !trace.empty() && std::any_of(trace.begin(), trace.end(), processor::test_breakpoint);
 }
