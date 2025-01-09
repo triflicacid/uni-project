@@ -1,12 +1,14 @@
 #include <cstring>
 #include <iostream>
+#include <unordered_set>
 #include "screen.hpp"
 #include "named_fstream.hpp"
 #include "data.hpp"
 #include "processor.hpp"
+#include "util.hpp"
 
 /** Parse command-line arguments. */
-int parse_arguments(int argc, char **argv) {
+int parse_arguments(int argc, char** argv, std::unordered_set<uint64_t>& breakpoints) {
   for (int i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
       if (!strcmp(argv[i], "--asm")) {
@@ -58,6 +60,12 @@ int parse_arguments(int argc, char **argv) {
           std::cout << argv[i - 1] << ": failed to open file " << argv[i];
           return EXIT_FAILURE;
         }
+      } else if (!strcmp(argv[i], "-b") || !strcmp(argv[i], "--breakpoint")) {
+        i++;
+        breakpoints.clear();
+        split_string(argv[i++], ',', [&](const std::string& s) {
+          breakpoints.insert(std::stoull(s));
+        });
       } else {
         std::cout << "Unknown/repeated flag " << argv[i] << std::endl;
         return EXIT_FAILURE;
@@ -82,8 +90,9 @@ int parse_arguments(int argc, char **argv) {
   return EXIT_SUCCESS;
 }
 
-int main(int argc, char **argv) {
-  if (auto ret = parse_arguments(argc, argv) != EXIT_SUCCESS) {
+int main(int argc, char** argv) {
+  std::unordered_set<uint64_t> breakpoints;
+  if (int ret = parse_arguments(argc, argv, breakpoints) != EXIT_SUCCESS) {
     return ret;
   }
 
@@ -93,6 +102,15 @@ int main(int argc, char **argv) {
   // instantiate the processor
   visualiser::processor::init();
   processor::debug::cpu = true;
+
+  for (uint64_t breakpoint : breakpoints) {
+    if (auto* pc = visualiser::locate_pc(breakpoint)) {
+      pc->set_breakpoint(true);
+    } else {
+      // warn, but don't exit
+      std::cerr << "warning: cannot set breakpoint at $pc=0x" << std::hex << pc << std::dec << " - unable to locate in program" << std::endl;
+    }
+  }
 
   // launch application
   visualiser::launch();

@@ -157,9 +157,13 @@ bool visualiser::PCLine::has_breakpoint() const {
 }
 
 void visualiser::PCLine::toggle_breakpoint() const {
-  if (has_breakpoint()) {
-    processor::breakpoints.erase(this);
-  } else {
+  set_breakpoint(!has_breakpoint());
+}
+
+void visualiser::PCLine::set_breakpoint(bool b) const {
+  if (b) {
     processor::breakpoints.insert(this);
+  } else {
+    processor::breakpoints.erase(this);
   }
 }

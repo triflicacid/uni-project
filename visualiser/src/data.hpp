@@ -22,6 +22,9 @@ namespace visualiser {
     // test if this $pc has a breakpoint
     bool has_breakpoint() const;
 
+    // add/remove breakpoint
+    void set_breakpoint(bool) const;
+
     // toggle breakpoint for this $pc
     void toggle_breakpoint() const;
   };

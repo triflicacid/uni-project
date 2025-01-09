@@ -102,8 +102,11 @@ void empty_stream(T &s) {
   s.clear();
 }
 
-// join a vector of strings by a delimeter
+// join a vector of strings by a delimiter
 std::string join(const std::vector<std::string>& items, const std::string& delim);
+
+// split a string by the given `delimiter`, calling `f` on each substring
+void split_string(const std::string& str, char delimiter, std::function<void(const std::string&)> f);
 
 // play a bell sound
 void bell_sound();

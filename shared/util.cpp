@@ -270,6 +270,19 @@ std::string join(const std::vector<std::string>& items, const std::string& delim
     : std::accumulate(++items.begin(), items.end(), *items.begin(), [&delim](auto& a, auto& b) { return a + delim + b; });
 }
 
+void split_string(const std::string &str, char delimiter, std::function<void(const std::string&)> f) {
+  size_t from = 0;
+  for (size_t i = 0; i < str.size(); ++i) {
+    if (str[i] == delimiter) {
+      f(str.substr(from, i - from));
+      from = i + 1;
+    }
+  }
+
+  if (from <= str.size())
+    f(str.substr(from));
+}
+
 void bell_sound() {
   std::cout << "\x1b[\007";
 }
