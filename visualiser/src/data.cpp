@@ -142,3 +142,12 @@ int visualiser::File::count_breakpoints() const {
 bool visualiser::FileLine::has_breakpoint() const {
   return !trace.empty() && std::any_of(trace.begin(), trace.end(), processor::test_breakpoint);
 }
+
+bool visualiser::FileLine::contains_pc(uint64_t pc) const {
+  return !trace.empty() && std::any_of(trace.begin(), trace.end(), [pc](auto& line) { return line->pc == pc; });
+}
+
+std::optional<uint64_t> visualiser::FileLine::pc() const {
+  if (trace.empty()) return {};
+  return trace.front()->pc;
+}

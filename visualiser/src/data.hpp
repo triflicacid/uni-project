@@ -39,8 +39,14 @@ namespace visualiser {
     std::string line;
     std::vector<const PCLine*> trace;
 
+    // test if this line produced (traces to) the given pc
+    bool contains_pc(uint64_t pc) const;
+
     // test if there is a breakpoint in this line
     bool has_breakpoint() const;
+
+    // return $pc of this line (if possible)
+    std::optional<uint64_t> pc() const;
   };
 
   extern std::unique_ptr<named_fstream> source; // source assembly file (reconstruction)

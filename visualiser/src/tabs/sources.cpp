@@ -29,6 +29,11 @@ inline const visualiser::File* selected() {
   return state::files[state::menu_selected];
 }
 
+// get the selected file's line
+inline const visualiser::FileLine& selected_line() {
+  return selected()->lines[state::selected_line - 1];
+}
+
 // given file, generate element
 static ftxui::Element generate_file_element(const visualiser::File& file) {
   ftxui::Element base = ftxui::text(file.path.string());
@@ -93,7 +98,7 @@ namespace events {
   static bool on_right_bracket(ftxui::Event& e) { // ']'
     // trace the current line
     const visualiser::File* file = selected();
-    auto& line = file->lines[state::selected_line - 1];
+    auto& line = selected_line();
     if (line.trace.empty()) return true;
 
     auto& pc_line = line.trace.front();
@@ -116,7 +121,7 @@ namespace events {
 
   static bool on_left_bracket(ftxui::Event& e) { // ']'
     const visualiser::File* file = selected();
-    const visualiser::FileLine& file_line = file->lines[state::selected_line - 1];
+    const visualiser::FileLine& file_line = selected_line();
     if (file_line.trace.empty()) return true;
 
     const visualiser::PCLine* pc_line = file_line.trace.front();
@@ -143,7 +148,7 @@ namespace events {
   }
 
   static bool on_b(ftxui::Event& e) {
-    auto& line = selected()->lines[state::selected_line - 1];
+    auto& line = selected_line();
     visualiser::processor::toggle_breakpoint(line.trace.front());
     return true;
   }
@@ -156,7 +161,14 @@ namespace events {
       state::file_pane->TakeFocus();
     }
 
-    return false;
+    return true;
+  }
+
+  static bool on_j(ftxui::Event& e) {
+    const visualiser::FileLine& line = selected_line();
+    if (std::optional<uint64_t> pc = line.pc(); pc.has_value() && pc.value() != visualiser::processor::pc)
+      visualiser::processor::update_pc(pc.value());
+    return true;
   }
 }
 
@@ -173,6 +185,7 @@ static bool file_pane_on_event(ftxui::Event e) {
 
 static bool on_event(ftxui::Event e) {
   if (e == ftxui::Event::e) return events::on_e(e);
+  if (e == ftxui::Event::j) return events::on_j(e);
   return false;
 }
 
@@ -199,7 +212,7 @@ void visualiser::tabs::SourcesTab::init() {
       elements.push_back(wrap_line(line));
 
       // is line being executed? (and not selected)
-      if ((!focused || line.n != state::selected_line) && !line.trace.empty() && line.trace.front()->pc == processor::pc ) {
+      if ((!focused || line.n != state::selected_line) && line.contains_pc(processor::pc)) {
         elements.back() |= style::highlight_execution;
       }
     }
@@ -269,6 +282,7 @@ void visualiser::tabs::SourcesTab::init() {
     return create_key_help_pane({
       {"b", "toggle line breakpoint"},
       {"e", "jump to $pc"},
+      {"j", "set $pc to current line"},
       {"[", "trace line backwards"},
       {"]", "trace line forwards"},
     });
