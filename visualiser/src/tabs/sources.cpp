@@ -15,6 +15,17 @@ namespace state {
   static int selected_line = 1; // 1-indexed
 }
 
+// return index of given file
+static int find_file(const std::filesystem::path& path) {
+  for (int i = 0; i < state::files.size(); i++) {
+    if (state::files[i]->path == path) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
 // get the selected file
 inline const visualiser::File* selected() {
   return state::files[state::menu_selected];
@@ -51,35 +62,98 @@ static void on_change_file() {
   validate_selected_line();
 }
 
-static bool file_pane_on_event(ftxui::Event e) {
-  if (e == ftxui::Event::ArrowUp) {
+namespace events {
+  static bool on_arrow_up(ftxui::Event& e) {
     state::selected_line--;
     if (state::selected_line < 1) state::selected_line = 1;
     return false;
   }
 
-  if (e == ftxui::Event::Home) {
-    state::selected_line = 1;
-    return false;
-  }
-
-  if (e == ftxui::Event::ArrowDown) {
+  static bool on_arrow_down(ftxui::Event& e) {
     state::selected_line++;
     size_t limit = selected()->lines.size();
     if (state::selected_line > limit) state::selected_line = limit;
     return false;
   }
 
-  if (e == ftxui::Event::End) {
+  static bool on_home(ftxui::Event& e) {
+    state::selected_line = 1;
+    return false;
+  }
+
+  static bool on_end(ftxui::Event& e) {
     state::selected_line = selected()->lines.size();
     return false;
   }
 
-  if (e == ftxui::Event::b) {
+  static bool on_right_bracket(ftxui::Event& e) { // ']'
+    // trace the current line
+    const visualiser::File* file = selected();
+    auto& line = file->lines[state::selected_line - 1];
+    if (line.trace.empty()) return true;
+
+    auto& pc_line = line.trace.front();
+
+    // trace back to previous abstraction level
+    switch (file->type) {
+      case visualiser::Type::Language: // -> assembly
+        state::menu_selected = find_file(pc_line->asm_origin.path());
+        state::selected_line = pc_line->asm_origin.line();
+        break;
+      case visualiser::Type::Assembly: // -> source
+        state::menu_selected = 0;
+        state::selected_line = pc_line->line_no;
+        break;
+      default: ;
+    }
+
+    return true;
+  }
+
+  static bool on_left_bracket(ftxui::Event& e) { // ']'
+    const visualiser::File* file = selected();
+    const visualiser::FileLine& file_line = file->lines[state::selected_line - 1];
+    std::cerr << "Traced " << file_line.trace.size() << " lines" << std::endl;
+    if (file_line.trace.empty()) return true;
+
+    const visualiser::PCLine* pc_line = file_line.trace.front();
+    const Location* location = nullptr;
+    switch (file->type) {
+      case visualiser::Type::Source: // -> assembly
+        location = &pc_line->asm_origin;
+        break;
+      case visualiser::Type::Assembly: // -> language
+        location = &pc_line->lang_origin;
+        break;
+      default: ;
+    }
+
+    if (location) {
+      // make sure that the file actually exists
+      if (int file_index = find_file(location->path()); file_index != -1) {
+        state::selected_line = location->line();
+        state::menu_selected = file_index;
+      }
+    }
+
+    return true;
+  }
+
+  static bool on_b(ftxui::Event& e) {
     auto& line = selected()->lines[state::selected_line - 1];
     visualiser::processor::toggle_breakpoint(line.trace.front());
     return true;
   }
+}
+
+static bool file_pane_on_event(ftxui::Event e) {
+  if (e == ftxui::Event::ArrowUp) return events::on_arrow_up(e);
+  if (e == ftxui::Event::Home) return events::on_home(e);
+  if (e == ftxui::Event::ArrowDown) return events::on_arrow_down(e);
+  if (e == ftxui::Event::End) return events::on_end(e);
+  if (e == ftxui::Event::b) return events::on_b(e);
+  if (e == ftxui::Event::Character("]")) return events::on_right_bracket(e);
+  if (e == ftxui::Event::Character("[")) return events::on_left_bracket(e);
 
   return false;
 }
@@ -186,6 +260,8 @@ void visualiser::tabs::SourcesTab::init() {
     return create_key_help_pane({
       {"b", "toggle line breakpoint"},
       {"s", "toggle line select"},
+      {"[", "trace line backwards"},
+      {"]", "trace line forwards"},
     });
   });
 }

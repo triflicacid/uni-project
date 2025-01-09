@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <numeric>
+#include <iostream>
 
 std::string &ltrim(std::string &s, const char *t) {
   s.erase(0, s.find_first_not_of(t));
@@ -267,4 +268,8 @@ std::string join(const std::vector<std::string>& items, const std::string& delim
   return items.empty()
     ? ""
     : std::accumulate(++items.begin(), items.end(), *items.begin(), [&delim](auto& a, auto& b) { return a + delim + b; });
+}
+
+void bell_sound() {
+  std::cout << "\x1b[\007";
 }

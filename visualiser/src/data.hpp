@@ -45,7 +45,7 @@ namespace visualiser {
   void init();
 
   // get location in sources from $pc value (may be NULL)
-  PCLine *locate_pc(uint64_t pc);
+  const PCLine* locate_pc(uint64_t pc);
 
   // retrieve a file, load its lines if needed
   const File* get_file(const std::filesystem::path &path);
@@ -53,6 +53,9 @@ namespace visualiser {
   // get the PCLine with the given line number (in the source)
   const PCLine* locate_line(int line);
 
-  // get the PCLines in the given .asm file and line
+  // find all PCLines which originate from path.asm:line
   std::vector<const PCLine*> locate_asm_line(const std::filesystem::path &path, int line);
+
+  // find all PCLines which originate from path.src:line
+  std::vector<const PCLine*> locate_lang_line(const std::filesystem::path &path, int line);
 }

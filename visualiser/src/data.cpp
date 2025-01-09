@@ -58,7 +58,7 @@ void visualiser::init() {
   files.insert({file.path, file});
 }
 
-visualiser::PCLine *visualiser::locate_pc(uint64_t pc) {
+const visualiser::PCLine* visualiser::locate_pc(uint64_t pc) {
   if (auto it = pc_to_line.find(pc); it != pc_to_line.end()) {
     return &it->second;
   }
@@ -71,6 +71,18 @@ std::vector<const visualiser::PCLine*> visualiser::locate_asm_line(const std::fi
 
   for (const auto &[pc, entry]: visualiser::pc_to_line) {
     if (entry.asm_origin.path() == path && entry.asm_origin.line() == line) {
+      entries.push_back(&entry);
+    }
+  }
+
+  return entries;
+}
+
+std::vector<const visualiser::PCLine*> visualiser::locate_lang_line(const std::filesystem::path &path, int line) {
+  std::vector<const visualiser::PCLine *> entries;
+
+  for (const auto &[pc, entry]: visualiser::pc_to_line) {
+    if (entry.lang_origin.path() == path && entry.lang_origin.line() == line) {
       entries.push_back(&entry);
     }
   }

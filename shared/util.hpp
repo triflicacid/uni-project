@@ -104,3 +104,6 @@ void empty_stream(T &s) {
 
 // join a vector of strings by a delimeter
 std::string join(const std::vector<std::string>& items, const std::string& delim);
+
+// play a bell sound
+void bell_sound();
