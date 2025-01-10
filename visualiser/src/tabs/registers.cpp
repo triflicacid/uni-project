@@ -3,7 +3,10 @@
 #include "processor.hpp"
 #include "style.hpp"
 #include "util.hpp"
+#include "components/checkbox.hpp"
+#include "components/boolean.hpp"
 #include <ftxui/component/event.hpp>
+#include <ftxui/dom/table.hpp>
 
 enum class Field {
   Hex,
@@ -22,6 +25,13 @@ namespace state {
     static std::string s_hex, s_int, s_long, s_float, s_double;
     static ftxui::Component i_hex, i_int, i_long, i_float, i_double;
   }// namespace inputs
+
+  namespace flag { // fields for the $flag register
+    static ftxui::Component is_zero_toggle, is_running_toggle, cmp_dropdown;
+    static bool is_zero = false, is_running = false, in_interrupt = false;
+    static int cmp_dropdown_select = 0;
+    static std::vector<std::string> cmp_entries;
+  }
 }// namespace state
 
 // read the given register
@@ -153,43 +163,71 @@ static bool register_list_on_event(ftxui::Event &e) {
 // generate info for the $flag register, add to children (will be placed in a VBox)
 static void flag_register_info(std::vector<ftxui::Element> &elements) {
   using namespace ftxui;
-  std::vector<std::string> location, fields;
-  std::vector<Element> values;
+
+  std::vector<std::vector<Element>> entries; // table entries
   const uint64_t flag = visualiser::processor::cpu.reg(constants::registers::flag, true);
-  uint64_t field;
 
-  location.emplace_back("Bits 0-2");
-  fields.emplace_back("Comparison");
-  field = flag & constants::cmp_bits;
-  values.push_back(text(constants::cmp::to_string(static_cast<constants::cmp::flag>(field))) | visualiser::style::value);
+  // comparison bits
+  if (auto it = std::find(state::flag::cmp_entries.begin(), state::flag::cmp_entries.end(), constants::cmp::to_string(
+        static_cast<constants::cmp::flag>(flag & constants::cmp_bits))); it != state::flag::cmp_entries.end())
+    state::flag::cmp_dropdown_select = it - state::flag::cmp_entries.begin();
+  entries.emplace_back();
+  entries.back().push_back(text("Bits 0-2"));
+  entries.back().push_back(text("Comparison"));
+  entries.back().push_back(state::flag::cmp_dropdown->Render());
 
-  location.emplace_back("Bit 3");
-  fields.emplace_back("Zero");
-  field = flag & uint64_t(constants::flag::zero);
-  values.push_back(field ? (text("true") | visualiser::style::ok) : (text("false") | visualiser::style::bad));
+  // zero flag
+  state::flag::is_zero = flag & uint64_t(constants::flag::zero);
+  entries.emplace_back();
+  entries.back().push_back(text("Bit 3"));
+  entries.back().push_back(text("Zero"));
+  entries.back().push_back(hbox({
+    state::flag::is_zero_toggle->Render(),
+    text(" "),
+    boolean(state::flag::is_zero) | (state::flag::is_zero_toggle->Focused() ? visualiser::style::highlight : nothing),
+  }));
 
-  location.emplace_back("Bit 4");
-  fields.emplace_back("Is Running");
-  field = flag & uint64_t(constants::flag::is_running);
-  values.push_back(field ? (text("true") | visualiser::style::ok) : (text("false") | visualiser::style::bad));
+  // is running flag
+  state::flag::is_running = flag & uint64_t(constants::flag::is_running);
+  entries.emplace_back();
+  entries.back().push_back(text("Bit 4"));
+  entries.back().push_back(text("Is Running"));
+  entries.back().push_back(hbox({
+    state::flag::is_running_toggle->Render(),
+    text(" "),
+    boolean(state::flag::is_running) | (state::flag::is_running_toggle->Focused() ? visualiser::style::highlight : nothing),
+  }));
 
-  location.emplace_back("Bits 5-7");
-  fields.emplace_back("Error");
-  field = visualiser::processor::cpu.get_error();
-  values.push_back(field ? (text("code " + std::to_string(field)) | visualiser::style::bad) : (text("none") | visualiser::style::ok));
+  // error bits
+  entries.emplace_back();
+  entries.back().push_back(text("Bits 5-7"));
+  entries.back().push_back(text("Error"));
+  auto error_code = visualiser::processor::cpu.get_error();
+  Element error_element = error_code ? (text("code " + std::to_string(error_code)) | visualiser::style::bad) : (text("none") | visualiser::style::ok);
+  entries.back().push_back(error_element);
 
-  location.emplace_back("Bit 8");
-  fields.emplace_back("Handling Interrupt");
-  field = flag & uint64_t(constants::flag::in_interrupt);
-  values.push_back(field ? (text("true") | visualiser::style::ok) : (text("false") | visualiser::style::bad));
+  // handling an interrupt?
+  state::flag::in_interrupt = flag & int(constants::flag::in_interrupt);
+  entries.emplace_back();
+  entries.back().push_back(text("Bit 8"));
+  entries.back().push_back(text("Handling Interrupt"));
+  entries.back().push_back(boolean(state::flag::in_interrupt));
 
-  // assembly into rows
-  elements.push_back(hbox({
-    vbox(map(location, std::function<Element(std::string&)>([](auto &s) { return text(s); }))),
-    separator(),
-    vbox(map(fields, std::function<Element(std::string&)>([](auto &s) { return text(s); }))),
-    separator(),
-    vbox(values)}) | border);
+  // create the actual table
+  Table table(entries);
+  for (int i = 0; i < entries.size(); i++)
+    table.SelectColumn(i).Border(LIGHT);
+  elements.push_back(table.Render());
+}
+
+// change selection inside state::flag::cmp_dropdown
+static void cmp_dropdown_on_change() {
+  std::string& selected = state::flag::cmp_entries[state::flag::cmp_dropdown_select];
+  if (auto flag = constants::cmp::map.find(selected); flag != constants::cmp::map.end()) {
+    uint64_t new_value = visualiser::processor::cpu.reg(constants::registers::flag, true) | flag->second;
+    visualiser::processor::cpu.reg_set(constants::registers::flag, new_value, true);
+    sync_inputs();
+  }
 }
 
 void visualiser::tabs::RegistersTab::init() {
@@ -234,10 +272,43 @@ void visualiser::tabs::RegistersTab::init() {
     return register_list_on_event(e);
   });
 
-  auto register_view = Renderer(
-      Container::Vertical({state::inputs::i_hex, state::inputs::i_int, state::inputs::i_long, state::inputs::i_float,
-                           state::inputs::i_double}),
-      [&] {
+  // input controls for the $flag register
+  state::flag::cmp_entries.reserve(constants::cmp::map.size());
+  for (auto& [key, value] : constants::cmp::map) {
+    state::flag::cmp_entries.push_back(key);
+  }
+  state::flag::cmp_dropdown = ftxui::Dropdown({
+    .radiobox = {
+        .entries = &state::flag::cmp_entries,
+        .selected = &state::flag::cmp_dropdown_select,
+        .on_change = cmp_dropdown_on_change
+    }
+  });
+
+  state::flag::is_zero_toggle = create_checkbox("", [] {
+    visualiser::processor::cpu.flag_toggle(constants::flag::zero, true);
+    sync_inputs();
+  }, state::flag::is_zero);
+
+  state::flag::is_running_toggle = create_checkbox("", [] {
+    visualiser::processor::cpu.flag_toggle(constants::flag::is_running, true);
+    sync_inputs();
+  }, state::flag::is_running);
+
+  Component register_view_layout = Container::Vertical({
+    state::inputs::i_hex,
+    state::inputs::i_int,
+    state::inputs::i_long,
+    state::inputs::i_float,
+    state::inputs::i_double,
+    Maybe(Container::Vertical({
+      state::flag::cmp_dropdown,
+      state::flag::is_zero_toggle,
+      state::flag::is_running_toggle,
+    }), [] { return state::current_reg == int(constants::registers::flag); })
+  });
+
+  auto register_view = Renderer(register_view_layout, [] {
         auto reg = $reg(state::current_reg);
         std::vector<Element> children{
                         center(text("Register $" + constants::registers::to_string(reg)) | bold),
