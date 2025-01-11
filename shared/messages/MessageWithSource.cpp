@@ -1,34 +1,35 @@
 #include "MessageWithSource.hpp"
-#include "util.h"
+#include "util.hpp"
+#include "shell.hpp"
 #include <string>
 #include <iostream>
 #include <utility>
 
 namespace message {
-    MessageWithSource::MessageWithSource(Level level, std::filesystem::path filename, int line, int col, int idx, int len, const std::string& src)
-    : Message(level, std::move(filename), line, col) {
+    MessageWithSource::MessageWithSource(Level level, Location loc, int idx, int len, const std::string& src)
+    : Message(level, std::move(loc)) {
         m_idx = std::max(0, idx);
         m_len = std::max(1, std::min(len, (int) src.length() - m_idx));
         m_src = src;
     }
 
     void MessageWithSource::print_notice() {
-        std::cout << ANSI_BLUE "note" ANSI_RESET " " << m_file.string() << ':' << m_line + 1 << ':' << m_col + 1 << ": " << m_msg
-                  << '\n' << m_line + 1 << " | " << m_src.substr(0, m_idx) << ANSI_BLUE << m_src.substr(m_idx, m_len) << ANSI_RESET << m_src.substr(m_idx + m_len)
-                  << '\n' << std::string(std::to_string(m_line + 1).length(), ' ') << "   " << std::string(m_idx, ' ') << ANSI_BLUE "^" << std::string(m_len - 1, '~') << ANSI_RESET
+        std::cout << ANSI_BLUE "note" ANSI_RESET " " << m_loc.path() << ':' << m_loc.line() + 1 << ':' << m_loc.column() + 1 << ": " << m_msg.str()
+                  << '\n' << m_loc.line() + 1 << " | " << m_src.substr(0, m_idx) << ANSI_BLUE << m_src.substr(m_idx, m_len) << ANSI_RESET << m_src.substr(m_idx + m_len)
+                  << '\n' << std::string(std::to_string(m_loc.line() + 1).length(), ' ') << "   " << std::string(m_idx, ' ') << ANSI_BLUE "^" << std::string(m_len - 1, '~') << ANSI_RESET
                   << std::endl;
     }
 
     void MessageWithSource::print_warning() {
-        std::cout << ANSI_YELLOW "warning" ANSI_RESET " " << m_file.string() << ':' << m_line + 1 << ':' << m_col + 1 << ": " << m_msg
-                  << '\n' << m_line + 1 << " | " << m_src.substr(0, m_idx) << ANSI_YELLOW << m_src.substr(m_idx, m_len) << ANSI_RESET << m_src.substr(m_idx + m_len)
-                  << '\n' << std::string(std::to_string(m_line + 1).length(), ' ') << "   " << std::string(m_idx, ' ') << ANSI_YELLOW "^" << std::string(m_len - 1, '~') << ANSI_RESET
+        std::cout << ANSI_YELLOW "warning" ANSI_RESET " " << m_loc.path() << ':' << m_loc.line() + 1 << ':' << m_loc.column() + 1 << ": " << m_msg.str()
+                  << '\n' << m_loc.line() + 1 << " | " << m_src.substr(0, m_idx) << ANSI_YELLOW << m_src.substr(m_idx, m_len) << ANSI_RESET << m_src.substr(m_idx + m_len)
+                  << '\n' << std::string(std::to_string(m_loc.line() + 1).length(), ' ') << "   " << std::string(m_idx, ' ') << ANSI_YELLOW "^" << std::string(m_len - 1, '~') << ANSI_RESET
                   << std::endl;
     }
 
     void MessageWithSource::print_error() {
-        std::cout << ANSI_RED "error" ANSI_RESET " " << m_file.string() << ':' << m_line + 1 << ':' << m_col + 1 << ": " ANSI_YELLOW << m_msg << ANSI_RESET
-                  << '\n' << m_line + 1 << " | ";
+        std::cout << ANSI_RED "error" ANSI_RESET " " << m_loc.path() << ':' << m_loc.line() + 1 << ':' << m_loc.column() + 1 << ": " ANSI_YELLOW << m_msg.str() << ANSI_RESET
+                  << '\n' << m_loc.line() + 1 << " | ";
 
         if (m_idx >= m_src.length()) {
             std::cout << m_src << ANSI_RED_BG << std::string(m_len, ' ') << ANSI_RESET;
@@ -38,7 +39,7 @@ namespace message {
         }
 
 
-        std::cout << '\n' << std::string(std::to_string(m_line + 1).length(), ' ') << "   " << std::string(m_idx, ' ') << ANSI_RED "^" << std::string(m_len - 1, '~') << ANSI_RESET
+        std::cout << '\n' << std::string(std::to_string(m_loc.line() + 1).length(), ' ') << "   " << std::string(m_idx, ' ') << ANSI_RED "^" << std::string(m_len - 1, '~') << ANSI_RESET
                   << std::endl;
     }
 

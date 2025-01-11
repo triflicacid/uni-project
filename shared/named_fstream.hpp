@@ -22,6 +22,11 @@ public:
       path = std::filesystem::canonical(path);
     }
 
+    // return ownership of the file stream
+    std::unique_ptr<std::fstream> take() {
+      return std::move(ptr);
+    }
+
     static std::unique_ptr<named_fstream> open(const std::filesystem::path &path, std::ios::openmode mode) {
         if (auto stream = std::make_unique<std::fstream>(path, mode); stream->is_open()) {
             return std::make_unique<named_fstream>(path, std::move(stream));

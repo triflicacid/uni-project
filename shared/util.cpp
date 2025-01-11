@@ -1,7 +1,6 @@
 #include "util.hpp"
 
 #include <utility>
-#include <numeric>
 #include <iostream>
 
 std::string &ltrim(std::string &s, const char *t) {
@@ -265,9 +264,10 @@ std::string to_hex_string(uint64_t value, uint8_t size_bytes) {
 }
 
 std::string join(const std::vector<std::string>& items, const std::string& delim) {
-  return items.empty()
-    ? ""
-    : std::accumulate(++items.begin(), items.end(), *items.begin(), [&delim](auto& a, auto& b) { return a + delim + b; });
+  std::stringstream s;
+  for (const std::string& item : items)
+    s << item << delim;
+  return s.str();
 }
 
 void split_string(const std::string &str, char delimiter, std::function<void(const std::string&)> f) {

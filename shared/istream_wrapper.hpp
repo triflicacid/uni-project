@@ -22,6 +22,7 @@ private:
 
 public:
   explicit IStreamWrapper(std::ifstream stream);
+  explicit IStreamWrapper(std::fstream stream);
   explicit IStreamWrapper(std::istringstream stream);
   explicit IStreamWrapper(const std::string& source);
 

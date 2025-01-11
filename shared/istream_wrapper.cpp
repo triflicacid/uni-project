@@ -9,6 +9,11 @@ IStreamWrapper::IStreamWrapper(std::ifstream stream) {
   initialise();
 }
 
+IStreamWrapper::IStreamWrapper(std::fstream stream) {
+  istream = std::make_unique<std::fstream>(std::move(stream));
+  initialise();
+}
+
 IStreamWrapper::IStreamWrapper(std::istringstream stream) {
   istream = std::make_unique<std::istringstream>(std::move(stream));
   initialise();
