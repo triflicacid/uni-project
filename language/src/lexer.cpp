@@ -36,7 +36,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
     }
   };
 
-std::string token_type_to_string(TokenType type) {
+std::string lang::lexer::token_type_to_string(TokenType type, bool add_quotes) {
   // special case?
   switch (type) {
     case lang::lexer::TokenType::ident:
@@ -56,13 +56,13 @@ std::string token_type_to_string(TokenType type) {
   for (auto& map : identifier_map)
     for (auto& [str, type2] : map)
       if (type2 == type)
-        return str;
+        return add_quotes ? '"' + str + '"' : str;
 
   // scan the literal map
   for (auto& map : literal_map)
     for (auto& [str, type2] : map)
       if (type2 == type)
-        return str;
+        return add_quotes ? '"' + str + '"' : str;
 
   return "unknown";
 }

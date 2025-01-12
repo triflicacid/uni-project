@@ -25,7 +25,10 @@ namespace message {
     void Message::print(std::ostream &os) {
         m_loc.print(os) << ": ";
         print_type_suffix(os);
-        os << ": " << m_msg.str() << std::endl;
+
+        std::string msg = m_msg.str();
+        if (!msg.empty() && msg.back() == '\r') msg = msg.substr(0, msg.size() - 1);
+        os << ": " << msg << std::endl;
     }
 
     Level level_from_int(int level) {

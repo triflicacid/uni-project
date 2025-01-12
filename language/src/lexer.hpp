@@ -42,7 +42,7 @@ namespace lang::lexer {
   };
 
   // given token type, return string representation
-  std::string token_type_to_string(TokenType type);
+  std::string token_type_to_string(TokenType type, bool add_quotes = true);
 
   struct Token {
     TokenType type;
@@ -53,6 +53,7 @@ namespace lang::lexer {
       double float_value;
     };
 
+    size_t length() const { return image.size(); }
     bool is_eof() const;
     bool is_valid() const;
   };
