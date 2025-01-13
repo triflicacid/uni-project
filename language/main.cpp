@@ -63,18 +63,8 @@ int main(int argc, char** argv) {
     lang::parser::Parser parser(lexer);
     parser.messages(&messages);
 
-    messages.add(std::move(parser.generate_syntax_error({lang::lexer::TokenType::ident})));
-    if (parser.is_error()) {
-      handle_messages(messages);
-    }
-
-    while (true) {
-      auto token = parser.consume();
-      std::cout << "Token@<" << token.source.path() << ":" << token.source.line() << ":" << token.source.column() << "> " << ANSI_GREEN << token.image << ANSI_RESET << std::endl;
-      if (token.is_eof()) break;
-    }
-
-
+    auto literal = parser.parse_number();
+    literal->print_code(std::cout);
   }
 
   return EXIT_SUCCESS;

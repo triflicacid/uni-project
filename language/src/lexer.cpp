@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <iostream>
 #include "lexer.hpp"
+#include "uint64.hpp"
 
 using namespace lang::lexer;
 
@@ -85,24 +86,20 @@ Token Lexer::token(const std::string &image, TokenType type) const {
 
   // populate token's value if necessary
   switch (type) {
-    case TokenType::int_lit: {
-      int value = std::stoi(image);
-      token.int_value = *(uint64_t*) &value;
+    case TokenType::int_lit:
+      token.value = uint64::from(std::stoi(image));
       break;
-    }
-    case TokenType::long_lit: {
-      int64_t value = std::stoll(image);
-      token.int_value = *(uint64_t*) &value;
+    case TokenType::long_lit:
+      token.value = uint64::from((int64_t)std::stoll(image));
       break;
-    }
     case TokenType::ulong_lit:
-      token.int_value = std::stoull(image);
+      token.value = uint64::from((uint64_t)std::stoull(image));
       break;
     case TokenType::float_lit:
-      token.float_value = std::stof(image);
+      token.value = uint64::from(std::stof(image));
       break;
     case TokenType::double_lit:
-      token.float_value = std::stod(image);
+      token.value = uint64::from(std::stod(image));
       break;
     default: ;
   }

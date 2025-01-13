@@ -48,10 +48,7 @@ namespace lang::lexer {
     TokenType type;
     std::string image;
     Location source;
-    union {
-      uint64_t int_value = 0;
-      double float_value;
-    };
+    uint64_t value = 0;
 
     size_t length() const { return image.size(); }
     bool is_eof() const;

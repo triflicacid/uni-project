@@ -4,6 +4,7 @@
 #include "lexer.hpp"
 #include "messages/MessageWithSource.hpp"
 #include "messages/list.hpp"
+#include "ast/expr/literal.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -45,5 +46,11 @@ namespace lang::parser {
 
     // generate an error message about a syntax error
     std::unique_ptr<message::MessageWithSource> generate_syntax_error(const std::set<lexer::TokenType>& expected_types);
+
+    // test if we can parse a number
+    bool test_number();
+
+    // parse a numeric literal
+    std::unique_ptr<ast::expr::LiteralNode> parse_number();
   };
 }

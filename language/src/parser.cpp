@@ -1,5 +1,7 @@
 #include <iostream>
 #include "parser.hpp"
+#include "ast/types/float.hpp"
+#include "ast/types/int.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -82,4 +84,23 @@ lang::parser::Parser::generate_syntax_error(const std::set<lexer::TokenType> &ex
   stream << '.';
 
   return error;
+}
+
+bool lang::parser::Parser::test_number() {
+  return expect({lexer::TokenType::int_lit, lexer::TokenType::float_lit});
+}
+
+std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number() {
+  // TODO determine types properly
+  // assume token is float_lit or int_lit
+  const lexer::Token& token = consume();
+  ast::type::Node* type_node;
+
+  if (token.type == lexer::TokenType::float_lit) {
+    type_node = &ast::type::float32;
+  } else {
+    type_node = &ast::type::int32;
+  }
+
+  return std::make_unique<ast::expr::LiteralNode>(token, *type_node);
 }
