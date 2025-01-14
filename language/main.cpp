@@ -4,7 +4,6 @@
 #include "named_fstream.hpp"
 #include "config.hpp"
 #include "lexer.hpp"
-#include "shell.hpp"
 #include "messages/list.hpp"
 #include "parser.hpp"
 
@@ -63,8 +62,12 @@ int main(int argc, char** argv) {
     lang::parser::Parser parser(lexer);
     parser.messages(&messages);
 
-    auto literal = parser.parse_number();
-    literal->print_code(std::cout);
+    auto expr = parser.parse_expression();
+    if (parser.is_error()) {
+      handle_messages(*parser.messages());
+    } else {
+      expr->print_tree(std::cout);
+    }
   }
 
   return EXIT_SUCCESS;

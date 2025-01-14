@@ -68,6 +68,15 @@ std::string lang::lexer::token_type_to_string(TokenType type, bool add_quotes) {
   return "unknown";
 }
 
+TokenSet lang::lexer::merge_sets(const std::vector<TokenSet> &sets) {
+  TokenSet result;
+  for (const auto &set : sets) {
+    result.insert(set.begin(), set.end());
+  }
+
+  return result;
+}
+
 bool Token::is_eof() const {
   return type == TokenType::eof;
 }

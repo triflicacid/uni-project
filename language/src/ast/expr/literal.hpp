@@ -5,7 +5,7 @@
 namespace lang::ast::expr {
   // describe a float or int literal
   class LiteralNode : public Node {
-    const type::Node& type_; // eiter Float or Int
+    const type::Node& type_; // either Float or Int
 
   public:
     LiteralNode(lexer::Token token, const type::Node& type) : Node(std::move(token)), type_(type) {}

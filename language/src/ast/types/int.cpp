@@ -5,7 +5,7 @@ std::ostream &lang::ast::type::IntNode::print_code(std::ostream &os, unsigned in
 }
 
 std::string lang::ast::type::IntNode::name() const {
-  return "Type::" + std::string(signed_ ? "Int" : "Uint") + std::to_string(width_ * 8);
+  return "type::" + std::string(signed_ ? "int" : "uint") + std::to_string(width_ * 8);
 }
 
 lang::ast::type::IntNode

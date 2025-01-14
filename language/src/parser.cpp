@@ -1,7 +1,11 @@
 #include <iostream>
+#include <map>
+#include <ranges>
 #include "parser.hpp"
 #include "ast/types/float.hpp"
 #include "ast/types/int.hpp"
+#include "ast/expr/operator.hpp"
+#include "ast/expr/symbol_reference.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -36,19 +40,20 @@ bool lang::parser::Parser::expect(const std::set<lexer::TokenType> &types, unsig
   return types.find(peek(n).type) != types.end();
 }
 
+bool lang::parser::Parser::expect_or_error(const std::set<lexer::TokenType> &types) {
+  if (expect(types)) {
+    return true;
+  }
+
+  add_message(std::move(generate_syntax_error(types)));
+  return false;
+}
+
 lang::lexer::Token lang::parser::Parser::consume() {
   if (buffer_.empty()) read_tokens(1);
   lexer::Token& last = buffer_.front();
   buffer_.pop_front();
   return last;
-}
-
-bool lang::parser::Parser::consume(const std::set<lexer::TokenType> &types) {
-  if (expect(types)) {
-    consume();
-    return true;
-  }
-  return false;
 }
 
 std::unique_ptr<message::MessageWithSource>
@@ -74,7 +79,7 @@ lang::parser::Parser::generate_syntax_error(const std::set<lexer::TokenType> &ex
   stream << "syntax error: encountered " << lexer::token_type_to_string(peek().type);
   if (!expected_types.empty()) {
     stream << ", expected ";
-    if (expected_types.size() > 1) stream << " one of ";
+    if (expected_types.size() > 1) stream << "one of ";
     int i = 0;
     for (const lexer::TokenType& type : expected_types) {
       stream << lexer::token_type_to_string(type);
@@ -86,9 +91,7 @@ lang::parser::Parser::generate_syntax_error(const std::set<lexer::TokenType> &ex
   return error;
 }
 
-bool lang::parser::Parser::test_number() {
-  return expect({lexer::TokenType::int_lit, lexer::TokenType::float_lit});
-}
+const lang::lexer::TokenSet lang::parser::firstsets::number{lexer::TokenType::int_lit, lexer::TokenType::float_lit};
 
 std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number() {
   // TODO determine types properly
@@ -103,4 +106,93 @@ std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number
   }
 
   return std::make_unique<ast::expr::LiteralNode>(token, *type_node);
+}
+
+static std::map<lang::lexer::TokenType, lang::ast::expr::OperatorInfo> token_to_binary_operator_map = {
+    {lang::lexer::TokenType::assign, {4, true, lang::ast::expr::OperatorType::ASSIGNMENT}},
+    {lang::lexer::TokenType::plus, {14, false, lang::ast::expr::OperatorType::ADDITION}},
+    {lang::lexer::TokenType::minus, {14, false, lang::ast::expr::OperatorType::SUBTRACTION}},
+    {lang::lexer::TokenType::star, {15, false, lang::ast::expr::OperatorType::MULTIPLICATION}},
+    {lang::lexer::TokenType::div, {15, false, lang::ast::expr::OperatorType::DIVISION}},
+}, token_to_unary_operator_map = {
+    {lang::lexer::TokenType::minus, {17, false, lang::ast::expr::OperatorType::MINUS}}
+};
+
+static const auto binary_operators_view = std::views::keys(token_to_binary_operator_map);
+static const auto unary_operators_view = std::views::keys(token_to_unary_operator_map);
+
+const lang::lexer::TokenSet lang::parser::firstsets::unary_operator(unary_operators_view.begin(), unary_operators_view.end());
+const lang::lexer::TokenSet lang::parser::firstsets::binary_operator(binary_operators_view.begin(), binary_operators_view.end());
+const lang::lexer::TokenSet lang::parser::firstsets::term = lexer::merge_sets({
+    firstsets::number,
+    {lexer::TokenType::ident, lexer::TokenType::lpar}
+});
+
+std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
+  if (expect(firstsets::number)) { // numeric literal
+    return parse_number();
+  } else if (expect({lexer::TokenType::ident})) { // identifier
+    return std::make_unique<ast::expr::SymbolReferenceNode>(consume());
+  } else if (expect({lexer::TokenType::lpar})) { // bracketed expression
+    consume();
+    auto expr = parse_expression();
+    // ensure we have a closing bracket, or propagate error
+    if (is_error() || !expect_or_error({lexer::TokenType::rpar})) return nullptr;
+    consume(); // ')'
+    return expr;
+  } else { // unknown, but should've been caught already
+    return nullptr;
+  }
+}
+
+const lang::lexer::TokenSet lang::parser::firstsets::expression = lexer::merge_sets({
+    firstsets::term,
+    firstsets::unary_operator
+});
+
+std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(int precedence) {
+  std::unique_ptr<ast::expr::Node> expr;
+
+  // check if we have a unary operator, or just a term
+  if (expect(firstsets::unary_operator)) {
+    lexer::Token op_token = consume();
+    // check if there is a term following this
+    if (!expect(firstsets::term)) {
+      add_message(std::move(generate_syntax_error(firstsets::term)));
+      return nullptr;
+    }
+
+    std::unique_ptr<ast::expr::Node> term = parse_term();
+    // propagate error if necessary
+    if (is_error()) return nullptr;
+    // wrap term in the unary operator
+    return std::make_unique<ast::expr::UnaryOperatorNode>(op_token, token_to_unary_operator_map[op_token.type].type,
+                                                          std::move(term));
+  } else {
+    expr = parse_term();
+    if (is_error()) return nullptr;
+  }
+
+  while (expect(firstsets::binary_operator)) {
+    lexer::Token op_token = peek();
+    auto& op_info = token_to_binary_operator_map[op_token.type];
+
+    // exit if lower precedence
+    if (precedence >= op_info.precedence) {
+      break;
+    }
+
+    // parse RHS of expression, supplying the operator's precedence as a new baseline
+    consume();
+    if (!expect_or_error(firstsets::expression)) return nullptr;
+    int new_precedence = op_info.precedence;
+    if (op_info.right_associative) new_precedence--;
+    auto rest = parse_expression(new_precedence);
+    if (is_error()) return nullptr;
+
+    // wrap both sides in a binary operator
+    expr = std::make_unique<ast::expr::BinaryOperatorNode>(op_token, op_info.type, std::move(expr), std::move(rest));
+  }
+
+  return expr;
 }

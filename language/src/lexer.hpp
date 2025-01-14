@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <set>
 #include "location.hpp"
 #include "istream_wrapper.hpp"
 
@@ -43,6 +44,10 @@ namespace lang::lexer {
 
   // given token type, return string representation
   std::string token_type_to_string(TokenType type, bool add_quotes = true);
+
+  using TokenSet = std::set<TokenType>;
+
+  TokenSet merge_sets(const std::vector<TokenSet>& sets);
 
   struct Token {
     TokenType type;

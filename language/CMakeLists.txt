@@ -8,6 +8,7 @@ add_executable(language ../shared/util.cpp ../shared/messages/message.cpp ../sha
         src/config.cpp
         src/lexer.cpp src/parser.cpp
         src/ast/node.cpp
-        src/ast/expr/literal.cpp
-        src/ast/types/int.cpp src/ast/types/float.cpp
+        src/ast/expr/operator.cpp src/ast/expr/literal.cpp src/ast/expr/symbol_reference.cpp
+        src/ast/types/int.cpp src/ast/types/namespace.cpp src/ast/types/float.cpp src/ast/types/function.cpp
+        src/symbol/namespace.cpp
         main.cpp)

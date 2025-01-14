@@ -5,7 +5,7 @@
 #include "shell.hpp"
 
 std::string lang::ast::expr::LiteralNode::name() const {
-  return "Literal{" + type_.name() + "}";
+  return "literal{" + type_.name() + "}";
 }
 
 std::ostream &lang::ast::expr::LiteralNode::print_code(std::ostream &os, unsigned int indent_level) const {
