@@ -35,8 +35,8 @@ public:
         os << weakly_canonical(m_path).string();
 
         if (m_line > -1) {
-            os << ":" << m_line + 1;
-            if (m_col > -1) os << ":" << m_col + 1;
+            os << ":" << m_line;
+            if (m_col > -1) os << ":" << m_col;
         }
 
         return os;

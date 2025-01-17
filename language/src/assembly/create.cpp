@@ -1,6 +1,10 @@
-#include "instructions.hpp"
+#include "create.hpp"
 
 using namespace lang::assembly;
+
+std::unique_ptr<GenericInstruction> lang::assembly::instruction(const std::string& mnemonic) {
+  return std::make_unique<GenericInstruction>(mnemonic);
+}
 
 // create reg_value instruction
 static std::unique_ptr<GenericInstruction> create_reg_value(const std::string& mnemonic, uint8_t reg, std::unique_ptr<BaseArg> value) {

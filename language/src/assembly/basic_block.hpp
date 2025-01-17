@@ -1,14 +1,17 @@
 #pragma once
 
 #include <deque>
-#include "instruction.hpp"
+#include <string>
+#include <memory>
+#include <optional>
+#include "line.hpp"
 
 namespace lang::assembly {
   // a basic block represents a sequence of assembly instructions
   // it is labelled and can only contain jump instructions at the end
   class BasicBlock {
     std::optional<std::string> label_;
-    std::deque<std::unique_ptr<Instruction>> instructions_;
+    std::deque<std::unique_ptr<Line>> contents_;
 
     BasicBlock() {}
     explicit BasicBlock(std::string label) : label_(std::move(label)) {}
@@ -18,9 +21,9 @@ namespace lang::assembly {
 
     const std::optional<std::string>& label() const { return label_; }
 
-    void add(std::unique_ptr<Instruction> i);
+    void add(std::unique_ptr<Line> i);
 
-    size_t size() const { return instructions_.size(); }
+    size_t size() const { return contents_.size(); }
 
     std::ostream& print(std::ostream& os) const;
 

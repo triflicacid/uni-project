@@ -3,8 +3,11 @@
 #include <memory>
 #include "basic_block.hpp"
 #include "program.hpp"
+#include "instruction.hpp"
 
 namespace lang::assembly {
+  std::unique_ptr<GenericInstruction> instruction(const std::string& mnemonic);
+
   std::unique_ptr<GenericInstruction> create_add(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
 
   std::unique_ptr<GenericInstruction> create_and(uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);

@@ -6,6 +6,10 @@
 #include "lexer.hpp"
 #include "messages/list.hpp"
 #include "parser.hpp"
+#include "assembly/program.hpp"
+#include "assembly/create.hpp"
+#include "assembly/arg.hpp"
+#include "assembly/directive.hpp"
 
 struct Options {
   std::vector<std::unique_ptr<named_fstream>> files; // input files
@@ -44,6 +48,28 @@ bool handle_messages(message::List &list) {
 }
 
 int main(int argc, char** argv) {
+  lang::assembly::Program program("main");
+
+  program.insert(lang::assembly::Position::Before, lang::assembly::BasicBlock::labelled("message"));
+  program.current().add(lang::assembly::Directive::string("Current value is "));
+
+  program.select("main");
+  program.current().add(lang::assembly::create_load(10, lang::assembly::Arg::imm(69)));
+
+  auto inst = lang::assembly::instruction("print_str");
+  inst->add_arg(lang::assembly::Arg::label(program.get("message")));
+  program.current().add(std::move(inst));
+
+  inst = lang::assembly::instruction("print_int");
+  inst->add_arg(lang::assembly::Arg::reg(10));
+  program.current().add(std::move(inst));
+
+  program.current().add(lang::assembly::create_exit());
+  program.current().add(lang::assembly::create_branch(lang::assembly::Arg::label(program.current())));
+
+  program.print(std::cout);
+  return EXIT_SUCCESS;
+
   Options options;
   if (int code = parse_arguments(argc, argv, options); code != EXIT_SUCCESS) {
     return code;
@@ -63,10 +89,15 @@ int main(int argc, char** argv) {
     parser.messages(&messages);
 
     auto expr = parser.parse_expression();
-    if (parser.is_error()) {
-      handle_messages(*parser.messages());
-    } else {
-      expr->print_tree(std::cout);
+    if (!parser.is_error()) parser.expect_or_error({lang::lexer::TokenType::eof});
+    if (handle_messages(*parser.messages())) {
+      return EXIT_FAILURE;
+    }
+
+    expr->print_tree(std::cout);
+    expr->process(messages);
+    if (handle_messages(messages)) {
+      return EXIT_FAILURE;
     }
   }
 

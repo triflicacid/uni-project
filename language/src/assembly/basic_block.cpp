@@ -1,7 +1,7 @@
 #include "basic_block.hpp"
 
-void lang::assembly::BasicBlock::add(std::unique_ptr<Instruction> i) {
-  instructions_.push_back(std::move(i));
+void lang::assembly::BasicBlock::add(std::unique_ptr<Line> i) {
+  contents_.push_back(std::move(i));
 }
 
 std::ostream& lang::assembly::BasicBlock::print(std::ostream& os) const {
@@ -9,7 +9,7 @@ std::ostream& lang::assembly::BasicBlock::print(std::ostream& os) const {
   if (label_.has_value()) os << label_.value() << ":" << std::endl;
 
   // print our instructions
-  for (auto& instruction : instructions_) {
+  for (auto& instruction : contents_) {
     instruction->print(os) << std::endl;
   }
 
