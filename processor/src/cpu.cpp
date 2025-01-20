@@ -713,7 +713,7 @@ uint32_t processor::CPU::_arg_reg_indirect(uint32_t data) {
   // recover 24-bit offset, add sign if needed
   uint32_t raw_offset = (data >> 8) & 0xffffff;
   if (raw_offset & 0x800000) raw_offset |= 0xff000000;
-  int32_t offset = *(int32_t*) &offset;
+  int32_t offset = *(int32_t*) &raw_offset;
 
   data = this->reg(reg) + offset;
   if (debug::args) {
