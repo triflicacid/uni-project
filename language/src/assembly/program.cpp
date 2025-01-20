@@ -8,9 +8,8 @@ void lang::assembly::Program::insert_at(int index, std::unique_ptr<BasicBlock> b
   current_ = index;
   blocks_.insert(blocks_.begin() + index, std::move(block));
 
-  // add to label map if necessary
   if (auto& b = blocks_[index]; b->label().has_value()) {
-    labels_.insert({b->label().value(), index});
+    labels_.insert({b->label().value(), *b});
   }
 }
 
@@ -26,9 +25,11 @@ bool lang::assembly::Program::select(const lang::assembly::BasicBlock& block) {
 }
 
 bool lang::assembly::Program::select(const std::string& label) {
-  if (auto it = labels_.find(label); it != labels_.end()) {
-    current_ = it->second;
-    return true;
+  for (int i = 0; i < blocks_.size(); i++) {
+    if (auto l = blocks_[i]->label(); l && l.value() == label) {
+      current_ = i;
+      return true;
+    }
   }
 
   return false;
@@ -73,4 +74,8 @@ std::ostream& lang::assembly::Program::print(std::ostream& os) const {
     block->print(os) << std::endl;
   }
   return os;
+}
+
+lang::assembly::BasicBlock& lang::assembly::Program::get(const std::string& label) {
+  return labels_.find(label)->second;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "node.hpp"
+#include "constants.hpp"
 
 namespace lang::ast::type {
   class IntNode : public Node {
@@ -10,11 +11,13 @@ namespace lang::ast::type {
   public:
     IntNode(uint8_t width, bool is_signed) : signed_(is_signed), width_(width) {}
 
-    bool is_int() const override { return true; }
+    const IntNode* get_int() const override { return this; }
 
     std::string name() const override;
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    size_t size() const override { return width_; }
 
     std::strong_ordering operator<=>(const IntNode& other) const {
       if (width_ == other.width_) {
@@ -26,6 +29,8 @@ namespace lang::ast::type {
     uint8_t width() const { return width_; }
 
     bool is_signed() const { return signed_; }
+
+    constants::inst::datatype::dt get_asm_datatype() const;
   };
 
   extern IntNode uint8, int8;

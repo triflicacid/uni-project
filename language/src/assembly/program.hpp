@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <map>
 #include "basic_block.hpp"
 
 namespace lang::assembly {
@@ -16,7 +17,7 @@ namespace lang::assembly {
   // a program is a navigable sequence of basic blocks
   class Program {
     std::deque<std::unique_ptr<BasicBlock>> blocks_;
-    std::map<std::string, int> labels_; // map labels to the index of the BasicBlock
+    std::map<std::string, std::reference_wrapper<BasicBlock>> labels_; // map labels to the index of the BasicBlock
     int current_; // 'pointer' to current BasicBlock
 
     // insert BasicBlock at the given index, update current_
@@ -27,6 +28,9 @@ namespace lang::assembly {
 
     // return the currently selected block
     BasicBlock& current() { return *blocks_[current_]; }
+
+    // return reference to the given block, errors if fail
+    BasicBlock& get(const std::string& label);
 
     // insert the given block into the structure at the given position (relative to current_)
     // sets the inserted block as current_

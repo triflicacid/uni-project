@@ -108,12 +108,14 @@ std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number
   return std::make_unique<ast::expr::LiteralNode>(token, *type_node);
 }
 
+// map of token types to operators
 static std::map<lang::lexer::TokenType, lang::ast::expr::OperatorInfo> token_to_binary_operator_map = {
     {lang::lexer::TokenType::assign, {4, true, lang::ast::expr::OperatorType::ASSIGNMENT}},
     {lang::lexer::TokenType::plus, {14, false, lang::ast::expr::OperatorType::ADDITION}},
     {lang::lexer::TokenType::minus, {14, false, lang::ast::expr::OperatorType::SUBTRACTION}},
     {lang::lexer::TokenType::star, {15, false, lang::ast::expr::OperatorType::MULTIPLICATION}},
     {lang::lexer::TokenType::div, {15, false, lang::ast::expr::OperatorType::DIVISION}},
+    {lang::lexer::TokenType::dot, {15, false, lang::ast::expr::OperatorType::MEMBER_ACCESS}},
 }, token_to_unary_operator_map = {
     {lang::lexer::TokenType::minus, {17, false, lang::ast::expr::OperatorType::MINUS}}
 };

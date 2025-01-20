@@ -1,6 +1,7 @@
 #pragma once
 
 #include "node.hpp"
+#include "constants.hpp"
 
 namespace lang::ast::type {
   class FloatNode : public Node {
@@ -9,7 +10,7 @@ namespace lang::ast::type {
   public:
     explicit FloatNode(bool is_double) : double_(is_double) {}
 
-    bool is_float() const override { return true; }
+    const FloatNode* get_float() const override { return this; }
 
     bool is_double() const { return double_; }
 
@@ -17,9 +18,13 @@ namespace lang::ast::type {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
+    size_t size() const override { return double_ ? 4 : 8; }
+
     bool operator==(const FloatNode& other) const {
       return double_ == other.double_;
     }
+
+    constants::inst::datatype::dt get_asm_datatype() const;
   };
 
   extern FloatNode float32, float64;

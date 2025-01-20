@@ -17,7 +17,7 @@ namespace lang::symbol {
     const ast::type::Node& type() const override { return ast::type::name_space; }
 
     // get all symbols with this name, or nullptr
-    std::deque<std::unique_ptr<Symbol>>* lookup(const std::string& name);
+    const std::deque<std::unique_ptr<Symbol>>* find(const std::string& name) const;
 
     // insert new symbol into map
     // note: does no checks, just inserts it

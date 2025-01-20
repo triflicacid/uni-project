@@ -15,5 +15,7 @@ namespace lang::ast::type {
     std::string name() const override { return "type::function"; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    size_t size() const override { return 8; } // size of an address
   };
 }

@@ -8,6 +8,13 @@ std::string lang::ast::type::IntNode::name() const {
   return "type::" + std::string(signed_ ? "int" : "uint") + std::to_string(width_ * 8);
 }
 
+constants::inst::datatype::dt lang::ast::type::IntNode::get_asm_datatype() const {
+  using namespace constants::inst::datatype;
+  return width_ == 8
+    ? (signed_ ? s64 : u64)
+    : (signed_ ? s32 : u32);
+}
+
 lang::ast::type::IntNode
   lang::ast::type::uint8(1, false),
   lang::ast::type::int8(1, true),

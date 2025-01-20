@@ -6,6 +6,8 @@
 
 namespace lang::assembly {
   struct BaseArg {
+    virtual ~BaseArg() = default;
+
     virtual std::ostream& print(std::ostream& os) const = 0;
   };
 

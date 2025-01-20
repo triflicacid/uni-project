@@ -140,6 +140,12 @@ std::unique_ptr<GenericInstruction> lang::assembly::create_exit(std::unique_ptr<
   return inst;
 }
 
+std::unique_ptr<GenericInstruction> lang::assembly::create_extend(bool is_signed, uint8_t reg_dst, std::unique_ptr<BaseArg> value, uint32_t imm) {
+  auto &func = is_signed ? create_signed_extend : create_zero_extend;
+  return func(reg_dst, std::move(value), imm);
+}
+
+
 std::unique_ptr<GenericInstruction> lang::assembly::create_push(uint8_t bytes) {
   auto inst = std::make_unique<GenericInstruction>("sub");
   inst->add_arg(Arg::reg(constants::registers::sp));
@@ -181,4 +187,25 @@ std::unique_ptr<GenericInstruction> lang::assembly::create_interrupt(std::unique
 
 std::unique_ptr<Instruction> lang::assembly::create_exit() {
   return std::make_unique<Instruction>("exit");
+}
+
+void lang::assembly::create_load(uint8_t reg, std::unique_ptr<BaseArg> value, uint8_t bytes, BasicBlock& block, bool is_signed) {
+  // start with a normal load
+  block.add(create_load(reg, std::move(value)));
+
+  // clear remainder of register
+  if (bytes < 8) {
+    block.add(create_extend(is_signed, reg, Arg::reg(reg), (8 - bytes) * 8));
+  }
+}
+
+void lang::assembly::create_store(uint8_t reg, uint32_t address, uint8_t bytes, BasicBlock& block) {
+  // if bytes exceeds a word, we do nothing
+  if (bytes > 7) {
+    block.add(create_store(reg, address));
+    return;
+  }
+
+  // otherwise, pick a register (must be register) to use as a temporary
+  // TODO
 }

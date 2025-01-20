@@ -1,5 +1,6 @@
 #pragma once
 #include "lexer.hpp"
+#include "messages/list.hpp"
 
 namespace lang::ast {
   class NodeBase {
@@ -21,6 +22,10 @@ namespace lang::ast {
 
     // print in tree form, default only print name
     virtual std::ostream& print_tree(std::ostream& os, unsigned int indent_level = 0) const;
+
+    // validate/process this Node, populating the message queue if necessary
+    // return if successful
+    virtual bool process(message::List& messages);
   };
 
   // utility: write a certain indent to the output stream

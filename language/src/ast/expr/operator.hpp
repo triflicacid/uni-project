@@ -4,12 +4,13 @@
 
 namespace lang::ast::expr {
   enum class OperatorType {
-    ASSIGNMENT,
-    ADDITION,
-    SUBTRACTION,
-    MINUS,
-    MULTIPLICATION,
-    DIVISION,
+    ASSIGNMENT, // a = b
+    ADDITION, // a + b
+    DIVISION, // a / b
+    MEMBER_ACCESS, // a.b
+    MINUS, // -a
+    MULTIPLICATION, // a * b
+    SUBTRACTION, // a - b
   };
 
   struct OperatorInfo {

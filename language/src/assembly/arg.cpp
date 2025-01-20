@@ -11,7 +11,7 @@ std::ostream& lang::assembly::Arg::print(std::ostream& os) const {
     case constants::inst::mem:
       return os << "(0x" << std::dec << value_ << std::dec << ")";
     case constants::inst::reg_indirect:
-      return os << "$" << constants::registers::to_string($reg(value_ & 0xff)) << "(" << (value_ >> 8) << ")";
+      return os << (value_ >> 8) << "($" << constants::registers::to_string($reg(value_ & 0xff)) << ")";
     default:
       return os << "arg?";
   }

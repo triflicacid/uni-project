@@ -1,7 +1,7 @@
 #include "directive.hpp"
 #include <sstream>
 
-std::ostream& lang::assembly::Directive::print(std::ostream& os) const {
+std::ostream& lang::assembly::Directive::_print(std::ostream& os) const {
   return os << "." << name_;
 }
 
@@ -31,8 +31,8 @@ std::unique_ptr<lang::assembly::Directive> lang::assembly::Directive::offset(uin
   return std::make_unique<_SingleDirective>("offset", n);
 }
 
-std::ostream& lang::assembly::_SingleDirective::print(std::ostream& os) const {
-  return Directive::print(os) << " 0x" << std::hex << n_ << std::dec;
+std::ostream& lang::assembly::_SingleDirective::_print(std::ostream& os) const {
+  return Directive::_print(os) << " 0x" << std::hex << n_ << std::dec;
 }
 
 lang::assembly::BytesDirective& lang::assembly::BytesDirective::add(char x) {
@@ -46,8 +46,8 @@ lang::assembly::BytesDirective& lang::assembly::BytesDirective::add(const std::s
   return *this;
 }
 
-std::ostream& lang::assembly::StringDirective::print(std::ostream& os) const {
-  Directive::print(os);
+std::ostream& lang::assembly::StringDirective::_print(std::ostream& os) const {
+  Directive::_print(os);
 
   std::deque<std::pair<bool, std::stringstream>> strings; // string segments - either substring, or sequence of "0x.., 0x.. ..."
   bool is_string = true;

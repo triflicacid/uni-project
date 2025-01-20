@@ -2,7 +2,6 @@
 
 #include <memory>
 #include "basic_block.hpp"
-#include "program.hpp"
 #include "instruction.hpp"
 
 namespace lang::assembly {
@@ -28,6 +27,9 @@ namespace lang::assembly {
   // instruction to exit (halt) the process with the given code
   std::unique_ptr<GenericInstruction> create_exit(std::unique_ptr<BaseArg> exit_code);
 
+  // create a signed or zero extension
+  std::unique_ptr<GenericInstruction> create_extend(bool is_signed, uint8_t reg_dst, std::unique_ptr<BaseArg> value, uint32_t imm);
+
   // create an interrupt invocation with the given flag
   std::unique_ptr<GenericInstruction> create_interrupt(std::unique_ptr<BaseArg> mask);
 
@@ -41,6 +43,10 @@ namespace lang::assembly {
 
   // load the given immediate value into the register (used for large immediates wider than 4 bytes)
   std::unique_ptr<LoadImmediateInstruction> create_load_long(uint8_t reg, uint64_t imm);
+
+  // similar to create_load(), but only loads `n` bytes, the rest is cleared in the register
+  // important note, *does not* call create_load_long as the type of `value` is not known, so *do not* call if providing a long immediate
+  void create_load(uint8_t reg, std::unique_ptr<BaseArg> value, uint8_t bytes, BasicBlock& assembly, bool is_signed);
 
   std::unique_ptr<GenericInstruction> create_mod(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
 
@@ -69,6 +75,9 @@ namespace lang::assembly {
 
   // store register at the given memory address (word)
   std::unique_ptr<GenericInstruction> create_store(uint8_t reg, uint32_t address);
+
+  // similar to create_store(), but only stores `n` bytes, preserves memory except `n` bytes
+  void create_store(uint8_t reg, uint32_t address, uint8_t bytes, BasicBlock& assembly);
 
   std::unique_ptr<GenericInstruction> create_sub(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
 

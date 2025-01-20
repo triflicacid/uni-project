@@ -10,6 +10,9 @@
 #include "assembly/create.hpp"
 #include "assembly/arg.hpp"
 #include "assembly/directive.hpp"
+#include "memory/stack.hpp"
+#include "memory/reg_alloc.hpp"
+#include "ast/types/int.hpp"
 
 struct Options {
   std::vector<std::unique_ptr<named_fstream>> files; // input files
@@ -48,27 +51,26 @@ bool handle_messages(message::List &list) {
 }
 
 int main(int argc, char** argv) {
-  lang::assembly::Program program("main");
+  using namespace lang;
+  assembly::Program program("start");
+  memory::StackManager stack(program);
+  symbol::SymbolTable symbol_table(stack);
+  memory::RegisterAllocationManager allocation_manager(symbol_table, program);
 
-  program.insert(lang::assembly::Position::Before, lang::assembly::BasicBlock::labelled("message"));
-  program.current().add(lang::assembly::Directive::string("Current value is "));
+  const std::string name = "pi";
+  lexer::Token token{.type=lexer::TokenType::ident, .image=name, .source=Location("C:/fakepath/file.txt", 1, 1)};
+  symbol_table.insert(std::make_unique<symbol::Variable>(token, ast::type::int32));
 
-  program.select("main");
-  program.current().add(lang::assembly::create_load(10, lang::assembly::Arg::imm(69)));
+  allocation_manager.find(static_cast<symbol::Variable&>(*(*symbol_table.find(name))[0]));
 
-  auto inst = lang::assembly::instruction("print_str");
-  inst->add_arg(lang::assembly::Arg::label(program.get("message")));
-  program.current().add(std::move(inst));
-
-  inst = lang::assembly::instruction("print_int");
-  inst->add_arg(lang::assembly::Arg::reg(10));
-  program.current().add(std::move(inst));
-
-  program.current().add(lang::assembly::create_exit());
-  program.current().add(lang::assembly::create_branch(lang::assembly::Arg::label(program.current())));
+  token = {.type=lexer::TokenType::int_lit, .image="7", .source=token.source, .value=7};
+  ast::expr::LiteralNode literal(token, ast::type::int32);
+  allocation_manager.find(literal);
 
   program.print(std::cout);
+
   return EXIT_SUCCESS;
+
 
   Options options;
   if (int code = parse_arguments(argc, argv, options); code != EXIT_SUCCESS) {

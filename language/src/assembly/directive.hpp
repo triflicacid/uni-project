@@ -16,10 +16,11 @@ namespace lang::assembly {
   class Directive : public Line {
     std::string name_;
 
+  protected:
+    std::ostream& _print(std::ostream &os) const override;
+
   public:
     explicit Directive(std::string name) : name_(std::move(name)) {}
-
-    std::ostream& print(std::ostream &os) const override;
 
     // reserve a segment of bytes (uint8)
     static std::unique_ptr<BytesDirective> bytes();
@@ -45,6 +46,12 @@ namespace lang::assembly {
   protected:
     std::deque<T> data_;
 
+    std::ostream& _print(std::ostream &os) const override {
+      Directive::print(os);
+      for (const T& x : data_) os << " 0x" << std::hex << (int64_t) x;
+      return os << std::dec;
+    }
+
   public:
     explicit _DataDirective(std::string name) : Directive(std::move(name)) {}
 
@@ -55,12 +62,6 @@ namespace lang::assembly {
 
     _DataDirective<T>& add(const std::deque<T>& xs)
     { data_.insert(data_.end(), xs.begin(), xs.end()); return *this; }
-
-    std::ostream& print(std::ostream &os) const override {
-      Directive::print(os);
-      for (const T& x : data_) os << " 0x" << std::hex << (int64_t) x;
-      return os << std::dec;
-    }
   };
 
   struct BytesDirective : _DataDirective<uint8_t> {
@@ -74,7 +75,7 @@ namespace lang::assembly {
   struct StringDirective : BytesDirective {
     using BytesDirective::BytesDirective;
 
-    std::ostream& print(std::ostream &os) const override;
+    std::ostream& _print(std::ostream &os) const override;
   };
 
   struct DataDirective : _DataDirective<uint32_t> {
@@ -88,9 +89,10 @@ namespace lang::assembly {
   class _SingleDirective : public Directive {
     uint32_t n_;
 
+  protected:
+    std::ostream& _print(std::ostream &os) const override;
+
   public:
     _SingleDirective(std::string name, uint32_t n) : Directive(std::move(name)), n_(n) {}
-
-    std::ostream& print(std::ostream &os) const override;
   };
 }
