@@ -19,7 +19,7 @@ namespace state {
   int constexpr cols = 16;
   int constexpr page_size = rows * cols;
 
-  static bool show_pc = true;
+  static bool highlight_special_registers = true; // highlight $PC, $SP, $FP
   static ftxui::Component memory_grid, memory_address_editor;
   static uint64_t base_address = 0;
   static std::pair<int, int> pos{0, 0}; // current position (x, y)
@@ -34,6 +34,10 @@ namespace state {
   static uint64_t current_address() {
     return base_address + pos.second * cols + pos.first;
   }
+
+  ftxui::Decorator& pc_colour = visualiser::style::highlight_execution;
+  ftxui::Decorator sp_colour = ftxui::bgcolor(ftxui::Color::Violet) | ftxui::color(ftxui::Color::Black);
+  ftxui::Decorator fp_colour = ftxui::bgcolor(ftxui::Color::BlueViolet) | ftxui::color(ftxui::Color::White);
 }// namespace state
 
 // read the given address
@@ -250,7 +254,7 @@ void visualiser::tabs::MemoryTab::init() {
         .on_change = sync_mem_input
     }
   });
-  state::mem_input = Input({ // TODO if selected, highlight datatypes bytes in memory view?
+  state::mem_input = Input({
     .content = &state::mem_input_content,
     .multiline = false,
     .on_enter = update_mem_input
@@ -306,11 +310,19 @@ void visualiser::tabs::MemoryTab::init() {
       }
     }
 
-    // show $pc?
-    if (state::show_pc) {
-      int offset = static_cast<int>(processor::cpu.read_pc() - state::base_address);
-      if (offset >= 0 && offset < state::page_size) {
-        grid_elements[2 + offset % state::cols][2 + offset % state::rows] |= style::highlight_execution;
+    // highlight cells of the special registers?
+    uint64_t $pc = processor::cpu.read_pc();
+    uint64_t $sp = processor::cpu.reg(constants::registers::sp, true);
+    uint64_t $fp = processor::cpu.reg(constants::registers::fp, true);
+    if (state::highlight_special_registers) {
+      if (int offset = int($pc) - int(state::base_address); $pc >= state::base_address && offset < state::page_size) {
+        grid_elements[2 + offset / state::cols][2 + offset % state::cols] |= state::pc_colour;
+      }
+      if (int offset = int($sp) - int(state::base_address); $sp >= state::base_address && offset < state::page_size) {
+        grid_elements[2 + offset / state::cols][2 + offset % state::cols] |= state::sp_colour;
+      }
+      if (int offset = int($fp) - int(state::base_address); $fp != $sp && $fp >= state::base_address && offset < state::page_size) {
+        grid_elements[2 + offset / state::cols][2 + offset % state::cols] |= state::fp_colour;
       }
     }
 
@@ -322,6 +334,13 @@ void visualiser::tabs::MemoryTab::init() {
                text("0x" + to_hex_string(state::base_address + state::page_size, 4)) | visualiser::style::value,
            }) | center,
       gridbox(grid_elements) | border | center,
+      hbox({
+               hbox(text("$pc = "), text("0x" + to_hex_string(*(uint64_t*)&$pc, 8)) | state::pc_colour),
+               separator(),
+               hbox(text("$sp = "), text("0x" + to_hex_string(*(uint64_t*)&$sp, 8)) | state::sp_colour),
+               separator(),
+               hbox(text("$fp = "), text("0x" + to_hex_string(*(uint64_t*)&$fp, 8)) | state::fp_colour)
+           })
     });
   });
 
