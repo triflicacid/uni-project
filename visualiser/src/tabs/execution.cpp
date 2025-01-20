@@ -471,9 +471,9 @@ void visualiser::tabs::CodeExecutionTab::init() {
 
     return vbox({
       hbox({
-        state::show_selected_line_toggle->Render(),
-        text(" | "),
-        state::is_running_toggle->Render(),
+       state::show_selected_line_toggle->Render(),
+       text(" | "),
+       state::is_running_toggle->Render(),
       }),
       hbox({
         vbox({

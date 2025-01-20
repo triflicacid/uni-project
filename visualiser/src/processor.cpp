@@ -10,6 +10,7 @@ uint64_t visualiser::processor::pc = 0;
 const visualiser::PCLine* visualiser::processor::pc_line = nullptr;
 
 void visualiser::processor::init() {
+  cpu.reset();
   ::processor::read_binary_file(cpu, source->stream);
   initial_pc = cpu.read_pc();
   //::processor::debug::args = true;
@@ -26,11 +27,13 @@ uint64_t visualiser::processor::restore_pc() {
 
 void visualiser::processor::update_pc() {
   pc = visualiser::processor::cpu.read_pc();
-  pc_line = visualiser::locate_pc(pc);
+  if (const PCLine* new_pc_line = visualiser::locate_pc(pc))
+    pc_line = new_pc_line;
 }
 
 void visualiser::processor::update_pc(uint64_t val) {
   pc = val;
   cpu.write_pc(val);
-  pc_line = visualiser::locate_pc(val);
+  if (const PCLine* new_pc_line = visualiser::locate_pc(val))
+    pc_line = new_pc_line;
 }
