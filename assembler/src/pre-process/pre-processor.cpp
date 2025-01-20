@@ -13,7 +13,7 @@ namespace assembler {
 
     for (int i = 0; std::getline(handle.stream, str); i++) {
       if (!str.empty())
-        data.lines.emplace_back(Location(handle.path, i), str);
+        data.lines.emplace_back(Location(handle.path, i + 1), str);
     }
   }
 
@@ -38,7 +38,7 @@ namespace assembler {
 
     for (int i = 0; std::getline(file, str); i++) {
       if (!str.empty())
-        data.lines.emplace_back(Location(filepath, i), str);
+        data.lines.emplace_back(Location(filepath, i + 1), str);
     }
 
     file.close();
