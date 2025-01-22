@@ -5,6 +5,7 @@
 namespace lang::ast::type {
   class IntNode;
   class FloatNode;
+  class FunctionNode;
 
   class Node : public ast::NodeBase {
   public:
@@ -13,6 +14,9 @@ namespace lang::ast::type {
 
     // return this as float if we are a float, else return nullptr
     virtual const FloatNode* get_float() const { return nullptr; }
+
+    // return this as function is we are a function, else return nullptr
+    virtual const FunctionNode* get_func() const { return nullptr; }
 
     // return size, in bytes, an instance of this type occupies
     virtual size_t size() const = 0;

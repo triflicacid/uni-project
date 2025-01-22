@@ -8,7 +8,7 @@ namespace lang::ast {
     const type::Node& type_;
 
   public:
-    SymbolDeclarationNode(lexer::Token token, const type::Node& type) :  Node(std::move(token)), type_(type) {}
+    SymbolDeclarationNode(lexer::Token token, const type::Node& type) : Node(std::move(token)), type_(type) {}
 
     std::string name() const override { return "symbol declaration"; }
 

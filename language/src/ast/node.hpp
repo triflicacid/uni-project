@@ -1,10 +1,16 @@
 #pragma once
-#include "lexer.hpp"
 #include "messages/list.hpp"
+#include "lexer/token.hpp"
+
+namespace lang {
+  struct Context;
+}
 
 namespace lang::ast {
   class NodeBase {
   public:
+    virtual ~NodeBase() = default;
+
     virtual std::string name() const = 0;
 
     // print in code form
@@ -25,7 +31,7 @@ namespace lang::ast {
 
     // validate/process this Node, populating the message queue if necessary
     // return if successful
-    virtual bool process(message::List& messages);
+    virtual bool process(Context& ctx);
   };
 
   // utility: write a certain indent to the output stream

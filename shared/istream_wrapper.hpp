@@ -63,7 +63,8 @@ public:
   std::string get_line(unsigned lineNo);
 
   // eat whitespace form current position (uses `std::isspace`)
-  void eat_whitespace();
+  // argument - exclude '\n'?
+  void eat_whitespace(bool exclude_newline = false);
 
   // eat characters while the predicate matches
   void eat_while(const std::function<bool(int)>& pred);

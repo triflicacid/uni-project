@@ -29,6 +29,21 @@ int lang::memory::RegisterAllocationManager::count_free() const {
   return count;
 }
 
+lang::memory::Ref lang::memory::RegisterAllocationManager::get_oldest() const {
+  int i = initial_register;
+  uint32_t oldest_ticks = 0;
+  int oldest_reg = i;
+
+  for (auto& object : instances_.top().regs) {
+    if (object && object->occupied_ticks >= oldest_ticks) {
+      oldest_ticks = object->occupied_ticks;
+      oldest_reg = i;
+    }
+  }
+
+  return Ref(Ref::Register, oldest_reg);
+}
+
 void lang::memory::RegisterAllocationManager::new_store() {
   instances_.emplace();
 }
@@ -134,7 +149,9 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(std::unique_pt
   // check if we have a register free
   int i = initial_register;
   for (auto& stored_object : instances_.top().regs) {
-    if (!stored_object) {
+    if (stored_object) {
+      stored_object->occupied_ticks++;
+    } else {
       Ref location(Ref::Register, i);
       insert(location, std::move(object));
       return location;

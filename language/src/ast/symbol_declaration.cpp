@@ -8,7 +8,7 @@ std::ostream &lang::ast::SymbolDeclarationNode::print_code(std::ostream &os, uns
 
 std::ostream &lang::ast::SymbolDeclarationNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  os << " " SHELL_CYAN;
+  os << SHELL_GREEN << token_.image << SHELL_RESET << ": " << SHELL_CYAN;
   type_.print_code(os, indent_level);
-  return os << SHELL_RESET " " SHELL_GREEN << token_.image << SHELL_RESET;
+  return os << SHELL_RESET;
 }

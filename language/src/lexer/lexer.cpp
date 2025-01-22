@@ -1,16 +1,25 @@
 #include <deque>
 #include <unordered_map>
 #include <iostream>
-#include "lexer.hpp"
 #include "uint64.hpp"
+#include "lexer.hpp"
+#include "token.hpp"
+
 
 using namespace lang::lexer;
 
 // map of token literals
 static const std::deque<std::unordered_map<std::string, TokenType>>
-  identifier_map,
+  identifier_map = {{
+    {"byte", TokenType::byte_kw},
+    {"func", TokenType::func},
+    {"int", TokenType::int_kw},
+    {"let", TokenType::let},
+    {"long", TokenType::long_kw},
+  }},
   literal_map = {
     {
+        {"->", TokenType::arrow},
         {"==", TokenType::eq},
         {"!=", TokenType::ne},
         {"&&", TokenType::land},
@@ -26,6 +35,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
         {")", TokenType::rpar},
         {"(", TokenType::lpar},
         {";", TokenType::sc},
+        {":", TokenType::colon},
         {",", TokenType::comma},
         {"+", TokenType::plus},
         {"-", TokenType::minus},
@@ -85,6 +95,10 @@ bool Token::is_valid() const {
   return type != TokenType::invalid;
 }
 
+bool Token::is_eol() const {
+  return type == TokenType::sc || type == TokenType::nl;
+}
+
 Token Lexer::token(const std::string &image, TokenType type) const {
   const auto& position = stream.get_position();
   Token token{
@@ -118,9 +132,10 @@ Token Lexer::token(const std::string &image, TokenType type) const {
 
 Token Lexer::next() {
   // eat leading whitespace, then check for eof
-  stream.eat_whitespace();
+  stream.eat_whitespace(true);
   int ch = stream.peek_char();
   if (ch == EOF) return token("", TokenType::eof);
+  if (ch == '\n') return token("", TokenType::nl);
 
   // check for a comment
   if (ch == '/') {

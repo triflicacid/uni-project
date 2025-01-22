@@ -67,6 +67,9 @@ namespace lang::memory {
     // return number of free registers
     int count_free() const;
 
+    // return reference to the oldest register
+    Ref get_oldest() const;
+
     // create a new store instance
     // IMPORTANT: take care when adding/removing new Stores, as no state is restored by generated assembly code
     void new_store();

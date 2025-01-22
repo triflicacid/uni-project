@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include "lexer.hpp"
 #include "ast/types/node.hpp"
 
 namespace lang::symbol {

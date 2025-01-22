@@ -32,7 +32,8 @@ public:
     [[nodiscard]] Location copy() const { return {*this}; }
 
     std::ostream &print(std::ostream &os) const {
-        os << weakly_canonical(m_path).string();
+//        os << weakly_canonical(m_path).string();
+        os << m_path;
 
         if (m_line > -1) {
             os << ":" << m_line;

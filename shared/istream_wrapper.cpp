@@ -147,7 +147,15 @@ bool IStreamWrapper::is_eof() const {
   return false;
 }
 
-void IStreamWrapper::eat_whitespace() {
+void IStreamWrapper::eat_whitespace(bool exclude_newline) {
+  if (exclude_newline) {
+    int c;
+    while (!is_eof() && std::isspace(c = istream->peek()) && c != '\n') {
+      get_char();
+    }
+    return;
+  }
+
   while (!is_eof() && std::isspace(istream->peek())) {
     get_char();
   }

@@ -4,7 +4,6 @@
 #include <memory>
 #include <deque>
 #include "symbol.hpp"
-#include "lexer.hpp"
 #include "ast/types/namespace.hpp"
 
 namespace lang::symbol {

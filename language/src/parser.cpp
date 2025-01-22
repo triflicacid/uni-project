@@ -6,6 +6,7 @@
 #include "ast/types/int.hpp"
 #include "ast/expr/operator.hpp"
 #include "ast/expr/symbol_reference.hpp"
+#include "util.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -40,12 +41,25 @@ bool lang::parser::Parser::expect(const std::set<lexer::TokenType> &types, unsig
   return types.find(peek(n).type) != types.end();
 }
 
+bool lang::parser::Parser::expect(lang::lexer::TokenType type, unsigned int n) {
+  return peek(n).type == type;
+}
+
 bool lang::parser::Parser::expect_or_error(const std::set<lexer::TokenType> &types) {
   if (expect(types)) {
     return true;
   }
 
   add_message(std::move(generate_syntax_error(types)));
+  return false;
+}
+
+bool lang::parser::Parser::expect_or_error(lang::lexer::TokenType type) {
+  if (expect(type)) {
+    return true;
+  }
+
+  add_message(std::move(generate_syntax_error({type})));
   return false;
 }
 
@@ -57,8 +71,7 @@ lang::lexer::Token lang::parser::Parser::consume() {
 }
 
 std::unique_ptr<message::MessageWithSource>
-lang::parser::Parser::generate_message(message::Level level) {
-  const lexer::Token& token = peek();
+lang::parser::Parser::generate_message(message::Level level, const lang::lexer::Token& token) {
   int end_column = token.source.column() + token.length();
 
   return std::make_unique<message::MessageWithSource>(
@@ -67,7 +80,11 @@ lang::parser::Parser::generate_message(message::Level level) {
       token.source.column() - 1,
       end_column - token.source.column(),
       lexer_.get_line(token.source.line())
-    );
+  );
+}
+
+std::unique_ptr<message::MessageWithSource> lang::parser::Parser::generate_message(message::Level level) {
+  return generate_message(level, peek());
 }
 
 std::unique_ptr<message::MessageWithSource>
@@ -91,7 +108,7 @@ lang::parser::Parser::generate_syntax_error(const std::set<lexer::TokenType> &ex
   return error;
 }
 
-const lang::lexer::TokenSet lang::parser::firstsets::number{lexer::TokenType::int_lit, lexer::TokenType::float_lit};
+const lang::lexer::TokenSet lang::parser::firstset::number{lexer::TokenType::int_lit, lexer::TokenType::float_lit};
 
 std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number() {
   // TODO determine types properly
@@ -123,15 +140,15 @@ static std::map<lang::lexer::TokenType, lang::ast::expr::OperatorInfo> token_to_
 static const auto binary_operators_view = std::views::keys(token_to_binary_operator_map);
 static const auto unary_operators_view = std::views::keys(token_to_unary_operator_map);
 
-const lang::lexer::TokenSet lang::parser::firstsets::unary_operator(unary_operators_view.begin(), unary_operators_view.end());
-const lang::lexer::TokenSet lang::parser::firstsets::binary_operator(binary_operators_view.begin(), binary_operators_view.end());
-const lang::lexer::TokenSet lang::parser::firstsets::term = lexer::merge_sets({
-    firstsets::number,
-    {lexer::TokenType::ident, lexer::TokenType::lpar}
+const lang::lexer::TokenSet lang::parser::firstset::unary_operator(unary_operators_view.begin(), unary_operators_view.end());
+const lang::lexer::TokenSet lang::parser::firstset::binary_operator(binary_operators_view.begin(), binary_operators_view.end());
+const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
+                                                                                 firstset::number,
+                                                                                 {lexer::TokenType::ident, lexer::TokenType::lpar}
 });
 
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
-  if (expect(firstsets::number)) { // numeric literal
+  if (expect(firstset::number)) { // numeric literal
     return parse_number();
   } else if (expect({lexer::TokenType::ident})) { // identifier
     return std::make_unique<ast::expr::SymbolReferenceNode>(consume());
@@ -147,20 +164,20 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
   }
 }
 
-const lang::lexer::TokenSet lang::parser::firstsets::expression = lexer::merge_sets({
-    firstsets::term,
-    firstsets::unary_operator
+const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_sets({
+                                                                                       firstset::term,
+                                                                                       firstset::unary_operator
 });
 
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(int precedence) {
   std::unique_ptr<ast::expr::Node> expr;
 
   // check if we have a unary operator, or just a term
-  if (expect(firstsets::unary_operator)) {
+  if (expect(firstset::unary_operator)) {
     lexer::Token op_token = consume();
     // check if there is a term following this
-    if (!expect(firstsets::term)) {
-      add_message(std::move(generate_syntax_error(firstsets::term)));
+    if (!expect(firstset::term)) {
+      add_message(std::move(generate_syntax_error(firstset::term)));
       return nullptr;
     }
 
@@ -175,7 +192,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
     if (is_error()) return nullptr;
   }
 
-  while (expect(firstsets::binary_operator)) {
+  while (expect(firstset::binary_operator)) {
     lexer::Token op_token = peek();
     auto& op_info = token_to_binary_operator_map[op_token.type];
 
@@ -186,7 +203,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
 
     // parse RHS of expression, supplying the operator's precedence as a new baseline
     consume();
-    if (!expect_or_error(firstsets::expression)) return nullptr;
+    if (!expect_or_error(firstset::expression)) return nullptr;
     int new_precedence = op_info.precedence;
     if (op_info.right_associative) new_precedence--;
     auto rest = parse_expression(new_precedence);
@@ -197,4 +214,151 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
   }
 
   return expr;
+}
+
+const lang::lexer::TokenSet lang::parser::firstset::type = {
+    lexer::TokenType::byte_kw,
+    lexer::TokenType::int_kw,
+    lexer::TokenType::long_kw,
+};
+
+const lang::ast::type::Node* lang::parser::Parser::parse_type() {
+  if (expect(lexer::TokenType::byte_kw)) {
+    consume();
+    return &ast::type::uint8;
+  }
+
+  if (expect(lexer::TokenType::int_kw)) {
+    consume();
+    return &ast::type::int32;
+  }
+
+  if (expect(lexer::TokenType::long_kw)) {
+    consume();
+    return &ast::type::int64;
+  }
+
+  return nullptr;
+}
+
+std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_name_type_pair() {
+  // name
+  lexer::Token name = consume();
+
+  // ':'
+  if (!expect_or_error(lexer::TokenType::colon)) return nullptr;
+  consume();
+
+  // type
+  if (!expect_or_error(firstset::type)) return nullptr;
+  const ast::type::Node* type = parse_type();
+  if (is_error() || !type) return nullptr;
+
+  return std::make_unique<ast::SymbolDeclarationNode>(std::move(name), *type);
+}
+
+std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_let() {
+  // consume 'let'
+  consume();
+
+  std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> declarations;
+  while (true) {
+    // parse `name: type` pair
+    if (!expect_or_error(lexer::TokenType::ident)) return {};
+    declarations.push_back(parse_name_type_pair());
+    if (is_error()) return {};
+
+    // if comma, continue
+    if (!expect(lexer::TokenType::comma)) break;
+    consume();
+  }
+
+  return declarations;
+}
+
+std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_arg_list() {
+  // '('
+  const lexer::Token lpar = consume();
+
+  std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> args;
+  while (true) {
+    // parse `name: type` pair
+    if (!expect_or_error(lexer::TokenType::ident)) return {};
+    args.push_back(parse_name_type_pair());
+    if (is_error()) return {};
+
+    // if comma, continue
+    if (!expect(lexer::TokenType::comma)) break;
+    consume();
+  }
+
+  // ')'
+  if (!expect_or_error(lexer::TokenType::rpar)) {
+    auto msg = generate_message(message::Note, lpar);
+    msg->get() << "parenthesis opened here";
+    add_message(std::move(msg));
+    return {};
+  }
+
+  consume();
+  return args;
+}
+
+std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
+  // 'func'
+  consume();
+
+  // name
+  if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
+  const lexer::Token name = consume();
+
+  // parse any supplied arguments
+  std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
+  if (expect(lexer::TokenType::lpar)) {
+    params = parse_arg_list();
+    if (is_error()) return nullptr;
+  }
+
+  // parse an optional return type
+  std::optional<std::reference_wrapper<const ast::type::Node>> returns;
+  if (expect(lexer::TokenType::arrow)) {
+    consume();
+    if (!expect_or_error(firstset::type)) return nullptr;
+    auto type = parse_type();
+    if (is_error() || !type) return nullptr;
+    returns = *type;
+  }
+
+  // parse function body (optional)
+  if (!expect_or_error({lexer::TokenType::sc, lexer::TokenType::lbrace})) return nullptr;
+  std::optional<std::unique_ptr<ast::BlockNode>> body;
+  if (expect(lexer::TokenType::lbrace)) {
+    body = parse_block();
+    if (is_error()) return nullptr;
+  }
+
+  // construct function type and node
+  std::deque<std::reference_wrapper<const ast::type::Node>> param_types;
+  for (auto& param : params) param_types.push_back(param->type());
+  auto type = std::make_unique<ast::type::FunctionNode>(param_types, returns);
+  return std::make_unique<ast::FunctionNode>(name, std::move(type), std::move(params), std::move(body));
+}
+
+std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
+  // '{'
+  const lexer::Token lbrace = consume();
+
+  auto block = std::make_unique<ast::BlockNode>(lbrace);
+  // TODO ...
+
+  // '}'
+  if (!expect_or_error(lexer::TokenType::rbrace)) {
+    auto msg = generate_message(message::Note, lbrace);
+    msg->get() << "block started here";
+    add_message(std::move(msg));
+    return nullptr;
+  }
+
+  consume();
+  return block;
 }

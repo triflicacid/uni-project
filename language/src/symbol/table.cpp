@@ -46,3 +46,16 @@ const lang::memory::StorageLocation& lang::symbol::SymbolTable::locate(lang::sym
     return it->second;
   throw std::runtime_error("locate: symbol ID has no location");
 }
+
+void lang::symbol::SymbolTable::push() {
+  scopes_.emplace_back();
+  stack_.push_frame();
+}
+
+void lang::symbol::SymbolTable::pop() {
+  if (!scopes_.empty()) {
+    scopes_.pop_back();
+    stack_.pop_frame();
+  }
+  if (scopes_.empty()) push();
+}

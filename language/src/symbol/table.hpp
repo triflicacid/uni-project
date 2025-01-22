@@ -35,5 +35,11 @@ namespace lang::symbol {
 
     // get the storage location of the given symbol
     const memory::StorageLocation& locate(SymbolId symbol) const;
+
+    // create new lexical scope
+    void push();
+
+    // remove old lexical scope
+    void pop();
   };
 }
