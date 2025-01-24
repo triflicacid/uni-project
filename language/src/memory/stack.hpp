@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <stack>
 #include "assembly/program.hpp"
 
 namespace lang::memory {

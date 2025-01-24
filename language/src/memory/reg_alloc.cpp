@@ -2,19 +2,6 @@
 #include "assembly/create.hpp"
 #include "ast/types/int.hpp"
 
-size_t lang::memory::Object::size() const {
-  switch (type) {
-    case Symbol:
-      return symbol.get().type().size();
-    case Literal:
-      return literal.get().type().size();
-    case Temporary:
-      return 8; // unknown, assume largest TODO associate size with temporary
-    default:
-      return 0;
-  }
-}
-
 lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program)
 : symbols_(symbols), program_(program) {
   instances_.emplace();
@@ -45,21 +32,71 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::get_oldest() const {
 }
 
 void lang::memory::RegisterAllocationManager::new_store() {
+  if (!instances_.empty()) instances_.top().stack_offset = symbols_.stack().offset();
   instances_.emplace();
 }
 
-void lang::memory::RegisterAllocationManager::save_store() {
+void lang::memory::RegisterAllocationManager::save_store(bool save_registers) {
+  if (!instances_.empty() && save_registers) {
+    // if asked, save any occupied registers to the stack
+    int i = initial_register;
+    for (auto& object : instances_.top().regs) {
+      if (object) {
+        // create necessary space on the stack
+        size_t bytes = object->size();
+        uint64_t offset = symbols_.stack().offset();
+        symbols_.stack().push(bytes);
+
+        // store data in register here
+        assembly::create_store(
+            i,
+            assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - offset),
+            bytes,
+            program_.current()
+        );
+      }
+      i++;
+    }
+  }
+
   // if we already have an instance, copy it
   if (instances_.empty()) {
     instances_.emplace();
   } else {
+    instances_.top().stack_offset = symbols_.stack().offset();
     instances_.push(instances_.top());
   }
 }
 
-void lang::memory::RegisterAllocationManager::destroy_store() {
+void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registers) {
   instances_.pop();
-  if (instances_.empty()) instances_.emplace();
+  if (instances_.empty()) {
+    instances_.emplace();
+    return;
+  }
+
+  if (restore_registers) {
+    // point to the top of the register cache and work backwards
+    uint64_t& addr = instances_.top().stack_offset;
+
+    auto& regs = instances_.top().regs;;
+    for (int i = regs.size() - 1; i >= 0; i--) {
+      if (auto& object = regs[i]) {
+        // determine offset to register save
+        size_t bytes = object->size();
+        addr -= bytes;
+
+        // store region back in the correct register
+        assembly::create_load(
+            initial_register + i,
+            assembly::Arg::reg_indirect(constants::registers::sp, addr - symbols_.stack().offset()),
+            bytes,
+            program_.current(),
+            false
+          );
+      }
+    }
+  }
 }
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::find(lang::symbol::Variable &symbol) {
@@ -105,7 +142,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(ast::expr::Liter
 }
 
 lang::memory::Ref
-lang::memory::RegisterAllocationManager::find(int temporary) {
+lang::memory::RegisterAllocationManager::find(int temporary, const ast::type::Node& datatype) {
   // check if Object is inside a register
   int offset = 0;
   for (auto& object : instances_.top().regs) {
@@ -123,7 +160,7 @@ lang::memory::RegisterAllocationManager::find(int temporary) {
   }
 
   // otherwise, insert
-  return insert(std::make_unique<Object>(temporary));
+  return insert(std::make_unique<Object>(temporary, datatype));
 }
 
 std::shared_ptr<lang::memory::Object> lang::memory::RegisterAllocationManager::evict(const Ref& location) {
@@ -136,8 +173,8 @@ std::shared_ptr<lang::memory::Object> lang::memory::RegisterAllocationManager::e
 
   // adjust the stack pointer if top, otherwise do nothing
   auto object = std::move(memory_[location.offset]);
-  if (size_t size = object->size(); location.offset - size == instances_.top().address) {
-    instances_.top().address -= size;
+  if (size_t size = object->size(); location.offset - size == instances_.top().spill_addr) {
+    instances_.top().spill_addr -= size;
   }
 
   // remove memory address from Object mapping
@@ -160,7 +197,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(std::unique_pt
   }
 
   // otherwise, spill into memory
-  Ref location(Ref::Memory, instances_.top().address);
+  Ref location(Ref::Memory, instances_.top().spill_addr);
   insert(location, std::move(object));
   return location;
 }
@@ -175,13 +212,12 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
         if (size_t size = literal.type().size(); size == 8) {
           program_.current().add(assembly::create_load_long(location.offset, literal.get()));
         } else {
-          auto int_type = literal.type().get_int();
           assembly::create_load(
               location.offset,
               assembly::Arg::imm(literal.get()),
               size,
               program_.current(),
-              int_type && int_type->is_signed()
+              false
             );
         }
         break;
@@ -199,20 +235,19 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
         if (storage.type == StorageLocation::Stack) {
           arg = assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - storage.offset);
         } else {
-          arg = assembly::Arg::label(storage.block);
+          arg = assembly::Arg::label(&storage.block.get());
         }
 
         int idx = program_.current().size();
-        auto int_type = symbol.type().get_int();
         assembly::create_load(
             location.offset,
             std::move(arg),
             symbol.type().size(),
             program_.current(),
-            int_type && int_type->is_signed()
+            false
         );
         program_.current()[idx].comment() << "load " << (storage.type == StorageLocation::Stack ? "stack" : "global")
-          << " variable " << symbol.name().image;
+          << " variable " << symbol.token().image;
         break;
       }
     }

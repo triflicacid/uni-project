@@ -4,10 +4,6 @@
 #include "ast/types/float.hpp"
 #include "shell.hpp"
 
-std::string lang::ast::expr::LiteralNode::name() const {
-  return "literal{" + type_.name() + "}";
-}
-
 std::ostream &lang::ast::expr::LiteralNode::print_code(std::ostream &os, unsigned int indent_level) const {
   os << "(";
   type_.print_code(os);
@@ -30,6 +26,7 @@ std::string lang::ast::expr::LiteralNode::to_string() const {
 
 std::ostream &lang::ast::expr::LiteralNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  return os << " " SHELL_GREEN << to_string() << SHELL_RESET;
+  os << " " SHELL_GREEN << to_string() << SHELL_RESET ": " SHELL_CYAN;
+  return type_.print_code(os, 0) << SHELL_RESET;
 }
 

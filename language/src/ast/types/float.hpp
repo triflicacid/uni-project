@@ -18,11 +18,13 @@ namespace lang::ast::type {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    size_t size() const override { return double_ ? 4 : 8; }
+    size_t size() const override { return double_ ? 8 : 4; }
 
     bool operator==(const FloatNode& other) const {
       return double_ == other.double_;
     }
+
+    std::string to_label() const override;
 
     constants::inst::datatype::dt get_asm_datatype() const;
   };

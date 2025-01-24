@@ -5,7 +5,7 @@ std::ostream &lang::ast::type::IntNode::print_code(std::ostream &os, unsigned in
 }
 
 std::string lang::ast::type::IntNode::name() const {
-  return "type::" + std::string(signed_ ? "int" : "uint") + std::to_string(width_ * 8);
+  return (signed_ ? "int" : "uint") + std::to_string(width_ * 8);
 }
 
 constants::inst::datatype::dt lang::ast::type::IntNode::get_asm_datatype() const {
@@ -13,6 +13,10 @@ constants::inst::datatype::dt lang::ast::type::IntNode::get_asm_datatype() const
   return width_ == 8
     ? (signed_ ? s64 : u64)
     : (signed_ ? s32 : u32);
+}
+
+std::string lang::ast::type::IntNode::to_label() const {
+  return name();
 }
 
 lang::ast::type::IntNode

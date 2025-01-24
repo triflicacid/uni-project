@@ -20,5 +20,8 @@ namespace lang::ast::type {
 
     // return size, in bytes, an instance of this type occupies
     virtual size_t size() const = 0;
+
+    // return label representation of this type
+    virtual std::string to_label() const = 0;
   };
 }

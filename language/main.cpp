@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
   }
 
   // initialise compilation context
-  lang::assembly::Program program("start");
+  lang::assembly::Program program("main");
   lang::memory::StackManager stack(program);
   lang::symbol::SymbolTable symbol_table(stack);
   lang::memory::RegisterAllocationManager allocation_manager(symbol_table, program);
@@ -102,16 +102,21 @@ int main(int argc, char** argv) {
     lang::parser::Parser parser(lexer);
     parser.messages(&messages);
 
+//    while (true) {
+//      auto token = lexer.next();
+//      std::cout << "Token@<" << token.source.line() << ":" << token.source.column() << "> " << lang::lexer::token_type_to_string(token.type) << std::endl;
+//      if (token.is_eof()) std::exit(1);
+//    }
+
     // parse the file & check for any errors
-    auto ast = parser.parse_func();
-    if (!parser.is_error()) parser.expect_or_error(lang::lexer::TokenType::eof);
+    auto ast = parser.parse();
+    //if (!parser.is_error()) parser.expect_or_error(lang::lexer::TokenType::eof);
     if (handle_messages(*parser.messages())) {
       return EXIT_FAILURE;
     }
 
-    ast->print_tree(std::cout);
-    std::cout << std::endl << std::endl;
-    ast->print_code(std::cout);
+    ast->print_tree(std::cout) << std::endl;
+//    ast->print_code(std::cout) << std::endl;
 
     // process into assembly
     ast->process(ctx);
@@ -119,6 +124,8 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
   }
+
+  ctx.program.print(std::cout);
 
   return EXIT_SUCCESS;
 }

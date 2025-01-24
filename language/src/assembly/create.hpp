@@ -70,14 +70,18 @@ namespace lang::assembly {
 
   std::unique_ptr<GenericInstruction> create_shift_right(uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
 
-  // create an instruction to return from an interrupt
-  std::unique_ptr<Instruction> create_return_from_interrupt();
+  std::unique_ptr<GenericInstruction> create_return();
 
-  // store register at the given memory address (word)
-  std::unique_ptr<GenericInstruction> create_store(uint8_t reg, uint32_t address);
+  std::unique_ptr<GenericInstruction> create_return(std::unique_ptr<BaseArg> value);
+
+  // create an instruction to return from an interrupt
+  std::unique_ptr<GenericInstruction> create_return_from_interrupt();
+
+  // store register at the given memory address (word) / register indirect address
+  std::unique_ptr<GenericInstruction> create_store(uint8_t reg, std::unique_ptr<BaseArg> address);
 
   // similar to create_store(), but only stores `n` bytes, preserves memory except `n` bytes
-  void create_store(uint8_t reg, uint32_t address, uint8_t bytes, BasicBlock& assembly);
+  void create_store(uint8_t reg, std::unique_ptr<BaseArg> address, uint8_t bytes, BasicBlock& assembly);
 
   std::unique_ptr<GenericInstruction> create_sub(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
 

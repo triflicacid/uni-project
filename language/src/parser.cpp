@@ -2,11 +2,13 @@
 #include <map>
 #include <ranges>
 #include "parser.hpp"
+#include "ast/block.hpp"
 #include "ast/types/float.hpp"
 #include "ast/types/int.hpp"
 #include "ast/expr/operator.hpp"
 #include "ast/expr/symbol_reference.hpp"
 #include "util.hpp"
+#include "ast/program.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -50,7 +52,7 @@ bool lang::parser::Parser::expect_or_error(const std::set<lexer::TokenType> &typ
     return true;
   }
 
-  add_message(std::move(generate_syntax_error(types)));
+  add_message(std::move(peek().generate_syntax_error(types)));
   return false;
 }
 
@@ -59,53 +61,24 @@ bool lang::parser::Parser::expect_or_error(lang::lexer::TokenType type) {
     return true;
   }
 
-  add_message(std::move(generate_syntax_error({type})));
+  add_message(std::move(peek().generate_syntax_error({type})));
   return false;
 }
 
 lang::lexer::Token lang::parser::Parser::consume() {
   if (buffer_.empty()) read_tokens(1);
-  lexer::Token& last = buffer_.front();
+  const lexer::Token last = buffer_.front();
   buffer_.pop_front();
   return last;
 }
 
-std::unique_ptr<message::MessageWithSource>
-lang::parser::Parser::generate_message(message::Level level, const lang::lexer::Token& token) {
-  int end_column = token.source.column() + token.length();
+const lang::lexer::TokenSet lang::parser::firstset::eol = {
+    lexer::TokenType::sc,
+    lexer::TokenType::nl,
+};
 
-  return std::make_unique<message::MessageWithSource>(
-      level,
-      token.source.copy().column(end_column),
-      token.source.column() - 1,
-      end_column - token.source.column(),
-      lexer_.get_line(token.source.line())
-  );
-}
-
-std::unique_ptr<message::MessageWithSource> lang::parser::Parser::generate_message(message::Level level) {
-  return generate_message(level, peek());
-}
-
-std::unique_ptr<message::MessageWithSource>
-lang::parser::Parser::generate_syntax_error(const std::set<lexer::TokenType> &expected_types) {
-  auto error = generate_message(message::Error);
-
-  // message: "syntax error: encountered <type>, expected [one of] <type1>[, <type2>[, ...]]"
-  std::stringstream& stream = error->get();
-  stream << "syntax error: encountered " << lexer::token_type_to_string(peek().type);
-  if (!expected_types.empty()) {
-    stream << ", expected ";
-    if (expected_types.size() > 1) stream << "one of ";
-    int i = 0;
-    for (const lexer::TokenType& type : expected_types) {
-      stream << lexer::token_type_to_string(type);
-      if (++i < expected_types.size()) stream << ", ";
-    }
-  }
-  stream << '.';
-
-  return error;
+void lang::parser::Parser::parse_newlines() {
+  while(expect(lexer::TokenType::nl)) consume();
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::number{lexer::TokenType::int_lit, lexer::TokenType::float_lit};
@@ -177,7 +150,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
     lexer::Token op_token = consume();
     // check if there is a term following this
     if (!expect(firstset::term)) {
-      add_message(std::move(generate_syntax_error(firstset::term)));
+      add_message(std::move(peek().generate_syntax_error(firstset::term)));
       return nullptr;
     }
 
@@ -218,6 +191,8 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
 
 const lang::lexer::TokenSet lang::parser::firstset::type = {
     lexer::TokenType::byte_kw,
+    lexer::TokenType::double_kw,
+    lexer::TokenType::float_kw,
     lexer::TokenType::int_kw,
     lexer::TokenType::long_kw,
 };
@@ -226,6 +201,16 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
   if (expect(lexer::TokenType::byte_kw)) {
     consume();
     return &ast::type::uint8;
+  }
+
+  if (expect(lexer::TokenType::double_kw)) {
+    consume();
+    return &ast::type::float64;
+  }
+
+  if (expect(lexer::TokenType::float_kw)) {
+    consume();
+    return &ast::type::float32;
   }
 
   if (expect(lexer::TokenType::int_kw)) {
@@ -243,7 +228,7 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
 
 std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_name_type_pair() {
   // name
-  lexer::Token name = consume();
+  const lexer::Token name = consume();
 
   // ':'
   if (!expect_or_error(lexer::TokenType::colon)) return nullptr;
@@ -254,7 +239,7 @@ std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_na
   const ast::type::Node* type = parse_type();
   if (is_error() || !type) return nullptr;
 
-  return std::make_unique<ast::SymbolDeclarationNode>(std::move(name), *type);
+  return std::make_unique<ast::SymbolDeclarationNode>(name, *type);
 }
 
 std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_let() {
@@ -294,7 +279,7 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
 
   // ')'
   if (!expect_or_error(lexer::TokenType::rpar)) {
-    auto msg = generate_message(message::Note, lpar);
+    auto msg = lpar.generate_message(message::Note);
     msg->get() << "parenthesis opened here";
     add_message(std::move(msg));
     return {};
@@ -344,16 +329,64 @@ std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
   return std::make_unique<ast::FunctionNode>(name, std::move(type), std::move(params), std::move(body));
 }
 
+std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
+  // 'return'
+  const lexer::Token token = consume();
+
+
+  // is there an expression?
+  std::optional<std::unique_ptr<ast::expr::Node>> expr;
+  if (expect(firstset::expression)) {
+    expr = parse_expression();
+    if (is_error()) return nullptr;
+  }
+
+  return std::make_unique<ast::ReturnNode>(std::move(token), std::move(expr));
+}
+
+const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
+   {lexer::TokenType::let, lexer::TokenType::return_kw},
+   firstset::expression,
+});
+
+void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
+  if (expect(lexer::TokenType::let)) {
+    auto declarations = parse_let();
+    if (is_error()) return;
+    for (auto& decl : declarations) block.add(std::move(decl));
+    return;
+  }
+
+  if (expect(lexer::TokenType::return_kw)) {
+    block.add(parse_return());
+    return;
+  }
+
+  if (expect(firstset::expression)) {
+    block.add(parse_expression());
+    return;
+  }
+}
+
 std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
   // '{'
   const lexer::Token lbrace = consume();
 
   auto block = std::make_unique<ast::BlockNode>(lbrace);
-  // TODO ...
+  while (true) {
+    // remove newlines
+    while (expect(firstset::eol)) consume();
+    if (expect(lexer::TokenType::rbrace)) break;
+
+    // parse line
+    if (!expect(firstset::line)) break;
+    parse_line(*block);
+    if (is_error()) return nullptr;
+  }
 
   // '}'
   if (!expect_or_error(lexer::TokenType::rbrace)) {
-    auto msg = generate_message(message::Note, lbrace);
+    auto msg = lbrace.generate_message(message::Note);
     msg->get() << "block started here";
     add_message(std::move(msg));
     return nullptr;
@@ -361,4 +394,40 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
 
   consume();
   return block;
+}
+
+const lang::lexer::TokenSet lang::parser::firstset::top_level_line = {
+    lexer::TokenType::let,
+    lexer::TokenType::func,
+};
+
+void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
+  if (expect(lexer::TokenType::let)) {
+    auto declarations = parse_let();
+    if (is_error()) return;
+    for (auto& decl : declarations) program.add(std::move(decl));
+    return;
+  }
+
+  if (expect(lexer::TokenType::func)) {
+    program.add(parse_func());
+    return;
+  }
+}
+
+std::unique_ptr<lang::ast::ProgramNode> lang::parser::Parser::parse() {
+  auto program = std::make_unique<ast::ProgramNode>(peek());
+
+  while (true) {
+    // remove newlines
+    while (expect(firstset::eol)) consume();
+    if (expect(lexer::TokenType::eof)) break;
+
+    // parse line
+    if (!expect_or_error(firstset::top_level_line)) return nullptr;
+    parse_top_level_line(*program);
+    if (is_error()) return nullptr;
+  }
+
+  return program;
 }

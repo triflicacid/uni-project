@@ -122,6 +122,10 @@ std::string IStreamWrapper::extract(unsigned int n) {
 }
 
 std::string IStreamWrapper::get_line(unsigned lineNo) {
+  if (auto it = lines.find(lineNo); it != lines.end()) {
+    return it->second;
+  }
+
   save_position();
   istream->clear();
   istream->seekg(0);
@@ -134,6 +138,7 @@ std::string IStreamWrapper::get_line(unsigned lineNo) {
     }
   }
 
+  lines.insert({lineNo, line});
   restore_position();
   return line;
 }
@@ -150,7 +155,7 @@ bool IStreamWrapper::is_eof() const {
 void IStreamWrapper::eat_whitespace(bool exclude_newline) {
   if (exclude_newline) {
     int c;
-    while (!is_eof() && std::isspace(c = istream->peek()) && c != '\n') {
+    while (!is_eof() && std::isspace(c = istream->peek()) && c != '\r' && c != '\n') {
       get_char();
     }
     return;

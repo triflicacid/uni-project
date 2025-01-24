@@ -12,10 +12,13 @@ using namespace lang::lexer;
 static const std::deque<std::unordered_map<std::string, TokenType>>
   identifier_map = {{
     {"byte", TokenType::byte_kw},
+    {"double", TokenType::double_kw},
+    {"float", TokenType::float_kw},
     {"func", TokenType::func},
     {"int", TokenType::int_kw},
     {"let", TokenType::let},
     {"long", TokenType::long_kw},
+    {"return", TokenType::return_kw},
   }},
   literal_map = {
     {
@@ -50,15 +53,17 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
 std::string lang::lexer::token_type_to_string(TokenType type, bool add_quotes) {
   // special case?
   switch (type) {
-    case lang::lexer::TokenType::ident:
+    case TokenType::ident:
       return "ident";
-    case lang::lexer::TokenType::int_lit:
-      return "int_lit";
-    case lang::lexer::TokenType::float_lit:
-      return "float_lit";
-    case lang::lexer::TokenType::eof:
+    case TokenType::int_lit:
+      return "int";
+    case TokenType::float_lit:
+      return "float";
+    case TokenType::eof:
       return "eof";
-    case lang::lexer::TokenType::invalid:
+    case TokenType::nl:
+      return "newline";
+    case TokenType::invalid:
       return "invalid";
     default: ;
   }
@@ -99,11 +104,44 @@ bool Token::is_eol() const {
   return type == TokenType::sc || type == TokenType::nl;
 }
 
+std::unique_ptr<message::MessageWithSource> Token::generate_message(message::Level level) const {
+  int end_column = source.column() + length();
+
+  return std::make_unique<message::MessageWithSource>(
+      level,
+      source.copy().column(end_column),
+      source.column() - 1,
+      end_column - source.column(),
+      image_line
+  );
+}
+
+std::unique_ptr<message::MessageWithSource> Token::generate_syntax_error(const TokenSet& expected_types) const {
+  auto error = generate_message(message::Error);
+
+  // message: "syntax error: encountered <type>, expected [one of] <type1>[, <type2>[, ...]]"
+  std::stringstream& stream = error->get();
+  stream << "syntax error: encountered " << lexer::token_type_to_string(type);
+  if (!expected_types.empty()) {
+    stream << ", expected ";
+    if (expected_types.size() > 1) stream << "one of ";
+    int i = 0;
+    for (const lexer::TokenType& expected : expected_types) {
+      stream << lexer::token_type_to_string(expected);
+      if (++i < expected_types.size()) stream << ", ";
+    }
+  }
+  stream << '.';
+
+  return error;
+}
+
 Token Lexer::token(const std::string &image, TokenType type) const {
   const auto& position = stream.get_position();
   Token token{
     .type = type,
     .image = image,
+    .image_line = get_line(position.line),
     .source = Location(get_source_name(), position.line, position.col - image.length()),
   };
 
@@ -130,12 +168,23 @@ Token Lexer::token(const std::string &image, TokenType type) const {
   return token;
 }
 
+// used to avoid translating `\r\n` into two newlines
+static bool seen_CR = false;
+
 Token Lexer::next() {
   // eat leading whitespace, then check for eof
-  stream.eat_whitespace(true);
+  stream.eat_whitespace();
   int ch = stream.peek_char();
   if (ch == EOF) return token("", TokenType::eof);
-  if (ch == '\n') return token("", TokenType::nl);
+//  if (ch == '\n' || ch == '\r') {
+//    stream.get_char(); // skip past newline
+//    if (seen_CR && ch == '\n') { // if we've already found '\r', ignore '\n' and continue to next token
+//      seen_CR = false;
+//      return next();
+//    }
+//    seen_CR = ch == '\r';
+//    return token("", TokenType::nl);
+//  }
 
   // check for a comment
   if (ch == '/') {

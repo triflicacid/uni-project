@@ -1,7 +1,7 @@
 #include "float.hpp"
 
 std::string lang::ast::type::FloatNode::name() const {
-  return double_ ? "Type::Double" : "Type::Float";
+  return double_ ? "double" : "float";
 }
 
 std::ostream &lang::ast::type::FloatNode::print_code(std::ostream &os, unsigned int indent_level) const {
@@ -12,6 +12,10 @@ constants::inst::datatype::dt lang::ast::type::FloatNode::get_asm_datatype() con
   return double_
     ? constants::inst::datatype::dbl
     : constants::inst::datatype::flt;
+}
+
+std::string lang::ast::type::FloatNode::to_label() const {
+  return name();
 }
 
 lang::ast::type::FloatNode

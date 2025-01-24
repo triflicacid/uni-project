@@ -1,52 +1,78 @@
 #include "function.hpp"
+#include "symbol_declaration.hpp"
+#include "block.hpp"
 #include "types/function.hpp"
-#include "shell.hpp"
+#include "context.hpp"
+#include "assembly/create.hpp"
+
+lang::ast::FunctionNode::FunctionNode(lang::lexer::Token token, std::unique_ptr<type::FunctionNode> type,
+                                      std::deque<std::unique_ptr<SymbolDeclarationNode>> params,
+                                      std::optional<std::unique_ptr<BlockNode>> body)
+    : FunctionBaseNode(std::move(token), std::move(type), std::move(params)), body_(std::move(body)) {}
 
 std::ostream& lang::ast::FunctionNode::print_code(std::ostream& os, unsigned int indent_level) const {
-  // print comma-separated bracketed list of parameter types
-  indent(os, indent_level) << "func " << token_.image << "(";
-  for (int i = 0; i < params_.size(); i++) {
-    os << params_[i]->token().image << ": ";
-    type_->arg(i).print_code(os, 0);
-    if (i < params_.size() - 1) os << ", ";
-  }
-  os << ")";
-
-  // if provided, print return type after an arrow
-  if (auto returns = type_->returns(); returns.has_value()) {
-    os << " -> ";
-   returns.value().get().print_code(os, 0);
-  }
+  FunctionBaseNode::print_code(os, indent_level);
 
   // print body
   if (body_.has_value()) {
-    os << " {" << std::endl;
-    body_.value()->print_code(os, indent_level + 1);
-    return indent(os, indent_level) << "}" << std::endl;
+    return body_.value()->print_code(os, indent_level);
   }
 
-  return os << ";" << std::endl;
+  return os << ";";
 }
 
 std::ostream& lang::ast::FunctionNode::print_tree(std::ostream& os, unsigned int indent_level) const {
-  Node::print_tree(os, indent_level)  << SHELL_GREEN << token_.image << SHELL_RESET << std::endl;
-
-  // print arguments
-  for (auto& param : params_) {
-    indent(os, indent_level);
-    param->print_tree(os, indent_level + 1) << std::endl;
-  }
+  FunctionBaseNode::print_tree(os, indent_level);
 
   // print body
   if (body_.has_value()) {
+    os << std::endl;
     indent(os, indent_level);
-    body_.value()->print_tree(os, indent_level + 1) << std::endl;
+    body_.value()->print_tree(os, indent_level + 1);
   }
 
   return os;
 }
 
-bool lang::ast::FunctionNode::process(lang::Context& ctx) {
-  // TODO
+bool lang::ast::FunctionNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
+  // collate arguments
+  if (!FunctionBaseNode::collate_registry(messages, registry))
+    return false;
+
+  // collate function body with our registry
+  if (body_.has_value()) {
+    body_.value()->add_new_scope(false);
+    if (!body_.value()->collate_registry(messages, *registry_))
+      return false;
+  }
+
+  return true;
+}
+
+bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
+  // insert our registry into the symbol table
+  ctx.symbols.push();
+  ctx.symbols.insert(*registry_);
+
+  // if we have no body, this is *really* easy
+  if (body_.has_value()) {
+    // save frame here & record on stack
+    ctx.stack_manager.push_frame();
+    ctx.symbols.enter_function(*this);
+
+    // process body
+    if (!body_.value()->process(ctx)) return false;
+
+    // remove old frame
+    ctx.stack_manager.pop_frame();
+    ctx.symbols.exit_function();
+  } else {
+    // just return TODO type??
+    ctx.program.current().add(assembly::create_return());
+  }
+
+  // remove function scope
+  ctx.symbols.pop();
+
   return true;
 }

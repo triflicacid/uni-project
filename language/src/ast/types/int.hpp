@@ -30,6 +30,8 @@ namespace lang::ast::type {
 
     bool is_signed() const { return signed_; }
 
+    std::string to_label() const override;
+
     constants::inst::datatype::dt get_asm_datatype() const;
   };
 

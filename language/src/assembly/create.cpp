@@ -92,10 +92,10 @@ std::unique_ptr<GenericInstruction> lang::assembly::create_shift_right(uint8_t r
   return create_reg_reg_value("shr", reg_dst, reg, std::move(value));
 }
 
-std::unique_ptr<GenericInstruction> lang::assembly::create_store(uint8_t reg, uint32_t address) {
+std::unique_ptr<GenericInstruction> lang::assembly::create_store(uint8_t reg, std::unique_ptr<BaseArg> address) {
   auto inst = std::make_unique<GenericInstruction>("store");
   inst->add_arg(Arg::reg(reg));
-  inst->add_arg(Arg::mem(address));
+  inst->add_arg(std::move(address));
   return inst;
 }
 
@@ -166,8 +166,18 @@ std::unique_ptr<GenericInstruction> lang::assembly::create_zero(uint8_t reg) {
   return inst;
 }
 
-std::unique_ptr<Instruction> lang::assembly::create_return_from_interrupt() {
-  return std::make_unique<Instruction>("rti");
+std::unique_ptr<GenericInstruction> lang::assembly::create_return() {
+  return std::make_unique<GenericInstruction>("ret");
+}
+
+std::unique_ptr<GenericInstruction> lang::assembly::create_return(std::unique_ptr<BaseArg> value) {
+  auto inst = create_return();
+  inst->add_arg(std::move(value));
+  return inst;
+}
+
+std::unique_ptr<GenericInstruction> lang::assembly::create_return_from_interrupt() {
+  return std::make_unique<GenericInstruction>("rti");
 }
 
 std::unique_ptr<LoadImmediateInstruction> lang::assembly::create_load_long(uint8_t reg, uint64_t imm) {
@@ -199,13 +209,16 @@ void lang::assembly::create_load(uint8_t reg, std::unique_ptr<BaseArg> value, ui
   }
 }
 
-void lang::assembly::create_store(uint8_t reg, uint32_t address, uint8_t bytes, BasicBlock& block) {
+void lang::assembly::create_store(uint8_t reg, std::unique_ptr<BaseArg> address, uint8_t bytes, BasicBlock& block) {
+  // TODO
+  block.add(create_store(reg, std::move(address)));
+  return;
+
   // if bytes exceeds a word, we do nothing
   if (bytes > 7) {
-    block.add(create_store(reg, address));
+    block.add(create_store(reg, std::move(address)));
     return;
   }
 
   // otherwise, pick a register (must be register) to use as a temporary
-  // TODO
 }

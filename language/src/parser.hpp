@@ -7,6 +7,8 @@
 #include "ast/expr/literal.hpp"
 #include "ast/symbol_declaration.hpp"
 #include "ast/function.hpp"
+#include "ast/program.hpp"
+#include "ast/return.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -18,6 +20,9 @@ namespace lang::parser {
     void read_tokens(unsigned int n);
 
     void add_message(std::unique_ptr<message::Message> m);
+
+    // parse optional newlines
+    void parse_newlines();
 
   public:
     explicit Parser(lexer::Lexer& lexer) : lexer_(lexer) {}
@@ -45,15 +50,6 @@ namespace lang::parser {
     // consume the current token and return it
     lexer::Token consume();
 
-    // generate a message of the given type about the current token
-    std::unique_ptr<message::MessageWithSource> generate_message(message::Level level);
-
-    // generate_message() but at the given token
-    std::unique_ptr<message::MessageWithSource> generate_message(message::Level level, const lexer::Token& token);
-
-    // generate an error message about a syntax error
-    std::unique_ptr<message::MessageWithSource> generate_syntax_error(const std::set<lexer::TokenType>& expected_types);
-
     // parse a numeric literal
     std::unique_ptr<ast::expr::LiteralNode> parse_number();
 
@@ -78,12 +74,27 @@ namespace lang::parser {
     // parse a function statement
     std::unique_ptr<ast::FunctionNode> parse_func();
 
+    // parse a return statement
+    std::unique_ptr<ast::ReturnNode> parse_return();
+
+    // parse a code line
+    void parse_line(ast::BlockNode& block);
+
     // parse a code block `{...}`
     std::unique_ptr<ast::BlockNode> parse_block();
+
+    // parse a code line in the top-level
+    void parse_top_level_line(ast::ProgramNode& program);
+
+    // parse a program from the top
+    std::unique_ptr<ast::ProgramNode> parse();
   };
 
   // variables below contain the first sets for various structures
   namespace firstset {
+    extern const lexer::TokenSet eol;
+    extern const lexer::TokenSet top_level_line;
+    extern const lexer::TokenSet line;
     extern const lexer::TokenSet number;
     extern const lexer::TokenSet unary_operator;
     extern const lexer::TokenSet binary_operator;

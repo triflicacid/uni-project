@@ -1,18 +1,19 @@
 #pragma once
-#include "node.hpp"
-#include "block.hpp"
-#include "symbol_declaration.hpp"
+#include "function_base.hpp"
 #include "types/function.hpp"
 
 namespace lang::ast {
-  class FunctionNode : public Node {
-    std::unique_ptr<type::FunctionNode> type_;
-    std::deque<std::unique_ptr<SymbolDeclarationNode>> params_; // note, assume that arg types and param types are equivalent
+  class BlockNode;
+
+  class FunctionNode : public FunctionBaseNode {
     std::optional<std::unique_ptr<BlockNode>> body_; // body is optional, empty = 'not implemented'
 
+    bool _process(lang::Context &ctx) override;
+
+    std::string block_prefix() const override { return "func " + token_.image; }
+
   public:
-    FunctionNode(lexer::Token token, std::unique_ptr<type::FunctionNode> type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params, std::optional<std::unique_ptr<BlockNode>> body)
-        : Node(std::move(token)), type_(std::move(type)), params_(std::move(params)), body_(std::move(body)) {}
+    FunctionNode(lexer::Token token, std::unique_ptr<type::FunctionNode> type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params, std::optional<std::unique_ptr<BlockNode>> body);
 
     std::string name() const override { return "function"; }
 
@@ -23,6 +24,6 @@ namespace lang::ast {
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    bool process(lang::Context &ctx) override;
+    bool collate_registry(message::List &messages, symbol::Registry &registry) override;
   };
 }

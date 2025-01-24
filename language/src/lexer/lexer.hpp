@@ -2,6 +2,7 @@
 
 #include "token.hpp"
 #include "istream_wrapper.hpp"
+#include "messages/MessageWithSource.hpp"
 
 namespace lang::lexer {
   class Lexer {

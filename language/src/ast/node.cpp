@@ -13,8 +13,5 @@ std::ostream &lang::ast::Node::print_tree(std::ostream &os, unsigned int indent_
 }
 
 bool lang::ast::Node::process(Context& ctx) {
-  auto message = std::make_unique<message::Message>(message::Error, token_.source);
-  message->get() << "AST '" << name() << "' ::process is unimplemented";
-  ctx.messages.add(std::move(message));
-  return false;
+  throw std::runtime_error(name() + "::process is unimplemented");
 }

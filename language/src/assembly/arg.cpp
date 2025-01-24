@@ -37,7 +37,7 @@ std::unique_ptr<lang::assembly::LabelArg> lang::assembly::Arg::label(const std::
   return std::make_unique<LabelArg>(label);
 }
 
-std::unique_ptr<lang::assembly::BlockReferenceArg> lang::assembly::Arg::label(const lang::assembly::BasicBlock& block) {
+std::unique_ptr<lang::assembly::BlockReferenceArg> lang::assembly::Arg::label(const lang::assembly::BasicBlock* const& block) {
   return std::make_unique<BlockReferenceArg>(block);
 }
 
@@ -46,6 +46,6 @@ std::ostream& lang::assembly::LabelArg::print(std::ostream& os) const {
 }
 
 std::ostream& lang::assembly::BlockReferenceArg::print(std::ostream& os) const {
-  assert((!block_.label().has_value(), "references block must have a label in this argument type"));
-  return os << block_.label().value();
+  assert((!block_->label().has_value(), "references block must have a label in this argument type"));
+  return os << block_->label().value();
 }

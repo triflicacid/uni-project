@@ -12,12 +12,15 @@ namespace lang::assembly {
   class BasicBlock {
     std::optional<std::string> label_;
     std::deque<std::unique_ptr<Line>> contents_;
+    std::stringstream comment_; // comment after the block's label
 
     BasicBlock() {}
     explicit BasicBlock(std::string label) : label_(std::move(label)) {}
 
   public:
     BasicBlock(const BasicBlock&) = delete; // important as cannot copy unique_ptr
+
+    std::stringstream& comment() { return comment_; }
 
     const std::optional<std::string>& label() const { return label_; }
 

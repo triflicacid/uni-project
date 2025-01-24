@@ -5,6 +5,7 @@
 #include <istream>
 #include <functional>
 #include <optional>
+#include <map>
 
 class IStreamWrapper {
 public:
@@ -19,6 +20,7 @@ private:
   Position pos; // doesn't use .stream here, only in cache
   std::unique_ptr<std::istream> istream;
   std::optional<std::string> name;
+  std::map<unsigned int, std::string> lines; // cached lines
 
 public:
   explicit IStreamWrapper(std::ifstream stream);

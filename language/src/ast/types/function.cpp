@@ -18,3 +18,11 @@ std::ostream& lang::ast::type::FunctionNode::print_code(std::ostream& os, unsign
 
   return os;
 }
+
+std::string lang::ast::type::FunctionNode::to_label() const {
+  std::stringstream label;
+  for (auto& param : parameters_) {
+    label << "_" << param.get().to_label();
+  }
+  return label.str();
+}

@@ -30,17 +30,19 @@ namespace lang::memory {
       std::reference_wrapper<ast::expr::LiteralNode> literal;
       int temporary_id;
     };
+    const ast::type::Node& datatype;
 
-    Object(symbol::Variable& symbol) : type(Symbol), symbol(symbol) {}
-    Object(ast::expr::LiteralNode& literal) : type(Literal), literal(literal) {}
-    Object(int temporary_id) : type(Temporary), temporary_id(temporary_id) {}
+    Object(symbol::Variable& symbol) : type(Symbol), symbol(symbol), datatype(symbol.type()) {}
+    Object(ast::expr::LiteralNode& literal) : type(Literal), literal(literal), datatype(literal.type()) {}
+    Object(int temporary_id, const ast::type::Node& datatype) : type(Temporary), temporary_id(temporary_id), datatype(datatype) {}
 
-    size_t size() const;
+    size_t size() const { return datatype.size(); }
   };
 
   struct Store {
     std::array<std::shared_ptr<Object>, total_registers> regs; // Objects stored in registers, may be null
-    uint64_t address; // current address for memory spill
+    uint64_t spill_addr; // current address for memory spill
+    uint64_t stack_offset; // point to stack offset when store was saved
   };
 
   // describe reference to an item, either a register or a memory address
@@ -75,10 +77,10 @@ namespace lang::memory {
     void new_store();
 
     // creates a copy of the current store, useful when certain registers are cached
-    void save_store();
+    void save_store(bool save_registers);
 
     // remove the latest store
-    void destroy_store();
+    void destroy_store(bool restore_registers);
 
     // return reference to an item, insert if needed
     Ref find(symbol::Variable& symbol);
@@ -86,8 +88,8 @@ namespace lang::memory {
     // return reference to an item, insert if needed
     Ref find(ast::expr::LiteralNode& literal);
 
-    // return reference to a temporary, insert if needed
-    Ref find(int temporary);
+    // return reference to a temporary, insert if needed (this is why we need the type)
+    Ref find(int temporary, const ast::type::Node& type);
 
     // evict item at the given location, return Object which was evicted
     std::shared_ptr<Object> evict(const Ref& location);

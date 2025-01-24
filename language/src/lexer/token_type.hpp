@@ -46,14 +46,15 @@ namespace lang::lexer {
     double_lit, // float value, 'double'
 
     // keywords
-    let,
-    func,
     byte_kw,
-    int_kw,
-    long_kw,
-    ulong_kw,
-    float_kw,
     double_kw,
+    float_kw,
+    func,
+    int_kw,
+    let,
+    long_kw,
+    return_kw,
+    ulong_kw,
 
     invalid
   };

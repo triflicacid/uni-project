@@ -12,7 +12,7 @@ namespace lang::ast::expr {
 
     const type::Node& type() const override { return type_; }
 
-    std::string name() const override;
+    std::string name() const override { return "literal"; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
