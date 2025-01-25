@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <optional>
 #include <queue>
+#include <functional>
+#include <stack>
 
 /// represents a directed unweighted graph with nodes of type `_Node_` which are indexed by keys of type `_Key`
 template<typename _Key, typename _Node>
@@ -12,6 +14,15 @@ class Graph {
   std::unordered_map<_Key, std::unordered_set<_Key>> edges_;
 
 public:
+  bool empty() const { return nodes_.empty(); }
+
+  size_t size() const { return nodes_.size(); }
+
+  void clear() {
+    nodes_.clear();
+    edges_.clear();
+  }
+
   // check if the given node exists
   bool exists(const _Key& key) const {
     return nodes_.contains(key);
@@ -36,6 +47,13 @@ public:
   // insert an edge
   void insert(const _Key& from, const _Key& to) {
     edges_[from].insert(to);
+  }
+
+  // insert a path a -> b -> c -> ...
+  void insert_path(const std::vector<_Key>& path) {
+    for (int i = 0; i < path.size() - 1; i++) {
+      insert(path[i], path[i + 1]);
+    }
   }
 
   // delete the given node
@@ -118,8 +136,9 @@ public:
   // check if two nodes are connected
   // (uses BFS search)
   bool are_connected(const _Key& from, const _Key& to) const {
+    if (!exists(from) || !exists(to)) return false;
     bool found = false;
-    bfs(from, [&](const _Key& node) { return found = node == to; });
+    conditional_bfs(from, [&](const _Key& node) { return found = node == to; });
     return found;
   }
 };
