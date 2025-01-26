@@ -7,8 +7,16 @@ namespace lang::ast::type {
   class FloatNode;
   class FunctionNode;
 
+  using TypeId = unsigned int;
+
   class Node : public ast::NodeBase {
+    TypeId id_;
+
   public:
+    Node();
+
+    TypeId id() const { return id_; }
+
     // return this as int if we are an int, else return nullptr
     virtual const IntNode* get_int() const { return nullptr; }
 

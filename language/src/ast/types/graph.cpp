@@ -2,8 +2,25 @@
 #include "int.hpp"
 #include "float.hpp"
 
+void lang::ast::type::TypeGraph::insert(std::unique_ptr<Node> type) {
+  insert(*type);
+  store_.push_back(std::move(type));
+}
+
 void lang::ast::type::TypeGraph::insert(lang::ast::type::Node& type) {
   graph_.insert(type.id(), type);
+}
+
+bool lang::ast::type::TypeGraph::exists(lang::ast::type::TypeId id) const {
+  return graph_.exists(id);
+}
+
+const lang::ast::type::Node& lang::ast::type::TypeGraph::get(TypeId id) const {
+  return graph_.get(id).value().get();
+}
+
+lang::ast::type::Node& lang::ast::type::TypeGraph::get(TypeId id) {
+  return graph_.get(id).value().get();
 }
 
 void lang::ast::type::TypeGraph::add_subtype(TypeId child, TypeId parent) {

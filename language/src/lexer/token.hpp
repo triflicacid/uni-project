@@ -18,9 +18,6 @@ namespace lang::lexer {
     bool is_eof() const;
     bool is_valid() const;
 
-    // id end of line (';' or '\n')
-    bool is_eol() const;
-
     // generate a message of the given type about this token
     std::unique_ptr<message::MessageWithSource> generate_message(message::Level level) const;
 

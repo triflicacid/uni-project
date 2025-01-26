@@ -12,7 +12,7 @@ namespace lang::symbol {
     bool used_; // are we used?
 
   public:
-    Variable(lexer::Token name, const ast::type::Node& type) : Symbol(std::move(name)), type_(type) {}
+    Variable(lexer::Token name, Category category, const ast::type::Node& type) : Symbol(std::move(name), std::move(category)), type_(type) {}
 
     bool dirty = false; // used to track if the variable contents have changed
 

@@ -9,7 +9,7 @@ namespace lang::memory {
   // class to manage storing and retrieving values from the stack
   class StackManager {
     uint64_t offset_; // record offset into the stack
-    std::deque<uint64_t> frames_; // cached offset_'s of previous stack frames
+    std::deque<uint64_t> frames_; // cached offset_'s of previous stack frames, most recent = back
     assembly::Program& program_;
 
   public:
@@ -30,5 +30,8 @@ namespace lang::memory {
 
     // remove latest stack frame
     void pop_frame();
+
+    // get the address of the nth topmost frame (default n = 0 = most recent)
+    uint64_t peek_frame(unsigned int n = 0) const;
   };
 }

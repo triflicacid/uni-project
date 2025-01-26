@@ -13,7 +13,7 @@ namespace lang::ast {
     std::string block_prefix() const override { return "func " + token_.image; }
 
   public:
-    FunctionNode(lexer::Token token, std::unique_ptr<type::FunctionNode> type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params, std::optional<std::unique_ptr<BlockNode>> body);
+    FunctionNode(lexer::Token token, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params, std::optional<std::unique_ptr<BlockNode>> body);
 
     std::string name() const override { return "function"; }
 

@@ -7,13 +7,14 @@ namespace lang::ast {
   class SymbolDeclarationNode;
 
   class FunctionBaseNode : public Node {
-    std::unique_ptr<type::FunctionNode> type_;
     std::deque<std::unique_ptr<SymbolDeclarationNode>> params_; // note, assume that arg types and param types are equivalent
+    symbol::SymbolId id_; // ID of created function (created in ::collate_registry)
 
     // validate the parameters
     bool validate_params(message::List& messages);
 
   protected:
+    const type::FunctionNode& type_;
     std::unique_ptr<symbol::Registry> registry_;
 
     // processing once stack frame etc. have been set up
@@ -24,7 +25,14 @@ namespace lang::ast {
     virtual std::string block_prefix() const = 0;
 
   public:
-    FunctionBaseNode(lexer::Token token, std::unique_ptr<type::FunctionNode> type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params);
+    FunctionBaseNode(lexer::Token token, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params);
+
+    size_t params() const { return params_.size(); }
+
+    const SymbolDeclarationNode& param(unsigned int i) const { return *params_[i]; }
+
+    // get ID of created function
+    symbol::SymbolId id() const { return id_; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

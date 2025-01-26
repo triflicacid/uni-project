@@ -1,6 +1,8 @@
 #include "table.hpp"
 #include "assembly/directive.hpp"
 #include "registry.hpp"
+#include "ast/function_base.hpp"
+#include "ast/symbol_declaration.hpp"
 
 lang::symbol::SymbolTable::SymbolTable(memory::StackManager& stack) : stack_(stack) {
   scopes_.emplace_back();
@@ -11,8 +13,8 @@ const std::deque<std::reference_wrapper<lang::symbol::Symbol>> lang::symbol::Sym
     if (auto it = map.find(name); it != map.end()) {
       // return list of references
       std::deque<std::reference_wrapper<lang::symbol::Symbol>> symbols;
-      for (auto& symbol : it->second) {
-        symbols.push_back(*symbol);
+      for (SymbolId id : it->second) {
+        symbols.push_back(*symbols_.at(id));
       }
       return symbols;
     }
@@ -21,67 +23,119 @@ const std::deque<std::reference_wrapper<lang::symbol::Symbol>> lang::symbol::Sym
   return {};
 }
 
-void lang::symbol::SymbolTable::_insert(std::unique_ptr<Symbol> symbol) {
+void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool alloc) {
   const std::string& name = symbol->token().image;
+  const SymbolId id = symbol->id();
 
+  // insert into scope data structure
   if (auto it = scopes_.back().find(name); it != scopes_.back().end()) {
-    it->second.push_back(std::move(symbol));
+    it->second.insert(id);
   } else {
-    std::deque<std::unique_ptr<Symbol>> symbols;
-    symbols.push_back(std::move(symbol));
-    scopes_.back().insert({name, std::move(symbols)});
+    scopes_.back().insert({name, {id}});
+  }
+
+  // insert into cache
+  symbols_.insert({id, std::move(symbol)});
+
+  // allocate space for symbol if needs be
+  if (alloc) allocate(id);
+}
+
+void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
+  // do not allocate twice!
+  if (storage_.contains(id)) return;
+
+  const symbol::Symbol& symbol = *symbols_.at(id);
+  switch (symbol.category()) {
+    case symbol::Category::Ordinary: // if size=0, immaterial
+      if (size_t size = symbol.type().size()) {
+        // are we global or no?
+        if (trace_.empty()) {
+          // create block for the variable to reside in
+          auto block = assembly::BasicBlock::labelled("globl_" + std::to_string(id));
+          block->comment() << "global " << symbol.full_name() << ": ";
+          symbol.type().print_code(block->comment());
+
+          // reserve space inside the block
+          // TODO directly load data if possible
+          block->add(assembly::Directive::space(symbol.type().size()));
+
+          // register stored location
+          storage_.insert({id, {*block}});
+
+          // insert block into the program
+          stack_.program().insert(assembly::Position::After, std::move(block));
+          stack_.program().select(assembly::Position::Previous);
+        } else {
+          // add symbol to stack iff size>0
+          stack_.push(size);
+          storage_.insert({id, {stack_.offset()}});
+          auto& comment = stack_.program().current().back().comment() << symbol.full_name() << ": ";
+          symbol.type().print_code(comment);
+        }
+      }
+      break;
+    case symbol::Category::Argument: { // point to location in stack
+      // find which function this is an argument of
+      const ast::FunctionBaseNode* function = nullptr;
+      int trace_idx;
+      size_t offset; // offset from first arg in function
+      for (trace_idx = trace_.size() - 1; trace_idx >= 0; trace_idx--) {
+        offset = 0;
+        bool is_match = false;
+        // check if we are a parameter of this function
+        for (int j = 0; j < trace_[trace_idx].get().params(); j++) {
+          auto& param = trace_[trace_idx].get().param(j);
+          if (param.id() == id) {
+            is_match = true;
+            break;
+          }
+          offset += param.type().size();
+        }
+
+        if (is_match) {
+          function = &trace_[trace_idx].get();
+          break;
+        }
+      }
+
+      // if no match, then this is bad
+      if (!function) throw std::runtime_error("error when allocating argument - parent function cannot be found in trace");
+
+      // variable offset is from frame base + arg offset
+      offset += stack_.peek_frame(trace_idx);
+
+      // register stored location
+      storage_.insert({id, {offset - stack_.offset()}});
+      break;
+    }
+    case symbol::Category::Function: { // bound to a block, function should already exist
+      // create a new block for the function
+      const std::string label = "func_" + std::to_string(id);
+      auto block = assembly::BasicBlock::labelled(label);
+      block->comment() << symbol.full_name();
+      symbol.type().print_code(block->comment());
+
+      // register stored location
+      storage_.insert({id, {*block}});
+
+      // insert block into the program
+      stack_.program().insert(assembly::Position::After, std::move(block));
+      stack_.program().select(assembly::Position::Previous);
+      break;
+    }
   }
 }
 
-void lang::symbol::SymbolTable::insert_local(std::unique_ptr<Symbol> symbol) {
-  if (size_t size = symbol->type().size(); size > 0) {
-    stack_.push(size);
-    storage_.insert({symbol->id(), {stack_.offset()}});
-    auto &comment = stack_.program().current().back().comment() << symbol->full_name() << ": ";
-    symbol->type().print_code(comment);
-  }
-
-  _insert(std::move(symbol));
-}
-
-void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol) {
-  // in function <=> local scope => stack variable
-  if (!trace_.empty()) {
-    insert_local(std::move(symbol));
-    return;
-  }
-
-  // create block for the variable to reside in
-  auto block = assembly::BasicBlock::labelled("globl_" + std::to_string(symbol->id()));
-  block->comment() << "global " << symbol->full_name() << ": ";
-  symbol->type().print_code(block->comment());
-
-  // reserve space inside the block
-  // TODO directly load data if possible
-  block->add(assembly::Directive::space(symbol->type().size()));
-
-  // register symbol against this block
-  insert(std::move(symbol), *block);
-
-  // insert block into the program
-  stack_.program().insert(assembly::Position::After, std::move(block));
-  stack_.program().select(assembly::Position::Previous);
-}
-
-void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, lang::assembly::BasicBlock& block) {
-  storage_.insert({symbol->id(), {block}});
-  _insert(std::move(symbol));
-}
-
-const lang::memory::StorageLocation& lang::symbol::SymbolTable::locate(lang::symbol::SymbolId symbol) const {
-  if (auto it = storage_.find(symbol); it != storage_.end())
+std::optional<std::reference_wrapper<const lang::memory::StorageLocation>> lang::symbol::SymbolTable::locate(lang::symbol::SymbolId id) const {
+  if (auto it = storage_.find(id); it != storage_.end())
     return it->second;
-  throw std::runtime_error("locate: symbol ID has no location");
+  return {};
 }
 
-void lang::symbol::SymbolTable::insert(Registry& registry) {
+void lang::symbol::SymbolTable::insert(Registry& registry, bool alloc) {
   for (auto& [symbolId, symbol] : registry.symbols_) {
-    insert_local(std::move(symbol));
+    insert(std::move(symbol), alloc);
   }
 
   // clear registry to minimise possibility of misuse
@@ -96,21 +150,33 @@ void lang::symbol::SymbolTable::push() {
 
 void lang::symbol::SymbolTable::pop() {
   if (!scopes_.empty()) {
+    // make sure to remove all symbols from storage_ and symbols_!
+    for (auto& [name, symbols] : scopes_.back()) {
+      for (SymbolId id: symbols) {
+        symbols_.erase(id);
+        storage_.erase(id);
+      }
+    }
+
     scopes_.pop_back();
     stack_.pop_frame();
   }
   if (scopes_.empty()) push();
 }
 
-void lang::symbol::SymbolTable::enter_function(const lang::ast::FunctionNode& f) {
-  trace_.push(f);
+void lang::symbol::SymbolTable::enter_function(const lang::ast::FunctionBaseNode& f) {
+  trace_.push_back(f);
 }
 
-std::optional<std::reference_wrapper<const lang::ast::FunctionNode>> lang::symbol::SymbolTable::current_function() const {
+std::optional<std::reference_wrapper<const lang::ast::FunctionBaseNode>> lang::symbol::SymbolTable::current_function() const {
   if (trace_.empty()) return {};
-  return trace_.top();
+  return trace_.back();
 }
 
 void lang::symbol::SymbolTable::exit_function() {
-  if (!trace_.empty()) trace_.pop();
+  if (!trace_.empty()) trace_.pop_back();
+}
+
+const lang::symbol::Symbol& lang::symbol::SymbolTable::get(lang::symbol::SymbolId id) const {
+  return *symbols_.at(id);
 }

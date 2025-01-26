@@ -5,10 +5,10 @@
 #include "context.hpp"
 #include "assembly/create.hpp"
 
-lang::ast::FunctionNode::FunctionNode(lang::lexer::Token token, std::unique_ptr<type::FunctionNode> type,
+lang::ast::FunctionNode::FunctionNode(lang::lexer::Token token, const type::FunctionNode& type,
                                       std::deque<std::unique_ptr<SymbolDeclarationNode>> params,
                                       std::optional<std::unique_ptr<BlockNode>> body)
-    : FunctionBaseNode(std::move(token), std::move(type), std::move(params)), body_(std::move(body)) {}
+    : FunctionBaseNode(std::move(token), type, std::move(params)), body_(std::move(body)) {}
 
 std::ostream& lang::ast::FunctionNode::print_code(std::ostream& os, unsigned int indent_level) const {
   FunctionBaseNode::print_code(os, indent_level);
@@ -35,7 +35,7 @@ std::ostream& lang::ast::FunctionNode::print_tree(std::ostream& os, unsigned int
 }
 
 bool lang::ast::FunctionNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
-  // collate arguments
+  // call parent's method
   if (!FunctionBaseNode::collate_registry(messages, registry))
     return false;
 
@@ -56,16 +56,7 @@ bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
 
   // if we have no body, this is *really* easy
   if (body_.has_value()) {
-    // save frame here & record on stack
-    ctx.stack_manager.push_frame();
-    ctx.symbols.enter_function(*this);
-
-    // process body
     if (!body_.value()->process(ctx)) return false;
-
-    // remove old frame
-    ctx.stack_manager.pop_frame();
-    ctx.symbols.exit_function();
   } else {
     // just return TODO type??
     ctx.program.current().add(assembly::create_return());

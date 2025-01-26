@@ -18,6 +18,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
     {"int", TokenType::int_kw},
     {"let", TokenType::let},
     {"long", TokenType::long_kw},
+    {"namespace", TokenType::namespace_kw},
     {"return", TokenType::return_kw},
   }},
   literal_map = {
@@ -98,10 +99,6 @@ bool Token::is_eof() const {
 
 bool Token::is_valid() const {
   return type != TokenType::invalid;
-}
-
-bool Token::is_eol() const {
-  return type == TokenType::sc || type == TokenType::nl;
 }
 
 std::unique_ptr<message::MessageWithSource> Token::generate_message(message::Level level) const {

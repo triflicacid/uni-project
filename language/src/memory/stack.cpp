@@ -20,6 +20,11 @@ void lang::memory::StackManager::push_frame() {
 
 void lang::memory::StackManager::pop_frame() {
   if (frames_.empty()) return;
+  offset_ = frames_.back();
   frames_.pop_back();
   // TODO assembly code
+}
+
+uint64_t lang::memory::StackManager::peek_frame(unsigned int n) const {
+  return frames_.at(frames_.size() - 1 - n);
 }

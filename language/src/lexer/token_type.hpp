@@ -53,6 +53,7 @@ namespace lang::lexer {
     int_kw,
     let,
     long_kw,
+    namespace_kw,
     return_kw,
     ulong_kw,
 

@@ -123,13 +123,13 @@ const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
   if (expect(firstset::number)) { // numeric literal
     return parse_number();
-  } else if (expect({lexer::TokenType::ident})) { // identifier
+  } else if (expect(lexer::TokenType::ident)) { // identifier
     return std::make_unique<ast::expr::SymbolReferenceNode>(consume());
-  } else if (expect({lexer::TokenType::lpar})) { // bracketed expression
+  } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
     consume();
     auto expr = parse_expression();
     // ensure we have a closing bracket, or propagate error
-    if (is_error() || !expect_or_error({lexer::TokenType::rpar})) return nullptr;
+    if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
     consume(); // ')'
     return expr;
   } else { // unknown, but should've been caught already
@@ -270,6 +270,7 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
     // parse `name: type` pair
     if (!expect_or_error(lexer::TokenType::ident)) return {};
     args.push_back(parse_name_type_pair());
+    args.back()->set_arg(true);
     if (is_error()) return {};
 
     // if comma, continue
@@ -322,17 +323,18 @@ std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
     if (is_error()) return nullptr;
   }
 
-  // construct function type and node
+  // create function type
   std::deque<std::reference_wrapper<const ast::type::Node>> param_types;
   for (auto& param : params) param_types.push_back(param->type());
-  auto type = std::make_unique<ast::type::FunctionNode>(param_types, returns);
-  return std::make_unique<ast::FunctionNode>(name, std::move(type), std::move(params), std::move(body));
+  auto& type = ast::type::FunctionNode::create(param_types, returns);
+
+  // construct function type and node
+  return std::make_unique<ast::FunctionNode>(name, type, std::move(params), std::move(body));
 }
 
 std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
   // 'return'
   const lexer::Token token = consume();
-
 
   // is there an expression?
   std::optional<std::unique_ptr<ast::expr::Node>> expr;
@@ -345,7 +347,7 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
-   {lexer::TokenType::let, lexer::TokenType::return_kw},
+   {lexer::TokenType::let, lexer::TokenType::namespace_kw, lexer::TokenType::return_kw},
    firstset::expression,
 });
 
@@ -354,6 +356,11 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
     auto declarations = parse_let();
     if (is_error()) return;
     for (auto& decl : declarations) block.add(std::move(decl));
+    return;
+  }
+
+  if (expect(lexer::TokenType::namespace_kw)) {
+    block.add(parse_namespace());
     return;
   }
 
@@ -378,30 +385,54 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
     while (expect(firstset::eol)) consume();
     if (expect(lexer::TokenType::rbrace)) break;
 
-    // parse line
-    if (!expect(firstset::line)) break;
+    // parse line or '}'
+    if (!expect_or_error(lexer::merge_sets({firstset::line, {lexer::TokenType::rbrace}}))) {
+      auto msg = lbrace.generate_message(message::Note);
+      msg->get() << "block started here";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+
+    if (expect(lexer::TokenType::rbrace)) {
+      consume();
+      break;
+    }
+
     parse_line(*block);
     if (is_error()) return nullptr;
-  }
-
-  // '}'
-  if (!expect_or_error(lexer::TokenType::rbrace)) {
-    auto msg = lbrace.generate_message(message::Note);
-    msg->get() << "block started here";
-    add_message(std::move(msg));
-    return nullptr;
   }
 
   consume();
   return block;
 }
 
+std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace() {
+  // 'namespace'
+  consume();
+
+  // name
+  if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
+  const lexer::Token name = consume();
+
+  // body (block)
+  auto block = parse_block();
+  if (is_error()) return nullptr;
+
+  return std::make_unique<ast::NamespaceNode>(std::move(name), std::move(block));
+}
+
 const lang::lexer::TokenSet lang::parser::firstset::top_level_line = {
-    lexer::TokenType::let,
     lexer::TokenType::func,
+    lexer::TokenType::let,
+    lexer::TokenType::namespace_kw,
 };
 
 void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
+  if (expect(lexer::TokenType::func)) {
+    program.add(parse_func());
+    return;
+  }
+
   if (expect(lexer::TokenType::let)) {
     auto declarations = parse_let();
     if (is_error()) return;
@@ -409,8 +440,8 @@ void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
     return;
   }
 
-  if (expect(lexer::TokenType::func)) {
-    program.add(parse_func());
+  if (expect(lexer::TokenType::namespace_kw)) {
+    program.add(parse_namespace());
     return;
   }
 }
@@ -431,3 +462,5 @@ std::unique_ptr<lang::ast::ProgramNode> lang::parser::Parser::parse() {
 
   return program;
 }
+
+

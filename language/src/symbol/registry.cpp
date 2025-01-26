@@ -1,4 +1,6 @@
 #include "registry.hpp"
+#include "variable.hpp"
+#include "ast/types/function.hpp"
 
 bool lang::symbol::Registry::contains(const std::string& name) const {
   return names_.contains(name);
@@ -9,10 +11,6 @@ const std::deque<lang::symbol::SymbolId> lang::symbol::Registry::get(const std::
     return it->second;
   }
   return {};
-}
-
-lang::symbol::Symbol& lang::symbol::Registry::get_mut(SymbolId id) {
-  return *symbols_.find(id)->second;
 }
 
 const lang::symbol::Symbol& lang::symbol::Registry::get(SymbolId id) const {
@@ -46,4 +44,41 @@ void lang::symbol::Registry::remove(lang::symbol::SymbolId id) {
 
   // erase from symbol map
   symbols_.erase(id);
+}
+
+std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol::Registry& registry, const Category& category, const lang::lexer::Token& token, const lang::ast::type::Node& type, message::List& messages) {
+  // check if the symbol exists, we need additional guarding logic if it does
+  const std::string name = token.image;
+  auto& others = registry.get(name);
+  if (!others.empty()) {
+    // if we are a function, check if this overload already exists
+    // otherwise, we are shadowing
+    if (auto func_type = type.get_func()) {
+      // iterate through each candidate, check if ID's are equal
+      for (SymbolId id : others) {
+        if (auto& symbol = registry.get(id); symbol.type().id() == func_type->id()) {
+          auto msg = token.generate_message(message::Error);
+          msg->get() << "unable to define overload - a function matching this signature already exists";
+          messages.add(std::move(msg));
+
+          msg = symbol.token().generate_message(message::Note);
+          msg->get() << "signature " << name;
+          func_type->print_code(msg->get());
+          msg->get() << " previously defined here";
+          messages.add(std::move(msg));
+
+          return {};
+        }
+      }
+    } else {
+      // if not empty, should only contain one element
+      registry.remove(others.front());
+    }
+  }
+
+  // create Symbol object & register in the symbol table
+  auto symbol = std::make_unique<symbol::Variable>(token, category, type);
+  const SymbolId id = symbol->id();
+  registry.insert(std::move(symbol));
+  return id;
 }

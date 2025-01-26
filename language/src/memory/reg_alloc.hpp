@@ -7,6 +7,7 @@
 #include "ast/expr/literal.hpp"
 #include "assembly/program.hpp"
 #include "symbol/table.hpp"
+#include "ref.hpp"
 
 namespace lang::memory {
   // store total number of registers we may use
@@ -41,19 +42,9 @@ namespace lang::memory {
 
   struct Store {
     std::array<std::shared_ptr<Object>, total_registers> regs; // Objects stored in registers, may be null
-    uint64_t spill_addr; // current address for memory spill
+    std::deque<Ref> history; // history of allocations; front = [0] = most recent
     uint64_t stack_offset; // point to stack offset when store was saved
-  };
-
-  // describe reference to an item, either a register or a memory address
-  struct Ref {
-    enum Type {
-      Register,
-      Memory
-    };
-
-    Type type;
-    uint64_t offset;
+    uint64_t spill_addr; // current address for memory spill
   };
 
   // class for managing register allocation and register spills
@@ -99,5 +90,9 @@ namespace lang::memory {
 
     // same as insert(), but put in a specific position - location is evicted if full
     void insert(const Ref& location, std::unique_ptr<Object> object);
+
+    // get the nth most recent allocation
+    // default `n=0` (i.e., most recent
+    std::optional<Ref> get_recent(unsigned int n = 0) const;
   };
 }

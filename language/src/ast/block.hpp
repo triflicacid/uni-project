@@ -6,6 +6,8 @@
 
 namespace lang::ast {
   class BlockNode : public Node {
+    friend class NamespaceNode; // to allow namespace to amend a symbol's parents
+
     std::deque<std::unique_ptr<Node>> lines_;
     bool scope_ = true; // add a new scope
     std::unique_ptr<symbol::Registry> registry_; // local registry, NULL if !scope_

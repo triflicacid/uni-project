@@ -25,10 +25,11 @@ std::ostream& lang::ast::BlockNode::print_code(std::ostream& os, unsigned int in
 }
 
 std::ostream& lang::ast::BlockNode::print_tree(std::ostream& os, unsigned int indent_level) const {
-  Node::print_tree(os, indent_level) << std::endl;
+  Node::print_tree(os, indent_level);
   for (auto& line : lines_) {
+    os << std::endl;
     indent(os, indent_level);
-    line->print_tree(os, indent_level + 1) << std::endl;
+    line->print_tree(os, indent_level + 1);
   }
   return os;
 }

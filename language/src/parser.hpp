@@ -9,6 +9,7 @@
 #include "ast/function.hpp"
 #include "ast/program.hpp"
 #include "ast/return.hpp"
+#include "ast/namespace.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -82,6 +83,9 @@ namespace lang::parser {
 
     // parse a code block `{...}`
     std::unique_ptr<ast::BlockNode> parse_block();
+
+    // parse a namespace
+    std::unique_ptr<ast::NamespaceNode> parse_namespace();
 
     // parse a code line in the top-level
     void parse_top_level_line(ast::ProgramNode& program);

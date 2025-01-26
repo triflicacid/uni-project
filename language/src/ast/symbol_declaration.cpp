@@ -17,29 +17,13 @@ std::ostream &lang::ast::SymbolDeclarationNode::print_tree(std::ostream &os, uns
   return os << SHELL_RESET;
 }
 
-bool lang::ast::SymbolDeclarationNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
-  // check if the symbol exists, we need additional guarding logic if it does
-  const std::string name = token_.image;
-  auto& others = registry.get(name);
-  if (!others.empty()) {
-    // if we are a function, check if this overload already exists
-    // otherwise, we are shadowing
-    if (auto func_type = type_.get_func()) {
-      // TODO
-      throw std::runtime_error("declaring function types is not implemented");
-    } else {
-      // if not empty, should only contain one element
-      registry.remove(others.front());
-    }
+bool lang::ast::SymbolDeclarationNode::collate_registry(message::List& messages, symbol::Registry& registry) {
+  auto maybe_id = symbol::create_variable(registry, arg_ ? symbol::Category::Argument : symbol::Category::Ordinary, token_, type_, messages);
+  if (maybe_id.has_value()) {
+    id_ = maybe_id.value();
+    return true;
   }
-
-  // TODO add parent namespace
-
-  // create Symbol object & register in the symbol table
-  auto symbol = std::make_unique<symbol::Variable>(token_, type_);
-  registry.insert(std::move(symbol));
-
-  return true;
+  return false;
 }
 
 bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {

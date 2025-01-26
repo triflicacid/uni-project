@@ -164,6 +164,9 @@ lang::memory::RegisterAllocationManager::find(int temporary, const ast::type::No
 }
 
 std::shared_ptr<lang::memory::Object> lang::memory::RegisterAllocationManager::evict(const Ref& location) {
+  // remove from allocation history
+  erase_if(instances_.top().history, [&](const Ref& loc) { return location == loc; });
+
   if (location.type == Ref::Register) {
     // nothing is required assembly-wise
     auto object = std::move(instances_.top().regs[location.offset - initial_register]);
@@ -204,6 +207,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(std::unique_pt
 
 void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::unique_ptr<Object> object) {
   evict(location);
+  instances_.top().history.push_front(location);
 
   if (location.type == Ref::Register) {
     switch (object->type) {
@@ -228,7 +232,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
         break;
       case Object::Symbol: { // load the value at the symbol's offset into the register
         const auto& symbol = object->symbol.get();
-        const StorageLocation& storage = symbols_.locate(symbol.id());
+        const StorageLocation& storage = symbols_.locate(symbol.id())->get();
         std::unique_ptr<assembly::BaseArg> arg;
 
         // TODO what if the size exceeds one word?
@@ -271,4 +275,9 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
 
   // update our records
   memory_[location.offset] = std::move(object);
+}
+
+std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::get_recent(unsigned int n) const {
+  if (instances_.empty() || n >= instances_.top().history.size()) return {};
+  return instances_.top().history[n];
 }

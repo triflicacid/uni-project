@@ -1,5 +1,4 @@
 #include <iostream>
-#include <memory>
 #include <vector>
 #include "named_fstream.hpp"
 #include "config.hpp"
@@ -13,6 +12,8 @@
 #include "memory/reg_alloc.hpp"
 #include "ast/types/int.hpp"
 #include "context.hpp"
+#include "ast/types/graph.hpp"
+#include "ast/types/float.hpp"
 
 struct Options {
   std::vector<std::unique_ptr<named_fstream>> files; // input files
@@ -90,6 +91,9 @@ int main(int argc, char** argv) {
       .reg_alloc_manager = allocation_manager,
       .symbols = symbol_table
   };
+
+  // initialise type dependency graph
+  lang::ast::type::TypeGraph::init();
 
   // for each source...
   for (std::unique_ptr<named_fstream>& file : options.files) {

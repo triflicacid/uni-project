@@ -1,3 +1,7 @@
-namespace maths {
-    let pi;
+let x: int;
+namespace std {
+    let x: int;
+    namespace maths {
+        let x: int;
+    }
 }

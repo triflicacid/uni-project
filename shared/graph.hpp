@@ -39,6 +39,12 @@ public:
     return {};
   }
 
+  // get the node associated with the given key
+  std::optional<std::reference_wrapper<_Node>> get(const _Key& key) {
+    if (auto it = nodes_.find(key); it != nodes_.end()) return it->second;
+    return {};
+  }
+
   // insert the given node
   void insert(_Key key, _Node node) {
     nodes_.insert({std::move(key), std::move(node)});
@@ -141,4 +147,9 @@ public:
     conditional_bfs(from, [&](const _Key& node) { return found = node == to; });
     return found;
   }
+
+  auto begin() { return nodes_.begin(); }
+  auto begin() const { return nodes_.begin(); }
+  auto end() { return nodes_.end(); }
+  auto end() const { return nodes_.end(); }
 };

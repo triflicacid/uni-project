@@ -1,3 +1,4 @@
+#include <cassert>
 #include "function_base.hpp"
 #include "types/function.hpp"
 #include "shell.hpp"
@@ -5,9 +6,9 @@
 #include "assembly/create.hpp"
 #include "symbol_declaration.hpp"
 
-lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, std::unique_ptr<type::FunctionNode> type,
+lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, const type::FunctionNode& type,
                                               std::deque<std::unique_ptr<SymbolDeclarationNode>> params)
-    : Node(std::move(token)), type_(std::move(type)), params_(std::move(params)) {}
+    : Node(std::move(token)), type_(type), params_(std::move(params)) {}
 
 bool lang::ast::FunctionBaseNode::validate_params(message::List& messages) {
   // check for duplicate names
@@ -41,13 +42,13 @@ std::ostream& lang::ast::FunctionBaseNode::print_code(std::ostream& os, unsigned
   indent(os, indent_level) << block_prefix() << "(";
   for (int i = 0; i < params_.size(); i++) {
     os << params_[i]->token().image << ": ";
-    type_->arg(i).print_code(os, 0);
+    type_.arg(i).print_code(os, 0);
     if (i < params_.size() - 1) os << ", ";
   }
   os << ") ";
 
   // if provided, print return type after an arrow
-  if (auto returns = type_->returns(); returns.has_value()) {
+  if (auto returns = type_.returns(); returns.has_value()) {
     os << "-> ";
     returns.value().get().print_code(os, 0);
   }
@@ -69,11 +70,17 @@ std::ostream& lang::ast::FunctionBaseNode::print_tree(std::ostream& os, unsigned
 }
 
 bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
+  // attempt to register the symbol
+  auto maybe_id = symbol::create_variable(registry, symbol::Category::Function, token_, type_, messages);
+  if (!maybe_id.has_value()) return false;
+  id_ = maybe_id.value();
+
   // create local registry
   registry_ = std::make_unique<symbol::Registry>();
 
   // collate parameter definitions
   for (auto& param : params_) {
+    param->set_arg(true); // ensure they are arguments
     if (!param->collate_registry(messages, *registry_)) {
       return false;
     }
@@ -88,26 +95,22 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
     return false;
   }
 
-  // create a symbol to represent us
-  auto symbol = std::make_unique<symbol::Variable>(token_, *type_);
+  // symbol has already been inserted, so lookup the associated block
+  const memory::StorageLocation& store = ctx.symbols.locate(id_)->get();
+  assert(("Function expected to be stored in a block", store.type == memory::StorageLocation::Block));
 
-  // create a new block for us
-  const std::string label = "func_" + std::to_string(symbol->id());
-  auto block = assembly::BasicBlock::labelled(label);
-  block->comment() << token_.image;
-  type_->print_code(block->comment());
-
-  // insert ourself into the scope
-  ctx.symbols.insert(std::move(symbol), *block);
-
-  // insert block into program
+  // change cursor position
   const assembly::BasicBlock& previous = ctx.program.current();
-  ctx.program.insert(assembly::Position::After, std::move(block));
+  ctx.program.select(store.block);
+
+  // enter the function
+  ctx.symbols.enter_function(*this);
 
   // process as child directs
   if (!_process(ctx)) return false;
 
-  // restore cursor to previous block
+  // restore cursor to previous block and exit function
+  ctx.symbols.exit_function();
   ctx.program.select(previous);
 
   return true;
