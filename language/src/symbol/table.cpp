@@ -5,7 +5,7 @@
 #include "ast/symbol_declaration.hpp"
 
 lang::symbol::SymbolTable::SymbolTable(memory::StackManager& stack) : stack_(stack) {
-  scopes_.emplace_back();
+  scopes_.emplace_front();
 }
 
 const std::deque<std::reference_wrapper<lang::symbol::Symbol>> lang::symbol::SymbolTable::find(const std::string& name) const {
@@ -28,10 +28,10 @@ void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool allo
   const SymbolId id = symbol->id();
 
   // insert into scope data structure
-  if (auto it = scopes_.back().find(name); it != scopes_.back().end()) {
+  if (auto it = scopes_.front().find(name); it != scopes_.front().end()) {
     it->second.insert(id);
   } else {
-    scopes_.back().insert({name, {id}});
+    scopes_.front().insert({name, {id}});
   }
 
   // insert into cache
@@ -144,37 +144,37 @@ void lang::symbol::SymbolTable::insert(Registry& registry, bool alloc) {
 }
 
 void lang::symbol::SymbolTable::push() {
-  scopes_.emplace_back();
+  scopes_.emplace_front();
   stack_.push_frame();
 }
 
 void lang::symbol::SymbolTable::pop() {
   if (!scopes_.empty()) {
     // make sure to remove all symbols from storage_ and symbols_!
-    for (auto& [name, symbols] : scopes_.back()) {
+    for (auto& [name, symbols] : scopes_.front()) {
       for (SymbolId id: symbols) {
         symbols_.erase(id);
         storage_.erase(id);
       }
     }
 
-    scopes_.pop_back();
+    scopes_.pop_front();
     stack_.pop_frame();
   }
   if (scopes_.empty()) push();
 }
 
 void lang::symbol::SymbolTable::enter_function(const lang::ast::FunctionBaseNode& f) {
-  trace_.push_back(f);
+  trace_.push_front(f);
 }
 
 std::optional<std::reference_wrapper<const lang::ast::FunctionBaseNode>> lang::symbol::SymbolTable::current_function() const {
   if (trace_.empty()) return {};
-  return trace_.back();
+  return trace_.front();
 }
 
 void lang::symbol::SymbolTable::exit_function() {
-  if (!trace_.empty()) trace_.pop_back();
+  if (!trace_.empty()) trace_.pop_front();
 }
 
 const lang::symbol::Symbol& lang::symbol::SymbolTable::get(lang::symbol::SymbolId id) const {

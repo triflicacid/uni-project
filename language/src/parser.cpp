@@ -347,11 +347,16 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
-   {lexer::TokenType::let, lexer::TokenType::namespace_kw, lexer::TokenType::return_kw},
+   {lexer::TokenType::func, lexer::TokenType::let, lexer::TokenType::namespace_kw, lexer::TokenType::return_kw},
    firstset::expression,
 });
 
 void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
+  if (expect(lexer::TokenType::func)) {
+    block.add(parse_func());
+    return;
+  }
+
   if (expect(lexer::TokenType::let)) {
     auto declarations = parse_let();
     if (is_error()) return;

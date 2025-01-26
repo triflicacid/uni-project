@@ -96,12 +96,13 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   }
 
   // symbol has already been inserted, so lookup the associated block
-  const memory::StorageLocation& store = ctx.symbols.locate(id_)->get();
-  assert(("Function expected to be stored in a block", store.type == memory::StorageLocation::Block));
+  auto maybe_store = ctx.symbols.locate(id_);
+  assert(maybe_store.has_value() && maybe_store->get().type == memory::StorageLocation::Block);
+  const assembly::BasicBlock& function_block = maybe_store->get().block;
 
   // change cursor position
   const assembly::BasicBlock& previous = ctx.program.current();
-  ctx.program.select(store.block);
+  ctx.program.select(function_block);
 
   // enter the function
   ctx.symbols.enter_function(*this);

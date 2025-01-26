@@ -14,17 +14,17 @@ void lang::memory::StackManager::pop(uint8_t bytes) {
 }
 
 void lang::memory::StackManager::push_frame() {
-  frames_.push_back(offset_);
+  frames_.push_front(offset_);
   // TODO assembly code
 }
 
 void lang::memory::StackManager::pop_frame() {
   if (frames_.empty()) return;
-  offset_ = frames_.back();
-  frames_.pop_back();
+  offset_ = frames_.front();
+  frames_.pop_front();
   // TODO assembly code
 }
 
 uint64_t lang::memory::StackManager::peek_frame(unsigned int n) const {
-  return frames_.at(frames_.size() - 1 - n);
+  return frames_.at(n);
 }

@@ -1,7 +1,9 @@
 let x: int;
-namespace std {
+
+namespace maths {
     let x: int;
-    namespace maths {
-        let x: int;
+
+    func sin(x: float) -> float {
+        x;
     }
 }

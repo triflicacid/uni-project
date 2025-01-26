@@ -3,6 +3,7 @@
 #include "uint64.hpp"
 #include "ast/types/float.hpp"
 #include "shell.hpp"
+#include "context.hpp"
 
 std::ostream &lang::ast::expr::LiteralNode::print_code(std::ostream &os, unsigned int indent_level) const {
   os << "(";
@@ -28,5 +29,10 @@ std::ostream &lang::ast::expr::LiteralNode::print_tree(std::ostream &os, unsigne
   Node::print_tree(os, indent_level);
   os << " " SHELL_GREEN << to_string() << SHELL_RESET ": " SHELL_CYAN;
   return type_.print_code(os, 0) << SHELL_RESET;
+}
+
+bool lang::ast::expr::LiteralNode::load(lang::Context& ctx) const {
+  ctx.reg_alloc_manager.find(*this);
+  return true;
 }
 

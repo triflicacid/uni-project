@@ -23,5 +23,7 @@ namespace lang::ast::expr {
 
     // return data buffer
     uint64_t get() const { return token_.value; }
+
+    bool load(lang::Context &ctx) const override;
   };
 }

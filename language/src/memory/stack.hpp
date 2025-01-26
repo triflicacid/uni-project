@@ -8,8 +8,8 @@
 namespace lang::memory {
   // class to manage storing and retrieving values from the stack
   class StackManager {
-    uint64_t offset_; // record offset into the stack
-    std::deque<uint64_t> frames_; // cached offset_'s of previous stack frames, most recent = back
+    uint64_t offset_ = 0; // record offset into the stack
+    std::deque<uint64_t> frames_; // cached offset_'s of previous stack frames, most recent = front
     assembly::Program& program_;
 
   public:

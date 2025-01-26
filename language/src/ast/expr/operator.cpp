@@ -4,7 +4,7 @@
 
 const lang::ast::type::Node &lang::ast::expr::OperatorNode::type() const {
   // if type_ is not determined, error
-  assert(("OperatorNode type has not been determined", !type_.has_value()));
+  assert(type_.has_value());
   return type_.value();
 }
 

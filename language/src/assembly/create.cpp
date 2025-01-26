@@ -210,7 +210,7 @@ void lang::assembly::create_load(uint8_t reg, std::unique_ptr<BaseArg> value, ui
 }
 
 void lang::assembly::create_store(uint8_t reg, std::unique_ptr<BaseArg> address, uint8_t bytes, BasicBlock& block) {
-  // TODO
+  // TODO implemented sized store
   block.add(create_store(reg, std::move(address)));
   return;
 

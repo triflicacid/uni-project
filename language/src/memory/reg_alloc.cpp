@@ -99,7 +99,7 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
   }
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::find(lang::symbol::Variable &symbol) {
+lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symbol::Variable &symbol) {
   // check if Object is inside a register
   int offset = 0;
   for (auto& object : instances_.top().regs) {
@@ -120,11 +120,11 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(lang::symbol::Va
   return insert(std::make_unique<Object>(symbol));
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::find(ast::expr::LiteralNode& literal) {
+lang::memory::Ref lang::memory::RegisterAllocationManager::find(const ast::expr::LiteralNode& literal) {
   // check if Object is inside a register
   int offset = 0;
   for (auto& object : instances_.top().regs) {
-    if (object && object->type == Object::Literal && &object->literal.get() == &literal) {
+    if (object && object->type == Object::Literal && object->literal.get().get() == literal.get()) {
       return Ref(Ref::Register, offset);
     }
     offset++;
@@ -239,7 +239,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
         if (storage.type == StorageLocation::Stack) {
           arg = assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - storage.offset);
         } else {
-          arg = assembly::Arg::label(&storage.block.get());
+          arg = assembly::Arg::label(storage.block);
         }
 
         int idx = program_.current().size();
@@ -250,8 +250,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
             program_.current(),
             false
         );
-        program_.current()[idx].comment() << "load " << (storage.type == StorageLocation::Stack ? "stack" : "global")
-          << " variable " << symbol.token().image;
+        program_.current()[idx].comment() << "load " << (storage.type == StorageLocation::Block ? "global " : "") << symbol.full_name();
         break;
       }
     }

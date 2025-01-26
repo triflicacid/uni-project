@@ -12,8 +12,7 @@ namespace lang::ast::expr {
     // this function is used to generate a suitable candidate
     // guaranteed |candidates|>0
     // for a basic variable reference, return first candidate
-    virtual std::optional<std::reference_wrapper<symbol::Symbol>> select_candidate(Context& ctx,
-                                                                                   const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates) const;
+    virtual std::optional<std::reference_wrapper<symbol::Symbol>> select_candidate(Context& ctx, const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates) const;
 
   public:
     using Node::Node;
@@ -29,5 +28,7 @@ namespace lang::ast::expr {
     symbol::Symbol& get() { return symbol_.value(); }
 
     bool process(lang::Context &ctx) override;
+
+    bool load(lang::Context &ctx) const override;
   };
 }

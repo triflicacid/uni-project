@@ -27,14 +27,14 @@ namespace lang::memory {
     uint32_t occupied_ticks = 0;
     Type type;
     union {
-      std::reference_wrapper<symbol::Variable> symbol;
-      std::reference_wrapper<ast::expr::LiteralNode> literal;
+      std::reference_wrapper<const symbol::Variable> symbol;
+      std::reference_wrapper<const ast::expr::LiteralNode> literal;
       int temporary_id;
     };
     const ast::type::Node& datatype;
 
-    Object(symbol::Variable& symbol) : type(Symbol), symbol(symbol), datatype(symbol.type()) {}
-    Object(ast::expr::LiteralNode& literal) : type(Literal), literal(literal), datatype(literal.type()) {}
+    Object(const symbol::Variable& symbol) : type(Symbol), symbol(symbol), datatype(symbol.type()) {}
+    Object(const ast::expr::LiteralNode& literal) : type(Literal), literal(literal), datatype(literal.type()) {}
     Object(int temporary_id, const ast::type::Node& datatype) : type(Temporary), temporary_id(temporary_id), datatype(datatype) {}
 
     size_t size() const { return datatype.size(); }
@@ -74,10 +74,10 @@ namespace lang::memory {
     void destroy_store(bool restore_registers);
 
     // return reference to an item, insert if needed
-    Ref find(symbol::Variable& symbol);
+    Ref find(const symbol::Variable& symbol);
 
     // return reference to an item, insert if needed
-    Ref find(ast::expr::LiteralNode& literal);
+    Ref find(const ast::expr::LiteralNode& literal);
 
     // return reference to a temporary, insert if needed (this is why we need the type)
     Ref find(int temporary, const ast::type::Node& type);
@@ -92,7 +92,7 @@ namespace lang::memory {
     void insert(const Ref& location, std::unique_ptr<Object> object);
 
     // get the nth most recent allocation
-    // default `n=0` (i.e., most recent
+    // default `n=0` (i.e., most recent)
     std::optional<Ref> get_recent(unsigned int n = 0) const;
   };
 }

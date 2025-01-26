@@ -26,10 +26,10 @@ namespace lang::assembly {
   // a special form of `LabelArg` which references a BasicBlock
   // error is BasicBlock does not have a label
   class BlockReferenceArg : public BaseArg {
-    const BasicBlock* const& block_;
+    const BasicBlock& block_;
 
   public:
-    BlockReferenceArg(const BasicBlock* const& block) : block_(block) {}
+    BlockReferenceArg(const BasicBlock& block) : block_(block) {}
 
     std::ostream& print(std::ostream &os) const override;
   };
@@ -60,6 +60,6 @@ namespace lang::assembly {
     static std::unique_ptr<LabelArg> label(const std::string& label);
 
     // create an argument referencing a BasicBlock
-    static std::unique_ptr<BlockReferenceArg> label(const lang::assembly::BasicBlock* const& block);
+    static std::unique_ptr<BlockReferenceArg> label(const lang::assembly::BasicBlock& block);
   };
 }
