@@ -6,11 +6,8 @@ lang::assembly::Program::Program(std::string start_label) : current_(0) {
 
 void lang::assembly::Program::insert_at(int index, std::unique_ptr<BasicBlock> block) {
   current_ = index;
+  labels_.insert({block->label(), *block});
   blocks_.insert(blocks_.begin() + index, std::move(block));
-
-  if (auto& b = blocks_[index]; b->label().has_value()) {
-    labels_.insert({b->label().value(), *b});
-  }
 }
 
 bool lang::assembly::Program::select(const lang::assembly::BasicBlock& block) {
@@ -26,7 +23,7 @@ bool lang::assembly::Program::select(const lang::assembly::BasicBlock& block) {
 
 bool lang::assembly::Program::select(const std::string& label) {
   for (int i = 0; i < blocks_.size(); i++) {
-    if (auto l = blocks_[i]->label(); l && l.value() == label) {
+    if (blocks_[i]->label() == label) {
       current_ = i;
       return true;
     }

@@ -5,8 +5,8 @@ void lang::assembly::BasicBlock::add(std::unique_ptr<Line> i) {
 }
 
 std::ostream& lang::assembly::BasicBlock::print(std::ostream& os) const {
-  // print label if provided
-  if (label_.has_value()) os << label_.value() << ":";
+  // print label and comment
+  os << label_ << ":";
   if (std::string str = comment_.str(); !str.empty()) os << "  ; " << str;
   os << std::endl;
 

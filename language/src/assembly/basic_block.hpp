@@ -10,7 +10,7 @@ namespace lang::assembly {
   // a basic block represents a sequence of assembly instructions
   // it is labelled and can only contain jump instructions at the end
   class BasicBlock {
-    std::optional<std::string> label_;
+    std::string label_;
     std::deque<std::unique_ptr<Line>> contents_;
     std::stringstream comment_; // comment after the block's label
 
@@ -22,7 +22,7 @@ namespace lang::assembly {
 
     std::stringstream& comment() { return comment_; }
 
-    const std::optional<std::string>& label() const { return label_; }
+    const std::string& label() const { return label_; }
 
     void add(std::unique_ptr<Line> i);
 

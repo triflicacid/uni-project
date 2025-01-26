@@ -46,6 +46,5 @@ std::ostream& lang::assembly::LabelArg::print(std::ostream& os) const {
 }
 
 std::ostream& lang::assembly::BlockReferenceArg::print(std::ostream& os) const {
-  assert(block_.label().has_value());
-  return os << block_.label().value();
+  return os << block_.label();
 }
