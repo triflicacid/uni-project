@@ -51,6 +51,9 @@ bool lang::ast::expr::SymbolReferenceNode::process(lang::Context& ctx) {
 }
 
 bool lang::ast::expr::SymbolReferenceNode::load(lang::Context& ctx) const {
+  // record reference
+  symbol_->get().inc_ref();
+
   // if this is not a namespace, we know it is a variable
   if (auto& type = symbol_->get().type(); type.id() == ast::type::name_space.id()) return true;
 

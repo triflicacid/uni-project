@@ -13,13 +13,16 @@ namespace lang::symbol {
     Function, // globally-places function (block-bound)
   };
 
+  std::string category_to_string(Category category);
+
   // represents a value bound to a name
   // includes namespaces, variables, and functions (which are variables with function types)
   class Symbol {
     lexer::Token token_; // origin token (top-level name)
     std::optional<std::reference_wrapper<const Symbol>> parent_; // parent symbol (i.e., namespace)
-    SymbolId id_;
+    SymbolId id_ = -1;
     Category category_;
+    int ref_count_ = 0; // count how many times we were referenced by a SymbolReferenceNode
 
   public:
     explicit Symbol(lexer::Token name);
@@ -41,6 +44,11 @@ namespace lang::symbol {
     void set_parent(const Symbol& parent) { parent_ = parent; }
 
     uint32_t id() const { return id_; }
+
+    int ref_count() const { return ref_count_; }
+
+    // increment our ref_count
+    void inc_ref() { ref_count_++; }
 
     virtual const ast::type::Node& type() const = 0;
   };

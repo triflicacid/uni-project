@@ -1,6 +1,8 @@
 #include "program.hpp"
 #include "context.hpp"
 #include "symbol/registry.hpp"
+#include "config.hpp"
+#include "lint.hpp"
 
 void lang::ast::ProgramNode::add(std::unique_ptr<Node> ast_node) {
   lines_.push_back(std::move(ast_node));
@@ -47,6 +49,9 @@ bool lang::ast::ProgramNode::process(lang::Context& ctx) {
       return false;
     }
   }
+
+  // if linting, check for unused variables
+  lint::check_local_scope(ctx.symbols, ctx.messages);
 
   return true;
 }

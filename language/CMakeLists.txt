@@ -5,7 +5,7 @@ include_directories("src")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../out)
 add_executable(language ../shared/constants.cpp ../shared/util.cpp ../shared/messages/message.cpp ../shared/messages/MessageWithSource.cpp ../shared/messages/list.cpp ../shared/istream_wrapper.cpp ../shared/uint64.cpp
-        src/config.cpp src/parser.cpp
+        src/config.cpp src/lint.cpp src/parser.cpp
         src/lexer/lexer.cpp
         src/memory/reg_alloc.cpp src/memory/stack.cpp
         src/ast/block.cpp src/ast/function_base.cpp src/ast/function.cpp src/ast/namespace.cpp src/ast/node.cpp src/ast/program.cpp src/ast/return.cpp src/ast/symbol_declaration.cpp

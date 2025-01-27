@@ -31,3 +31,14 @@ std::string lang::symbol::Symbol::full_name() const {
   }
   return full_name.str();
 }
+
+std::string lang::symbol::category_to_string(lang::symbol::Category category) {
+  switch (category) {
+    case Category::Ordinary:
+      return "symbol";
+    case Category::Argument:
+      return "argument";
+    case Category::Function:
+      return "function";
+  }
+}

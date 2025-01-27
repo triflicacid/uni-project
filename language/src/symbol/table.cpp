@@ -180,3 +180,12 @@ void lang::symbol::SymbolTable::exit_function() {
 const lang::symbol::Symbol& lang::symbol::SymbolTable::get(lang::symbol::SymbolId id) const {
   return *symbols_.at(id);
 }
+
+std::unordered_set<lang::symbol::SymbolId> lang::symbol::SymbolTable::peek() const {
+  // form 'local' symbol set by merging all symbols
+  std::unordered_set<SymbolId> local;
+  for (auto& [_, symbols] : scopes_.front()) {
+    local.insert(symbols.begin(), symbols.end());
+  }
+  return local;
+}

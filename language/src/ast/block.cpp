@@ -1,7 +1,8 @@
-#include <cassert>
 #include "block.hpp"
 #include "context.hpp"
 #include "symbol/registry.hpp"
+#include "config.hpp"
+#include "lint.hpp"
 
 void lang::ast::BlockNode::add(std::unique_ptr<Node> ast_node) {
   lines_.push_back(std::move(ast_node));
@@ -68,7 +69,12 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
   }
 
   // remove local scope if necessary
-  if (scope_) ctx.symbols.pop();
+  if (scope_) {
+    // if linting, check for unused variables
+    lint::check_local_scope(ctx.symbols, ctx.messages);
+
+    ctx.symbols.pop();
+  }
 
   return true;
 }

@@ -53,6 +53,9 @@ namespace lang::symbol {
     // create new lexical scope
     void push();
 
+    // peek at the latest scope
+    std::unordered_set<SymbolId> peek() const;
+
     // remove old lexical scope
     void pop();
 

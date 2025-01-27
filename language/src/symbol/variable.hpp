@@ -9,7 +9,6 @@
 namespace lang::symbol {
   class Variable : public Symbol {
     const ast::type::Node& type_;
-    bool used_; // are we used?
 
   public:
     Variable(lexer::Token name, Category category, const ast::type::Node& type) : Symbol(std::move(name), std::move(category)), type_(type) {}
@@ -17,10 +16,5 @@ namespace lang::symbol {
     bool dirty = false; // used to track if the variable contents have changed
 
     const ast::type::Node& type() const override { return type_; }
-
-    bool is_used() const { return used_; }
-
-    // mark symbol as used
-    void use() { used_ = true; }
   };
 }
