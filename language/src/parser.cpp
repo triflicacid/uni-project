@@ -9,6 +9,8 @@
 #include "ast/expr/symbol_reference.hpp"
 #include "util.hpp"
 #include "ast/program.hpp"
+#include "operators/info.hpp"
+#include "ast/expr.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -98,18 +100,6 @@ std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number
   return std::make_unique<ast::expr::LiteralNode>(token, *type_node);
 }
 
-// for operators which have built-in meanings, map token image to precedence into
-static std::map<std::string, lang::ast::expr::OperatorInfo> token_to_binary_operator_map = {
-    {"=", {4, true}},
-    {"+", {14, false}},
-    {"-", {14, false}},
-    {"*", {15, false}},
-    {"/", {15, false}},
-    {".", {15, false}},
-}, token_to_unary_operator_map = {
-    {"-", {17, false}}
-};
-
 const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
     firstset::number,
     {lexer::TokenType::ident, lexer::TokenType::lpar}
@@ -122,7 +112,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
     return std::make_unique<ast::expr::SymbolReferenceNode>(consume());
   } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
     consume();
-    auto expr = parse_expression();
+    auto expr = _parse_expression(0);
     // ensure we have a closing bracket, or propagate error
     if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
     consume(); // ')'
@@ -137,7 +127,11 @@ const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_se
     {lexer::TokenType::op}
 });
 
-std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(int precedence) {
+std::unique_ptr<lang::ast::ExprNode> lang::parser::Parser::parse_expression(int precedence) {
+  return std::make_unique<ast::ExprNode>(_parse_expression(precedence));
+}
+
+std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(int precedence) {
   std::unique_ptr<ast::expr::Node> expr;
 
   // check if we have a unary operator, or just a term
@@ -162,11 +156,9 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
   // any further operators are treated as binary
   while (expect(lexer::TokenType::op)) {
     const lexer::Token op_token = peek();
-    // TODO what if operator has no precedence?
-    if (!token_to_binary_operator_map.contains(op_token.image))
-      throw std::runtime_error("custom operators are not implemented (parsing)");
-
-    auto& op_info = token_to_binary_operator_map[op_token.image];
+    auto& op_info = ops::builtin_binary.contains(op_token.image)
+        ? ops::builtin_binary.at(op_token.image)
+        : ops::generic;
 
     // exit if lower precedence
     if (precedence >= op_info.precedence) {
@@ -178,7 +170,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
     if (!expect_or_error(firstset::expression)) return nullptr;
     int new_precedence = op_info.precedence;
     if (op_info.right_associative) new_precedence--;
-    auto rest = parse_expression(new_precedence);
+    auto rest = _parse_expression(new_precedence);
     if (is_error()) return nullptr;
 
     // wrap both sides in a binary operator
@@ -336,7 +328,7 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
   const lexer::Token token = consume();
 
   // is there an expression?
-  std::optional<std::unique_ptr<ast::expr::Node>> expr;
+  std::optional<std::unique_ptr<ast::ExprNode>> expr;
   if (expect(firstset::expression)) {
     expr = parse_expression();
     if (is_error()) return nullptr;
@@ -472,5 +464,3 @@ std::unique_ptr<lang::ast::ProgramNode> lang::parser::Parser::parse() {
 
   return program;
 }
-
-

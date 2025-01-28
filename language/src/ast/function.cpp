@@ -4,7 +4,7 @@
 #include "types/function.hpp"
 #include "context.hpp"
 #include "assembly/create.hpp"
-#include "lint.hpp"
+#include "message_helper.hpp"
 
 lang::ast::FunctionNode::FunctionNode(lang::lexer::Token token, const type::FunctionNode& type,
                                       std::deque<std::unique_ptr<SymbolDeclarationNode>> params,
@@ -65,7 +65,7 @@ bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
 
   // if linting, check for unused variables
   // this is not done in Block as scope_=false
-  lint::check_local_scope(ctx.symbols, ctx.messages);
+  util::check_local_scope(ctx.symbols, ctx.messages);
 
   // remove function scope
   ctx.symbols.pop();

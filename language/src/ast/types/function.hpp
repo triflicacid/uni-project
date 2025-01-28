@@ -2,16 +2,18 @@
 
 #include <deque>
 #include "node.hpp"
+#include "none.hpp"
 
 namespace lang::ast::type {
   class FunctionNode : public Node {
     std::deque<std::reference_wrapper<const Node>> parameters_;
-    std::optional<std::reference_wrapper<const Node>> returns_;
+    std::reference_wrapper<const Node> returns_;
 
   public:
-    explicit FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters) : parameters_(std::move(parameters)) {}
+    explicit FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters) : parameters_(std::move(parameters)), returns_(none) {}
     FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters, const Node& returns) : parameters_(std::move(parameters)), returns_(returns) {}
-    FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters, std::optional<std::reference_wrapper<const Node>> returns) : parameters_(std::move(parameters)), returns_(std::move(returns)) {}
+    FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters, std::optional<std::reference_wrapper<const Node>> returns)
+      : parameters_(std::move(parameters)), returns_(returns.has_value() ? returns.value() : none) {}
 
     std::string name() const override { return "function"; }
 
@@ -21,10 +23,10 @@ namespace lang::ast::type {
     // get the type of the ith argument
     const Node& arg(int i) const { return parameters_[i]; }
 
-    // get the return
-    std::optional<std::reference_wrapper<const Node>> returns() const { return returns_; }
+    // get the return value
+    const Node& returns() const { return returns_; }
 
-    // set the return value
+    // set the return value, this can be done as only the param types are used for candidate selection
     void returns(const Node& type) { returns_ = type; }
 
     const FunctionNode* get_func() const override { return this; }
@@ -43,5 +45,12 @@ namespace lang::ast::type {
     // 'create' a new function type -- if exists, return reference, otherwise create new type and return
     // the return type is added to new creations only and is not used in comparisons
     static const FunctionNode& create(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::optional<std::reference_wrapper<const Node>>& returns);
+
+    // same as static ::filter_candidates, but uses this type's parameter list
+    std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const FunctionNode>>& options) const;
+
+    // given list of parameter types, return list of possible candidates from input list of options
+    // in a perfect scenario, returns only one; otherwise, there are selection issues
+    static std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::deque<std::reference_wrapper<const FunctionNode>>& options);
   };
 }

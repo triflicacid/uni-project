@@ -25,6 +25,9 @@ namespace lang::parser {
     // parse optional newlines
     void parse_newlines();
 
+    // parse an expression recursively
+    std::unique_ptr<ast::expr::Node> _parse_expression(int precedence);
+
   public:
     explicit Parser(lexer::Lexer& lexer) : lexer_(lexer) {}
 
@@ -61,7 +64,7 @@ namespace lang::parser {
     const ast::type::Node* parse_type();
 
     // parse an expression
-    std::unique_ptr<ast::expr::Node> parse_expression(int precedence = 0);
+    std::unique_ptr<ast::ExprNode> parse_expression(int precedence = 0);
 
     // parse a `name: type` pair as a symbol declaration
     std::unique_ptr<ast::SymbolDeclarationNode> parse_name_type_pair();

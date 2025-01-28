@@ -42,15 +42,15 @@ std::ostream& lang::ast::FunctionBaseNode::print_code(std::ostream& os, unsigned
   indent(os, indent_level) << block_prefix() << "(";
   for (int i = 0; i < params_.size(); i++) {
     os << params_[i]->token().image << ": ";
-    type_.arg(i).print_code(os, 0);
+    type_.arg(i).print_code(os);
     if (i < params_.size() - 1) os << ", ";
   }
   os << ") ";
 
   // if provided, print return type after an arrow
-  if (auto returns = type_.returns(); returns.has_value()) {
+  if (auto& returns = type_.returns(); returns.id() != type::none.id()) {
     os << "-> ";
-    returns.value().get().print_code(os, 0);
+    returns.print_code(os);
   }
 
   return os;

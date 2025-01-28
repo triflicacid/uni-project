@@ -2,27 +2,40 @@
 
 #include "node.hpp"
 
-namespace lang::ast::expr {
-  struct OperatorInfo {
-    uint8_t precedence; // operator precedence, 1 is loosest
-    bool right_associative;
-  };
+namespace lang::ops {
+  class Operator;
+}
 
+namespace lang::ast::expr {
   // define an operator, operator is token.image
   class OperatorNode : public Node {
   protected:
-    std::optional<std::reference_wrapper<type::Node>> type_; // type of operator expression, populated after parsing during semantic check
+    std::optional<std::reference_wrapper<const ops::Operator>> op_; // resolves operator, set in ::process
+
+    // 'creates' the functional type signature
+    virtual const type::FunctionNode& signature() = 0;
+
+    // overload to add additional processing, useful for child classes
+    virtual bool _process(Context& ctx) const = 0;
 
   public:
     using Node::Node;
 
     const type::Node& type() const override final;
+
+    bool process(lang::Context &ctx) override final;
+
+    bool load(lang::Context &ctx) const override;
   };
 
   // represents lhs `op` rhs
   class BinaryOperatorNode : public OperatorNode {
-    const std::unique_ptr<const Node> lhs_;
-    const std::unique_ptr<const Node> rhs_;
+    std::unique_ptr<Node> lhs_;
+    std::unique_ptr<Node> rhs_;
+
+    const type::FunctionNode& signature() override;
+
+    bool _process(lang::Context &ctx) const override;
 
   public:
     BinaryOperatorNode(lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
@@ -33,12 +46,18 @@ namespace lang::ast::expr {
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    bool load(lang::Context &ctx) const override;
   };
 
   // represents `op` expr
   class UnaryOperatorNode : public OperatorNode {
-    const std::unique_ptr<const Node> expr_;
+    std::unique_ptr<Node> expr_;
     std::optional<std::reference_wrapper<type::Node>> type_;
+
+    const type::FunctionNode& signature() override;
+
+    bool _process(lang::Context &ctx) const override;
 
   public:
     UnaryOperatorNode(lexer::Token token, std::unique_ptr<Node> expr)
@@ -49,5 +68,7 @@ namespace lang::ast::expr {
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    bool load(lang::Context &ctx) const override;
   };
 }

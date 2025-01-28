@@ -1,3 +1,4 @@
+#include <cassert>
 #include "symbol_reference.hpp"
 #include "shell.hpp"
 #include "context.hpp"
@@ -15,9 +16,8 @@ std::ostream &lang::ast::expr::SymbolReferenceNode::print_tree(std::ostream &os,
 std::optional<std::reference_wrapper<lang::symbol::Symbol>>
 lang::ast::expr::SymbolReferenceNode::select_candidate(lang::Context& ctx, const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates) const {
   // if >1 candidates, we have no information to decide
-  if (candidates.size() > 1) {
-    throw std::runtime_error("unable to select candidate for non-function symbol reference: multiple provided");
-  }
+  // TODO for function call, we would actually need to consider this situation
+  assert(candidates.size() == 1);
 
   return candidates.front();
 }
@@ -43,9 +43,6 @@ bool lang::ast::expr::SymbolReferenceNode::process(lang::Context& ctx) {
 
   // record the symbol used
   symbol_ = std::move(candidate);
-
-  // TODO for demonstration only
-  load(ctx);
 
   return true;
 }

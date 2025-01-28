@@ -8,6 +8,7 @@
 #include "assembly/program.hpp"
 #include "symbol/table.hpp"
 #include "ref.hpp"
+#include "assembly/arg.hpp"
 
 namespace lang::memory {
   // store total number of registers we may use
@@ -51,6 +52,7 @@ namespace lang::memory {
   class RegisterAllocationManager {
     std::stack<Store> instances_;
     std::map<uint64_t, std::unique_ptr<Object>> memory_; // Objects stored in memory from memory spill, may not be null
+    int tmpid_ = 0; // current temporary ID
     assembly::Program& program_;
     symbol::SymbolTable& symbols_;
 
@@ -82,6 +84,9 @@ namespace lang::memory {
     // return reference to a temporary, insert if needed (this is why we need the type)
     Ref find(int temporary, const ast::type::Node& type);
 
+    // generate an ID for a new temporary
+    int new_temporary();
+
     // evict item at the given location, return Object which was evicted
     std::shared_ptr<Object> evict(const Ref& location);
 
@@ -94,5 +99,12 @@ namespace lang::memory {
     // get the nth most recent allocation
     // default `n=0` (i.e., most recent)
     std::optional<Ref> get_recent(unsigned int n = 0) const;
+
+    // ensure `Ref` is in a register, return new reference (may be equal)
+    // i.e., if in memory, insert into a register
+    Ref guarantee_register(const Ref& ref);
+
+    // create assembly argument resolving a reference
+    std::unique_ptr<assembly::Arg> resolve_ref(const Ref& ref);
   };
 }

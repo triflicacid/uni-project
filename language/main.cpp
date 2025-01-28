@@ -5,15 +5,13 @@
 #include "messages/list.hpp"
 #include "parser.hpp"
 #include "assembly/program.hpp"
-#include "assembly/create.hpp"
-#include "assembly/arg.hpp"
-#include "assembly/directive.hpp"
 #include "memory/stack.hpp"
 #include "memory/reg_alloc.hpp"
 #include "ast/types/int.hpp"
 #include "context.hpp"
 #include "ast/types/graph.hpp"
 #include "ast/types/float.hpp"
+#include "operators/builtin.hpp"
 
 struct Options {
   std::vector<std::unique_ptr<named_fstream>> files; // input files
@@ -52,27 +50,6 @@ bool handle_messages(message::List &list) {
 }
 
 int main(int argc, char** argv) {
-//  using namespace lang;
-//  assembly::Program program("start");
-//  memory::StackManager stack(program);
-//  symbol::SymbolTable symbol_table(stack);
-//  memory::RegisterAllocationManager allocation_manager(symbol_table, program);
-//
-//  const std::string name = "pi";
-//  lexer::Token token{.type=lexer::TokenType::ident, .image=name, .source=Location("C:/fakepath/file.txt", 1, 1)};
-//  symbol_table.insert(std::make_unique<symbol::Variable>(token, ast::type::int32));
-//
-//  auto& var = static_cast<symbol::Variable&>(*(*symbol_table.find(name))[0]);
-//  allocation_manager.find(var);
-//
-//  token = {.type=lexer::TokenType::int_lit, .image="7", .source=token.source, .value=7};
-//  ast::expr::LiteralNode literal(token, ast::type::int32);
-//  allocation_manager.find(literal);
-//
-//  program.print(std::cout);
-//
-//  return EXIT_SUCCESS;
-
   Options options;
   if (int code = parse_arguments(argc, argv, options); code != EXIT_SUCCESS) {
     return code;
@@ -94,6 +71,9 @@ int main(int argc, char** argv) {
 
   // initialise type dependency graph
   lang::ast::type::TypeGraph::init();
+
+  // initialise builtin operators
+  lang::ops::init_builtins();
 
   // for each source...
   for (std::unique_ptr<named_fstream>& file : options.files) {

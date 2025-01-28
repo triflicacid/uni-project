@@ -31,6 +31,10 @@ std::ostream &lang::ast::expr::LiteralNode::print_tree(std::ostream &os, unsigne
   return type_.print_code(os, 0) << SHELL_RESET;
 }
 
+bool lang::ast::expr::LiteralNode::process(lang::Context& ctx) {
+  return true;
+}
+
 bool lang::ast::expr::LiteralNode::load(lang::Context& ctx) const {
   ctx.reg_alloc_manager.find(*this);
   return true;

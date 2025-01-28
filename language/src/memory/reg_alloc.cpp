@@ -1,3 +1,4 @@
+#include <cassert>
 #include "reg_alloc.hpp"
 #include "assembly/create.hpp"
 #include "ast/types/int.hpp"
@@ -279,4 +280,22 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
 std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::get_recent(unsigned int n) const {
   if (instances_.empty() || n >= instances_.top().history.size()) return {};
   return instances_.top().history[n];
+}
+
+std::unique_ptr<lang::assembly::Arg> lang::memory::RegisterAllocationManager::resolve_ref(const lang::memory::Ref& ref) {
+  if (ref.type == Ref::Register) {
+    return assembly::Arg::reg(ref.offset);
+  } else {
+    return assembly::Arg::reg_indirect(constants::registers::sp, ref.offset - symbols_.stack().offset());
+  }
+}
+
+int lang::memory::RegisterAllocationManager::new_temporary() {
+  return tmpid_++;
+}
+
+lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_register(const lang::memory::Ref& ref) {
+  // TODO implement move mechanic
+  assert(ref.type == Ref::Register);
+  return ref;
 }

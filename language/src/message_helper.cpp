@@ -1,8 +1,8 @@
-#include "lint.hpp"
+#include "message_helper.hpp"
 #include "symbol/table.hpp"
 #include "config.hpp"
 
-void lang::lint::check_local_scope(const lang::symbol::SymbolTable& symbols, message::List& messages) {
+void lang::util::check_local_scope(const lang::symbol::SymbolTable& symbols, message::List& messages) {
   if (conf::lint) {
     for (symbol::SymbolId id: symbols.peek()) {
       const symbol::Symbol& symbol = symbols.get(id);

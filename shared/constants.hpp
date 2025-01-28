@@ -134,12 +134,12 @@ namespace constants {
             constexpr uint8_t size = 3;
 
             enum dt {
-                u32 = 0b000,
-                u64 = 0b001,
-                s32 = 0b010,
-                s64 = 0b011,
-                flt = 0b100,
-                dbl = 0b101,
+                u32 = 0b000,  // uint32
+                u64 = 0b001,  // uint64
+                s32 = 0b010,  // int32
+                s64 = 0b011,  // int64
+                flt = 0b100,  // float32
+                dbl = 0b101,  // float64
             };
 
             extern std::unordered_map<std::string, dt> map;

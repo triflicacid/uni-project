@@ -1,3 +1,4 @@
+#include <iostream>
 #include "function.hpp"
 #include "graph.hpp"
 
@@ -12,9 +13,9 @@ std::ostream& lang::ast::type::FunctionNode::print_code(std::ostream& os, unsign
   os << ")";
 
   // if provided, print return type after an arrow
-  if (returns_.has_value()) {
+  if (returns_.get().id() != none.id()) {
     os << " -> ";
-    returns_.value().get().print_code(os, indent_level);
+    returns_.get().print_code(os, indent_level);
   }
 
   return os;
@@ -50,8 +51,10 @@ lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<co
       // check if all parameter types match
       if (func_type->args() != parameters.size()) continue;
       bool are_equal = true;
-      for (int i = 0; i < parameters.size(); i++) {
-        if ((are_equal = func_type->arg(i).id() == parameters[i].get().id())) break;
+      for (int i = 0; are_equal && i < parameters.size(); i++) {
+        if (func_type->arg(i).id() != parameters[i].get().id()) {
+          are_equal = false;
+        }
       }
       if (are_equal) return *func_type;
     }
@@ -62,4 +65,26 @@ lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<co
   const TypeId id = type->id();
   graph.insert(std::move(type));
   return static_cast<FunctionNode&>(graph.get(id));
+}
+
+std::deque<std::reference_wrapper<const lang::ast::type::FunctionNode>> lang::ast::type::FunctionNode::filter_candidates(
+    const std::deque<std::reference_wrapper<const FunctionNode>>& options) const {
+  return filter_candidates(parameters_, options);
+}
+
+std::deque<std::reference_wrapper<const lang::ast::type::FunctionNode>>
+lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters,
+                                                 const std::deque<std::reference_wrapper<const FunctionNode>>& options) {
+  std::deque<std::reference_wrapper<const FunctionNode>> candidates;
+  for (auto& option : options) {
+    // we are a candidate if #args match and all types are equal or subtypes
+    if (option.get().args() != parameters.size()) continue;
+    bool is_candidate = true;
+    for (int i = 0; is_candidate && i < parameters.size(); i++) {
+      if (!graph.is_subtype(parameters[i].get().id(), option.get().arg(i).id())) is_candidate = false;
+    }
+    if (is_candidate) candidates.push_back(option);
+  }
+
+  return candidates;
 }

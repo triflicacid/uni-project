@@ -7,6 +7,7 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usepackage{tcolorbox}
+\usepackage{multirow}
 
 \include{styles/bashconsole}
 \include{styles/language}
@@ -228,6 +229,47 @@ register(sp) // reads $sp
 
 \section{Operators}
 
-\textit{TODO}
+Operators are special symbols which combine one or two expressions, known as unary and binary operators, respectively.
+There are a subset of in-built operators, which have predetermined behaviour on certain types.
+Each built-in operator has a precedence and associativity, as listed below (higher is tighter).
+
+\begin{table}[h]
+    \caption{Built-In Operators}
+    \begin{tabular}{|c|l|l|}
+        \hline
+        \textbf{Precedence} & \textbf{Operator} & \textbf{Description} \\
+        \hline
+        \multirow{1}{*}{20} & \texttt{a.b} & Member access \\
+        \hline
+        \multirow{1}{*}{17} & \texttt{-a} & Unary minus \\
+        \hline
+    \end{tabular}
+\end{table}
+
+Aside from built-in operators, an operator is a sequence of any one of the following characters:
+$$ \{`!', `\#', `\$', `\%', `\&', `*', `+', `.', `/', `<', `=', `>', `?', `@', `\\', `^', `|', `-', `~'\} $$
+
+\subsection{Operator Overloading}
+
+Operator overloading is similar to defining a new function.
+For example, say we want to define \(a \sim b\) to be the distance between two numbers.
+
+\begin{lstlisting}[language=CustomLang]
+operator~(a: int, b: int) -> int {
+    if a > b {
+        return a - b;
+    } else {
+        return b - a;
+    }
+}
+\end{lstlisting}
+
+Note, the order of arguments matters, and the number of arguments determines if the operator is unary or binary.
+
+\subsection{Custom Operators}
+
+As stated above, an operator is but a sequence of symbols and, by using operator overloading, one may define behaviour for a custom operator.
+In parsing, a non-built-in operator is assumed to have a precedence of 5 (i.e., weaker than every operator bar \texttt{=}) and to be left-associative.
+This is to maintain associativity: \(a \sim b \sim c \equiv (a \sim b) \sim c\).
 
 \end{document}
