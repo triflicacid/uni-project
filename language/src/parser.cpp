@@ -98,26 +98,21 @@ std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number
   return std::make_unique<ast::expr::LiteralNode>(token, *type_node);
 }
 
-// map of token types to operators
-static std::map<lang::lexer::TokenType, lang::ast::expr::OperatorInfo> token_to_binary_operator_map = {
-    {lang::lexer::TokenType::assign, {4, true, lang::ast::expr::OperatorType::ASSIGNMENT}},
-    {lang::lexer::TokenType::plus, {14, false, lang::ast::expr::OperatorType::ADDITION}},
-    {lang::lexer::TokenType::minus, {14, false, lang::ast::expr::OperatorType::SUBTRACTION}},
-    {lang::lexer::TokenType::star, {15, false, lang::ast::expr::OperatorType::MULTIPLICATION}},
-    {lang::lexer::TokenType::div, {15, false, lang::ast::expr::OperatorType::DIVISION}},
-    {lang::lexer::TokenType::dot, {15, false, lang::ast::expr::OperatorType::MEMBER_ACCESS}},
+// for operators which have built-in meanings, map token image to precedence into
+static std::map<std::string, lang::ast::expr::OperatorInfo> token_to_binary_operator_map = {
+    {"=", {4, true}},
+    {"+", {14, false}},
+    {"-", {14, false}},
+    {"*", {15, false}},
+    {"/", {15, false}},
+    {".", {15, false}},
 }, token_to_unary_operator_map = {
-    {lang::lexer::TokenType::minus, {17, false, lang::ast::expr::OperatorType::MINUS}}
+    {"-", {17, false}}
 };
 
-static const auto binary_operators_view = std::views::keys(token_to_binary_operator_map);
-static const auto unary_operators_view = std::views::keys(token_to_unary_operator_map);
-
-const lang::lexer::TokenSet lang::parser::firstset::unary_operator(unary_operators_view.begin(), unary_operators_view.end());
-const lang::lexer::TokenSet lang::parser::firstset::binary_operator(binary_operators_view.begin(), binary_operators_view.end());
 const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
-                                                                                 firstset::number,
-                                                                                 {lexer::TokenType::ident, lexer::TokenType::lpar}
+    firstset::number,
+    {lexer::TokenType::ident, lexer::TokenType::lpar}
 });
 
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
@@ -138,15 +133,15 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_sets({
-                                                                                       firstset::term,
-                                                                                       firstset::unary_operator
+    firstset::term,
+    {lexer::TokenType::op}
 });
 
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(int precedence) {
   std::unique_ptr<ast::expr::Node> expr;
 
   // check if we have a unary operator, or just a term
-  if (expect(firstset::unary_operator)) {
+  if (expect(lexer::TokenType::op)) {
     lexer::Token op_token = consume();
     // check if there is a term following this
     if (!expect(firstset::term)) {
@@ -158,16 +153,20 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
     // propagate error if necessary
     if (is_error()) return nullptr;
     // wrap term in the unary operator
-    return std::make_unique<ast::expr::UnaryOperatorNode>(op_token, token_to_unary_operator_map[op_token.type].type,
-                                                          std::move(term));
+    return std::make_unique<ast::expr::UnaryOperatorNode>(op_token, std::move(term));
   } else {
     expr = parse_term();
     if (is_error()) return nullptr;
   }
 
-  while (expect(firstset::binary_operator)) {
-    lexer::Token op_token = peek();
-    auto& op_info = token_to_binary_operator_map[op_token.type];
+  // any further operators are treated as binary
+  while (expect(lexer::TokenType::op)) {
+    const lexer::Token op_token = peek();
+    // TODO what if operator has no precedence?
+    if (!token_to_binary_operator_map.contains(op_token.image))
+      throw std::runtime_error("custom operators are not implemented (parsing)");
+
+    auto& op_info = token_to_binary_operator_map[op_token.image];
 
     // exit if lower precedence
     if (precedence >= op_info.precedence) {
@@ -183,7 +182,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_expression(in
     if (is_error()) return nullptr;
 
     // wrap both sides in a binary operator
-    expr = std::make_unique<ast::expr::BinaryOperatorNode>(op_token, op_info.type, std::move(expr), std::move(rest));
+    expr = std::make_unique<ast::expr::BinaryOperatorNode>(op_token, std::move(expr), std::move(rest));
   }
 
   return expr;
@@ -426,13 +425,19 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
   return std::make_unique<ast::NamespaceNode>(std::move(name), std::move(block));
 }
 
-const lang::lexer::TokenSet lang::parser::firstset::top_level_line = {
-    lexer::TokenType::func,
-    lexer::TokenType::let,
-    lexer::TokenType::namespace_kw,
-};
+const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merge_sets({
+    {lexer::TokenType::func,
+     lexer::TokenType::let,
+     lexer::TokenType::namespace_kw},
+     firstset::expression,
+});
 
 void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
+  if (expect(firstset::expression)) {
+    program.add(parse_expression());
+    return;
+  }
+
   if (expect(lexer::TokenType::func)) {
     program.add(parse_func());
     return;

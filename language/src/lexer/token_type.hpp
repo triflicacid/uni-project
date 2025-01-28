@@ -18,24 +18,10 @@ namespace lang::lexer {
     nl, // \n
     colon, // :
     comma, // ,
-    dot, // .
     arrow, // ->
 
     // operators
-    plus, // +
-    minus, // -
-    star, // *
-    div, // /
-    bang, // !
-    assign, // =
-    eq, // ==
-    ne, // !=
-    le, // <=
-    lt, // <
-    gt, // >
-    ge, // >=
-    land, // &&
-    lor, // ||
+    op, // generic operator
 
     // values
     byte_lit, // integer value, 'unsigned char'

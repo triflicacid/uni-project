@@ -1,6 +1,7 @@
 #include <deque>
 #include <unordered_map>
 #include <iostream>
+#include <unordered_set>
 #include "uint64.hpp"
 #include "lexer.hpp"
 #include "token.hpp"
@@ -24,16 +25,8 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
   literal_map = {
     {
         {"->", TokenType::arrow},
-        {"==", TokenType::eq},
-        {"!=", TokenType::ne},
-        {"&&", TokenType::land},
-        {"||", TokenType::lor},
-        {"<=", TokenType::le},
-        {">=", TokenType::ge}
     },
     {
-        {"=", TokenType::assign},
-        {"!", TokenType::bang},
         {"{", TokenType::lbrace},
         {"}", TokenType::rbrace},
         {")", TokenType::rpar},
@@ -41,13 +34,6 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
         {";", TokenType::sc},
         {":", TokenType::colon},
         {",", TokenType::comma},
-        {"+", TokenType::plus},
-        {"-", TokenType::minus},
-        {"*", TokenType::star},
-        {"/", TokenType::div},
-        {">", TokenType::gt},
-        {"<", TokenType::lt},
-        {".", TokenType::dot}
     }
   };
 
@@ -62,6 +48,8 @@ std::string lang::lexer::token_type_to_string(TokenType type, bool add_quotes) {
       return "float";
     case TokenType::eof:
       return "eof";
+    case TokenType::op:
+      return "operator";
     case TokenType::nl:
       return "newline";
     case TokenType::invalid:
@@ -165,6 +153,10 @@ Token Lexer::token(const std::string &image, TokenType type) const {
   return token;
 }
 
+// characters which may be used for an operator
+// inspired by the Haskell report (https://www.haskell.org/onlinereport/lexemes.html)
+static std::unordered_set<char> operator_chars = {'!', '#', '$', '%', '&', '*', '+', '.', '/', '<', '=', '>', '?', '@', '\\', '^', '|', '-', '~'};
+
 // used to avoid translating `\r\n` into two newlines
 static bool seen_CR = false;
 
@@ -198,33 +190,24 @@ Token Lexer::next() {
   }
 
   // scan for a number
-  if (std::isdigit(ch) || ch == '.') {
+  if (std::isdigit(ch)) {
     std::stringstream tmp;
-    bool is_float = ch == '.';
+    bool is_float = false;
 
     // eat initial digit sequence
-    if (!is_float) {
-      stream.eat_while(tmp, [](int ch) { return std::isdigit(ch); });
-    }
+    stream.eat_while(tmp, [](int ch) { return std::isdigit(ch); });
 
     // have we a decimal point?
-    if (is_float || stream.peek_char() == '.') {
+    if (stream.peek_char() == '.') {
       is_float = true;
       tmp << '.';
       stream.get_char();
       stream.eat_while(tmp, [](int ch) { return std::isdigit(ch); });
     }
 
-
-    // only a single decimal point?
-    std::string number = tmp.str();
-    if (number == ".") {
-      return token(".", TokenType::dot);
-    }
-
     // create numeric token
     // TODO suppose long/ulong/double
-    return token(number, is_float ? TokenType::float_lit : TokenType::int_lit);
+    return token(tmp.str(), is_float ? TokenType::float_lit : TokenType::int_lit);
   }
 
   // scan for an identifier
@@ -249,6 +232,14 @@ Token Lexer::next() {
     for (auto& [literal, type] : map)
       if (stream.starts_with(literal))
         return token(literal, type);
+
+  // scan for an operator
+  // note, this is after to allow some operators to be parsed as other structures
+  if (operator_chars.contains(ch)) {
+    std::stringstream tmp;
+    stream.eat_while(tmp, [&](int ch) { return operator_chars.contains(ch); });
+    return token(tmp.str(), TokenType::op);
+  }
 
   // invalid token, then
   return token(std::string(1, stream.get_char()), TokenType::invalid);

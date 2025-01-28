@@ -100,8 +100,6 @@ namespace lang::parser {
     extern const lexer::TokenSet top_level_line;
     extern const lexer::TokenSet line;
     extern const lexer::TokenSet number;
-    extern const lexer::TokenSet unary_operator;
-    extern const lexer::TokenSet binary_operator;
     extern const lexer::TokenSet term;
     extern const lexer::TokenSet expression;
     extern const lexer::TokenSet type;

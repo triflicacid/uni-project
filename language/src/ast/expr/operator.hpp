@@ -3,43 +3,30 @@
 #include "node.hpp"
 
 namespace lang::ast::expr {
-  enum class OperatorType {
-    ASSIGNMENT, // a = b
-    ADDITION, // a + b
-    DIVISION, // a / b
-    MEMBER_ACCESS, // a.b
-    MINUS, // -a
-    MULTIPLICATION, // a * b
-    SUBTRACTION, // a - b
-  };
-
   struct OperatorInfo {
     uint8_t precedence; // operator precedence, 1 is loosest
     bool right_associative;
-    OperatorType type;
   };
 
+  // define an operator, operator is token.image
   class OperatorNode : public Node {
-    OperatorType op_;
-
   protected:
     std::optional<std::reference_wrapper<type::Node>> type_; // type of operator expression, populated after parsing during semantic check
 
   public:
-    OperatorNode(lexer::Token token, OperatorType op) : Node(std::move(token)), op_(op) {}
-
-    OperatorType op() const { return op_; }
+    using Node::Node;
 
     const type::Node& type() const override final;
   };
 
+  // represents lhs `op` rhs
   class BinaryOperatorNode : public OperatorNode {
     const std::unique_ptr<const Node> lhs_;
     const std::unique_ptr<const Node> rhs_;
 
   public:
-    BinaryOperatorNode(lexer::Token token, OperatorType op, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
-    : OperatorNode(std::move(token), op), lhs_(std::move(lhs)), rhs_(std::move(rhs)) {}
+    BinaryOperatorNode(lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
+    : OperatorNode(std::move(token)), lhs_(std::move(lhs)), rhs_(std::move(rhs)) {}
 
     std::string name() const override { return "binary operator"; }
 
@@ -48,13 +35,14 @@ namespace lang::ast::expr {
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
   };
 
+  // represents `op` expr
   class UnaryOperatorNode : public OperatorNode {
     const std::unique_ptr<const Node> expr_;
     std::optional<std::reference_wrapper<type::Node>> type_;
 
   public:
-    UnaryOperatorNode(lexer::Token token, OperatorType op, std::unique_ptr<Node> expr)
-    : OperatorNode(std::move(token), op), expr_(std::move(expr)) {}
+    UnaryOperatorNode(lexer::Token token, std::unique_ptr<Node> expr)
+    : OperatorNode(std::move(token)), expr_(std::move(expr)) {}
 
     std::string name() const override { return "unary operator"; }
 
