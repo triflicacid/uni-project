@@ -15,10 +15,11 @@ static std::unique_ptr<GenericInstruction> create_reg_value(const std::string& m
 }
 
 // create reg_reg_value instruction
+// emit reg_value if reg1 == reg2
 static std::unique_ptr<GenericInstruction> create_reg_reg_value(const std::string& mnemonic, uint8_t reg1, uint8_t reg2, std::unique_ptr<BaseArg> value) {
   auto inst = std::make_unique<GenericInstruction>(mnemonic);
   inst->add_arg(Arg::reg(reg1));
-  inst->add_arg(Arg::reg(reg2));
+  if (reg1 != reg2) inst->add_arg(Arg::reg(reg2));
   inst->add_arg(std::move(value));
   return inst;
 }
