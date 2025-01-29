@@ -38,8 +38,8 @@ std::ostream& ConversionInstruction::_print(std::ostream& os) const {
   Instruction::_print(os);
   os << constants::inst::datatype::to_string(from_type_) << "2"
      << constants::inst::datatype::to_string(to_type_) << " "
-     << constants::registers::to_string($reg(from_reg_)) << ", "
-     << constants::registers::to_string($reg(to_reg_));
+     << "$" << constants::registers::to_string($reg(from_reg_)) << ", "
+     << "$" << constants::registers::to_string($reg(to_reg_));
   return os;
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ast/node.hpp"
+#include "shared/constants.hpp"
 
 namespace lang::ast::type {
   class IntNode;
@@ -31,5 +32,12 @@ namespace lang::ast::type {
 
     // return label representation of this type
     virtual std::string to_label() const = 0;
+
+    // get asm datatype representing this node
+    virtual constants::inst::datatype::dt get_asm_datatype() const = 0;
   };
+
+  // return type node from the given asm type
+  // guaranteed ::from_asm_type(t).get_asm_type() == t
+  const Node& from_asm_type(constants::inst::datatype::dt type);
 }

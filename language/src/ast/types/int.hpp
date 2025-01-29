@@ -32,7 +32,7 @@ namespace lang::ast::type {
 
     std::string to_label() const override;
 
-    constants::inst::datatype::dt get_asm_datatype() const;
+    constants::inst::datatype::dt get_asm_datatype() const override;
   };
 
   extern IntNode uint8, int8;

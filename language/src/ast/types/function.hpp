@@ -35,6 +35,8 @@ namespace lang::ast::type {
 
     size_t size() const override { return 8; } // size of an address
 
+    constants::inst::datatype::dt get_asm_datatype() const override;
+
     // returns if we are a subtype of the other function, i.e., `this :> other`
     // same as `TypeGraph::is_subtype(this, other)`
     // functions are subtypes iff all arguments are subtypes or equal

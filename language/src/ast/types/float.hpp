@@ -16,7 +16,7 @@ namespace lang::ast::type {
 
     std::string name() const override;
 
-    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+    std::ostream& print_code(std::ostream& os, unsigned int indent_level = 0) const override;
 
     size_t size() const override { return double_ ? 8 : 4; }
 
@@ -26,7 +26,7 @@ namespace lang::ast::type {
 
     std::string to_label() const override;
 
-    constants::inst::datatype::dt get_asm_datatype() const;
+    constants::inst::datatype::dt get_asm_datatype() const override;
   };
 
   extern FloatNode float32, float64;

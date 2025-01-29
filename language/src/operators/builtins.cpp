@@ -28,20 +28,30 @@ static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, ArgSelect 
   return ctx.reg_alloc_manager.resolve_ref(maybe_ref.value());
 }
 
+// given argument reference (must be register) and type to cast to, ensure register contains this type
+static void guarantee_type();
+
 // fetch LHS and RHS argument pair, enforcing at least one is in a register
 // return <register argument, other argument>
-static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx) {
+// argument: cast arguments to this type?
+static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx, std::optional<constants::inst::datatype::dt> cast_to = std::nullopt) {
   // fetch references to lhs and rhs
-  const auto lhs_ref = ctx.reg_alloc_manager.get_recent(1);
+  auto lhs_ref = ctx.reg_alloc_manager.get_recent(1);
   assert(lhs_ref.has_value());
-  const auto rhs_ref = ctx.reg_alloc_manager.get_recent(0);
+  auto rhs_ref = ctx.reg_alloc_manager.get_recent(0);
   assert(rhs_ref.has_value());
+
+  // first, ensure both side has the correct type?
+  if (cast_to.has_value()) {
+    lhs_ref = ctx.reg_alloc_manager.guarantee_datatype(lhs_ref.value(), cast_to.value());
+    rhs_ref = ctx.reg_alloc_manager.guarantee_datatype(rhs_ref.value(), cast_to.value());
+  }
 
   // enforce that one side is from a register
   if (lhs_ref->type != lang::memory::Ref::Register) {
     return {
-      ctx.reg_alloc_manager.guarantee_register(lhs_ref.value()).offset,
-      ctx.reg_alloc_manager.resolve_ref(rhs_ref.value())
+        ctx.reg_alloc_manager.guarantee_register(lhs_ref.value()).offset,
+        ctx.reg_alloc_manager.resolve_ref(rhs_ref.value())
     };
   }
 
@@ -55,7 +65,7 @@ static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_p
   // otherwise, both in a register
   // arbitrarily choose LHS to go first
   return {
-      rhs_ref.value().offset,
+      lhs_ref.value().offset,
       ctx.reg_alloc_manager.resolve_ref(rhs_ref.value())
   };
 }
@@ -102,7 +112,7 @@ namespace generators {
   // generate an addition instruction for the given asm datatype
   // assume values stored in LHS and RHS are compatible with the asm datatype
   static void generate_add(Context& ctx, constants::inst::datatype::dt datatype) {
-    auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
     ctx.program.current().add(assembly::create_add(datatype, reg_arg, reg_arg, std::move(other_arg)));
   }
 }
@@ -118,7 +128,7 @@ void lang::ops::init_builtins() {
       [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::s32); }
     ));
 
-  // operator+(int32, int32)
+  // operator+(float, float)
   store_operator(std::make_unique<BuiltinOperator>(
       "+",
       FunctionNode::create({float32, float32}, float32),

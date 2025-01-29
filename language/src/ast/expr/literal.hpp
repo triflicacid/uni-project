@@ -1,28 +1,28 @@
 #pragma once
 
 #include "node.hpp"
+#include "memory/literal.hpp"
 
 namespace lang::ast::expr {
   // describe a float or int literal
+  // essentially a node wrapper around memory::Literal
   class LiteralNode : public Node {
-    const type::Node& type_; // either Float or Int
+    const memory::Literal& lit_;
 
   public:
-    LiteralNode(lexer::Token token, const type::Node& type) : Node(std::move(token)), type_(type) {}
-
-    const type::Node& type() const override { return type_; }
+    LiteralNode(lexer::Token token, const memory::Literal& lit) : Node(std::move(token)), lit_(lit) {}
+    LiteralNode(lexer::Token token, const ast::type::Node& type)
+      : Node(std::move(token)), lit_(memory::Literal::get(type, token_.value)) {}
 
     std::string name() const override { return "literal"; }
+
+    const type::Node& type() const override { return lit_.type(); }
+
+    const memory::Literal& get() const { return lit_; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
-
-    // return string format of the numeric literal we represent
-    std::string to_string() const;
-
-    // return data buffer
-    uint64_t get() const { return token_.value; }
 
     bool process(lang::Context &ctx) override;
 

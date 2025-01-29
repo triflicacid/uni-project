@@ -121,11 +121,11 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
   return insert(std::make_unique<Object>(symbol));
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::find(const ast::expr::LiteralNode& literal) {
+lang::memory::Ref lang::memory::RegisterAllocationManager::find(const Literal& literal) {
   // check if Object is inside a register
   int offset = 0;
   for (auto& object : instances_.top().regs) {
-    if (object && object->type == Object::Literal && object->literal.get().get() == literal.get()) {
+    if (object && object->type == Object::Literal && object->literal.get().data() == literal.data()) {
       return Ref(Ref::Register, offset);
     }
     offset++;
@@ -215,9 +215,9 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
       case Object::Literal: { // load the immediate into the register
         const auto& literal = object->literal.get();
         if (auto size = literal.type().size(); size == 8) {
-          program_.current().add(assembly::create_load_long(location.offset, literal.get()));
+          program_.current().add(assembly::create_load_long(location.offset, literal.data()));
         } else {
-          program_.current().add(assembly::create_load(location.offset, assembly::Arg::imm(literal.get())));
+          program_.current().add(assembly::create_load(location.offset, assembly::Arg::imm(literal.data())));
         }
 
         // add comment so user knows what lit was loaded
@@ -250,7 +250,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
             program_.current(),
             false
         );
-        program_.current()[idx].comment() << "load " << (storage.type == StorageLocation::Block ? "global " : "") << symbol.full_name();
+        program_.current()[idx].comment() << symbol.full_name();
         break;
       }
     }
@@ -296,5 +296,48 @@ int lang::memory::RegisterAllocationManager::new_temporary() {
 lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_register(const lang::memory::Ref& ref) {
   // TODO implement move mechanic
   assert(ref.type == Ref::Register);
+  return ref;
+}
+
+lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(const lang::memory::Ref& old_ref, constants::inst::datatype::dt target) {
+  // first, we must be in a register
+  Ref ref = guarantee_register(old_ref);
+
+  auto& object = instances_.top().regs[ref.offset - initial_register];
+  constants::inst::datatype::dt original;
+
+  switch (object->type) {
+    case Object::Symbol: {
+      const symbol::Symbol& symbol = object->symbol.get();
+      // get original datatype
+      original = symbol.type().get_asm_datatype();
+      if (target == original) break;
+      // change Object type to `temporary`
+      object = std::make_shared<Object>(new_temporary(), ast::type::from_asm_type(target));
+      break;
+    }
+    case Object::Temporary:
+      // can't do anything, we have no further information
+      return ref;
+    case Object::Literal: {
+      const Literal& literal = object->literal.get();
+      // get original datatype
+      original = literal.type().get_asm_datatype();
+      if (target == original) break;
+      // update Object's contents
+      object = std::make_shared<Object>(Literal::get(ast::type::from_asm_type(target), literal.data()));
+      break;
+    }
+  }
+
+  // emit instruction if needs be
+  if (original != target) {
+    program_.current().add(assembly::create_conversion(original, ref.offset, target, ref.offset));
+    auto& comment = program_.current().back().comment();
+    ast::type::from_asm_type(original).print_code(comment);
+    comment << " -> ";
+    ast::type::from_asm_type(target).print_code(comment);
+  }
+
   return ref;
 }

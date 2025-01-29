@@ -7,7 +7,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../out)
 add_executable(language ../shared/constants.cpp ../shared/util.cpp ../shared/messages/message.cpp ../shared/messages/MessageWithSource.cpp ../shared/messages/list.cpp ../shared/istream_wrapper.cpp ../shared/uint64.cpp
         src/config.cpp src/message_helper.cpp src/parser.cpp
         src/lexer/lexer.cpp
-        src/memory/reg_alloc.cpp src/memory/stack.cpp
+        src/memory/literal.cpp src/memory/reg_alloc.cpp src/memory/stack.cpp
         src/ast/block.cpp src/ast/expr.cpp src/ast/function_base.cpp src/ast/function.cpp src/ast/namespace.cpp src/ast/node.cpp src/ast/program.cpp src/ast/return.cpp src/ast/symbol_declaration.cpp
         src/assembly/arg.cpp src/assembly/basic_block.cpp src/assembly/create.cpp src/assembly/directive.cpp src/assembly/instruction.cpp src/assembly/program.cpp
         src/ast/expr/operator.cpp src/ast/expr/literal.cpp src/ast/expr/symbol_reference.cpp

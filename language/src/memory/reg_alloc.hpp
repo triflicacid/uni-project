@@ -29,13 +29,15 @@ namespace lang::memory {
     Type type;
     union {
       std::reference_wrapper<const symbol::Variable> symbol;
-      std::reference_wrapper<const ast::expr::LiteralNode> literal;
+      std::reference_wrapper<const class Literal> literal;
       int temporary_id;
     };
     const ast::type::Node& datatype;
 
+    Object() = delete;
     Object(const symbol::Variable& symbol) : type(Symbol), symbol(symbol), datatype(symbol.type()) {}
-    Object(const ast::expr::LiteralNode& literal) : type(Literal), literal(literal), datatype(literal.type()) {}
+    Object(const ast::expr::LiteralNode& literal) : type(Literal), literal(literal.get()), datatype(literal.type()) {}
+    Object(const class Literal& literal) : type(Literal), literal(literal), datatype(literal.type()) {}
     Object(int temporary_id, const ast::type::Node& datatype) : type(Temporary), temporary_id(temporary_id), datatype(datatype) {}
 
     size_t size() const { return datatype.size(); }
@@ -79,7 +81,7 @@ namespace lang::memory {
     Ref find(const symbol::Variable& symbol);
 
     // return reference to an item, insert if needed
-    Ref find(const ast::expr::LiteralNode& literal);
+    Ref find(const Literal& literal);
 
     // return reference to a temporary, insert if needed (this is why we need the type)
     Ref find(int temporary, const ast::type::Node& type);
@@ -103,6 +105,10 @@ namespace lang::memory {
     // ensure `Ref` is in a register, return new reference (may be equal)
     // i.e., if in memory, insert into a register
     Ref guarantee_register(const Ref& ref);
+
+    // ensure `Ref` is of the given asm datatype - if not, a conversion is emitted
+    // note, this also guarantees the value is in a register
+    Ref guarantee_datatype(const Ref& ref, constants::inst::datatype::dt target);
 
     // create assembly argument resolving a reference
     std::unique_ptr<assembly::Arg> resolve_ref(const Ref& ref);

@@ -88,3 +88,7 @@ lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference
 
   return candidates;
 }
+
+constants::inst::datatype::dt lang::ast::type::FunctionNode::get_asm_datatype() const {
+  return constants::inst::datatype::u64; // pointer type
+}
