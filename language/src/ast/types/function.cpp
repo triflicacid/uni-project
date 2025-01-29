@@ -79,10 +79,12 @@ lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference
   for (auto& option : options) {
     // we are a candidate if #args match and all types are equal or subtypes
     if (option.get().args() != parameters.size()) continue;
-    bool is_candidate = true;
+    bool is_candidate = true, is_match = true;
     for (int i = 0; is_candidate && i < parameters.size(); i++) {
+      if (is_match && parameters[i].get().id() != option.get().arg(i).id()) is_match = false;
       if (!graph.is_subtype(parameters[i].get().id(), option.get().arg(i).id())) is_candidate = false;
     }
+    if (is_match) return {option}; // if perfect match, ignore all others
     if (is_candidate) candidates.push_back(option);
   }
 

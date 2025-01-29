@@ -30,8 +30,8 @@ bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
   // filter to viable candidates
   candidates = signature.filter_candidates(candidates);
 
+  // if only one candidate remaining: this is us! use signature + name to find operator object
   if (candidates.size() == 1) {
-    // this is us! use signature +_ name to find operator object
     op_ = ops::get(token_.image, candidates.front());
     return true;
   }
@@ -44,10 +44,9 @@ bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
     }
   }
 
-  // otherwise, error as too many options
+  // error to user, reporting our candidate list
   std::unique_ptr<message::BasicMessage> msg = token_.generate_message(message::Error);
-  msg->get() << "unable to resolve suitable candidate for operator" << token_.image;
-  if (!candidates.empty()) msg->get() << " - multiple viable candidates found";
+  msg->get() << "unable to resolve a suitable candidate for operator" << token_.image;
   signature.print_code(msg->get());
   ctx.messages.add(std::move(msg));
 

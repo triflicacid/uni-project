@@ -52,7 +52,8 @@ namespace lang::ast::type {
     std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const FunctionNode>>& options) const;
 
     // given list of parameter types, return list of possible candidates from input list of options
-    // in a perfect scenario, returns only one; otherwise, there are selection issues
+    // if there is a perfect match, return this
+    // otherwise, there are selection issues, so return all suitable candidates
     static std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::deque<std::reference_wrapper<const FunctionNode>>& options);
   };
 }
