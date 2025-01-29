@@ -1,0 +1,20 @@
+This file contains some primary objectives which need to be met.
+
+[===== NECESSARY =====]
+- Expressions
+    - Method to evict registers after use (to avoid memory spill leading to assertion error)
+- Function calls
+     - User-defined operator overloading
+- Implement other lvalue builtin operators
+- Handle assignment operator
+    - rvalues
+
+[===== DESIRED =====]
+- Expose [u]int<n> names for types
+- Implement array types
+- Implement structs
+- Implement strings
+- Implement `import` statement, i.e., multiple files
+
+[===== MAYBE =====]
+- Memory spill functionality
