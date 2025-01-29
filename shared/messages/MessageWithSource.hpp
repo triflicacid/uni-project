@@ -6,17 +6,20 @@
 
 /** A more in-depth message class able to handle source information. No separate error class. */
 namespace message {
-    class MessageWithSource : public Message {
-        int m_len; // Length of the error
-        int m_idx; // Index to point to
-        std::string m_src;
+  class MessageWithSource : public Message {
+    int len_; // Length of the error
+    int idx_; // Index to point to
+    std::string src_;
 
-    public:
-        MessageWithSource(Level level, Location loc, int idx, int len, const std::string& src);
+  public:
+    MessageWithSource(Level level, Location loc, int idx, int len, const std::string& src);
 
-        void print_notice();
-        void print_warning();
-        void print_error();
-        void print(std::ostream &os) override;
-    };
+    void print_notice() const;
+
+    void print_warning() const;
+
+    void print_error() const;
+
+    void print(std::ostream& os) const override;
+  };
 }

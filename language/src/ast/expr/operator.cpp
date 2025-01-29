@@ -45,15 +45,14 @@ bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
   }
 
   // otherwise, error as too many options
-  std::unique_ptr<message::Message> msg = token_.generate_message(message::Error);
+  std::unique_ptr<message::BasicMessage> msg = token_.generate_message(message::Error);
   msg->get() << "unable to resolve suitable candidate for operator" << token_.image;
   if (!candidates.empty()) msg->get() << " - multiple viable candidates found";
   signature.print_code(msg->get());
   ctx.messages.add(std::move(msg));
 
-  // TODO when adding user-define overloads, we can point somewhere
   for (auto& option : operators) {
-    msg = std::make_unique<message::Message>(message::Note, Location("builtin:operators"));
+    msg = std::make_unique<message::BasicMessage>(message::Note);
     msg->get() << "candidate: operator" << option.get().symbol();
     option.get().type().print_code(msg->get());
     ctx.messages.add(std::move(msg));

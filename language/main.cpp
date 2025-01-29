@@ -38,17 +38,6 @@ int parse_arguments(int argc, char** argv, Options& options) {
   return EXIT_SUCCESS;
 }
 
-/** Handle message list: debug_print messages and empty the list, return if there was an error. */
-bool handle_messages(message::List &list) {
-  list.for_each_message([](message::Message &msg) {
-    msg.print(std::cerr);
-  });
-
-  bool is_error = list.has_message_of(message::Error);
-  list.clear();
-  return is_error;
-}
-
 int main(int argc, char** argv) {
   Options options;
   if (int code = parse_arguments(argc, argv, options); code != EXIT_SUCCESS) {
@@ -95,7 +84,7 @@ int main(int argc, char** argv) {
     // parse the file & check for any errors
     auto ast = parser.parse();
     //if (!parser.is_error()) parser.expect_or_error(lang::lexer::TokenType::eof);
-    if (handle_messages(*parser.messages())) {
+    if (message::print_and_check(*parser.messages(), std::cerr)) {
       return EXIT_FAILURE;
     }
 
@@ -104,7 +93,7 @@ int main(int argc, char** argv) {
 
     // process into assembly
     ast->process(ctx);
-    if (handle_messages(messages)) {
+    if (message::print_and_check(messages, std::cerr)) {
       return EXIT_FAILURE;
     }
   }

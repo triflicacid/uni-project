@@ -6,29 +6,28 @@
 #include "message.hpp"
 
 namespace message {
-    class List {
-    private:
-        std::vector<std::unique_ptr<Message>> messages;
+  class List {
+    std::vector<std::unique_ptr<BasicMessage>> messages;
 
-    public:
-        [[nodiscard]] size_t size() const { return messages.size(); }
+  public:
+    [[nodiscard]] size_t size() const { return messages.size(); }
 
-        void clear() { messages.clear(); }
+    void clear() { messages.clear(); }
 
-        void add(std::unique_ptr<Message> message);
+    void add(std::unique_ptr<BasicMessage> message);
 
-        [[nodiscard]] bool has_message_of(Level level) const;
+    [[nodiscard]] bool has_message_of(Level level) const;
 
-        /** Go through each message, calling the given function on it **/
-        void for_each_message(const std::function<void(Message &)> &func) const;
+    /** Go through each message, calling the given function on it **/
+    void for_each_message(const std::function<void(BasicMessage&)>& func) const;
 
-        /** Go through each message, calling the given function on it. Only include messages which meet the minimum level. **/
-        void for_each_message(const std::function<void(Message &)> &func, Level min_level) const;
+    /** Go through each message, calling the given function on it. Only include messages which meet the minimum level. **/
+    void for_each_message(const std::function<void(BasicMessage&)>& func, Level min_level) const;
 
-        /** Merge given list into this. The given list is emptied. */
-        void add(List &other);
-    };
+    /** Merge given list into this. The given list is emptied. */
+    void add(List& other);
+  };
 
-    /** Handle message list: debug_print messages and empty the list, return if there was an error. */
-    bool print_and_check(List &list);
+  /** Handle message list: debug_print messages and empty the list, return if there was an error. */
+  bool print_and_check(List& list, std::ostream& os);
 }
