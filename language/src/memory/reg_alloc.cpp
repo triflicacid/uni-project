@@ -4,7 +4,7 @@
 #include "ast/types/int.hpp"
 
 lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program)
-: symbols_(symbols), program_(program) {
+  : symbols_(symbols), program_(program) {
   instances_.emplace();
 }
 

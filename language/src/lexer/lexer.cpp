@@ -6,22 +6,34 @@
 #include "lexer.hpp"
 #include "token.hpp"
 
-
 using namespace lang::lexer;
 
 // map of token literals
 static const std::deque<std::unordered_map<std::string, TokenType>>
   identifier_map = {{
-    {"byte", TokenType::byte_kw},
-    {"double", TokenType::double_kw},
-    {"float", TokenType::float_kw},
-    {"func", TokenType::func},
-    {"int", TokenType::int_kw},
-    {"let", TokenType::let},
-    {"long", TokenType::long_kw},
-    {"namespace", TokenType::namespace_kw},
-    {"return", TokenType::return_kw},
-  }},
+      {"u8", TokenType::uint8},
+      {"byte", TokenType::uint8},
+      {"i8", TokenType::int8},
+      {"u16", TokenType::uint16},
+      {"i16", TokenType::int16},
+      {"u32", TokenType::uint32},
+      {"i32", TokenType::int32},
+      {"int", TokenType::int32},
+      {"u64", TokenType::uint64},
+      {"i64", TokenType::int64},
+      {"long", TokenType::int64},
+      {"f32", TokenType::float32},
+      {"float", TokenType::float32},
+      {"f64", TokenType::float64},
+      {"double", TokenType::float64},
+    },
+    {
+      {"func", TokenType::func},
+      {"let", TokenType::let},
+      {"namespace", TokenType::namespace_kw},
+      {"return", TokenType::return_kw},
+    }
+  },
   literal_map = {
     {
         {"->", TokenType::arrow},
@@ -42,14 +54,14 @@ std::string lang::lexer::token_type_to_string(TokenType type, bool add_quotes) {
   switch (type) {
     case TokenType::ident:
       return "ident";
-    case TokenType::int_lit:
-      return "int";
-    case TokenType::float_lit:
-      return "float";
     case TokenType::eof:
       return "eof";
     case TokenType::op:
       return "operator";
+    case TokenType::int_lit:
+      return "int";
+    case TokenType::float_lit:
+      return "float";
     case TokenType::nl:
       return "newline";
     case TokenType::invalid:
@@ -91,7 +103,6 @@ bool Token::is_valid() const {
 
 std::unique_ptr<message::MessageWithSource> Token::generate_message(message::Level level) const {
   int end_column = source.column() + length();
-
   return std::make_unique<message::MessageWithSource>(
       level,
       source.copy().column(end_column),
@@ -121,36 +132,52 @@ std::unique_ptr<message::MessageWithSource> Token::generate_syntax_error(const T
   return error;
 }
 
+bool Token::parse_numerical(TokenType num_type) {
+  switch (num_type) {
+    case TokenType::uint8:
+      value = uint64::from(static_cast<uint8_t>(std::stoul(image)));
+      break;
+    case TokenType::int8:
+      value = uint64::from(static_cast<int8_t>(std::stoi(image)));
+      break;
+    case TokenType::uint16:
+      value = uint64::from(static_cast<uint16_t>(std::stoul(image)));
+      break;
+    case TokenType::int16:
+      value = uint64::from(static_cast<int16_t>(std::stoi(image)));
+      break;
+    case TokenType::uint32:
+      value = uint64::from(static_cast<uint32_t>(std::stoul(image)));
+      break;
+    case TokenType::int32:
+      value = uint64::from(static_cast<int32_t>(std::stoi(image)));
+      break;
+    case TokenType::uint64:
+      value = uint64::from(static_cast<uint64_t>(std::stoull(image)));
+      break;
+    case TokenType::int64:
+      value = uint64::from(static_cast<int64_t>(std::stoll(image)));
+      break;
+    case TokenType::float32:
+      value = uint64::from(std::stof(image));
+      break;
+    case TokenType::float64:
+      value = uint64::from(std::stod(image));
+      break;
+    default:
+      return false;
+  }
+  return true;
+}
+
 Token Lexer::token(const std::string &image, TokenType type) const {
   const auto& position = stream.get_position();
-  Token token{
+  return Token{
     .type = type,
     .image = image,
     .image_line = get_line(position.line),
     .source = Location(get_source_name(), position.line, position.col - image.length()),
   };
-
-  // populate token's value if necessary
-  switch (type) {
-    case TokenType::int_lit:
-      token.value = uint64::from(std::stoi(image));
-      break;
-    case TokenType::long_lit:
-      token.value = uint64::from((int64_t)std::stoll(image));
-      break;
-    case TokenType::ulong_lit:
-      token.value = uint64::from((uint64_t)std::stoull(image));
-      break;
-    case TokenType::float_lit:
-      token.value = uint64::from(std::stof(image));
-      break;
-    case TokenType::double_lit:
-      token.value = uint64::from(std::stod(image));
-      break;
-    default: ;
-  }
-
-  return token;
 }
 
 // characters which may be used for an operator
@@ -206,7 +233,6 @@ Token Lexer::next() {
     }
 
     // create numeric token
-    // TODO suppose long/ulong/double
     return token(tmp.str(), is_float ? TokenType::float_lit : TokenType::int_lit);
   }
 

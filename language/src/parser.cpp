@@ -83,18 +83,51 @@ void lang::parser::Parser::parse_newlines() {
   while(expect(lexer::TokenType::nl)) consume();
 }
 
+static const lang::lexer::TokenSet numerical_types = {
+    lang::lexer::TokenType::uint8,
+    lang::lexer::TokenType::int8,
+    lang::lexer::TokenType::uint16,
+    lang::lexer::TokenType::int16,
+    lang::lexer::TokenType::uint32,
+    lang::lexer::TokenType::int32,
+    lang::lexer::TokenType::uint64,
+    lang::lexer::TokenType::int64,
+    lang::lexer::TokenType::float32,
+    lang::lexer::TokenType::float64,
+};
+
+// map of static type names to types
+static const std::unordered_map<lang::lexer::TokenType, lang::ast::type::Node*> static_type_map = {
+    {lang::lexer::TokenType::uint8, &lang::ast::type::uint8},
+    {lang::lexer::TokenType::int8, &lang::ast::type::int8},
+    {lang::lexer::TokenType::uint16, &lang::ast::type::uint16},
+    {lang::lexer::TokenType::int16, &lang::ast::type::int16},
+    {lang::lexer::TokenType::uint32, &lang::ast::type::uint32},
+    {lang::lexer::TokenType::int32, &lang::ast::type::int32},
+    {lang::lexer::TokenType::uint64, &lang::ast::type::uint64},
+    {lang::lexer::TokenType::int64, &lang::ast::type::int64},
+    {lang::lexer::TokenType::float32, &lang::ast::type::float32},
+    {lang::lexer::TokenType::float64, &lang::ast::type::float64},
+};
+
 const lang::lexer::TokenSet lang::parser::firstset::number{lexer::TokenType::int_lit, lexer::TokenType::float_lit};
 
 std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number() {
-  // TODO determine types properly
   // assume token is float_lit or int_lit
-  const lexer::Token& token = consume();
+  lexer::Token token = consume();
   ast::type::Node* type_node;
 
-  if (token.type == lexer::TokenType::float_lit) {
+  // check if type is explicitly suffixed, otherwise set to default int/float types
+  if (expect(numerical_types)) {
+    const lexer::Token type_token = consume();
+    type_node = static_type_map.at(type_token.type);
+    token.parse_numerical(type_token.type); // TODO check if error?
+  } else if (token.type == lexer::TokenType::float_lit) {
     type_node = &ast::type::float32;
+    token.parse_numerical(lexer::TokenType::float32);
   } else {
     type_node = &ast::type::int32;
+    token.parse_numerical(lexer::TokenType::int32);
   }
 
   return std::make_unique<ast::expr::LiteralNode>(token, *type_node);
@@ -180,38 +213,14 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
   return expr;
 }
 
-const lang::lexer::TokenSet lang::parser::firstset::type = {
-    lexer::TokenType::byte_kw,
-    lexer::TokenType::double_kw,
-    lexer::TokenType::float_kw,
-    lexer::TokenType::int_kw,
-    lexer::TokenType::long_kw,
-};
+const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
+    numerical_types
+});
 
 const lang::ast::type::Node* lang::parser::Parser::parse_type() {
-  if (expect(lexer::TokenType::byte_kw)) {
+  if (auto it = static_type_map.find(peek().type); it != static_type_map.end()) {
     consume();
-    return &ast::type::uint8;
-  }
-
-  if (expect(lexer::TokenType::double_kw)) {
-    consume();
-    return &ast::type::float64;
-  }
-
-  if (expect(lexer::TokenType::float_kw)) {
-    consume();
-    return &ast::type::float32;
-  }
-
-  if (expect(lexer::TokenType::int_kw)) {
-    consume();
-    return &ast::type::int32;
-  }
-
-  if (expect(lexer::TokenType::long_kw)) {
-    consume();
-    return &ast::type::int64;
+    return it->second;
   }
 
   return nullptr;

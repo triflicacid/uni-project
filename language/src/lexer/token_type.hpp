@@ -23,25 +23,27 @@ namespace lang::lexer {
     // operators
     op, // generic operator
 
-    // values
-    byte_lit, // integer value, 'unsigned char'
-    int_lit, // integer value, 'int'
-    long_lit, // integer value, 'long'
-    ulong_lit, // integer value, 'unsigned long'
-    float_lit, // float value, 'float'
-    double_lit, // float value, 'double'
+    // types
+    uint8,
+    int8,
+    uint16,
+    int16,
+    uint32,
+    int32,
+    uint64,
+    int64,
+    float32,
+    float64,
+
+    // literals
+    int_lit, // any integer literal
+    float_lit, // any floating literal
 
     // keywords
-    byte_kw,
-    double_kw,
-    float_kw,
     func,
-    int_kw,
     let,
-    long_kw,
     namespace_kw,
     return_kw,
-    ulong_kw,
 
     invalid
   };

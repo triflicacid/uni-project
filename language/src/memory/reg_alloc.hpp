@@ -12,7 +12,7 @@
 
 namespace lang::memory {
   // store total number of registers we may use
-  constexpr int total_registers = 2; //constants::registers::count - constants::registers::r1;
+  constexpr int total_registers = constants::registers::count - constants::registers::r1;
 
   // register at which the offset starts
   constexpr constants::registers::reg initial_register = constants::registers::r1;

@@ -83,24 +83,39 @@ let pi_approx: int = (int) pi
 
 \subsection{Primitive Types}
 
-These types are built-in to the compiler.
+The following types are provided natively.
 
-\begin{itemize}
-    \item \texttt{byte} -- represents an unsigned 8-bit integer.
-    \item \texttt{int} -- represents a signed 32-bit integer.
-    \item \texttt{long} -- represents a signed 64-bit integer (a processor word).
-    \item \texttt{float} -- represents a 32-bit floating-point number.
-    \item \texttt{double} -- represents a 64-bit floating-point number.
-\end{itemize}
+\begin{tabular}{|c|c|c|l|}
+    \hline
+    \textbf{Type} & \textbf{Alias} & \textbf{Description} \\
+    \hline
+    \texttt{u8} & \texttt{byte} & Unsigned 8-bit integer \\
+    \texttt{i8} & & Signed 8-bit integer \\
+    \hline
+    \texttt{u16} & & Unsigned 16-bit integer \\
+    \texttt{i16} & & Signed 16-bit integer \\
+    \hline
+    \texttt{u32} & & Unsigned 32-bit integer \\
+    \texttt{i32} & \texttt{int} & Signed 32-bit integer \\
+    \hline
+    \texttt{u64} & & Unsigned 64-bit integer \\
+    \texttt{i64} & \texttt{long} & Signed 64-bit integer \\
+    \hline
+    \texttt{f32} & \texttt{float} & 32-bit floating-point number \\
+    \texttt{f64} & \texttt{double} & 64-bit floating-point number \\
+    \hline
+\end{tabular}
 
 \paragraph*{Numeric Literals}
 Numbers are specified as a sequence of digits.
-By default, integer literals are \texttt{int}s, unless the value exceeds the integer capacity.
-
-\paragraph*{Decimal Literals}
-
-A numeric literal becomes a float if a decimal point `\texttt{.}' is encountered.
-For floating points, the default is \texttt{float}.
+If they contain a decimal point, they become floating-point literals.
+The default type for literals is \texttt{int} and \texttt{float}, respectively.
+However, a literal may be given a type by suffixing it with the desired type.
+E.g.,
+\begin{lstlisting}[language=CustomLang]
+let pi: float = 3.14
+let x: u64 = 123456789u64
+\end{lstlisting}
 
 \section{Variables}
 
