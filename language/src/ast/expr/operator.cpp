@@ -68,8 +68,13 @@ bool lang::ast::expr::OperatorNode::load(lang::Context& ctx) const {
   auto& op = op_.value().get();
   assert(op.builtin());
 
+  // generate asm code and mark with comment
+  size_t idx = ctx.program.current().size();
   auto& builtin = static_cast<const ops::BuiltinOperator&>(op);
   builtin.process(ctx);
+  auto& comment = ctx.program.current()[idx].comment();
+  comment << "operator" << op_.value().get().symbol();
+  op_.value().get().type().print_code(comment);
 
   return true;
 }

@@ -214,17 +214,16 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
     switch (object->type) {
       case Object::Literal: { // load the immediate into the register
         const auto& literal = object->literal.get();
-        if (size_t size = literal.type().size(); size == 8) {
+        if (auto size = literal.type().size(); size == 8) {
           program_.current().add(assembly::create_load_long(location.offset, literal.get()));
         } else {
-          assembly::create_load(
-              location.offset,
-              assembly::Arg::imm(literal.get()),
-              size,
-              program_.current(),
-              false
-            );
+          program_.current().add(assembly::create_load(location.offset, assembly::Arg::imm(literal.get())));
         }
+
+        // add comment so user knows what lit was loaded
+        auto& comment = program_.current().back().comment();
+        comment << literal.to_string() << ": ";
+        literal.type().print_code(comment);
         break;
       }
       case Object::Temporary:

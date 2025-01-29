@@ -6,6 +6,7 @@
 #include "ast/types/function.hpp"
 #include "ast/types/int.hpp"
 #include "assembly/create.hpp"
+#include "ast/types/float.hpp"
 
 enum class ArgSelect {
   lhs, // lhs argument in binary operator
@@ -116,4 +117,11 @@ void lang::ops::init_builtins() {
       FunctionNode::create({int32, int32}, int32),
       [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::s32); }
     ));
+
+  // operator+(int32, int32)
+  store_operator(std::make_unique<BuiltinOperator>(
+      "+",
+      FunctionNode::create({float32, float32}, float32),
+      [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::flt); }
+  ));
 }
