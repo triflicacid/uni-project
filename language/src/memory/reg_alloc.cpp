@@ -11,7 +11,7 @@ lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::Symbo
 int lang::memory::RegisterAllocationManager::count_free() const {
   int count = 0;
   for (auto& object : instances_.top().regs) {
-    if (object)
+    if (!object)
       count++;
   }
   return count;
@@ -105,6 +105,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
   int offset = 0;
   for (auto& object : instances_.top().regs) {
     if (object && object->type == Object::Symbol && object->symbol.get().id() == symbol.id()) {
+      object->required = true;
       return Ref(Ref::Register, offset);
     }
     offset++;
@@ -113,6 +114,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
     if (object->type == Object::Symbol && object->symbol.get().id() == symbol.id()) {
+      object->required = true;
       return Ref(Ref::Memory, address);
     }
   }
@@ -171,12 +173,14 @@ std::shared_ptr<lang::memory::Object> lang::memory::RegisterAllocationManager::e
   if (location.type == Ref::Register) {
     // nothing is required assembly-wise
     auto object = std::move(instances_.top().regs[location.offset - initial_register]);
+    if (!object) return nullptr;
     instances_.top().regs[location.offset] = nullptr;
     return object;
   }
 
   // adjust the stack pointer if top, otherwise do nothing
   auto object = std::move(memory_[location.offset]);
+  if (!object) return nullptr;
   if (size_t size = object->size(); location.offset - size == instances_.top().spill_addr) {
     instances_.top().spill_addr -= size;
   }
@@ -188,9 +192,11 @@ std::shared_ptr<lang::memory::Object> lang::memory::RegisterAllocationManager::e
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::insert(std::unique_ptr<Object> object) {
   // check if we have a register free
+  // if not, use the first freed register
   int i = initial_register;
+  const int free_count = count_free();
   for (auto& stored_object : instances_.top().regs) {
-    if (stored_object) {
+    if (stored_object && (free_count != 0 || stored_object->required)) {
       stored_object->occupied_ticks++;
     } else {
       Ref location(Ref::Register, i);
@@ -281,7 +287,9 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::get_re
   return instances_.top().history[n];
 }
 
-std::unique_ptr<lang::assembly::Arg> lang::memory::RegisterAllocationManager::resolve_ref(const lang::memory::Ref& ref) {
+std::unique_ptr<lang::assembly::Arg> lang::memory::RegisterAllocationManager::resolve_ref(const lang::memory::Ref& ref, bool mark_free) {
+  if (mark_free) this->mark_free(ref);
+
   if (ref.type == Ref::Register) {
     return assembly::Arg::reg(ref.offset);
   } else {
@@ -340,4 +348,16 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
   }
 
   return ref;
+}
+
+void lang::memory::RegisterAllocationManager::mark_free(const lang::memory::Ref& ref) {
+  if (ref.type == Ref::Register) {
+    instances_.top().regs[ref.offset - initial_register]->required = false;
+  } else {
+    auto& object = memory_[ref.offset];
+    object->required = false;
+    if (size_t size = object->size(); ref.offset - size == instances_.top().spill_addr) {
+      instances_.top().spill_addr -= size;
+    }
+  }
 }

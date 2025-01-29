@@ -12,7 +12,7 @@
 
 namespace lang::memory {
   // store total number of registers we may use
-  constexpr int total_registers = constants::registers::count - constants::registers::r1;
+  constexpr int total_registers = 2; //constants::registers::count - constants::registers::r1;
 
   // register at which the offset starts
   constexpr constants::registers::reg initial_register = constants::registers::r1;
@@ -26,6 +26,7 @@ namespace lang::memory {
     };
 
     uint32_t occupied_ticks = 0;
+    bool required = true; // if not required, we may be evicted at any time without consequence
     Type type;
     union {
       std::reference_wrapper<const symbol::Variable> symbol;
@@ -92,6 +93,9 @@ namespace lang::memory {
     // evict item at the given location, return Object which was evicted
     std::shared_ptr<Object> evict(const Ref& location);
 
+    // mark object as not required -- from this point onwards, data is not guaranteed to exist
+    void mark_free(const Ref& ref);
+
     // insert Object, assume it does not exist, return reference to it
     Ref insert(std::unique_ptr<Object> object);
 
@@ -111,6 +115,7 @@ namespace lang::memory {
     Ref guarantee_datatype(const Ref& ref, constants::inst::datatype::dt target);
 
     // create assembly argument resolving a reference
-    std::unique_ptr<assembly::Arg> resolve_ref(const Ref& ref);
+    // argument: mark as free?
+    std::unique_ptr<assembly::Arg> resolve_ref(const Ref& ref, bool mark_free);
   };
 }

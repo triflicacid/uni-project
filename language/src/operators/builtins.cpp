@@ -25,11 +25,8 @@ static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, ArgSelect 
   assert(maybe_ref.has_value());
   // guaranteed register placement?
   if (guarantee_reg) ctx.reg_alloc_manager.guarantee_register(maybe_ref.value());
-  return ctx.reg_alloc_manager.resolve_ref(maybe_ref.value());
+  return ctx.reg_alloc_manager.resolve_ref(maybe_ref.value(), true);
 }
-
-// given argument reference (must be register) and type to cast to, ensure register contains this type
-static void guarantee_type();
 
 // fetch LHS and RHS argument pair, enforcing at least one is in a register
 // return <register argument, other argument>
@@ -51,14 +48,14 @@ static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_p
   if (lhs_ref->type != lang::memory::Ref::Register) {
     return {
         ctx.reg_alloc_manager.guarantee_register(lhs_ref.value()).offset,
-        ctx.reg_alloc_manager.resolve_ref(rhs_ref.value())
+        ctx.reg_alloc_manager.resolve_ref(rhs_ref.value(), true)
     };
   }
 
   if (rhs_ref->type != lang::memory::Ref::Register) {
     return {
         ctx.reg_alloc_manager.guarantee_register(rhs_ref.value()).offset,
-        ctx.reg_alloc_manager.resolve_ref(lhs_ref.value())
+        ctx.reg_alloc_manager.resolve_ref(lhs_ref.value(), true)
     };
   }
 
@@ -66,7 +63,7 @@ static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_p
   // arbitrarily choose LHS to go first
   return {
       lhs_ref.value().offset,
-      ctx.reg_alloc_manager.resolve_ref(rhs_ref.value())
+      ctx.reg_alloc_manager.resolve_ref(rhs_ref.value(), true)
   };
 }
 
