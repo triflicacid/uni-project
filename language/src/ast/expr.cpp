@@ -6,6 +6,7 @@ std::ostream& lang::ast::ExprNode::print_code(std::ostream& os, unsigned int ind
 
 std::ostream& lang::ast::ExprNode::print_tree(std::ostream& os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
+  os << std::endl;
   return expr_->print_tree(os, indent_level + 1);
 }
 
