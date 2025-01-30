@@ -96,7 +96,6 @@ static const lang::lexer::TokenSet numerical_types = {
     lang::lexer::TokenType::int64,
     lang::lexer::TokenType::float32,
     lang::lexer::TokenType::float64,
-    lang::lexer::TokenType::boolean,
 };
 
 // map of static type names to types

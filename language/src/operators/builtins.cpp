@@ -114,21 +114,56 @@ namespace generators {
   }
 }
 
-void lang::ops::init_builtins() {
+namespace init_builtin {
+  using namespace lang;
+  using namespace lang::ops;
   using namespace ast::type;
 
-  // TODO implement some built-in operators
-  // operator+(int32, int32)
-  store_operator(std::make_unique<BuiltinOperator>(
-      "+",
-      FunctionNode::create({int32, int32}, int32),
-      [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::s32); }
+  static void addition() {
+    // operator+(int32, int32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "+",
+        FunctionNode::create({int32, int32}, int32),
+        [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::s32); }
     ));
 
-  // operator+(float, float)
-  store_operator(std::make_unique<BuiltinOperator>(
-      "+",
-      FunctionNode::create({float32, float32}, float32),
-      [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::flt); }
-  ));
+    // operator+(uint32, uint32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "+",
+        FunctionNode::create({uint32, uint32}, uint32),
+        [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::u32); }
+    ));
+
+    // operator+(int64, int64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "+",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::s64); }
+    ));
+
+    // operator+(uint64, uint64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "+",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::u64); }
+    ));
+
+    // operator+(float, float)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "+",
+        FunctionNode::create({float32, float32}, float32),
+        [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::flt); }
+    ));
+
+    // operator+(double, double)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "+",
+        FunctionNode::create({float64, float64}, float64),
+        [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::dbl); }
+    ));
+  }
+}
+
+void lang::ops::init_builtins() {
+  init_builtin::addition();
 }
