@@ -224,7 +224,7 @@ void IStreamWrapper::eat_while(std::ostream& os, const std::function<bool(int)>&
 
 void IStreamWrapper::eat_line() {
   int oldLine = pos.line;
-  while (pos.line == oldLine) {
+  while (!is_eof() && pos.line == oldLine) {
     get_char();
   }
 }

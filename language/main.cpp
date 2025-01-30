@@ -75,11 +75,12 @@ int main(int argc, char** argv) {
     lang::parser::Parser parser(lexer);
     parser.messages(&messages);
 
-//    while (true) {
-//      auto token = lexer.next();
-//      std::cout << "Token@<" << token.source.line() << ":" << token.source.column() << "> " << lang::lexer::token_type_to_string(token.type) << std::endl;
-//      if (token.is_eof()) std::exit(1);
-//    }
+    while (true) {
+      auto token = lexer.next();
+      std::cout << "Token@<" << token.source.line() << ":" << token.source.column() << "> " << token.to_string() << std::endl;
+      if (token.is_eof()) std::exit(1);
+    }
+    return 1;
 
     // parse the file & check for any errors
     auto ast = parser.parse();

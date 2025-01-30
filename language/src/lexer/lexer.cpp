@@ -174,6 +174,14 @@ bool Token::parse_numerical(TokenType num_type) {
   return true;
 }
 
+std::string Token::to_string() const {
+  std::string s = token_type_to_string(type);
+  if (s.front() != '"') { // if we are a type, add on image
+    s += " \"" + image + "\"";
+  }
+  return s;
+}
+
 Token Lexer::token(const std::string &image, TokenType type) const {
   const auto& position = stream.get_position();
   return Token{
@@ -214,6 +222,17 @@ Token Lexer::next() {
     if (stream.peek_char() == ch) {
       // eat everything up to and including eol
       stream.eat_line();
+      return next();
+    } else if (stream.peek_char() == '*') {
+      // eat everything enclosed in braces
+      stream.get_char();
+      while (!stream.is_eof() && (ch = stream.get_char())) {
+        // check for end of comment
+        if (ch == '*' && stream.peek_char() == '/') {
+          stream.get_char();
+          break;
+        }
+      }
       return next();
     } else {
       stream.restore_position();

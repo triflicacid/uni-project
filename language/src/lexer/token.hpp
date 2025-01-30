@@ -18,6 +18,8 @@ namespace lang::lexer {
     bool is_eof() const;
     bool is_valid() const;
 
+    std::string to_string() const;
+
     // given numerical type TokenType (i.e., int8), parse image_ as a number of that type
     // return if parse was successful
     bool parse_numerical(TokenType type);
