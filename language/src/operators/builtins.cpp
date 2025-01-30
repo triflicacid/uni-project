@@ -112,6 +112,12 @@ namespace generators {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
     ctx.program.current().add(assembly::create_add(datatype, reg_arg, reg_arg, std::move(other_arg)));
   }
+
+  // like generate_add, but for subtraction
+  static void generate_sub(Context& ctx, constants::inst::datatype::dt datatype) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
+    ctx.program.current().add(assembly::create_sub(datatype, reg_arg, reg_arg, std::move(other_arg)));
+  }
 }
 
 namespace init_builtin {
@@ -162,8 +168,53 @@ namespace init_builtin {
         [](Context& ctx) { generators::generate_add(ctx, constants::inst::datatype::dbl); }
     ));
   }
+
+  static void subtraction() {
+    // operator-(int32, int32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "-",
+        FunctionNode::create({int32, int32}, int32),
+        [](Context& ctx) { generators::generate_sub(ctx, constants::inst::datatype::s32); }
+    ));
+
+    // operator-(uint32, uint32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "-",
+        FunctionNode::create({uint32, uint32}, uint32),
+        [](Context& ctx) { generators::generate_sub(ctx, constants::inst::datatype::u32); }
+    ));
+
+    // operator-(int64, int64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "-",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_sub(ctx, constants::inst::datatype::s64); }
+    ));
+
+    // operator-(uint64, uint64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "-",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_sub(ctx, constants::inst::datatype::u64); }
+    ));
+
+    // operator-(float, float)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "-",
+        FunctionNode::create({float32, float32}, float32),
+        [](Context& ctx) { generators::generate_sub(ctx, constants::inst::datatype::flt); }
+    ));
+
+    // operator-(double, double)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "-",
+        FunctionNode::create({float64, float64}, float64),
+        [](Context& ctx) { generators::generate_sub(ctx, constants::inst::datatype::dbl); }
+    ));
+  }
 }
 
 void lang::ops::init_builtins() {
   init_builtin::addition();
+  init_builtin::subtraction();
 }
