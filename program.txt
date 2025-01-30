@@ -1,2 +1,2 @@
-let pi = 3.14;
-let pi_arrrox: int = pi;
+let x = 3;
+let pi: float = x;

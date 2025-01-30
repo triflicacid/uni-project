@@ -248,15 +248,10 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
           arg = assembly::Arg::label(storage.block);
         }
 
-        int idx = program_.current().size();
-        assembly::create_load(
-            location.offset,
-            std::move(arg),
-            symbol.type().size(),
-            program_.current(),
-            false
-        );
-        program_.current()[idx].comment() << symbol.full_name();
+        program_.current().add(assembly::create_load(location.offset, std::move(arg)));
+        auto& comment = program_.current().back().comment();
+        comment << symbol.full_name() << ": ";
+        symbol.type().print_code(comment);
         break;
       }
     }

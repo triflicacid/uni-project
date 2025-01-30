@@ -1,8 +1,10 @@
+#include <cassert>
 #include "table.hpp"
 #include "assembly/directive.hpp"
 #include "registry.hpp"
 #include "ast/function_base.hpp"
 #include "ast/symbol_declaration.hpp"
+#include "assembly/create.hpp"
 
 lang::symbol::SymbolTable::SymbolTable(memory::StackManager& stack) : stack_(stack) {
   scopes_.emplace_front();
@@ -133,6 +135,15 @@ std::optional<std::reference_wrapper<const lang::memory::StorageLocation>> lang:
   return {};
 }
 
+std::unique_ptr<lang::assembly::BaseArg>
+lang::symbol::SymbolTable::resolve_location(const lang::memory::StorageLocation& location) const {
+  if (location.type == memory::StorageLocation::Block) {
+    return assembly::Arg::label(location.block);
+  } else {
+    return assembly::Arg::reg_indirect(constants::registers::sp, location.offset - stack_.offset());
+  }
+}
+
 void lang::symbol::SymbolTable::insert(Registry& registry, bool alloc) {
   for (auto& [symbolId, symbol] : registry.symbols_) {
     insert(std::move(symbol), alloc);
@@ -188,4 +199,17 @@ std::unordered_set<lang::symbol::SymbolId> lang::symbol::SymbolTable::peek() con
     local.insert(symbols.begin(), symbols.end());
   }
   return local;
+}
+
+void lang::symbol::SymbolTable::assign_symbol(lang::symbol::SymbolId symbol, uint8_t reg) const {
+  const auto maybe_location = locate(symbol);
+  assert(maybe_location.has_value());
+  const memory::StorageLocation location = maybe_location.value().get();
+
+  auto argument = resolve_location(location);
+  if (location.type == memory::StorageLocation::Stack) {
+    stack_.program().current().add(assembly::create_load(reg, std::move(argument)));
+  } else {
+    stack_.program().current().add(assembly::create_store(reg, std::move(argument)));
+  }
 }

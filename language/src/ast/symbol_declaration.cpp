@@ -6,6 +6,7 @@
 #include "symbol/registry.hpp"
 #include "ast/types/graph.hpp"
 #include "message_helper.hpp"
+#include "assembly/create.hpp"
 
 const lang::ast::type::Node& lang::ast::SymbolDeclarationNode::type() const {
   assert(type_.has_value());
@@ -76,6 +77,8 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     }
   }
 
+  // TODO type coercion
+
   // define symbol
   symbol::Registry registry;
   auto maybe_id = symbol::create_variable(registry, arg_ ? symbol::Category::Argument : symbol::Category::Ordinary, token_, type_.value(), ctx.messages);
@@ -83,7 +86,14 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   ctx.symbols.insert(registry);
   id_ = maybe_id.value();
 
-  // TODO set equal
+  // get location of symbol
+  const auto symbol_loc = ctx.symbols.locate(id_);
+  assert(symbol_loc.has_value());
 
+  // load expr value into symbol
+  auto expr_ref = ctx.reg_alloc_manager.get_recent();
+  assert(expr_ref.has_value());
+  expr_ref = ctx.reg_alloc_manager.guarantee_register(expr_ref.value());
+  ctx.symbols.assign_symbol(id_, expr_ref.value().offset);
   return true;
 }

@@ -8,6 +8,7 @@
 #include "symbol.hpp"
 #include "memory/stack.hpp"
 #include "memory/storage_location.hpp"
+#include "assembly/arg.hpp"
 
 namespace lang::ast {
   class FunctionBaseNode;
@@ -49,6 +50,13 @@ namespace lang::symbol {
     // get the storage location of the given symbol
     // may be optional if the symbol (1) has not been allocated, or (2) has no physical width (e.g., a namespace)
     std::optional<std::reference_wrapper<const memory::StorageLocation>> locate(SymbolId symbol) const;
+
+    // given a memory location, return asm argument referencing this location
+    std::unique_ptr<assembly::BaseArg> resolve_location(const memory::StorageLocation& location) const;
+
+    // assign given symbol to contents of the given register, inserting asm instructions in program
+    // note: errors if symbol has no physical location
+    void assign_symbol(SymbolId symbol, uint8_t reg) const;
 
     // create new lexical scope
     void push();
