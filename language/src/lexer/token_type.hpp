@@ -24,6 +24,7 @@ namespace lang::lexer {
     op, // generic operator
 
     // types
+    boolean,
     uint8,
     int8,
     uint16,
@@ -40,10 +41,12 @@ namespace lang::lexer {
     float_lit, // any floating literal
 
     // keywords
+    false_kw,
     func,
     let,
     namespace_kw,
     return_kw,
+    true_kw,
 
     invalid
   };

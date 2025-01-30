@@ -3,17 +3,21 @@
 #include "ast/types/node.hpp"
 #include "ast/types/int.hpp"
 #include "ast/types/float.hpp"
+#include "config.hpp"
 
 std::string lang::memory::Literal::to_string() const {
   if (auto int_ = type_.get_int()) {
     return int_->is_signed()
            ? std::to_string(uint64::to_int64(data_))
            : std::to_string(uint64::to_uint64(data_));
-  } else {
-    auto float_ = type_.get_float();
+  } else if (auto float_ = type_.get_float()) {
     return float_->is_double()
            ? std::to_string(uint64::to_double(data_))
            : std::to_string(uint64::to_float(data_));
+  } else { // must be a Boolean
+    return data_ == lang::conf::bools::true_value
+      ? lang::conf::bools::true_string
+      : lang::conf::bools::false_string;
   }
 }
 

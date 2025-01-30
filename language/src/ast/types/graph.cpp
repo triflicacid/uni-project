@@ -1,6 +1,7 @@
 #include "graph.hpp"
 #include "int.hpp"
 #include "float.hpp"
+#include "bool.hpp"
 
 void lang::ast::type::TypeGraph::insert(std::unique_ptr<Node> type) {
   insert(*type);
@@ -52,7 +53,7 @@ bool lang::ast::type::TypeGraph::is_subtype(lang::ast::type::TypeId child, lang:
 lang::ast::type::TypeGraph lang::ast::type::graph;
 
 void lang::ast::type::TypeGraph::init() {
-  // integer types
+  //! integer types
   graph.insert(uint8);
   graph.insert(int8);
   graph.insert(uint16);
@@ -73,7 +74,7 @@ void lang::ast::type::TypeGraph::init() {
   graph.add_subtypes(uint16.id(), {int32.id(), int64.id()});
   graph.add_subtype(uint32.id(), int64.id());
 
-  // floating point types
+  //! floating point types
   graph.insert(float32);
   graph.insert(float64);
 
@@ -85,4 +86,9 @@ void lang::ast::type::TypeGraph::init() {
 
   // [u]int<n> < float32 where n < 64
   graph.add_subtypes({uint8.id(), int8.id(), uint16.id(), int16.id(), uint32.id(), int32.id()}, float32.id());
+
+  //! Boolean types
+  graph.insert(boolean);
+//  // boolean < uint8, int8, float
+//  graph.add_subtypes(boolean.id(), {uint8.id(), int8.id(), float32.id()});
 }

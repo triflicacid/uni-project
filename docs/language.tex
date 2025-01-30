@@ -88,6 +88,8 @@ The following types are provided natively.
 \begin{tabular}{|c|c|c|l|}
     \hline
     \textbf{Type} & \textbf{Alias} & \textbf{Description} \\
+    \texttt{bool} & & A truth value -- either \texttt{true} or \texttt{false} \\
+    \hline
     \hline
     \texttt{u8} & \texttt{byte} & Unsigned 8-bit integer \\
     \texttt{i8} & & Signed 8-bit integer \\
@@ -106,7 +108,9 @@ The following types are provided natively.
     \hline
 \end{tabular}
 
-\paragraph*{Numeric Literals}
+Note: Booleans, unlike other languages, are kept separate from integers and may not be substituted in their place.
+
+\paragraph*{Literals}
 Numbers are specified as a sequence of digits.
 If they contain a decimal point, they become floating-point literals.
 The default type for literals is \texttt{int} and \texttt{float}, respectively.

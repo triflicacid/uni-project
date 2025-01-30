@@ -11,7 +11,7 @@ add_executable(language ../shared/constants.cpp ../shared/util.cpp ../shared/mes
         src/ast/block.cpp src/ast/expr.cpp src/ast/function_base.cpp src/ast/function.cpp src/ast/namespace.cpp src/ast/node.cpp src/ast/program.cpp src/ast/return.cpp src/ast/symbol_declaration.cpp
         src/assembly/arg.cpp src/assembly/basic_block.cpp src/assembly/create.cpp src/assembly/directive.cpp src/assembly/instruction.cpp src/assembly/program.cpp
         src/ast/expr/operator.cpp src/ast/expr/literal.cpp src/ast/expr/symbol_reference.cpp
-        src/ast/types/node.cpp src/ast/types/none.cpp src/ast/types/graph.cpp src/ast/types/int.cpp src/ast/types/namespace.cpp src/ast/types/float.cpp src/ast/types/function.cpp
+        src/ast/types/bool.cpp src/ast/types/node.cpp src/ast/types/none.cpp src/ast/types/graph.cpp src/ast/types/int.cpp src/ast/types/namespace.cpp src/ast/types/float.cpp src/ast/types/function.cpp
         src/symbol/registry.cpp src/symbol/symbol.cpp src/symbol/table.cpp
         src/operators/builtins.cpp src/operators/operator.cpp
         main.cpp)

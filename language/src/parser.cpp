@@ -11,6 +11,8 @@
 #include "ast/program.hpp"
 #include "operators/info.hpp"
 #include "ast/expr.hpp"
+#include "ast/types/bool.hpp"
+#include "config.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -94,6 +96,7 @@ static const lang::lexer::TokenSet numerical_types = {
     lang::lexer::TokenType::int64,
     lang::lexer::TokenType::float32,
     lang::lexer::TokenType::float64,
+    lang::lexer::TokenType::boolean,
 };
 
 // map of static type names to types
@@ -108,11 +111,21 @@ static const std::unordered_map<lang::lexer::TokenType, lang::ast::type::Node*> 
     {lang::lexer::TokenType::int64, &lang::ast::type::int64},
     {lang::lexer::TokenType::float32, &lang::ast::type::float32},
     {lang::lexer::TokenType::float64, &lang::ast::type::float64},
+    {lang::lexer::TokenType::boolean, &lang::ast::type::boolean},
 };
 
 const lang::lexer::TokenSet lang::parser::firstset::number{lexer::TokenType::int_lit, lexer::TokenType::float_lit};
+const lang::lexer::TokenSet lang::parser::firstset::boolean{lexer::TokenType::false_kw, lexer::TokenType::true_kw};
+const lang::lexer::TokenSet lang::parser::firstset::literal = lexer::merge_sets({number, boolean});
 
-std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number() {
+std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_literal() {
+  // Boolean literal?
+  if (expect(firstset::boolean)) {
+    lexer::Token token = consume();
+    token.value = token.type == lexer::TokenType::true_kw ? conf::bools::true_value : conf::bools::false_value;
+    return std::make_unique<ast::expr::LiteralNode>(token, ast::type::boolean);
+  }
+
   // assume token is float_lit or int_lit
   lexer::Token token = consume();
   ast::type::Node* type_node;
@@ -134,13 +147,13 @@ std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_number
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
-    firstset::number,
+    firstset::literal,
     {lexer::TokenType::ident, lexer::TokenType::lpar}
 });
 
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
-  if (expect(firstset::number)) { // numeric literal
-    return parse_number();
+  if (expect(firstset::literal)) {
+    return parse_literal();
   } else if (expect(lexer::TokenType::ident)) { // identifier
     return std::make_unique<ast::expr::SymbolReferenceNode>(consume());
   } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
@@ -352,6 +365,20 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
 });
 
 void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
+  static bool was_last_an_expression = false;
+
+  if (expect(firstset::expression)) {
+    // one expression cannot immediately follow another
+    if (was_last_an_expression) {
+      add_message(peek().generate_syntax_error(firstset::eol));
+      return;
+    }
+    was_last_an_expression = true;
+    block.add(parse_expression());
+    return;
+  }
+  was_last_an_expression = false;
+
   if (expect(lexer::TokenType::func)) {
     block.add(parse_func());
     return;
@@ -371,11 +398,6 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
 
   if (expect(lexer::TokenType::return_kw)) {
     block.add(parse_return());
-    return;
-  }
-
-  if (expect(firstset::expression)) {
-    block.add(parse_expression());
     return;
   }
 }
@@ -434,10 +456,19 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
 });
 
 void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
+  static bool was_last_an_expression = false;
+
   if (expect(firstset::expression)) {
+    // one expression cannot immediately follow another
+    if (was_last_an_expression) {
+      add_message(peek().generate_syntax_error(firstset::eol));
+      return;
+    }
     program.add(parse_expression());
+    was_last_an_expression = true;
     return;
   }
+  was_last_an_expression = false;
 
   if (expect(lexer::TokenType::func)) {
     program.add(parse_func());

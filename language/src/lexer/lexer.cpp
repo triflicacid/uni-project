@@ -5,12 +5,16 @@
 #include "uint64.hpp"
 #include "lexer.hpp"
 #include "token.hpp"
+#include "config.hpp"
 
 using namespace lang::lexer;
 
 // map of token literals
 static const std::deque<std::unordered_map<std::string, TokenType>>
   identifier_map = {{
+      {"bool", TokenType::boolean},
+      {lang::conf::bools::true_string, TokenType::true_kw},
+      {lang::conf::bools::false_string, TokenType::false_kw},
       {"u8", TokenType::uint8},
       {"byte", TokenType::uint8},
       {"i8", TokenType::int8},

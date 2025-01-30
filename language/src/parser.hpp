@@ -54,8 +54,8 @@ namespace lang::parser {
     // consume the current token and return it
     lexer::Token consume();
 
-    // parse a numeric literal
-    std::unique_ptr<ast::expr::LiteralNode> parse_number();
+    // parse a numeric/boolean literal
+    std::unique_ptr<ast::expr::LiteralNode> parse_literal();
 
     // parse a term - a number, symbol reference, bracketed expression etc.
     std::unique_ptr<ast::expr::Node> parse_term();
@@ -102,7 +102,9 @@ namespace lang::parser {
     extern const lexer::TokenSet eol;
     extern const lexer::TokenSet top_level_line;
     extern const lexer::TokenSet line;
+    extern const lexer::TokenSet literal;
     extern const lexer::TokenSet number;
+    extern const lexer::TokenSet boolean;
     extern const lexer::TokenSet term;
     extern const lexer::TokenSet expression;
     extern const lexer::TokenSet type;

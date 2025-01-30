@@ -14,7 +14,7 @@ std::ostream &lang::ast::expr::LiteralNode::print_code(std::ostream &os, unsigne
 
 std::ostream &lang::ast::expr::LiteralNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  os << " " SHELL_GREEN << lit_.to_string() << SHELL_RESET ": " SHELL_CYAN;
+  os << SHELL_GREEN << lit_.to_string() << SHELL_RESET ": " SHELL_CYAN;
   return lit_.type().print_code(os, 0) << SHELL_RESET;
 }
 

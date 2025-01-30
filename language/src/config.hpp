@@ -10,4 +10,11 @@ namespace lang::conf {
 
   // lint - note or warning
   extern message::Level lint_level;
+
+  namespace bools {
+    extern std::string true_string;
+    extern uint8_t true_value;
+    extern std::string false_string;
+    extern uint8_t false_value;
+  }
 }
