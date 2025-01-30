@@ -9,17 +9,6 @@
 #include "assembler_data.hpp"
 #include "parser.hpp"
 
-/** Handle message list: debug_print messages and empty the list, return if there was an error. */
-bool handle_messages(message::List &list) {
-  list.for_each_message([](message::Message &msg) {
-    msg.print(std::cerr);
-  });
-
-  bool is_error = list.has_message_of(message::Error);
-  list.clear();
-  return is_error;
-}
-
 /** Parse command-line arguments. */
 int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
   std::string lib_path_suffix = "lib";
@@ -137,7 +126,7 @@ int pre_process_data(assembler::pre_processor::Data &data, message::List &messag
   assembler::pre_process(data, messages);
 
   // Check if error
-  if (handle_messages(messages))
+  if (message::print_and_check(messages, std::cerr))
     return EXIT_FAILURE;
 
   if (data.cli_args.debug) {
@@ -186,7 +175,7 @@ int parse_data(assembler::Data &data, message::List &messages) {
   assembler::parser::parse(data, messages);
 
   // Check if error
-  if (handle_messages(messages)) {
+  if (message::print_and_check(messages, std::cerr)) {
     return EXIT_FAILURE;
   }
 
@@ -232,7 +221,7 @@ int main(int argc, char **argv) {
   assembler::read_source_file(pre_data, messages);
 
   // Check if error
-  if (handle_messages(messages))
+  if (message::print_and_check(messages, std::cerr))
     return EXIT_FAILURE;
 
   // Pre-process file

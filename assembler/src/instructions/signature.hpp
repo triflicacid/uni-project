@@ -23,7 +23,7 @@ namespace assembler::instruction {
     (*intercept)(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
                  int overload_index);
 
-    static const Signature _add, _and, _cvt, _div, _jal, _load, _loadu, _mod, _mul, _nop, _not, _or, _push, _sext, _shl, _shr, _store, _sub, _syscall, _xor, _zext;
+    static const Signature _add, _and, _cmp, _cvt, _div, _jal, _load, _loadu, _mod, _mul, _nop, _not, _or, _push, _sext, _shl, _shr, _store, _sub, _syscall, _xor, _zext;
   };
 
   /** Given mnemonic, return signature. Extract options and assign to second argument. */

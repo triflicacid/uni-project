@@ -1,4 +1,2 @@
-sub $sp, 0x8
-load $r1, 0xdead
-store $r1, 0($sp)
+cmp $r0, 5
 exit
