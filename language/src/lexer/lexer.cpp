@@ -121,7 +121,7 @@ std::unique_ptr<message::MessageWithSource> Token::generate_syntax_error(const T
 
   // message: "syntax error: encountered <type>, expected [one of] <type1>[, <type2>[, ...]]"
   std::stringstream& stream = error->get();
-  stream << "syntax error: encountered " << lexer::token_type_to_string(type);
+  stream << "syntax error: encountered " << to_string();
   if (!expected_types.empty()) {
     stream << ", expected ";
     if (expected_types.size() > 1) stream << "one of ";
