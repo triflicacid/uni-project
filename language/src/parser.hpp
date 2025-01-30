@@ -47,9 +47,15 @@ namespace lang::parser {
     bool expect(const std::set<lexer::TokenType>& types, unsigned int n = 0);
     bool expect(lexer::TokenType type, unsigned int n = 0);
 
+    // same as expect(), but matches token type and image
+    bool expect(const std::deque<std::reference_wrapper<const lexer::BasicToken>>& tokens, unsigned int n = 0);
+    bool expect(const lexer::BasicToken& token, unsigned int n = 0);
+
     // same as expect(types), but adds syntax error if failure
     bool expect_or_error(const std::set<lexer::TokenType>& types);
     bool expect_or_error(lexer::TokenType type);
+    bool expect_or_error(const std::deque<std::reference_wrapper<const lexer::BasicToken>>& tokens);
+    bool expect_or_error(const lexer::BasicToken& token);
 
     // consume the current token and return it
     lexer::Token consume();
@@ -70,7 +76,8 @@ namespace lang::parser {
     std::unique_ptr<ast::SymbolDeclarationNode> parse_name_type_pair();
 
     // parse a `let ...` statement
-    std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> parse_let();
+    // assignments in definitions are allows, in which case a SymbolDeclarationNode will be followed by an ExprNode
+    void parse_let(ast::ContainerNode& container);
 
     // parse argument list: (arg ...)
     std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> parse_arg_list();

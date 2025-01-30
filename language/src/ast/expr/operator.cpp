@@ -87,7 +87,7 @@ std::ostream &lang::ast::expr::BinaryOperatorNode::print_code(std::ostream &os, 
 
 std::ostream &lang::ast::expr::BinaryOperatorNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  os << " " SHELL_GREEN << token_.image << std::endl;
+  os << SHELL_GREEN << token_.image << std::endl;
 
   lhs_->print_tree(os, indent_level + 1) << std::endl;
   rhs_->print_tree(os, indent_level + 1);
@@ -119,7 +119,7 @@ std::ostream &lang::ast::expr::UnaryOperatorNode::print_code(std::ostream &os, u
 
 std::ostream &lang::ast::expr::UnaryOperatorNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  os << " " SHELL_GREEN << token_.image << std::endl;
+  os << SHELL_GREEN << token_.image << std::endl;
 
   expr_->print_tree(os, indent_level + 1);
   return os;

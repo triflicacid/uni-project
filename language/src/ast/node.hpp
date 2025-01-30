@@ -1,4 +1,6 @@
 #pragma once
+
+#include <deque>
 #include "messages/list.hpp"
 #include "lexer/token.hpp"
 
@@ -36,6 +38,7 @@ namespace lang::ast {
     // Phase 1:
     // collect symbols from children of this node
     // these will be inserted into the SymbolTable prior to processing
+    // note that `let ...` should *not* be added here, as variables cannot be used prior to assignment
     // return if success
     virtual bool collate_registry(message::List& messages, symbol::Registry& registry) { return true; }
 
@@ -48,4 +51,11 @@ namespace lang::ast {
 
   // utility: write a certain indent to the output stream
   std::ostream& indent(std::ostream& os, unsigned int level);
+
+  // utility: node which contains other nodes
+  struct ContainerNode {
+    virtual void add(std::unique_ptr<Node> ast_node) = 0;
+
+    virtual void add(std::deque<std::unique_ptr<Node>> ast_nodes) = 0;
+  };
 }

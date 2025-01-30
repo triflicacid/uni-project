@@ -5,7 +5,7 @@
 #include "symbol/registry.hpp"
 
 namespace lang::ast {
-  class BlockNode : public Node {
+  class BlockNode : public Node, public ContainerNode {
     friend class NamespaceNode; // to allow namespace to amend a symbol's parents
 
     std::deque<std::unique_ptr<Node>> lines_;
@@ -17,9 +17,9 @@ namespace lang::ast {
 
     std::string name() const override { return "block"; }
 
-    void add(std::unique_ptr<Node> ast_node);
+    void add(std::unique_ptr<Node> ast_node) override;
 
-    void add(std::deque<std::unique_ptr<Node>> ast_nodes);
+    void add(std::deque<std::unique_ptr<Node>> ast_nodes) override;
 
     // is this block the start of a new scope?
     void add_new_scope(bool b) { scope_ = b; }

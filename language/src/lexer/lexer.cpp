@@ -97,11 +97,11 @@ TokenSet lang::lexer::merge_sets(const std::vector<TokenSet> &sets) {
   return result;
 }
 
-bool Token::is_eof() const {
+bool BasicToken::is_eof() const {
   return type == TokenType::eof;
 }
 
-bool Token::is_valid() const {
+bool BasicToken::is_valid() const {
   return type != TokenType::invalid;
 }
 
@@ -129,6 +129,27 @@ std::unique_ptr<message::MessageWithSource> Token::generate_syntax_error(const T
     for (const lexer::TokenType& expected : expected_types) {
       stream << lexer::token_type_to_string(expected);
       if (++i < expected_types.size()) stream << ", ";
+    }
+  }
+  stream << '.';
+
+  return error;
+}
+
+std::unique_ptr<message::MessageWithSource>
+Token::generate_detailed_syntax_error(const std::deque<std::reference_wrapper<const BasicToken>>& expected_tokens) const {
+  auto error = generate_message(message::Error);
+
+  // message: "syntax error: encountered <token>, expected [one of] <token1>[, <token2>[, ...]]"
+  std::stringstream& stream = error->get();
+  stream << "syntax error: encountered " << to_string();
+  if (!expected_tokens.empty()) {
+    stream << ", expected ";
+    if (expected_tokens.size() > 1) stream << "one of ";
+    int i = 0;
+    for (auto& expected : expected_tokens) {
+      stream << expected.get().to_string();
+      if (++i < expected_tokens.size()) stream << ", ";
     }
   }
   stream << '.';
@@ -174,7 +195,7 @@ bool Token::parse_numerical(TokenType num_type) {
   return true;
 }
 
-std::string Token::to_string() const {
+std::string BasicToken::to_string() const {
   std::string s = token_type_to_string(type);
   if (s.front() != '"') { // if we are a type, add on image
     s += " \"" + image + "\"";
@@ -184,12 +205,12 @@ std::string Token::to_string() const {
 
 Token Lexer::token(const std::string &image, TokenType type) const {
   const auto& position = stream.get_position();
-  return Token{
-    .type = type,
-    .image = image,
-    .image_line = get_line(position.line),
-    .source = Location(get_source_name(), position.line, position.col - image.length()),
-  };
+  return Token(
+    type,
+    image,
+    get_line(position.line),
+    Location(get_source_name(), position.line, position.col - image.length())
+  );
 }
 
 // characters which may be used for an operator

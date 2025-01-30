@@ -4,7 +4,7 @@
 #include "node.hpp"
 
 namespace lang::ast {
-  class ProgramNode : public Node {
+  class ProgramNode : public Node, public ContainerNode {
     std::deque<std::unique_ptr<Node>> lines_;
 
   public:
@@ -12,9 +12,9 @@ namespace lang::ast {
 
     std::string name() const override { return "program"; }
 
-    void add(std::unique_ptr<Node> ast_node);
+    void add(std::unique_ptr<Node> ast_node) override;
 
-    void add(std::deque<std::unique_ptr<Node>> ast_nodes);
+    void add(std::deque<std::unique_ptr<Node>> ast_nodes) override;
 
     const Node& back() const { return *lines_.back(); }
 

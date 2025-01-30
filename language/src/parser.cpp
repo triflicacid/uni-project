@@ -1,6 +1,7 @@
 #include <iostream>
 #include <map>
 #include <ranges>
+#include <cassert>
 #include "parser.hpp"
 #include "ast/block.hpp"
 #include "ast/types/float.hpp"
@@ -51,6 +52,18 @@ bool lang::parser::Parser::expect(lang::lexer::TokenType type, unsigned int n) {
   return peek(n).type == type;
 }
 
+bool lang::parser::Parser::expect(const std::deque<std::reference_wrapper<const lexer::BasicToken>>& tokens, unsigned int n) {
+  auto& next = peek(n);
+  return std::any_of(tokens.begin(), tokens.end(), [&next](auto& token) {
+    return next.type == token.get().type && next.image == token.get().image;
+  });
+}
+
+bool lang::parser::Parser::expect(const lang::lexer::BasicToken& token, unsigned int n) {
+  auto& next = peek(n);
+  return next.type == token.type && next.image == token.image;
+}
+
 bool lang::parser::Parser::expect_or_error(const std::set<lexer::TokenType> &types) {
   if (expect(types)) {
     return true;
@@ -66,6 +79,24 @@ bool lang::parser::Parser::expect_or_error(lang::lexer::TokenType type) {
   }
 
   add_message(std::move(peek().generate_syntax_error({type})));
+  return false;
+}
+
+bool lang::parser::Parser::expect_or_error(const std::deque<std::reference_wrapper<const lexer::BasicToken>>& tokens) {
+  if (expect(tokens)) {
+    return true;
+  }
+
+  add_message(std::move(peek().generate_detailed_syntax_error(tokens)));
+  return false;
+}
+
+bool lang::parser::Parser::expect_or_error(const lang::lexer::BasicToken& token) {
+  if (expect(token)) {
+    return true;
+  }
+
+  add_message(std::move(peek().generate_detailed_syntax_error({token})));
   return false;
 }
 
@@ -254,23 +285,40 @@ std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_na
   return std::make_unique<ast::SymbolDeclarationNode>(name, *type);
 }
 
-std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_let() {
+void lang::parser::Parser::parse_let(ast::ContainerNode& container) {
   // consume 'let'
   consume();
 
-  std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> declarations;
   while (true) {
-    // parse `name: type` pair
-    if (!expect_or_error(lexer::TokenType::ident)) return {};
-    declarations.push_back(parse_name_type_pair());
-    if (is_error()) return {};
+    // name
+    if (!expect_or_error(lexer::TokenType::ident)) return;
+    const lexer::Token& name = consume();
+
+    // are we attaching a type? if not, attempt to deduce it
+    std::optional<std::reference_wrapper<const lang::ast::type::Node>> type;
+    if (expect(lexer::TokenType::colon)) {
+      consume();
+      if (!expect_or_error(firstset::type)) return;
+      auto type_ptr = parse_type();
+      if (is_error() || !type_ptr) return;
+      type = *type_ptr;
+    }
+
+    // if assignment, expect expression
+    std::optional<std::unique_ptr<ast::ExprNode>> expr;
+    if (expect(lexer::BasicToken(lexer::TokenType::op, "="))) {
+      consume();
+      expr = parse_expression();
+      if (is_error()) return;
+    }
+
+    // create and add declaration node
+    container.add(std::make_unique<ast::SymbolDeclarationNode>(name, type, std::move(expr)));
 
     // if comma, continue
     if (!expect(lexer::TokenType::comma)) break;
     consume();
   }
-
-  return declarations;
 }
 
 std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_arg_list() {
@@ -384,9 +432,7 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
   }
 
   if (expect(lexer::TokenType::let)) {
-    auto declarations = parse_let();
-    if (is_error()) return;
-    for (auto& decl : declarations) block.add(std::move(decl));
+    parse_let(block);
     return;
   }
 
@@ -475,9 +521,7 @@ void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
   }
 
   if (expect(lexer::TokenType::let)) {
-    auto declarations = parse_let();
-    if (is_error()) return;
-    for (auto& decl : declarations) program.add(std::move(decl));
+    parse_let(program);
     return;
   }
 

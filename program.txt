@@ -1,1 +1,2 @@
-let x = 1
+let pi = 3.14;
+let pi_arrrox: int = pi;

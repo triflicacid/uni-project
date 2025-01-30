@@ -10,7 +10,7 @@ std::ostream &lang::ast::expr::SymbolReferenceNode::print_code(std::ostream &os,
 
 std::ostream &lang::ast::expr::SymbolReferenceNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  return os << " " SHELL_GREEN << token_.image << SHELL_RESET;
+  return os << SHELL_GREEN << token_.image << SHELL_RESET;
 }
 
 std::optional<std::reference_wrapper<lang::symbol::Symbol>>
