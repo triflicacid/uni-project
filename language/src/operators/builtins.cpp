@@ -149,6 +149,34 @@ namespace generators {
     ctx.program.current().add(assembly::create_shift_right(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
+
+  // like generate_add, but for modulus
+  static uint8_t generate_mod(Context& ctx) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
+    ctx.program.current().add(assembly::create_mod(reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // like generate_add, but for bitwise AND
+  static uint8_t generate_and(Context& ctx) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
+    ctx.program.current().add(assembly::create_and(reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // like generate_add, but for bitwise OR
+  static uint8_t generate_or(Context& ctx) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
+    ctx.program.current().add(assembly::create_or(reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // like generate_add, but for bitwise XOR
+  static uint8_t generate_xor(Context& ctx) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
+    ctx.program.current().add(assembly::create_xor(reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
 }
 
 namespace init_builtin {
@@ -361,6 +389,65 @@ namespace init_builtin {
         [](Context& ctx) { generators::generate_shr(ctx); }
     ));
   }
+
+  static void modulo() {
+    // operator%(u64, i32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "%",
+        FunctionNode::create({uint64, int32}, int64),
+        [](Context& ctx) { generators::generate_mod(ctx); }
+    ));
+
+    // TODO operator%(i64, i32)
+  }
+
+  static void bitwise_and() {
+    // operator&(u64, u64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "&",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_and(ctx); }
+    ));
+
+    // operator&(i64, i64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "&",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_and(ctx); }
+    ));
+  }
+
+  static void bitwise_or() {
+    // operator|(u64, u64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "|",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_or(ctx); }
+    ));
+
+    // operator|(i64, i64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "|",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_or(ctx); }
+    ));
+  }
+
+  static void bitwise_xor() {
+    // operator^(u64, u64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "^",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_xor(ctx); }
+    ));
+
+    // operator^(i64, i64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "^",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_xor(ctx); }
+    ));
+  }
 }
 
 void lang::ops::init_builtins() {
@@ -370,6 +457,10 @@ void lang::ops::init_builtins() {
   multiplication();
   division();
   shift();
+  modulo();
+  bitwise_and();
+  bitwise_or();
+  bitwise_xor();
 }
 
 bool lang::ops::implicit_cast(lang::Context& ctx, constants::inst::datatype::dt target) {

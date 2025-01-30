@@ -54,12 +54,14 @@ std::unique_ptr<GenericInstruction> lang::assembly::create_load_upper(uint8_t re
   return create_reg_value("loadu", reg, std::move(value));
 }
 
-std::unique_ptr<GenericInstruction> lang::assembly::create_mod(datatype datatype, uint8_t reg1, uint8_t reg2, std::unique_ptr<BaseArg> value) {
+std::unique_ptr<GenericInstruction> lang::assembly::create_mod(uint8_t reg1, uint8_t reg2, std::unique_ptr<BaseArg> value) {
   return create_reg_reg_value("mod", reg1, reg2, std::move(value));
 }
 
 std::unique_ptr<GenericInstruction> lang::assembly::create_mul(datatype datatype, uint8_t reg1, uint8_t reg2, std::unique_ptr<BaseArg> value) {
-  return create_reg_reg_value("mul", reg1, reg2, std::move(value));
+  auto inst = create_reg_reg_value("mul", reg1, reg2, std::move(value));
+  inst->set_datatype(datatype);
+  return inst;
 }
 
 std::unique_ptr<Instruction> lang::assembly::create_nop() {

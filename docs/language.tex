@@ -226,14 +226,21 @@ pi = 2.9; // error!
             \hline
             \multirow{1}{*}{20} & \texttt{a.b} & Member access \\
             \hline
-            \multirow{2}{*}{14} & \texttt{a * b} & Multiplication & \multirow{2}{*}{\(\longrightarrow\)} \\
+            \multirow{3}{*}{14} & \texttt{a * b} & Multiplication & \multirow{3}{*}{\(\longrightarrow\)} \\
             & \texttt{a / b} & Division & \\
+            & \texttt{a \% b} & Modulo (remainder) & \\
             \hline
             \multirow{2}{*}{14} & \texttt{a + b} & Addition & \multirow{2}{*}{\(\longrightarrow\)} \\
             & \texttt{a - b} & Subtraction & \\
             \hline
             \multirow{2}{*}{13} & \texttt{a << b} & Bitwise left shift & \multirow{2}{*}{\(\longrightarrow\)} \\
             & \texttt{a >> b} & Bitwise left shift & \\
+            \hline
+            \multirow{1}{*}{11} & \texttt{a \& b} & Bitwise AND & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \hline
+            \multirow{1}{*}{10} & \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \hline
+            \multirow{1}{*}{9} & \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} \\
             \hline
         \end{tabular}\label{tab:builtin-operators}
     \end{table}

@@ -48,7 +48,7 @@ namespace lang::assembly {
   // important note, *does not* call create_load_long as the type of `value` is not known, so *do not* call if providing a long immediate
   void create_load(uint8_t reg, std::unique_ptr<BaseArg> value, uint8_t bytes, BasicBlock& assembly, bool is_signed);
 
-  std::unique_ptr<GenericInstruction> create_mod(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
+  std::unique_ptr<GenericInstruction> create_mod(uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
 
   std::unique_ptr<GenericInstruction> create_mul(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
 
