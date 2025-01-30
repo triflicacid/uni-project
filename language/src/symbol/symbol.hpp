@@ -23,6 +23,7 @@ namespace lang::symbol {
     SymbolId id_ = -1;
     Category category_;
     int ref_count_ = 0; // count how many times we were referenced by a SymbolReferenceNode
+    bool assigned_ = false; // record if we have been assigned to
 
   public:
     explicit Symbol(lexer::Token name);

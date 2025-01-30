@@ -1,2 +1,2 @@
-let x = 3;
-let pi: float = x;
+const pi = 3.14159;
+pi + 2;

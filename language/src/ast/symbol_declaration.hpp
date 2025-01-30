@@ -7,26 +7,31 @@
 
 namespace lang::ast {
   class SymbolDeclarationNode : public Node {
+  public:
+    enum Category {
+      Variable,
+      Argument,
+      Constant
+    };
+
+  private:
     std::optional<std::reference_wrapper<const type::Node>> type_; // optional if type deduction required
-    bool arg_;
+    Category category_ = Variable;
     symbol::SymbolId id_; // ID of created symbol
     std::optional<std::unique_ptr<ast::ExprNode>> assignment_; // optional assignment
 
   public:
-    SymbolDeclarationNode(lexer::Token token, std::optional<std::reference_wrapper<const type::Node>> type, bool is_arg = false)
-      : Node(std::move(token)), type_(std::move(type)), arg_(is_arg) {}
+    SymbolDeclarationNode(lexer::Token token, std::optional<std::reference_wrapper<const type::Node>> type)
+      : Node(std::move(token)), type_(std::move(type)) {}
 
-    SymbolDeclarationNode(lexer::Token token, std::optional<std::reference_wrapper<const type::Node>> type, std::optional<std::unique_ptr<ast::ExprNode>> assignment, bool is_arg = false)
-      : Node(std::move(token)), type_(std::move(type)), arg_(is_arg), assignment_(std::move(assignment)) {}
+    SymbolDeclarationNode(lexer::Token token, std::optional<std::reference_wrapper<const type::Node>> type, std::optional<std::unique_ptr<ast::ExprNode>> assignment)
+      : Node(std::move(token)), type_(std::move(type)), assignment_(std::move(assignment)) {}
 
-    std::string name() const override { return arg_ ? "argument declaration" : "symbol declaration"; }
+    std::string name() const override;
 
-    void set_arg(bool b) { arg_ = b; }
+    Category category() const { return category_; }
 
-    bool is_assignment() const { return assignment_.has_value(); }
-
-    // make this into an assignment also
-    void set_assignment(std::unique_ptr<ast::ExprNode> body) { assignment_ = std::move(body); }
+    void set_category(Category c) { category_ = c; }
 
     const type::Node& type() const;
 

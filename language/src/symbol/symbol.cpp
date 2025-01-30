@@ -6,7 +6,8 @@ static lang::symbol::SymbolId current_id = 0;
 
 lang::symbol::Symbol::Symbol(lang::lexer::Token name) : token_(std::move(name)), id_(current_id++) {}
 
-lang::symbol::Symbol::Symbol(lexer::Token name, Category category) : token_(std::move(name)), category_(std::move(category)), id_(current_id++) {}
+lang::symbol::Symbol::Symbol(lexer::Token name, Category category)
+  : token_(std::move(name)), category_(std::move(category)), id_(current_id++) {}
 
 std::string lang::symbol::Symbol::full_name() const {
   // get components from parents

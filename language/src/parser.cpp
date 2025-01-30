@@ -285,9 +285,13 @@ std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_na
   return std::make_unique<ast::SymbolDeclarationNode>(name, *type);
 }
 
-void lang::parser::Parser::parse_let(ast::ContainerNode& container) {
-  // consume 'let'
-  consume();
+void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
+  // consume 'let' or 'const'
+  const auto kw_token = consume();
+  bool is_const = false;
+  const auto category = (is_const = kw_token.type == lexer::TokenType::const_kw)
+      ? ast::SymbolDeclarationNode::Constant
+      : ast::SymbolDeclarationNode::Variable;
 
   while (true) {
     // name
@@ -313,7 +317,9 @@ void lang::parser::Parser::parse_let(ast::ContainerNode& container) {
     }
 
     // create and add declaration node
-    container.add(std::make_unique<ast::SymbolDeclarationNode>(name, type, std::move(expr)));
+    auto decl = std::make_unique<ast::SymbolDeclarationNode>(name, type, std::move(expr));
+    decl->set_category(category);
+    container.add(std::move(decl));
 
     // if comma, continue
     if (!expect(lexer::TokenType::comma)) break;
@@ -330,7 +336,7 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
     // parse `name: type` pair
     if (!expect_or_error(lexer::TokenType::ident)) return {};
     args.push_back(parse_name_type_pair());
-    args.back()->set_arg(true);
+    args.back()->set_category(ast::SymbolDeclarationNode::Argument);
     if (is_error()) return {};
 
     // if comma, continue
@@ -407,7 +413,7 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
-   {lexer::TokenType::func, lexer::TokenType::let, lexer::TokenType::namespace_kw, lexer::TokenType::return_kw},
+   {lexer::TokenType::const_kw, lexer::TokenType::func, lexer::TokenType::let, lexer::TokenType::namespace_kw, lexer::TokenType::return_kw},
    firstset::expression,
 });
 
@@ -431,8 +437,8 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
     return;
   }
 
-  if (expect(lexer::TokenType::let)) {
-    parse_let(block);
+  if (expect({lexer::TokenType::let, lexer::TokenType::const_kw})) {
+    parse_var_decl(block);
     return;
   }
 
@@ -494,7 +500,8 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merge_sets({
-    {lexer::TokenType::func,
+    {lexer::TokenType::const_kw,
+     lexer::TokenType::func,
      lexer::TokenType::let,
      lexer::TokenType::namespace_kw},
      firstset::expression,
@@ -520,8 +527,8 @@ void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
     return;
   }
 
-  if (expect(lexer::TokenType::let)) {
-    parse_let(program);
+  if (expect({lexer::TokenType::let, lexer::TokenType::const_kw})) {
+    parse_var_decl(program);
     return;
   }
 

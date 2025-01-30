@@ -75,9 +75,9 @@ namespace lang::parser {
     // parse a `name: type` pair as a symbol declaration
     std::unique_ptr<ast::SymbolDeclarationNode> parse_name_type_pair();
 
-    // parse a `let ...` statement
+    // parse a `let ...` or `const ...` statement
     // assignments in definitions are allows, in which case a SymbolDeclarationNode will be followed by an ExprNode
-    void parse_let(ast::ContainerNode& container);
+    void parse_var_decl(ast::ContainerNode& container);
 
     // parse argument list: (arg ...)
     std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> parse_arg_list();

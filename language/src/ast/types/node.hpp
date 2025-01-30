@@ -7,6 +7,7 @@ namespace lang::ast::type {
   class IntNode;
   class FloatNode;
   class FunctionNode;
+  class WrapperNode;
 
   using TypeId = unsigned int;
 
@@ -26,6 +27,9 @@ namespace lang::ast::type {
 
     // return this as function is we are a function, else return nullptr
     virtual const FunctionNode* get_func() const { return nullptr; }
+
+    // are we a wrapper type?
+    virtual const WrapperNode* get_wrapper() const { return nullptr; }
 
     // return size, in bytes, an instance of this type occupies
     virtual size_t size() const = 0;

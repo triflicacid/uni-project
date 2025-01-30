@@ -80,7 +80,7 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
 
   // collate parameter definitions
   for (auto& param : params_) {
-    param->set_arg(true); // ensure they are arguments
+    param->set_category(SymbolDeclarationNode::Argument); // ensure they are arguments
     if (!param->collate_registry(messages, *registry_)) {
       return false;
     }

@@ -5,8 +5,21 @@
 #include "assembly/directive.hpp"
 #include "symbol/registry.hpp"
 #include "ast/types/graph.hpp"
+#include "ast/types/wrapper.hpp"
 #include "message_helper.hpp"
 #include "assembly/create.hpp"
+#include "ast/types/const.hpp"
+
+std::string lang::ast::SymbolDeclarationNode::name() const {
+  switch (category_) {
+    case Variable:
+      return "symbol declaration";
+    case Argument:
+      return "argument";
+    case Constant:
+      return "constant declaration";
+  }
+}
 
 const lang::ast::type::Node& lang::ast::SymbolDeclarationNode::type() const {
   assert(type_.has_value());
@@ -68,7 +81,14 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
       return false;
     }
 
-    type_ = assignment_.value()->type();
+    const auto& type = assignment_.value()->type();
+
+    // make constant?
+    if (category_ == Constant && !(type.get_wrapper() && type.get_wrapper()->get_const())) {
+      type_ = ast::type::constant(type);
+    } else {
+      type_ = type;
+    }
   } else {
     // check types match (don't do this above as we *know*, via deduction, that types match)
     if (!type::graph.is_subtype(assignment_.value()->type().id(), type_.value().get().id())) {
@@ -79,7 +99,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
   // define symbol
   symbol::Registry registry;
-  auto maybe_id = symbol::create_variable(registry, arg_ ? symbol::Category::Argument : symbol::Category::Ordinary, token_, type_.value(), ctx.messages);
+  auto maybe_id = symbol::create_variable(registry, category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary, token_, type_.value(), ctx.messages);
   if (!maybe_id.has_value()) return false;
   ctx.symbols.insert(registry);
   id_ = maybe_id.value();
