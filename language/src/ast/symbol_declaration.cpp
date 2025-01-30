@@ -77,8 +77,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     }
   }
 
-  // TODO type coercion
-
   // define symbol
   symbol::Registry registry;
   auto maybe_id = symbol::create_variable(registry, arg_ ? symbol::Category::Argument : symbol::Category::Ordinary, token_, type_.value(), ctx.messages);
@@ -86,14 +84,18 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   ctx.symbols.insert(registry);
   id_ = maybe_id.value();
 
+  // get location of expr
+  const auto maybe_expr = ctx.reg_alloc_manager.get_recent();
+  assert(maybe_expr.has_value());
+  // coerce into correct type (this is safe as subtyping checked)
+  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(maybe_expr.value(), type_.value().get().get_asm_datatype());
+
   // get location of symbol
-  const auto symbol_loc = ctx.symbols.locate(id_);
-  assert(symbol_loc.has_value());
+  const auto maybe_loc = ctx.symbols.locate(id_);
+  assert(maybe_loc.has_value());
+  const memory::StorageLocation& loc = maybe_loc.value().get();
 
   // load expr value into symbol
-  auto expr_ref = ctx.reg_alloc_manager.get_recent();
-  assert(expr_ref.has_value());
-  expr_ref = ctx.reg_alloc_manager.guarantee_register(expr_ref.value());
-  ctx.symbols.assign_symbol(id_, expr_ref.value().offset);
+  ctx.symbols.assign_symbol(id_, expr.offset);
   return true;
 }
