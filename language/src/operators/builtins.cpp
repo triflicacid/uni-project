@@ -108,15 +108,46 @@ namespace generators {
 
   // generate an addition instruction for the given asm datatype
   // assume values stored in LHS and RHS are compatible with the asm datatype
-  static void generate_add(Context& ctx, constants::inst::datatype::dt datatype) {
+  // return which register the result is in
+  static uint8_t generate_add(Context& ctx, constants::inst::datatype::dt datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
     ctx.program.current().add(assembly::create_add(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
   }
 
   // like generate_add, but for subtraction
-  static void generate_sub(Context& ctx, constants::inst::datatype::dt datatype) {
+  static uint8_t generate_sub(Context& ctx, constants::inst::datatype::dt datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
     ctx.program.current().add(assembly::create_sub(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // like generate_add, but for multiplication
+  static uint8_t generate_mul(Context& ctx, constants::inst::datatype::dt datatype) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
+    ctx.program.current().add(assembly::create_mul(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // like generate_add, but for multiplication
+  static uint8_t generate_div(Context& ctx, constants::inst::datatype::dt datatype) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
+    ctx.program.current().add(assembly::create_div(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // like generate_add, but for <<
+  static uint8_t generate_shl(Context& ctx) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
+    ctx.program.current().add(assembly::create_shift_left(reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // like generate_add, but for >>
+  static uint8_t generate_shr(Context& ctx) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
+    ctx.program.current().add(assembly::create_shift_right(reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
   }
 }
 
@@ -212,11 +243,133 @@ namespace init_builtin {
         [](Context& ctx) { generators::generate_sub(ctx, constants::inst::datatype::dbl); }
     ));
   }
+
+  static void multiplication() {
+    // operator*(int32, int32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "*",
+        FunctionNode::create({int32, int32}, int32),
+        [](Context& ctx) { generators::generate_mul(ctx, constants::inst::datatype::s32); }
+    ));
+
+    // operator*(uint32, uint32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "*",
+        FunctionNode::create({uint32, uint32}, uint32),
+        [](Context& ctx) { generators::generate_mul(ctx, constants::inst::datatype::u32); }
+    ));
+
+    // operator*(int64, int64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "*",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_mul(ctx, constants::inst::datatype::s64); }
+    ));
+
+    // operator*(uint64, uint64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "*",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_mul(ctx, constants::inst::datatype::u64); }
+    ));
+
+    // operator*(float, float)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "*",
+        FunctionNode::create({float32, float32}, float32),
+        [](Context& ctx) { generators::generate_mul(ctx, constants::inst::datatype::flt); }
+    ));
+
+    // operator*(double, double)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "*",
+        FunctionNode::create({float64, float64}, float64),
+        [](Context& ctx) { generators::generate_mul(ctx, constants::inst::datatype::dbl); }
+    ));
+  }
+
+  static void division() {
+    // operator/(int32, int32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "/",
+        FunctionNode::create({int32, int32}, int32),
+        [](Context& ctx) { generators::generate_div(ctx, constants::inst::datatype::s32); }
+    ));
+
+    // operator/(uint32, uint32)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "/",
+        FunctionNode::create({uint32, uint32}, uint32),
+        [](Context& ctx) { generators::generate_div(ctx, constants::inst::datatype::u32); }
+    ));
+
+    // operator/(int64, int64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "/",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_div(ctx, constants::inst::datatype::s64); }
+    ));
+
+    // operator/(uint64, uint64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "/",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_div(ctx, constants::inst::datatype::u64); }
+    ));
+
+    // operator/(float, float)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "/",
+        FunctionNode::create({float32, float32}, float32),
+        [](Context& ctx) { generators::generate_div(ctx, constants::inst::datatype::flt); }
+    ));
+
+    // operator/(double, double)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "/",
+        FunctionNode::create({float64, float64}, float64),
+        [](Context& ctx) { generators::generate_div(ctx, constants::inst::datatype::dbl); }
+    ));
+  }
+
+  static void shift() {
+    // operator<<(u64, u64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "<<",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_shl(ctx); }
+    ));
+
+    // operator<<(i64, i64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "<<",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_shl(ctx); }
+    ));
+
+    // operator>>(u64, u64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        ">>",
+        FunctionNode::create({uint64, uint64}, uint64),
+        [](Context& ctx) { generators::generate_shr(ctx); }
+    ));
+
+    // operator>>(i64, i64)
+    store_operator(std::make_unique<BuiltinOperator>(
+        ">>",
+        FunctionNode::create({int64, int64}, int64),
+        [](Context& ctx) { generators::generate_shr(ctx); }
+    ));
+  }
 }
 
 void lang::ops::init_builtins() {
-  init_builtin::addition();
-  init_builtin::subtraction();
+  using namespace init_builtin;
+  addition();
+  subtraction();
+  multiplication();
+  division();
+  shift();
 }
 
 bool lang::ops::implicit_cast(lang::Context& ctx, constants::inst::datatype::dt target) {

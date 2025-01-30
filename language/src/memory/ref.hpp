@@ -15,5 +15,8 @@ namespace lang::memory {
 
     bool operator==(const Ref& other) const
     { return type == other.type && offset == other.offset; }
+
+    static Ref reg(uint8_t r) { return Ref(Register, r); }
+    static Ref mem(uint64_t addr) { return Ref(Memory, addr); }
   };
 }

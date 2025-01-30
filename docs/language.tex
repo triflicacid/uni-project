@@ -8,6 +8,7 @@
 \usepackage{tikz}
 \usepackage{tcolorbox}
 \usepackage{multirow}
+\usepackage{float}
 
 \include{styles/bashconsole}
 \include{styles/language}
@@ -19,276 +20,230 @@
 \date{January 2025}
 
 \begin{document}
+    \maketitle
+    \tableofcontents
 
-\maketitle
-\tableofcontents
+    \newpage
 
-\newpage
+    \section{Introduction}\label{sec:introduction}
 
-\section{Overview}
+    This document will contain information about the Emit language.
+    As an educational tool, it is designed to be simple and easy to learn and operate, with the goals of being clear a readable.
+    The name itself is simple, tied to the emission of code and an acronym for Educational Machine Instruction and Translation.
+    Each section is written from the perspective of little programming knowledge.
 
-The compiler takes an entry source file and produces an assembly.
+    \subsection{Overview}\label{subsec:overview}
 
-\subsection{Command-Line Interface}
+    As the most wide-spread paradigm, this language is imperative by nature.
+    Its syntax is heavily inspired by C, but borrows features from C++ such as namespaces and operator overloading.
+    However, unlike these two languages, names are \textit{forward declared}, meaning they can be used prior to their definition.
+    This foregoes the need for header files of explicit forward declarations as in C and C++, and allows a much freer programming experience similar to modern languages.
 
-The compiler executable is called as follows:
+    % TODO talk about imports
 
-\medskip
-\begin{lstlisting}[style=bashconsole]
+    \subsection{The Compiler}\label{subsec:the-compiler}
+
+    A program consists of one file (the entry file), which is compiled by the compiler to produce an assembly output.
+
+    \medskip
+    \begin{lstlisting}[style=bashconsole]
 $ ./compiler <input_file> -o <output_file> [flags]
-\end{lstlisting}
+    \end{lstlisting}
+    \medskip
 
-The output file is provided after the \texttt{-o} flag.
-The following optional flags are available:
-\begin{itemize}
-    \item \texttt{-d}: enables debug mode.
-    In this mode, detailed results from each step are output to the console.
-\end{itemize}
+    \subsection{``Hello, World''}\label{subsec:hello-world}
 
-\section{General Syntax}
+    As is customary, a quick ``hello world'' program written in Emit.
 
-Each file is parsed into tokens, which are then grouped in recognisable sequences.
-Tokens are grouped into lines; lines are separated by: a newline, unless the previous token was an operator or the parser is in a bracketed group `\texttt{(...)}';
-or a semicolon `\texttt{;}'.
-
-Each file has a global scope, which may only consist of global variables, functions, and type definitions.
-Below are outlined key points about syntax; specifics will be documented later.
-
-\begin{itemize}
-    \item Single-line commends have the form \texttt{// ...} and last until a newline character is encountered.
-    \item Multi-line commands have the form \texttt{/* ... */}.
-    \item Identifiers start with a character which may then be followed by any number of characters, numbers, or underscores.
-    That is, \texttt{[a-zA-Z][a-zA-Z0-9\_]*}.
-\end{itemize}
-
-\section{Types}
-
-Each variable has a type, indicating tha form, size, and purpose of some data.
-
-\paragraph*{Type Coercion}
-This refers to how a value takes on a type given context, and occurs implicitly and only if necessary.
-For example, the literal \texttt{42} could take on different types depending on the variable's type.
-Another example would be adding two integers of different types; the smaller is coerced into the larger type.
-
-\paragraph*{Type Casting}
-This is the explicit conversion of data between two types.
-Examples would be: down-sizing an integer value, changing a pointer type.
-This is done by preceding a variable or value by a bracketed type.
-For example,
-
-\begin{lstlisting}[language=CustomLang]
-let pi: float = 3.14159
-let pi_approx: int = (int) pi
-\end{lstlisting}
-
-\subsection{Primitive Types}
-
-The following types are provided natively.
-
-\begin{tabular}{|c|c|c|l|}
-    \hline
-    \textbf{Type} & \textbf{Alias} & \textbf{Description} \\
-    \texttt{bool} & & A truth value -- either \texttt{true} or \texttt{false} \\
-    \hline
-    \hline
-    \texttt{u8} & \texttt{byte} & Unsigned 8-bit integer \\
-    \texttt{i8} & & Signed 8-bit integer \\
-    \hline
-    \texttt{u16} & & Unsigned 16-bit integer \\
-    \texttt{i16} & & Signed 16-bit integer \\
-    \hline
-    \texttt{u32} & & Unsigned 32-bit integer \\
-    \texttt{i32} & \texttt{int} & Signed 32-bit integer \\
-    \hline
-    \texttt{u64} & & Unsigned 64-bit integer \\
-    \texttt{i64} & \texttt{long} & Signed 64-bit integer \\
-    \hline
-    \texttt{f32} & \texttt{float} & 32-bit floating-point number \\
-    \texttt{f64} & \texttt{double} & 64-bit floating-point number \\
-    \hline
-\end{tabular}
-
-Note: Booleans, unlike other languages, are kept separate from integers and may not be substituted in their place.
-
-\paragraph*{Literals}
-Numbers are specified as a sequence of digits.
-If they contain a decimal point, they become floating-point literals.
-The default type for literals is \texttt{int} and \texttt{float}, respectively.
-However, a literal may be given a type by suffixing it with the desired type.
-E.g.,
-\begin{lstlisting}[language=CustomLang]
-let pi: float = 3.14
-let x: u64 = 123456789u64
-\end{lstlisting}
-
-\section{Variables}
-
-Variables are but labels to reserved location in memory.
-When defined, variables are assigned a name and a datatype, which dictates the size in bytes of the reserved location.
-An example would be
-
-\begin{lstlisting}[language=CustomLang]
-let x: int
-\end{lstlisting}
-
-Values may be assigned to variables using the assignment operator `\texttt{=}'.
-Note the type coercion/casting behaviours described previously.
-
-\subsection{Multi-Declaration}
-
-Commas may be used to separate declarations and, hence, declare multiple symbols per keyword.
-Each declaration may be of a different type.
-
-\begin{lstlisting}[language=CustomLang]
-let a: byte , b: int , c: long
-\end{lstlisting}
-
-\subsection{Scope}
-
-``Scope'' refers to where a variable exists.
-The global scope is the top-most scope where all top-level functions and variable reside.
-Symbols in the global scope may be accessed anywhere in the program.
-
-On the other hand, local scope is not all-encompassing.
-A new local scope is introduced in every block.
-Variables defined in such a scope are only accessible from within that function; referencing them outside will result in an error.
-
-When a variable is referenced, the scopes will be searched as a stack; that is, local first, global last.
-
-\begin{lstlisting}[language=CustomLang]
-let n: int = 0
-
-func f1 {
-    n++ // this will increment the global `n'
+    \begin{lstlisting}[language=CustomLang]
+func main() {
+    print("Hello, world\n");
 }
+    \end{lstlisting}
 
-func f2 {
-    let n: int = 1
-    n++ // this will increment the local `n' declared above
-}
-\end{lstlisting}
+    \section{Basic Syntax}\label{sec:basic-syntax}
 
-To see an example of creating a local scope that is not a function definition:
+    Inspires by C, Emit is not whitespace sensitive, with scopes marked by braces \texttt{\{\}}.
+    Semicolons are not requires after every line, namely closing braces, but are required after expressions.
 
-\begin{lstlisting}[language=CustomLang]
-let n: int = 0 // n = 0
+    Comments come in two forms: single-- and multi-line.
+    Single-line comments \texttt{// ...} comment out the remainder of the current line;
+    multi-line comments \texttt{/* ... */} comment out anything they enclose.
 
+    \subsection{Variables}\label{subsec:variables-&-assignment}
+
+    Using the common analogy, a variable is like a labeled box which stored data.
+    Each box has a \textit{type} which tells us what it stores.
+    For example, ``int 3''.
+    More technically, a variable is a location in memory where data can be stored, with its type determining the size of the variable and how its value can be used.
+
+    Variables are defined using the \texttt{let} keyword, with the variables type following a colon.
+    For example, to define our ``int 3'' from earlier,
+    \begin{lstlisting}[language=CustomLang]
+let foo: int = 3
+    \end{lstlisting}
+
+    If required, multiple variables can be defined in the same \texttt{let} statement.
+    \begin{lstlisting}[language=CustomLang]
+let foo: int = 3, bar: float = 3.14
+    \end{lstlisting}
+
+    If the type is omitted, it is deduced from the assigned value.
+    Hence, this can only be done if the variable is assigned.
+    \begin{lstlisting}[language=CustomLang]
+let foo = 3, bar = 3.14
+    \end{lstlisting}
+    (In this case, both variables adopt the types as previously written.)
+
+    \subsubsection{Shadowing}
+
+    Emit allows names to be \textit{shadowed}, meaning a variable may re-use a variable's name.
+
+    In non-local shadowing, the previous definition becomes visible again after the current scope is exited.
+    \begin{lstlisting}[language=CustomLang]
+let foo = 1
 {
-    let n: int = 2 // n = 2
-    n++ // n = 3
+    let foo = 2
+    // foo = 2
 }
+// foo = 1
+    \end{lstlisting}
 
-// n = 0
-\end{lstlisting}
+    Emit also allows local shadowing.
+    In this case, once shadowed, the previous definition is essentially lost and cannot be referenced.
+    \begin{lstlisting}[language=CustomLang]
+let foo = 1
+// foo = 1
+let foo = 2
+// foo = 2
+    \end{lstlisting}
 
-\section{Functions}
+    \subsubsection{Constants}
 
-Functions are name-associated sections of code which may be called, possible with arguments, and may return a value.
-They are defined using the \texttt{func} keyword.
-For use before definitions, signatures may be declared using the compound \texttt{decl func} keyword.
+    Constants are values that, once defined, cannot be changed.
+    Constants may be defined using the \texttt{const} keyword in place of \texttt{let}.
 
-\begin{lstlisting}[language=CustomLang]
-decl func add(int, int) -> int
-func add(a: int, b: int) {
-    return a + b
-}
-\end{lstlisting}
+    \begin{lstlisting}[language=CustomLang]
+const pi = 3.14159
+    \end{lstlisting}
 
-\begin{itemize}
-    \item In declarations, parameter names are not required.
-    \item If no parameters are required, it is possible to omit the brackets entirely.
-    \item If no return type is required, omit the arrow `\texttt{->}' and the type.
-    \item If declared, the definition does not require a return type as this can be inferred from its declared signature.
-\end{itemize}
+    In the case of multiple definitions, \textit{all} symbols will be defined as const.
+    Note that the \texttt{const} keyword is but shorthand for defining a variable with a constant type (subsection ~\ref{subsec:constant-types}).
 
-\subsection{Overloading}
+    \subsection{Expressions \& Statements}\label{subsec:expressions-&-statements}
 
-Function overloading is supported, meaning that a function name may be re-used with a different signature.
-For example,
+    \subsection{Code Blocks}\label{subsec:code-blocks}
 
-\begin{lstlisting}[language=CustomLang]
-decl func add(int, int) -> int
-decl func add(float, float) -> float
-\end{lstlisting}
+    As a whitespace-ignorant language, Emit uses blocks to denote structure and scope.
+    A block is introduced by braces \texttt{\{\}} and contains a section of code.
+    A block may be written anywhere a statement is expected, allowing the programmer to instead write multiple statements in its body.
+    Finally, in Emit, every block introduces a new lexical scope~\ref{sec:scope}.
 
-\subsection{Entry Point}
+    \section{Types}
 
-All programs have an entry point.
-By default, it is \texttt{main}, taking zero or more integers, and optionally returning an integer.
+    Continuing the analogy from variables, a type is a label that tells the program what kind of data a variable holds.
+    Every variable and value has a type; a value without a type is meaningless, as a type gives data a meaning.
 
-A new entry point may be defined using the \texttt{entry} keyword, by following the keyword by the entry point's name and type.
-Note, this is a function signature.
+    \subsection{Primitive Types}
 
-\begin{lstlisting}[language=CustomLang]
-entry start(int) -> int
-\end{lstlisting}
+    Primitive types are a subset of those provided by the compiler representing atomic values, such as numbers.
 
-Only one entry point per program is permitted.
-Once encountered, future encounters of \texttt{entry} will result in an error.
+    \medskip
+    \begin{table}[H]
+        \begin{tabular}{|c|c|c|l|}
+            \hline
+            \textbf{Type} & \textbf{Alias} & \textbf{Description} \\
+            \hline
+            \texttt{bool} & & A truth value -- either \texttt{true} or \texttt{false} \\
+            \hline
+            \texttt{u8} & \texttt{byte} & Unsigned 8-bit integer \\
+            \texttt{i8} & & Signed 8-bit integer \\
+            \hline
+            \texttt{u16} & & Unsigned 16-bit integer \\
+            \texttt{i16} & & Signed 16-bit integer \\
+            \hline
+            \texttt{u32} & & Unsigned 32-bit integer \\
+            \texttt{i32} & \texttt{int} & Signed 32-bit integer \\
+            \hline
+            \texttt{u64} & & Unsigned 64-bit integer \\
+            \texttt{i64} & \texttt{long} & Signed 64-bit integer \\
+            \hline
+            \texttt{f32} & \texttt{float} & 32-bit floating-point number \\
+            \texttt{f64} & \texttt{double} & 64-bit floating-point number \\
+            \hline
+        \end{tabular}
+        \caption{Primitive Types}\label{tab:primitive-types}
+    \end{table}
 
-\subsection{Compile-Time Functions}
+    % TODO type hierarchy
 
-These ``functions'' are resolved in the compilation stage.
+    These types have the following type hierarchy:
+    \begin{itemize}
+        \item \texttt{int8 < int16 < int32 < int64}
+        \item \texttt{uint8 < uint16 < uint32 < uint64}
+        \item \texttt{uint\(n\) < int\((n+k)\)}
+        \item \texttt{float32 < float64}
+        \item \texttt{[u]int\(n\) < float64}
+        \item \texttt{[u]int\(n\) < float32} where \(n < 64\).
+    \end{itemize}
 
-\paragraph*{\texttt{sizeof(\(t\))}}
-This returns the size, in bytes, of the argument \(t\).
-\(t\) may be a type name, or a variable, in which case the size of the variable's type will be calculated.
+    Note that \texttt{bool} is not related to anything.
+    Unlike in other language, \texttt{bool} is treated as a distinct type with abstract true/false values, rather than a synonym for integers 1/0, respectively.
 
-\begin{lstlisting}[language=CustomLang]
-sizeof(int) // -> 4
-\end{lstlisting}
+    \subsection{Constant Types}\label{subsec:constant-types}
 
-\paragraph*{\texttt{register(\(r\))}}
-This may be used in expressions, and returns the contents of register \(r\) as a word.
-\(r\) is the name of a register, same as in the assembly code but without the dollar `\texttt{\$}'.
+    The const type wrapper -- \texttt{const<int>} -- informs the programmer that the value attached to this type will not change.
+    As noted earlier in subsection ~\ref{subsec:variables-&-assignment}, a \texttt{const} definition is shorthand for declaring a constant type.
+    That is,
 
-\begin{lstlisting}[language=CustomLang]
-register(sp) // reads $sp
-\end{lstlisting}
+    \begin{lstlisting}[language=CustomLang]
+const pi: float = 3.14159
+// is equivalent to
+let pi: const<float> = 3.14159
+    \end{lstlisting}
 
-\section{Operators}
+    Assigning to a value of type \texttt{const} is not permitted, so this would result in an error.
 
-Operators are special symbols which combine one or two expressions, known as unary and binary operators, respectively.
-There are a subset of in-built operators, which have predetermined behaviour on certain types.
-Each built-in operator has a precedence and associativity, as listed below (higher is tighter).
+    \begin{lstlisting}[language=CustomLang]
+const pi: float = 3.14159
+pi = 2.9; // error!
+    \end{lstlisting}
 
-\begin{table}[h]
-    \caption{Built-In Operators}
-    \begin{tabular}{|c|l|l|}
-        \hline
-        \textbf{Precedence} & \textbf{Operator} & \textbf{Description} \\
-        \hline
-        \multirow{1}{*}{20} & \texttt{a.b} & Member access \\
-        \hline
-        \multirow{1}{*}{17} & \texttt{-a} & Unary minus \\
-        \hline
-    \end{tabular}
-\end{table}
+    Note that, this being the case, a constant \textit{must} be initialised.
 
-Aside from built-in operators, an operator is a sequence of any one of the following characters:
-$$ \{`!', `\#', `\$', `\%', `\&', `*', `+', `.', `/', `<', `=', `>', `?', `@', `\\', `^', `|', `-', `~'\} $$
+    \section{Functions}
 
-\subsection{Operator Overloading}
+    \section{Operators}
 
-Operator overloading is similar to defining a new function.
-For example, say we want to define \(a \sim b\) to be the distance between two numbers.
+    Operators are special symbols which combine one or two expressions, known as unary and binary operators, respectively.
+    The table below lists the built-in operators and their behaviour, along with their precedence (higher is tighter) and associativity.
 
-\begin{lstlisting}[language=CustomLang]
-operator~(a: int, b: int) -> int {
-    if a > b {
-        return a - b;
-    } else {
-        return b - a;
-    }
-}
-\end{lstlisting}
+    \begin{table}[h]
+        \caption{Built-In Operators}
+        \begin{tabular}{|c|l|l|c|}
+            \hline
+            \textbf{Precedence} & \textbf{Operator} & \textbf{Description} & \textbf{Associativity} \\
+            \hline
+            \multirow{1}{*}{20} & \texttt{a.b} & Member access \\
+            \hline
+            \multirow{2}{*}{14} & \texttt{a * b} & Multiplication & \multirow{2}{*}{\(\longrightarrow\)} \\
+            & \texttt{a / b} & Division & \\
+            \hline
+            \multirow{2}{*}{14} & \texttt{a + b} & Addition & \multirow{2}{*}{\(\longrightarrow\)} \\
+            & \texttt{a - b} & Subtraction & \\
+            \hline
+            \multirow{2}{*}{13} & \texttt{a << b} & Bitwise left shift & \multirow{2}{*}{\(\longrightarrow\)} \\
+            & \texttt{a >> b} & Bitwise left shift & \\
+            \hline
+        \end{tabular}\label{tab:builtin-operators}
+    \end{table}
 
-Note, the order of arguments matters, and the number of arguments determines if the operator is unary or binary.
+    \section{Control Flow}
 
-\subsection{Custom Operators}
+    \section{Scope \& Name Resolution}\label{sec:scope}
 
-As stated above, an operator is but a sequence of symbols and, by using operator overloading, one may define behaviour for a custom operator.
-In parsing, a non-built-in operator is assumed to have a precedence of 5 (i.e., weaker than every operator bar \texttt{=}) and to be left-associative.
-This is to maintain associativity: \(a \sim b \sim c \equiv (a \sim b) \sim c\).
+    \section{Modules \& Imports}
+
+    \section{Standard Library}
 
 \end{document}

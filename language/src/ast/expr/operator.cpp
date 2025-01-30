@@ -5,7 +5,6 @@
 #include "operators/operator.hpp"
 #include "context.hpp"
 #include "operators/builtin.hpp"
-#include "ast/types/graph.hpp"
 
 const lang::ast::type::Node &lang::ast::expr::OperatorNode::type() const {
   assert(op_.has_value());
@@ -97,7 +96,7 @@ const lang::ast::type::FunctionNode& lang::ast::expr::BinaryOperatorNode::signat
   return type::FunctionNode::create({
     lhs_->type(),
     rhs_->type()
-  }, std::nullopt);
+  },  std::nullopt);
 }
 
 bool lang::ast::expr::BinaryOperatorNode::process(lang::Context& ctx) {
