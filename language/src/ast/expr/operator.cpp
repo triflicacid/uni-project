@@ -5,6 +5,7 @@
 #include "operators/operator.hpp"
 #include "context.hpp"
 #include "operators/builtin.hpp"
+#include "ast/types/graph.hpp"
 
 const lang::ast::type::Node &lang::ast::expr::OperatorNode::type() const {
   assert(op_.has_value());
@@ -12,9 +13,6 @@ const lang::ast::type::Node &lang::ast::expr::OperatorNode::type() const {
 }
 
 bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
-  // process our child first
-  if (!_process(ctx)) return false;
-
   // generate our signature
   auto& signature = this->signature();
 
@@ -46,7 +44,7 @@ bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
 
   // error to user, reporting our candidate list
   std::unique_ptr<message::BasicMessage> msg = token_.generate_message(message::Error);
-  msg->get() << "unable to resolve a suitable candidate for operator" << token_.image;
+  msg->get() << "unable to resolve a suitable candidate for operator" << symbol();
   signature.print_code(msg->get());
   ctx.messages.add(std::move(msg));
 
@@ -87,7 +85,7 @@ std::ostream &lang::ast::expr::BinaryOperatorNode::print_code(std::ostream &os, 
 
 std::ostream &lang::ast::expr::BinaryOperatorNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  os << SHELL_GREEN << token_.image << std::endl;
+  os << SHELL_GREEN << token_.image << SHELL_RESET << std::endl;
 
   lhs_->print_tree(os, indent_level + 1) << std::endl;
   rhs_->print_tree(os, indent_level + 1);
@@ -102,8 +100,8 @@ const lang::ast::type::FunctionNode& lang::ast::expr::BinaryOperatorNode::signat
   }, std::nullopt);
 }
 
-bool lang::ast::expr::BinaryOperatorNode::_process(lang::Context& ctx) const {
-  return lhs_->process(ctx) && rhs_->process(ctx);
+bool lang::ast::expr::BinaryOperatorNode::process(lang::Context& ctx) {
+  return lhs_->process(ctx) && rhs_->process(ctx) && OperatorNode::process(ctx);
 }
 
 bool lang::ast::expr::BinaryOperatorNode::load(lang::Context& ctx) const {
@@ -119,23 +117,67 @@ std::ostream &lang::ast::expr::UnaryOperatorNode::print_code(std::ostream &os, u
 
 std::ostream &lang::ast::expr::UnaryOperatorNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  os << SHELL_GREEN << token_.image << std::endl;
+  os << SHELL_GREEN << token_.image << SHELL_RESET << std::endl;
 
   expr_->print_tree(os, indent_level + 1);
   return os;
 }
 
 const lang::ast::type::FunctionNode& lang::ast::expr::UnaryOperatorNode::signature() {
-  // assume (a -> a)
   const type::Node& expr_type = expr_->type();
-  return type::FunctionNode::create({expr_type}, expr_type);
+  return type::FunctionNode::create({expr_type}, std::nullopt);
 }
 
-bool lang::ast::expr::UnaryOperatorNode::_process(lang::Context& ctx) const {
-  return expr_->process(ctx);
+bool lang::ast::expr::UnaryOperatorNode::process(Context& ctx) {
+  return expr_->process(ctx) && OperatorNode::process(ctx);
 }
 
 bool lang::ast::expr::UnaryOperatorNode::load(lang::Context& ctx) const {
   // load argument and invoke operator
   return expr_->load(ctx) && OperatorNode::load(ctx);
+}
+
+std::ostream& lang::ast::expr::CastOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
+  os << "(";
+  target_.print_code(os);
+  os << ") ";
+  expr_->print_code(os, indent_level);
+  return os;
+}
+
+std::ostream& lang::ast::expr::CastOperatorNode::print_tree(std::ostream& os, unsigned int indent_level) const {
+  Node::print_tree(os, indent_level);
+  os << SHELL_GREEN << "(";
+  target_.print_code(os);
+  os << ")" SHELL_RESET << std::endl;
+
+  expr_->print_tree(os, indent_level + 1);
+  return os;
+}
+
+lang::ast::expr::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
+  : UnaryOperatorNode(std::move(token), std::move(expr)), target_(target) {
+  std::stringstream stream;
+  stream << '(';
+  target_.print_code(stream);
+  stream << ')';
+  symbol_ = stream.str();
+}
+
+bool lang::ast::expr::CastOperatorNode::process(lang::Context& ctx) {
+  // this operator is special in that it doesn't look for operator overloads
+  // just use the cvt<x>2<y> instruction
+  return expr_->process(ctx);
+}
+
+bool lang::ast::expr::CastOperatorNode::load(lang::Context& ctx) const {
+  if (!expr_->load(ctx)) return false;
+
+  // emit conversion instruction
+  ops::implicit_cast(ctx, target_.get_asm_datatype());
+  return true;
+}
+
+const lang::ast::type::Node& lang::ast::expr::CastOperatorNode::type() const {
+  return target_;
 }

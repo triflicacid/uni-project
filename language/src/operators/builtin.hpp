@@ -2,6 +2,7 @@
 
 #include <functional>
 #include "operator.hpp"
+#include "constants.hpp"
 
 namespace lang {
   struct Context;
@@ -25,4 +26,8 @@ namespace lang::ops {
 
   // initialise builtins
   void init_builtins();
+
+  // generate a conversion for the current register to `target`
+  // return if instruction was emitted
+  bool implicit_cast(Context& ctx, constants::inst::datatype::dt target);
 }

@@ -218,3 +218,19 @@ void lang::ops::init_builtins() {
   init_builtin::addition();
   init_builtin::subtraction();
 }
+
+bool lang::ops::implicit_cast(lang::Context& ctx, constants::inst::datatype::dt target) {
+  // get most recent location
+  auto maybe_ref = ctx.reg_alloc_manager.get_recent();
+  assert(maybe_ref.has_value());
+  auto ref = maybe_ref.value();
+
+  // if types already match, exit
+  if (ctx.reg_alloc_manager.find(ref).datatype.get_asm_datatype() == target) {
+    return false;
+  }
+
+  // otherwise, convert!
+  ctx.reg_alloc_manager.guarantee_datatype(ref, target);
+  return true;
+}

@@ -43,8 +43,11 @@ namespace lang::ast::type {
     static void init();
 
     auto begin() { return graph_.begin(); }
+
     auto begin() const { return graph_.begin(); }
+
     auto end() { return graph_.end(); }
+
     auto end() const { return graph_.end(); }
   };
 

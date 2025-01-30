@@ -166,6 +166,15 @@ lang::memory::RegisterAllocationManager::find(int temporary, const ast::type::No
   return insert(std::make_unique<Object>(temporary, datatype));
 }
 
+const lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) const {
+  if (location.type == Ref::Register) {
+    return *instances_.top().regs[location.offset - initial_register];
+  } else {
+    return *memory_.at(location.offset);
+  }
+}
+
+
 std::shared_ptr<lang::memory::Object> lang::memory::RegisterAllocationManager::evict(const Ref& location) {
   // remove from allocation history
   erase_if(instances_.top().history, [&](const Ref& loc) { return location == loc; });

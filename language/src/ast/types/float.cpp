@@ -1,11 +1,11 @@
 #include "float.hpp"
 
 std::string lang::ast::type::FloatNode::name() const {
-  return double_ ? "double" : "float";
+  return double_ ? "f64" : "f32";
 }
 
 std::ostream &lang::ast::type::FloatNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  return os << (double_ ? "double" : "float");
+  return os << (double_ ? "f64" : "f32");
 }
 
 constants::inst::datatype::dt lang::ast::type::FloatNode::get_asm_datatype() const {

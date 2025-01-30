@@ -204,7 +204,8 @@ const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_se
 });
 
 std::unique_ptr<lang::ast::ExprNode> lang::parser::Parser::parse_expression(int precedence) {
-  return std::make_unique<ast::ExprNode>(_parse_expression(precedence));
+  auto expr = _parse_expression(precedence);
+  return is_error() ? nullptr : std::make_unique<ast::ExprNode>(std::move(expr));
 }
 
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(int precedence) {
@@ -214,19 +215,31 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
   if (expect(lexer::TokenType::op)) {
     lexer::Token op_token = consume();
     // check if there is a term following this
-    if (!expect(firstset::term)) {
-      add_message(std::move(peek().generate_syntax_error(firstset::term)));
-      return nullptr;
-    }
-
+    if (!expect_or_error(firstset::term)) return nullptr;
     std::unique_ptr<ast::expr::Node> term = parse_term();
     // propagate error if necessary
     if (is_error()) return nullptr;
     // wrap term in the unary operator
     return std::make_unique<ast::expr::UnaryOperatorNode>(op_token, std::move(term));
-  } else {
+  } else if (expect(lexer::TokenType::lpar) && expect(firstset::type, 1)) { // check if **special** cast operator
+    lexer::Token op_token = consume();
+    auto type = parse_type();
+    if (is_error() || !type) return nullptr;
+    // expect closing bracket after type
+    if (!expect_or_error(lexer::TokenType::rpar)) return nullptr;
+    consume();
+    // check if there is a term following this
+    if (!expect_or_error(firstset::term)) return nullptr;
+    std::unique_ptr<ast::expr::Node> term = parse_term();
+    // propagate error if necessary
+    if (is_error()) return nullptr;
+    // wrap term in the unary operator
+    return std::make_unique<ast::expr::CastOperatorNode>(op_token, *type, std::move(term));
+  } else if (expect_or_error(firstset::term)) {
     expr = parse_term();
     if (is_error()) return nullptr;
+  } else {
+    return nullptr;
   }
 
   // any further operators are treated as binary

@@ -90,6 +90,9 @@ namespace lang::memory {
     // generate an ID for a new temporary
     int new_temporary();
 
+    // find the given reference
+    const lang::memory::Object& find(const Ref& location) const;
+
     // evict item at the given location, return Object which was evicted
     std::shared_ptr<Object> evict(const Ref& location);
 

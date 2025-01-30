@@ -1,11 +1,11 @@
 #include "int.hpp"
 
 std::ostream &lang::ast::type::IntNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  return os << (signed_ ? "int" : "uint") << width_ * 8;
+  return os << (signed_ ? "i" : "u") << width_ * 8;
 }
 
 std::string lang::ast::type::IntNode::name() const {
-  return (signed_ ? "int" : "uint") + std::to_string(width_ * 8);
+  return (signed_ ? "i" : "u") + std::to_string(width_ * 8);
 }
 
 constants::inst::datatype::dt lang::ast::type::IntNode::get_asm_datatype() const {
