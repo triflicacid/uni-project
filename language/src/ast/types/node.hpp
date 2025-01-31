@@ -44,4 +44,7 @@ namespace lang::ast::type {
   // return type node from the given asm type
   // guaranteed ::from_asm_type(t).get_asm_type() == t
   const Node& from_asm_type(constants::inst::datatype::dt type);
+
+  // list all numerical types: uint8, int8, ..., int64, float32, float64
+  extern const std::deque<std::reference_wrapper<const Node>> numerical;
 }

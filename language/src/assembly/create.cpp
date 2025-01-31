@@ -187,6 +187,12 @@ std::unique_ptr<LoadImmediateInstruction> lang::assembly::create_load_long(uint8
   return std::make_unique<LoadImmediateInstruction>(reg, imm);
 }
 
+std::unique_ptr<GenericInstruction> lang::assembly::create_comparison(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value) {
+  auto inst = create_reg_reg_value("cmp", reg_dst, reg, std::move(value));
+  inst->set_datatype(datatype);
+  return inst;
+}
+
 std::unique_ptr<ConversionInstruction>
 lang::assembly::create_conversion(datatype from_type, uint8_t from_reg, datatype to_type, uint8_t to_reg) {
   return std::make_unique<ConversionInstruction>(from_type, from_reg, to_type, to_reg);

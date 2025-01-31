@@ -24,7 +24,7 @@ namespace lang::assembly {
 
     const std::string& label() const { return label_; }
 
-    void add(std::unique_ptr<Line> i);
+    BasicBlock& add(std::unique_ptr<Line> i);
 
     size_t size() const { return contents_.size(); }
 

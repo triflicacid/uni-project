@@ -1,7 +1,8 @@
 #include "basic_block.hpp"
 
-void lang::assembly::BasicBlock::add(std::unique_ptr<Line> i) {
+lang::assembly::BasicBlock& lang::assembly::BasicBlock::add(std::unique_ptr<Line> i) {
   contents_.push_back(std::move(i));
+  return *this;
 }
 
 std::ostream& lang::assembly::BasicBlock::print(std::ostream& os) const {

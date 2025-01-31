@@ -22,3 +22,11 @@ const lang::ast::type::Node& lang::ast::type::from_asm_type(constants::inst::dat
       return float64;
   }
 }
+
+const std::deque<std::reference_wrapper<const lang::ast::type::Node>> lang::ast::type::numerical{
+  uint8, int8,
+  uint16, int16,
+  uint32, int32,
+  uint64, int64,
+  float32, float64,
+};

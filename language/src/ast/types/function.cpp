@@ -56,6 +56,7 @@ lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<co
           are_equal = false;
         }
       }
+      if (are_equal && returns.has_value()) are_equal = returns.value().get().id() == func_type->returns().id();
       if (are_equal) return *func_type;
     }
   }

@@ -7,6 +7,7 @@
 #include "ast/types/int.hpp"
 #include "assembly/create.hpp"
 #include "ast/types/float.hpp"
+#include "ast/types/bool.hpp"
 
 enum class ArgSelect {
   lhs, // lhs argument in binary operator
@@ -176,6 +177,25 @@ namespace generators {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx);
     ctx.program.current().add(assembly::create_xor(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
+  }
+
+  // like generate_add, but for a comparison
+  static uint8_t generate_cmp(Context& ctx, constants::inst::datatype::dt datatype) {
+    auto [reg_arg, other_arg] = fetch_argument_pair(ctx, datatype);
+    ctx.program.current().add(assembly::create_comparison(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    return reg_arg;
+  }
+
+  // generate a comparison, setting a Boolean result if equal to a test flag
+  static uint8_t generate_cmp_bool(Context& ctx, constants::inst::datatype::dt datatype, constants::cmp::flag cmp) {
+    uint8_t reg = generate_cmp(ctx, datatype);
+    // zero-out the register
+    ctx.program.current().add(assembly::create_zero(reg));
+    // set to true if flag matches
+    auto inst = assembly::create_load(reg, assembly::Arg::imm(1));
+    inst->set_conditional(cmp);
+    ctx.program.current().add(std::move(inst));
+    return reg;
   }
 }
 
@@ -448,6 +468,47 @@ namespace init_builtin {
         [](Context& ctx) { generators::generate_xor(ctx); }
     ));
   }
+
+  static void relational() {
+    static const std::unordered_map<std::string, constants::cmp::flag> ops = {
+        {"==", constants::cmp::eq},
+        {"!=", constants::cmp::ne},
+        {"<", constants::cmp::lt},
+        {"<=", constants::cmp::le},
+        {">", constants::cmp::gt},
+        {">=", constants::cmp::ge},
+    };
+
+    for (const auto& [op, cmp] : ops) {
+      for (const Node& type : numerical) {
+        const auto asm_type = type.get_asm_datatype();
+
+        // operatorX(T, T)
+        store_operator(std::make_unique<BuiltinOperator>(
+            op,
+            FunctionNode::create({type, type}, boolean),
+            [cmp, asm_type](Context& ctx) { generators::generate_cmp_bool(ctx, asm_type, cmp); }
+        ));
+      }
+    }
+
+    // operator!=(bool, bool)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "!=",
+        FunctionNode::create({boolean, boolean}, boolean),
+        [](Context& ctx) { generators::generate_xor(ctx); }
+    ));
+
+    // operator==(bool, bool)
+    store_operator(std::make_unique<BuiltinOperator>(
+        "==",
+        FunctionNode::create({boolean, boolean}, boolean),
+        [](Context& ctx) {
+          uint8_t reg = generators::generate_xor(ctx);
+          ctx.program.current().add(assembly::create_not(reg, reg));
+        }
+    ));
+  }
 }
 
 void lang::ops::init_builtins() {
@@ -461,6 +522,7 @@ void lang::ops::init_builtins() {
   bitwise_and();
   bitwise_or();
   bitwise_xor();
+  relational();
 }
 
 bool lang::ops::implicit_cast(lang::Context& ctx, constants::inst::datatype::dt target) {

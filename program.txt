@@ -2,4 +2,4 @@
 const pi = 3.14159;
 pi + 2;
 */
-2 | 3u64;
+true != false;

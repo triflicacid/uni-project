@@ -46,6 +46,7 @@ namespace lang::ast::type {
 
     // 'create' a new function type -- if exists, return reference, otherwise create new type and return
     // the return type is added to new creations only and is not used in comparisons
+    // if return type is std::nullopt, only params are matched, otherwise return type is too (must match)
     static const FunctionNode& create(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::optional<std::reference_wrapper<const Node>>& returns);
 
     // same as static ::filter_candidates, but uses this type's parameter list

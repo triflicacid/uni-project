@@ -270,7 +270,8 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
-    numerical_types
+    numerical_types,
+    {lexer::TokenType::boolean}
 });
 
 const lang::ast::type::Node* lang::parser::Parser::parse_type() {
