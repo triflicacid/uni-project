@@ -7,10 +7,7 @@
 #include "value/literal.hpp"
 
 std::ostream &lang::ast::expr::LiteralNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  os << "(";
-  lit_.type().print_code(os);
-  os << ") " << lit_.to_string();
-  return os;
+  return os << lit_.to_string();
 }
 
 std::ostream &lang::ast::expr::LiteralNode::print_tree(std::ostream &os, unsigned int indent_level) const {

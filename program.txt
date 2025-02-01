@@ -3,4 +3,4 @@ namespace std {
         let pi: float;
     }
 }
-(int) (std.maths.pi);
+(int)std.maths + 3;

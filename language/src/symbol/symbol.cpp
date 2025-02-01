@@ -1,6 +1,8 @@
 #include <deque>
 #include "namespace.hpp"
 #include "symbol.hpp"
+#include "value/symbol.hpp"
+
 
 static lang::symbol::SymbolId current_id = 0;
 

@@ -18,6 +18,9 @@ namespace lang::ops {
   // map operator to operator info for builtin unary operators
   extern std::unordered_map<std::string, const OperatorInfo> builtin_unary;
 
-  // operator infor for a generic operator (not built in)
-  extern const OperatorInfo generic;
+  // operator infor for a generic binary operator (not built in)
+  extern const OperatorInfo generic_binary;
+
+  // operator info for a generic unary operator (not built in)
+  extern const OperatorInfo generic_unary;
 }

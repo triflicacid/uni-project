@@ -211,63 +211,66 @@ std::unique_ptr<lang::ast::ExprNode> lang::parser::Parser::parse_expression(int 
 std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(int precedence) {
   std::unique_ptr<ast::expr::Node> expr;
 
-  // check if we have a unary operator, or just a term
-  if (expect(lexer::TokenType::op)) { // TODO stacked unary operators
-    lexer::Token op_token = consume();
-    // check if there is a term following this
-    if (!expect_or_error(firstset::term)) return nullptr;
-    std::unique_ptr<ast::expr::Node> term = parse_term();
-    // propagate error if necessary
+  if (expect(lexer::TokenType::op)) { // unary operator
+    const lexer::Token op_token = consume();
+
+    // followed by an expression
+    if (!expect_or_error(firstset::expression)) return nullptr;
+    auto& info = ops::builtin_unary.contains(op_token.image)
+        ? ops::builtin_unary.at(op_token.image)
+        : ops::generic_unary;
+    expr = _parse_expression(info.precedence);
     if (is_error()) return nullptr;
-    // wrap term in the unary operator
+
+    // wrap and continue
     expr = ast::expr::OperatorNode::unary(op_token, std::move(expr));
-  } else if (expect(lexer::TokenType::lpar) && expect(firstset::type, 1)) { // check if **special** cast operator
-    lexer::Token op_token = consume();
+  }
+  else if (expect(lexer::TokenType::lpar) && expect(firstset::type, 1)) { // primitive cast
+    const lexer::Token op_token = consume();
+
+    // expect type `)`
     auto type = parse_type();
-    if (is_error() || !type) return nullptr;
-    // expect closing bracket after type
-    if (!expect_or_error(lexer::TokenType::rpar)) return nullptr;
+    if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
     consume();
-    // check if there is a term following this
-    if (!expect_or_error(firstset::term)) return nullptr;
-    std::unique_ptr<ast::expr::Node> term = parse_term();
-    // propagate error if necessary
+
+    // followed by an expression
+    if (!expect_or_error(firstset::expression)) return nullptr;
+    auto& info = ops::builtin_unary.at("(type)");
+    expr = _parse_expression(info.precedence);
     if (is_error()) return nullptr;
-    // wrap term in the unary operator
-    return std::make_unique<ast::expr::CastOperatorNode>(op_token, *type, std::move(term));
-  } else if (expect_or_error(firstset::term)) {
+
+    // wrap and continue
+    expr = std::make_unique<ast::expr::CastOperatorNode>(op_token, *type, std::move(expr));
+  }
+  else if (expect(firstset::term)) { // term
     expr = parse_term();
     if (is_error()) return nullptr;
-  } else {
+  } else { // uncaught error
     return nullptr;
   }
 
-  // any further operators are treated as binary
+  // sequence of binary operators
   while (expect(lexer::TokenType::op)) {
     const lexer::Token op_token = peek();
-    auto& op_info = ops::builtin_binary.contains(op_token.image)
-        ? ops::builtin_binary.at(op_token.image)
-        : ops::generic;
+    auto& info = ops::builtin_binary.contains(op_token.image)
+                    ? ops::builtin_binary.at(op_token.image)
+                    : ops::generic_binary;
 
     // exit if lower precedence
-    if (precedence >= op_info.precedence) {
+    if (precedence >= info.precedence) {
       break;
     }
 
     // parse RHS of expression, supplying the operator's precedence as a new baseline
     consume();
     if (!expect_or_error(firstset::expression)) return nullptr;
-    int new_precedence = op_info.precedence;
-    if (op_info.right_associative) new_precedence--;
+    int new_precedence = info.precedence;
+    if (info.right_associative) new_precedence--;
     auto rest = _parse_expression(new_precedence);
     if (is_error()) return nullptr;
 
-    // wrap both sides in a binary operator
-    if (op_token.image == ".") {
-      expr = std::make_unique<ast::expr::DotOperatorNode>(op_token, std::move(expr), std::move(rest));
-    } else {
-      expr = ast::expr::OperatorNode::binary(op_token, std::move(expr), std::move(rest));
-    }
+    // wrap both sides in a binary operator and continue
+    expr = ast::expr::OperatorNode::binary(op_token, std::move(expr), std::move(rest));
   }
 
   return expr;

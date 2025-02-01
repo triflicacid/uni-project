@@ -11,6 +11,7 @@ std::ostream& lang::ast::NamespaceNode::print_code(std::ostream& os, unsigned in
     indent(os, indent_level + 1);
     line->print_code(os, indent_level + 1);
   }
+  os << std::endl;
   indent(os, indent_level);
   return os << "}";
 }

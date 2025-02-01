@@ -96,9 +96,11 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"-", {14, true}}, // negation
     {"!", {14, true}}, // logical NOT
     {"~", {14, true}}, // bitwise NOT
+    {"(type)", {14, true}}, // cast
 };
 
-const lang::ops::OperatorInfo lang::ops::generic{2, false};
+const lang::ops::OperatorInfo lang::ops::generic_binary{2, false};
+const lang::ops::OperatorInfo lang::ops::generic_unary{14, true};
 
 std::unique_ptr<lang::value::Temporary> lang::ops::BuiltinOperator::process(lang::Context& ctx) const {
   uint8_t reg = generator_(ctx);

@@ -23,7 +23,6 @@ namespace lang::symbol {
     std::optional<std::reference_wrapper<const Symbol>> parent_; // parent symbol (i.e., namespace)
     SymbolId id_ = -1;
     Category category_;
-    int ref_count_ = 0; // count how many times we were referenced by a SymbolReferenceNode
     bool assigned_ = false; // record if we have been assigned to
 
   public:
@@ -46,11 +45,6 @@ namespace lang::symbol {
     void set_parent(const Symbol& parent) { parent_ = parent; }
 
     uint32_t id() const { return id_; }
-
-    int ref_count() const { return ref_count_; }
-
-    // increment our ref_count
-    void inc_ref() { ref_count_++; }
 
     virtual const ast::type::Node& type() const = 0;
   };

@@ -17,10 +17,6 @@ std::ostream &lang::ast::expr::SymbolReferenceNode::print_tree(std::ostream &os,
 
 bool lang::ast::expr::SymbolReferenceNode::process(lang::Context& ctx) {
   return true;
-
-
-
-  return true;
 }
 
 std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::get_value(lang::Context& ctx) const {
@@ -29,35 +25,15 @@ std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::get_va
 }
 
 std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::load(lang::Context& ctx) const {
-  // as we have been requested an rvalue, it's safe to say that the symbol should exist
-  const std::string symbol_name = token_.image;
-  const auto candidates = ctx.symbols.find(symbol_name);
-
-  // if no candidates, this symbol does not exist
-  if (candidates.empty()) {
-    ctx.messages.add(util::error_unresolved_symbol(token_, symbol_name));
-    return nullptr;
-  }
-
-  // if more than one candidate, we do not have sufficient info to choose
-  if (candidates.size() > 1) {
-    ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(token_, token_.image));
-    return nullptr;
-  }
-
-  // fetch symbol
-  symbol::Symbol& symbol = candidates.front().get();
-  symbol.inc_ref(); // increase reference count
-
-  // create Value instance (symbol so lvalue)
-  auto location = ctx.symbols.locate(symbol.id());
-  auto value = std::make_unique<value::Symbol>(symbol, value::Options{.lvalue=location, .computable=location.has_value()});
+  auto value = get_value(ctx);
+  value = value->get_symbol_ref()->resolve(ctx, token_, true);
+  if (!value) return nullptr;
 
   // exit if we are not computable (e.g., namespace)
   if (!value->is_computable()) return value;
 
   // load into a register
-  const memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(symbol));
+  const memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(value->get_symbol()->get()));
   value->set_ref(ref);
   return value;
 }

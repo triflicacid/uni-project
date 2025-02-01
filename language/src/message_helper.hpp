@@ -16,9 +16,6 @@ namespace lang::value {
 }
 
 namespace lang::util {
-  // check local symbol scope - used before removal, checks unused symbols etc...
-  void check_local_scope(const symbol::SymbolTable& symbols, message::List &messages);
-
   // generate message for failing to resolve a symbol
   std::unique_ptr<message::Message> error_unresolved_symbol(const lexer::Token& token, const std::string& name);
 

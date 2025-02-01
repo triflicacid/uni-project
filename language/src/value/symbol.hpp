@@ -19,6 +19,10 @@ namespace lang::value {
     const ast::type::Node& type() const override { return ast::type::none; }
 
     const SymbolRef* get_symbol_ref() const override { return this; }
+
+    // attempt to resolve this symbol, return value::Symbol or nullptr if error
+    // argument - generate messages?
+    std::unique_ptr<Symbol> resolve(Context& ctx, const lexer::Token& token, bool generate_messages) const;
   };
 
   // wrapper around symbol::Symbol

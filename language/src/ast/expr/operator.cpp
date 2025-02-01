@@ -25,17 +25,16 @@ bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
 }
 
 std::ostream& lang::ast::expr::OperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
+  os << "(";
   if (args_.size() == 1) {
-    os << symbol() << " ";
+    os << symbol();
     args_.front()->print_code(os, indent_level);
   } else if (args_.size() == 2) {
-    os << "(";
     args_.front()->print_code(os, indent_level);
     os << " " << symbol() << " ";
     args_.back()->print_code(os, indent_level);
-    os << ")";
   }
-  return os;
+  return os << ")";
 }
 
 std::ostream& lang::ast::expr::OperatorNode::print_tree(std::ostream& os, unsigned int indent_level) const {
@@ -56,16 +55,24 @@ bool lang::ast::expr::OverloadableOperatorNode::process(lang::Context& ctx) {
   std::deque<std::reference_wrapper<const type::Node>> arg_types;
   std::deque<std::unique_ptr<value::Value>> values;
   for (auto& arg : args_) {
-    auto value = arg->load(ctx);
+    // fetch argument's value
+    auto value = arg->get_value(ctx);
     if (!value) return false;
-    if (!value->is_rvalue()) {
+    // if symbol reference, attempt to resolve
+    if (auto ref = value->get_symbol_ref()) {
+      value = ref->resolve(ctx, token_, true);
+      if (!value) return false;
+    }
+    // must be computable to a value (i.e., possible rvalue)
+    if (!value->is_computable()) {
       auto msg = arg->token().generate_message(message::Error);
       msg->get() << "expected rvalue, got ";
       value->type().print_code(msg->get());
       ctx.messages.add(std::move(msg));
 
       msg = token_.generate_message(message::Note);
-      msg->get() << "in " << symbol();
+      msg->get() << "while evaluating " << name();
+      ctx.messages.add(std::move(msg));
       return false;
     }
     arg_types.push_back(value->type());
@@ -157,6 +164,12 @@ lang::ast::expr::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> e
 
 std::unique_ptr<lang::ast::expr::OperatorNode>
 lang::ast::expr::OperatorNode::binary(lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs) {
+  // check for *special* operators
+  if (token.image == ".") {
+    return std::make_unique<DotOperatorNode>(std::move(token), std::move(lhs), std::move(rhs));
+  }
+
+  // otherwise, generic binary op
   std::deque<std::unique_ptr<Node>> children;
   children.push_back(std::move(lhs));
   children.push_back(std::move(rhs));
@@ -186,7 +199,8 @@ bool lang::ast::expr::OperatorNode::load_and_check_rvalue(Context& ctx) const {
       ctx.messages.add(std::move(msg));
 
       msg = token_.generate_message(message::Note);
-      msg->get() << "in " << symbol();
+      msg->get() << "while evaluating " << name();
+      ctx.messages.add(std::move(msg));
       return false;
     }
   }
@@ -334,12 +348,22 @@ std::unique_ptr<lang::value::Value> lang::ast::expr::DotOperatorNode::load(lang:
     return nullptr;
   }
 
-  // load into register if symbol
-  if (auto symbol = value->get_symbol()) {
-    memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(symbol->get()));
-    value->set_ref(ref);
-    return value;
+  // note, must be a symbol here
+  auto symbol = value->get_symbol();
+  assert(symbol);
+
+  // must be computable, otherwise has no size
+  if (!symbol->is_computable()) {
+//    auto msg = rhs_().token().generate_message(message::Error);
+//    msg->get() << "expected rvalue, got ";
+//    symbol->type().print_code(msg->get());
+//    ctx.messages.add(std::move(msg));
+//    return nullptr;
+return value;
   }
 
+  // load into register if symbol
+  memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(symbol->get()));
+  value->set_ref(ref);
   return value;
 }

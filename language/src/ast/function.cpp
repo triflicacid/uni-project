@@ -63,10 +63,6 @@ bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
     ctx.program.current().add(assembly::create_return());
   }
 
-  // if linting, check for unused variables
-  // this is not done in Block as scope_=false
-  util::check_local_scope(ctx.symbols, ctx.messages);
-
   // remove function scope
   ctx.symbols.pop();
 

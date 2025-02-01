@@ -50,9 +50,6 @@ bool lang::ast::ProgramNode::process(lang::Context& ctx) {
     }
   }
 
-  // if linting, check for unused variables
-  util::check_local_scope(ctx.symbols, ctx.messages);
-
   return true;
 }
 

@@ -70,9 +70,6 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
 
   // remove local scope if necessary
   if (scope_) {
-    // if linting, check for unused variables
-    util::check_local_scope(ctx.symbols, ctx.messages);
-
     ctx.symbols.pop();
   }
 
