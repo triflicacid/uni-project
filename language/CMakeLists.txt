@@ -14,4 +14,5 @@ add_executable(language ../shared/constants.cpp ../shared/util.cpp ../shared/mes
         src/ast/types/bool.cpp src/ast/types/node.cpp src/ast/types/none.cpp src/ast/types/graph.cpp src/ast/types/int.cpp src/ast/types/namespace.cpp src/ast/types/float.cpp src/ast/types/function.cpp src/ast/types/wrapper.cpp
         src/symbol/registry.cpp src/symbol/symbol.cpp src/symbol/table.cpp
         src/operators/builtins.cpp src/operators/operator.cpp
+        src/value/value.cpp
         main.cpp)

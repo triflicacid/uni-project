@@ -9,6 +9,7 @@ namespace lang::ops {
   struct OperatorInfo {
     uint8_t precedence; // operator precedence, 1 is loosest (higher = stronger)
     bool right_associative;
+    bool overloadable = true;
   };
 
   // map operator to operator info for builtin binary operators

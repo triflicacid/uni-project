@@ -2,6 +2,9 @@
 #include "reg_alloc.hpp"
 #include "assembly/create.hpp"
 #include "ast/types/int.hpp"
+#include "value/literal.hpp"
+#include "value/symbol.hpp"
+#include "value/temporary.hpp"
 
 lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program)
   : symbols_(symbols), program_(program) {
@@ -104,102 +107,87 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
   // check if Object is inside a register
   int offset = 0;
   for (auto& object : instances_.top().regs) {
-    if (object && object->type == Object::Symbol && object->symbol.get().id() == symbol.id()) {
-      object->required = true;
-      return Ref(Ref::Register, offset);
+    if (object) {
+      if (auto obj_symbol = object->value->get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
+        object->required = true;
+        return Ref(Ref::Register, offset);
+      }
     }
+
     offset++;
   }
 
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
-    if (object->type == Object::Symbol && object->symbol.get().id() == symbol.id()) {
-      object->required = true;
+    if (auto obj_symbol = object.value->get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
+      object.required = true;
       return Ref(Ref::Memory, address);
     }
   }
 
   // otherwise, insert
-  return insert(std::make_unique<Object>(symbol));
+  auto source = symbols_.locate(symbol.id());
+  assert(source.has_value());
+  return insert(Object(std::make_shared<value::Symbol>(symbol, *source)));
 }
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::find(const Literal& literal) {
   // check if Object is inside a register
   int offset = 0;
   for (auto& object : instances_.top().regs) {
-    if (object && object->type == Object::Literal && object->literal.get().data() == literal.data()) {
-      return Ref(Ref::Register, offset);
+    if (object) {
+      if (auto obj_lit = object->value->get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
+        object->required = true;
+        return Ref(Ref::Register, offset);
+      }
     }
     offset++;
   }
 
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
-    if (object->type == Object::Literal && &object->literal.get() == &literal) {
-      return Ref(Ref::Memory, address);
+    if (auto obj_lit = object.value->get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
+      object.required = true;
+      return Ref(Ref::Memory, offset);
     }
   }
 
   // otherwise, insert
-  return insert(std::make_unique<Object>(literal));
-}
-
-lang::memory::Ref
-lang::memory::RegisterAllocationManager::find(int temporary, const ast::type::Node& datatype) {
-  // check if Object is inside a register
-  int offset = 0;
-  for (auto& object : instances_.top().regs) {
-    if (object && object->type == Object::Temporary && object->temporary_id == temporary) {
-      return Ref(Ref::Register, offset);
-    }
-    offset++;
-  }
-
-  // check if Object is stored in spilled memory
-  for (auto& [address, object] : memory_) {
-    if (object->type == Object::Temporary && object->temporary_id == temporary) {
-      return Ref(Ref::Memory, address);
-    }
-  }
-
-  // otherwise, insert
-  return insert(std::make_unique<Object>(temporary, datatype));
+  return insert(Object(std::make_shared<value::Literal>(literal)));
 }
 
 const lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) const {
   if (location.type == Ref::Register) {
-    return *instances_.top().regs[location.offset - initial_register];
+    auto& maybe = instances_.top().regs[location.offset - initial_register];
+    assert(maybe.has_value());
+    return maybe.value();
   } else {
-    return *memory_.at(location.offset);
+    return memory_.at(location.offset);
   }
 }
 
 
-std::shared_ptr<lang::memory::Object> lang::memory::RegisterAllocationManager::evict(const Ref& location) {
+void lang::memory::RegisterAllocationManager::evict(const Ref& location) {
   // remove from allocation history
   erase_if(instances_.top().history, [&](const Ref& loc) { return location == loc; });
 
   if (location.type == Ref::Register) {
     // nothing is required assembly-wise
-    auto object = std::move(instances_.top().regs[location.offset - initial_register]);
-    if (!object) return nullptr;
-    instances_.top().regs[location.offset] = nullptr;
-    return object;
+    instances_.top().regs[location.offset - initial_register] = std::nullopt;
+    return;
   }
 
   // adjust the stack pointer if top, otherwise do nothing
-  auto object = std::move(memory_[location.offset]);
-  if (!object) return nullptr;
-  if (size_t size = object->size(); location.offset - size == instances_.top().spill_addr) {
+  auto& object = memory_.at(location.offset);
+  if (size_t size = object.size(); location.offset - size == instances_.top().spill_addr) {
     instances_.top().spill_addr -= size;
   }
 
   // remove memory address from Object mapping
   memory_.erase(location.offset);
-  return object;
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::insert(std::unique_ptr<Object> object) {
+lang::memory::Ref lang::memory::RegisterAllocationManager::insert(Object object) {
   // check if we have a register free
   // if not, use the first freed register
   int i = initial_register;
@@ -221,51 +209,43 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(std::unique_pt
   return location;
 }
 
-void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::unique_ptr<Object> object) {
+void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object object) {
   evict(location);
   instances_.top().history.push_front(location);
 
   if (location.type == Ref::Register) {
-    switch (object->type) {
-      case Object::Literal: { // load the immediate into the register
-        const auto& literal = object->literal.get();
-        if (auto size = literal.type().size(); size == 8) {
-          program_.current().add(assembly::create_load_long(location.offset, literal.data()));
-        } else {
-          program_.current().add(assembly::create_load(location.offset, assembly::Arg::imm(literal.data())));
-        }
-
-        // add comment so user knows what lit was loaded
-        auto& comment = program_.current().back().comment();
-        comment << literal.to_string() << ": ";
-        literal.type().print_code(comment);
-        break;
+    if (auto value = object.value->get_literal()) { // load the immediate into the register
+      const auto& literal = value->get();
+      if (auto size = literal.type().size(); size == 8) {
+        program_.current().add(assembly::create_load_long(location.offset, literal.data()));
+      } else {
+        program_.current().add(assembly::create_load(location.offset, assembly::Arg::imm(literal.data())));
       }
-      case Object::Temporary:
-        // no logic here.
-        // we just need to have reserved the register, which has been done.
-        break;
-      case Object::Symbol: { // load the value at the symbol's offset into the register
-        const auto& symbol = object->symbol.get();
-        const StorageLocation& storage = symbols_.locate(symbol.id())->get();
-        std::unique_ptr<assembly::BaseArg> arg;
 
-        // TODO what if the size exceeds one word?
-        if (storage.type == StorageLocation::Stack) {
-          arg = assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - storage.offset);
-        } else {
-          arg = assembly::Arg::label(storage.block);
-        }
+      // add comment so user knows what lit was loaded
+      auto& comment = program_.current().back().comment();
+      comment << literal.to_string() << ": ";
+      literal.type().print_code(comment);
+    } else if (auto value = object.value->get_symbol()) { // load the value at the symbol's offset into the register
+      const auto& symbol = value->get();
+      const StorageLocation& storage = symbols_.locate(symbol.id())->get();
+      std::unique_ptr<assembly::BaseArg> arg;
 
-        program_.current().add(assembly::create_load(location.offset, std::move(arg)));
-        auto& comment = program_.current().back().comment();
-        comment << symbol.full_name() << ": ";
-        symbol.type().print_code(comment);
-        break;
+      // TODO what if the size exceeds one word?
+      if (storage.type == StorageLocation::Stack) {
+        arg = assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - storage.offset);
+      } else {
+        arg = assembly::Arg::label(storage.block);
       }
+
+      program_.current().add(assembly::create_load(location.offset, std::move(arg)));
+      auto& comment = program_.current().back().comment();
+      comment << symbol.full_name() << ": ";
+      symbol.type().print_code(comment);
     }
 
     // update our records
+    object.value->set_ref(location);
     instances_.top().regs[location.offset - initial_register] = std::move(object);
     return;
   }
@@ -283,7 +263,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, std::u
   throw std::runtime_error("register allocator: spilling into memory is not permitted.");
 
   // update our records
-  memory_[location.offset] = std::move(object);
+  memory_.insert({location.offset, std::move(object)});
 }
 
 std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::get_recent(unsigned int n) const {
@@ -301,10 +281,6 @@ std::unique_ptr<lang::assembly::Arg> lang::memory::RegisterAllocationManager::re
   }
 }
 
-int lang::memory::RegisterAllocationManager::new_temporary() {
-  return tmpid_++;
-}
-
 lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_register(const lang::memory::Ref& ref) {
   // TODO implement move mechanic
   assert(ref.type == Ref::Register);
@@ -316,29 +292,28 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
   Ref ref = guarantee_register(old_ref);
 
   auto& object = instances_.top().regs[ref.offset - initial_register];
+  assert(object.has_value());
   constants::inst::datatype::dt original;
 
-  switch (object->type) {
-    case Object::Symbol: {
-      const symbol::Symbol& symbol = object->symbol.get();
-      // get original datatype
-      original = symbol.type().get_asm_datatype();
-      if (target == original) break;
+  if (auto value = object->value->get_symbol()) {
+    const symbol::Symbol& symbol = value->get();
+    // get original datatype
+    original = symbol.type().get_asm_datatype();
+    if (target != original) {
       // change Object type to `temporary`
-      object = std::make_shared<Object>(new_temporary(), ast::type::from_asm_type(target));
-      break;
+      object = Object(std::make_unique<value::Temporary>(ast::type::from_asm_type(target), ref));
     }
-    case Object::Temporary:
-      // can't do anything, we have no further information
-      return ref;
-    case Object::Literal: {
-      const Literal& literal = object->literal.get();
-      // get original datatype
-      original = literal.type().get_asm_datatype();
-      if (target == original) break;
+  } else if (object->value->get_temporary()) {
+    // can't do anything, we have no further information
+    return ref;
+  } else if (auto value = object->value->get_literal()) {
+    const Literal& literal = value->get();
+    // get original datatype
+    original = literal.type().get_asm_datatype();
+    if (target != original) {
       // update Object's contents
-      object = std::make_shared<Object>(Literal::get(ast::type::from_asm_type(target), literal.data()));
-      break;
+      object = Object(std::make_unique<value::Literal>(Literal::get(ast::type::from_asm_type(target), literal.data())));
+      object->value->set_ref(ref);
     }
   }
 
@@ -358,9 +333,9 @@ void lang::memory::RegisterAllocationManager::mark_free(const lang::memory::Ref&
   if (ref.type == Ref::Register) {
     instances_.top().regs[ref.offset - initial_register]->required = false;
   } else {
-    auto& object = memory_[ref.offset];
-    object->required = false;
-    if (size_t size = object->size(); ref.offset - size == instances_.top().spill_addr) {
+    auto& object = memory_.at(ref.offset);
+    object.required = false;
+    if (size_t size = object.size(); ref.offset - size == instances_.top().spill_addr) {
       instances_.top().spill_addr -= size;
     }
   }

@@ -98,7 +98,7 @@ namespace lang::parser {
     std::unique_ptr<ast::NamespaceNode> parse_namespace();
 
     // parse a code line in the top-level
-    void parse_top_level_line(ast::ProgramNode& program);
+    void parse_top_level_line(ast::ContainerNode& container);
 
     // parse a program from the top
     std::unique_ptr<ast::ProgramNode> parse();

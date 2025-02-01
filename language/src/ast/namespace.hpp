@@ -4,14 +4,24 @@
 #include "block.hpp"
 
 namespace lang::ast {
-  class NamespaceNode : public Node {
-    std::unique_ptr<BlockNode> body_;
+  class NamespaceNode : public Node, public ContainerNode {
+    std::deque<std::unique_ptr<Node>> lines_;
+    std::unique_ptr<symbol::Registry> registry_; // local registry
+    symbol::SymbolId id_; // ID of symbol created on our behalf
 
   public:
-    NamespaceNode(lexer::Token token, std::unique_ptr<BlockNode> body)
-        : Node(std::move(token)), body_(std::move(body)) {}
+    explicit NamespaceNode(lexer::Token token) : Node(std::move(token)) {}
+    NamespaceNode(lexer::Token token, std::deque<std::unique_ptr<Node>> lines)
+        : Node(std::move(token)), lines_(std::move(lines)) {}
 
     std::string name() const override { return "namespace"; }
+
+    void add(std::unique_ptr<Node> ast_node) override;
+
+    void add(std::deque<std::unique_ptr<Node>> ast_nodes) override;
+
+    // get ID of created symbol
+    symbol::SymbolId id() const { return id_; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

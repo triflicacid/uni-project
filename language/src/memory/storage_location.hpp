@@ -1,5 +1,9 @@
 #pragma once
 
+namespace lang::assembly {
+  class BasicBlock;
+}
+
 namespace lang::memory {
   // describe the physical storage location of a symbol
   struct StorageLocation {

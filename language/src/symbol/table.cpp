@@ -26,7 +26,10 @@ const std::deque<std::reference_wrapper<lang::symbol::Symbol>> lang::symbol::Sym
 }
 
 void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool alloc) {
-  const std::string& name = symbol->token().image;
+  // look at path_, add parent
+  symbol->set_parent(peek_path());
+
+  const std::string& name = symbol->full_name();
   const SymbolId id = symbol->id();
 
   // insert into scope data structure
@@ -126,6 +129,8 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       stack_.program().select(assembly::Position::Previous);
       break;
     }
+    case symbol::Category::Namespace:
+      break;
   }
 }
 
@@ -212,4 +217,16 @@ void lang::symbol::SymbolTable::assign_symbol(lang::symbol::SymbolId symbol, uin
   } else {
     stack_.program().current().add(assembly::create_store(reg, std::move(argument)));
   }
+}
+
+void lang::symbol::SymbolTable::push_path(lang::symbol::SymbolId id) {
+  path_.push_front(get(id));
+}
+
+void lang::symbol::SymbolTable::pop_path() {
+  if (!path_.empty()) path_.pop_front();
+}
+
+const lang::symbol::Symbol& lang::symbol::SymbolTable::peek_path(unsigned int n) {
+  return path_[n];
 }

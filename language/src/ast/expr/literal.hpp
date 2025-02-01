@@ -16,8 +16,6 @@ namespace lang::ast::expr {
 
     std::string name() const override { return "literal"; }
 
-    const type::Node& type() const override { return lit_.type(); }
-
     const memory::Literal& get() const { return lit_; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
@@ -26,6 +24,8 @@ namespace lang::ast::expr {
 
     bool process(lang::Context &ctx) override;
 
-    bool load(lang::Context &ctx) const override;
+    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
+
+    std::unique_ptr<value::Value> load(lang::Context &ctx) const override;
   };
 }

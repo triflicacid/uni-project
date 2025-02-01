@@ -9,6 +9,7 @@
 #include "symbol/table.hpp"
 #include "ref.hpp"
 #include "assembly/arg.hpp"
+#include "value/value.hpp"
 
 namespace lang::memory {
   // store total number of registers we may use
@@ -17,35 +18,19 @@ namespace lang::memory {
   // register at which the offset starts
   constexpr constants::registers::reg initial_register = constants::registers::r1;
 
-  // describe an object we are storing
+  // an object is a wrapped Value with additional metadata
   struct Object {
-    enum Type {
-      Symbol,
-      Literal,
-      Temporary
-    };
-
+    std::shared_ptr<value::Value> value;
     uint32_t occupied_ticks = 0;
     bool required = true; // if not required, we may be evicted at any time without consequence
-    Type type;
-    union {
-      std::reference_wrapper<const symbol::Variable> symbol;
-      std::reference_wrapper<const class Literal> literal;
-      int temporary_id;
-    };
-    const ast::type::Node& datatype;
 
-    Object() = delete;
-    Object(const symbol::Variable& symbol) : type(Symbol), symbol(symbol), datatype(symbol.type()) {}
-    Object(const ast::expr::LiteralNode& literal) : type(Literal), literal(literal.get()), datatype(literal.type()) {}
-    Object(const class Literal& literal) : type(Literal), literal(literal), datatype(literal.type()) {}
-    Object(int temporary_id, const ast::type::Node& datatype) : type(Temporary), temporary_id(temporary_id), datatype(datatype) {}
+    Object(std::shared_ptr<value::Value> value) : value(std::move(value)) {}
 
-    size_t size() const { return datatype.size(); }
+    size_t size() const { return value->type().size(); }
   };
 
   struct Store {
-    std::array<std::shared_ptr<Object>, total_registers> regs; // Objects stored in registers, may be null
+    std::array<std::optional<Object>, total_registers> regs; // Objects stored in registers, may be null
     std::deque<Ref> history; // history of allocations; front = [0] = most recent
     uint64_t stack_offset; // point to stack offset when store was saved
     uint64_t spill_addr; // current address for memory spill
@@ -54,8 +39,7 @@ namespace lang::memory {
   // class for managing register allocation and register spills
   class RegisterAllocationManager {
     std::stack<Store> instances_;
-    std::map<uint64_t, std::unique_ptr<Object>> memory_; // Objects stored in memory from memory spill, may not be null
-    int tmpid_ = 0; // current temporary ID
+    std::map<uint64_t, Object> memory_; // Objects stored in memory from memory spill, may not be null
     assembly::Program& program_;
     symbol::SymbolTable& symbols_;
 
@@ -84,26 +68,20 @@ namespace lang::memory {
     // return reference to an item, insert if needed
     Ref find(const Literal& literal);
 
-    // return reference to a temporary, insert if needed (this is why we need the type)
-    Ref find(int temporary, const ast::type::Node& type);
-
-    // generate an ID for a new temporary
-    int new_temporary();
-
     // find the given reference
     const lang::memory::Object& find(const Ref& location) const;
 
-    // evict item at the given location, return Object which was evicted
-    std::shared_ptr<Object> evict(const Ref& location);
+    // evict item at the given location
+    void evict(const Ref& location);
 
     // mark object as not required -- from this point onwards, data is not guaranteed to exist
     void mark_free(const Ref& ref);
 
     // insert Object, assume it does not exist, return reference to it
-    Ref insert(std::unique_ptr<Object> object);
+    Ref insert(Object object);
 
     // same as insert(), but put in a specific position - location is evicted if full
-    void insert(const Ref& location, std::unique_ptr<Object> object);
+    void insert(const Ref& location, Object object);
 
     // get the nth most recent allocation
     // default `n=0` (i.e., most recent)

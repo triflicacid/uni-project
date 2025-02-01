@@ -71,30 +71,28 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     if (!assignment_.value()->process(ctx)) return false;
   }
 
-  // deduce type if required
-  if (!type_.has_value()) {
-    // this requires an assignment body
-    if (!assignment_.has_value()) {
-      auto msg = token_.generate_message(message::Error);
-      msg->get() << "cannot deduce type - expected explicit type or initialiser";
-      ctx.messages.add(std::move(msg));
+  // if no type AND no way to deduce it, error
+  if (!type_.has_value() && !assignment_.has_value()) {
+    auto msg = token_.generate_message(message::Error);
+    msg->get() << "cannot deduce type - expected explicit type or initialiser";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
+  // if need be, get value to be assign
+  std::unique_ptr<value::Value> assignment_value = nullptr;
+  if (assignment_.has_value()) {
+    assignment_value = assignment_->get()->get().get_value(ctx);
+    if (!assignment_value) return false;
+    const auto& type = assignment_value->type();
+
+    // if we have declared symbol to be a type, they must match
+    if (type_.has_value() && !type::graph.is_subtype(type.id(), type_->get().id())) {
+      ctx.messages.add(util::error_type_mismatch(token_, type, type_.value(), true));
       return false;
     }
 
-    const auto& type = assignment_.value()->type();
-
-    // make constant?
-    if (category_ == Constant && !(type.get_wrapper() && type.get_wrapper()->get_const())) {
-      type_ = ast::type::constant(type);
-    } else {
-      type_ = type;
-    }
-  } else {
-    // check types match (don't do this above as we *know*, via deduction, that types match)
-    if (!type::graph.is_subtype(assignment_.value()->type().id(), type_.value().get().id())) {
-      ctx.messages.add(util::error_type_mismatch(token_, assignment_.value()->type(), type_.value(), true));
-      return false;
-    }
+    type_ = type;
   }
 
   // define symbol
@@ -103,6 +101,9 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   if (!maybe_id.has_value()) return false;
   ctx.symbols.insert(registry);
   id_ = maybe_id.value();
+
+  // if no assignment, we're done
+  if (!assignment_.has_value()) return true;
 
   // get location of expr
   const auto maybe_expr = ctx.reg_alloc_manager.get_recent();

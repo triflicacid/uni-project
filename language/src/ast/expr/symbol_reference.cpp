@@ -3,6 +3,8 @@
 #include "shell.hpp"
 #include "context.hpp"
 #include "ast/types/namespace.hpp"
+#include "value/symbol.hpp"
+#include "message_helper.hpp"
 
 std::ostream &lang::ast::expr::SymbolReferenceNode::print_code(std::ostream &os, unsigned int indent_level) const {
   return os << token_.image;
@@ -13,48 +15,49 @@ std::ostream &lang::ast::expr::SymbolReferenceNode::print_tree(std::ostream &os,
   return os << SHELL_GREEN << token_.image << SHELL_RESET;
 }
 
-std::optional<std::reference_wrapper<lang::symbol::Symbol>>
-lang::ast::expr::SymbolReferenceNode::select_candidate(lang::Context& ctx, const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates) const {
-  // if >1 candidates, we have no information to decide
-  // TODO for function call, we would actually need to consider this situation
-  assert(candidates.size() == 1);
+bool lang::ast::expr::SymbolReferenceNode::process(lang::Context& ctx) {
+  return true;
 
-  return candidates.front();
+
+
+  return true;
 }
 
-bool lang::ast::expr::SymbolReferenceNode::process(lang::Context& ctx) {
-  // check if this symbol exists
+std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::get_value(lang::Context& ctx) const {
+  // just reference, you guessed it, symbol reference!
+  return std::make_unique<value::SymbolRef>(token_.image);
+}
+
+std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::load(lang::Context& ctx) const {
+  // as we have been requested an rvalue, it's safe to say that the symbol should exist
   const std::string symbol_name = token_.image;
-  auto& candidates = ctx.symbols.find(symbol_name);
+  const auto candidates = ctx.symbols.find(symbol_name);
 
   // if no candidates, this symbol does not exist
   if (candidates.empty()) {
-    auto msg = token_.generate_message(message::Error);
-    msg->get() << "unable to resolve reference to symbol '" << symbol_name << "'";
-    ctx.messages.add(std::move(msg));
-    return false;
+    ctx.messages.add(util::error_unresolved_symbol(token_, symbol_name));
+    return nullptr;
   }
 
-  // select suitable candidate, exit if none found
-  auto candidate = select_candidate(ctx, candidates);
-  if (!candidate.has_value()) {
-    return false;
+  // if more than one candidate, we do not have sufficient info to choose
+  if (candidates.size() > 1) {
+    ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(token_, token_.image));
+    return nullptr;
   }
 
-  // record the symbol used
-  symbol_ = std::move(candidate);
+  // fetch symbol
+  symbol::Symbol& symbol = candidates.front().get();
+  symbol.inc_ref(); // increase reference count
 
-  return true;
-}
+  // create Value instance (symbol so lvalue)
+  auto location = ctx.symbols.locate(symbol.id());
+  auto value = std::make_unique<value::Symbol>(symbol, value::Options{.lvalue=location, .computable=location.has_value()});
 
-bool lang::ast::expr::SymbolReferenceNode::load(lang::Context& ctx) const {
-  // record reference
-  symbol_->get().inc_ref();
+  // exit if we are not computable (e.g., namespace)
+  if (!value->is_computable()) return value;
 
-  // if this is not a namespace, we know it is a variable
-  if (auto& type = symbol_->get().type(); type.id() == ast::type::name_space.id()) return true;
-
-  // move into a register
-  ctx.reg_alloc_manager.find(static_cast<symbol::Variable&>(symbol_->get()));
-  return true;
+  // load into a register
+  const memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(symbol));
+  value->set_ref(ref);
+  return value;
 }

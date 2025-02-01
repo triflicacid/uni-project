@@ -1,5 +1,6 @@
-/*
-const pi = 3.14159;
-pi + 2;
-*/
-true != false;
+namespace std {
+    namespace maths {
+        let pi: float;
+    }
+}
+(int) (std.maths.pi);

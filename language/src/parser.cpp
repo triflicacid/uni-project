@@ -212,7 +212,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
   std::unique_ptr<ast::expr::Node> expr;
 
   // check if we have a unary operator, or just a term
-  if (expect(lexer::TokenType::op)) {
+  if (expect(lexer::TokenType::op)) { // TODO stacked unary operators
     lexer::Token op_token = consume();
     // check if there is a term following this
     if (!expect_or_error(firstset::term)) return nullptr;
@@ -220,7 +220,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
     // propagate error if necessary
     if (is_error()) return nullptr;
     // wrap term in the unary operator
-    return std::make_unique<ast::expr::UnaryOperatorNode>(op_token, std::move(term));
+    expr = ast::expr::OperatorNode::unary(op_token, std::move(expr));
   } else if (expect(lexer::TokenType::lpar) && expect(firstset::type, 1)) { // check if **special** cast operator
     lexer::Token op_token = consume();
     auto type = parse_type();
@@ -263,7 +263,11 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
     if (is_error()) return nullptr;
 
     // wrap both sides in a binary operator
-    expr = std::make_unique<ast::expr::BinaryOperatorNode>(op_token, std::move(expr), std::move(rest));
+    if (op_token.image == ".") {
+      expr = std::make_unique<ast::expr::DotOperatorNode>(op_token, std::move(expr), std::move(rest));
+    } else {
+      expr = ast::expr::OperatorNode::binary(op_token, std::move(expr), std::move(rest));
+    }
   }
 
   return expr;
@@ -506,11 +510,36 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
   if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
   const lexer::Token name = consume();
 
-  // body (block)
-  auto block = parse_block();
-  if (is_error()) return nullptr;
+  // '{'
+  if (!expect_or_error(lexer::TokenType::lbrace)) return nullptr;
+  const lexer::Token lbrace = consume();
 
-  return std::make_unique<ast::NamespaceNode>(std::move(name), std::move(block));
+  auto ns = std::make_unique<ast::NamespaceNode>(name);
+  while (true) {
+    // remove newlines
+    while (expect(firstset::eol)) consume();
+    if (expect(lexer::TokenType::rbrace)) break;
+
+    // parse line or '}'
+    if (!expect_or_error(lexer::merge_sets({firstset::top_level_line, {lexer::TokenType::rbrace}}))) {
+      auto msg = lbrace.generate_message(message::Note);
+      msg->get() << "block started here";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+
+    if (expect(lexer::TokenType::rbrace)) {
+      consume();
+      break;
+    }
+
+    parse_top_level_line(*ns);
+    if (is_error()) return nullptr;
+  }
+
+  consume();
+
+  return ns;
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merge_sets({
@@ -521,7 +550,7 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
      firstset::expression,
 });
 
-void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
+void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
   static bool was_last_an_expression = false;
 
   if (expect(firstset::expression)) {
@@ -530,24 +559,24 @@ void lang::parser::Parser::parse_top_level_line(ast::ProgramNode& program) {
       add_message(peek().generate_syntax_error(firstset::eol));
       return;
     }
-    program.add(parse_expression());
+    container.add(parse_expression());
     was_last_an_expression = true;
     return;
   }
   was_last_an_expression = false;
 
   if (expect(lexer::TokenType::func)) {
-    program.add(parse_func());
+    container.add(parse_func());
     return;
   }
 
   if (expect({lexer::TokenType::let, lexer::TokenType::const_kw})) {
-    parse_var_decl(program);
+    parse_var_decl(container);
     return;
   }
 
   if (expect(lexer::TokenType::namespace_kw)) {
-    program.add(parse_namespace());
+    container.add(parse_namespace());
     return;
   }
 }

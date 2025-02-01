@@ -5,18 +5,77 @@
 #include "operators/operator.hpp"
 #include "context.hpp"
 #include "operators/builtin.hpp"
+#include "ast/types/namespace.hpp"
+#include "ast/expr/symbol_reference.hpp"
+#include "ast/namespace.hpp"
+#include "message_helper.hpp"
+#include "value/symbol.hpp"
 
-const lang::ast::type::Node &lang::ast::expr::OperatorNode::type() const {
-  assert(op_.has_value());
-  return op_.value().get().type().returns();
+std::string lang::ast::expr::OperatorNode::name() const {
+  return args_.size() == 2
+    ? "binary operator"
+    : "unary operator";
 }
 
 bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
+  for (auto& arg : args_) {
+    if (!arg->process(ctx)) return false;
+  }
+  return true;
+}
+
+std::ostream& lang::ast::expr::OperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
+  if (args_.size() == 1) {
+    os << symbol() << " ";
+    args_.front()->print_code(os, indent_level);
+  } else if (args_.size() == 2) {
+    os << "(";
+    args_.front()->print_code(os, indent_level);
+    os << " " << symbol() << " ";
+    args_.back()->print_code(os, indent_level);
+    os << ")";
+  }
+  return os;
+}
+
+std::ostream& lang::ast::expr::OperatorNode::print_tree(std::ostream& os, unsigned int indent_level) const {
+  Node::print_tree(os, indent_level);
+  os << SHELL_GREEN << symbol() << SHELL_RESET;
+
+  for (auto& arg : args_) {
+    os << std::endl;
+    arg->print_tree(os, indent_level + 1);
+  }
+  return os;
+}
+
+bool lang::ast::expr::OverloadableOperatorNode::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
+
   // generate our signature
-  auto& signature = this->signature();
+  std::deque<std::reference_wrapper<const type::Node>> arg_types;
+  std::deque<std::unique_ptr<value::Value>> values;
+  for (auto& arg : args_) {
+    auto value = arg->load(ctx);
+    if (!value) return false;
+    if (!value->is_rvalue()) {
+      auto msg = arg->token().generate_message(message::Error);
+      msg->get() << "expected rvalue, got ";
+      value->type().print_code(msg->get());
+      ctx.messages.add(std::move(msg));
+
+      msg = token_.generate_message(message::Note);
+      msg->get() << "in " << symbol();
+      return false;
+    }
+    arg_types.push_back(value->type());
+    values.push_back(std::move(value));
+  }
+  const auto& signature = type::FunctionNode::create(arg_types, std::nullopt);
+  signature_ = signature;
 
   // search for a matching operator
-  auto operators = ops::get(token_.image);
+  auto operators = ops::get(symbol());
 
   // extract types into an option list
   std::deque<std::reference_wrapper<const type::FunctionNode>> candidates;
@@ -29,7 +88,8 @@ bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
 
   // if only one candidate remaining: this is us! use signature + name to find operator object
   if (candidates.size() == 1) {
-    op_ = ops::get(token_.image, candidates.front());
+    op_ = ops::get(symbol(), candidates.front());
+    signature_ = op_->get().type(); // make sure to replace with the correct signature (esp. for the return type)
     return true;
   }
 
@@ -43,20 +103,36 @@ bool lang::ast::expr::OperatorNode::process(lang::Context& ctx) {
 
   // error to user, reporting our candidate list
   std::unique_ptr<message::BasicMessage> msg = token_.generate_message(message::Error);
-  msg->get() << "unable to resolve a suitable candidate for operator" << symbol();
-  signature.print_code(msg->get());
+  msg->get() << "unable to resolve a suitable candidate for " << to_string();
   ctx.messages.add(std::move(msg));
 
   for (auto& option : operators) {
     msg = std::make_unique<message::BasicMessage>(message::Note);
-    msg->get() << "candidate: operator" << option.get().symbol();
-    option.get().type().print_code(msg->get());
+    msg->get() << "candidate: " << to_string();
     ctx.messages.add(std::move(msg));
   }
   return false;
 }
 
-bool lang::ast::expr::OperatorNode::load(lang::Context& ctx) const {
+std::string lang::ast::expr::OverloadableOperatorNode::to_string() const {
+  std::stringstream s;
+  s << "operator" << symbol();
+  if (signature_.has_value()) {
+    signature_->get().print_code(s);
+  } else {
+    s << "(?)";
+  }
+  return s.str();
+}
+
+std::unique_ptr<lang::value::Value> lang::ast::expr::OverloadableOperatorNode::get_value(lang::Context& ctx) const {
+  assert(op_.has_value());
+  return std::make_unique<value::Temporary>(op_->get().type().returns(), value::Options{.computable=true});
+}
+
+std::unique_ptr<lang::value::Value> lang::ast::expr::OverloadableOperatorNode::load(lang::Context& ctx) const {
+  if (!load_and_check_rvalue(ctx)) return nullptr;
+
   // operator must have been set by ::process
   assert(op_.has_value());
 
@@ -66,96 +142,61 @@ bool lang::ast::expr::OperatorNode::load(lang::Context& ctx) const {
 
   // generate asm code and mark with comment
   auto& builtin = static_cast<const ops::BuiltinOperator&>(op);
-  builtin.process(ctx);
-  auto& comment = ctx.program.current().back().comment();
-  comment << "operator" << op_.value().get().symbol();
-  op_.value().get().type().print_code(comment);
+  auto value = builtin.process(ctx);
+  ctx.program.current().back().comment() << to_string();
 
+  return value;
+}
+
+std::unique_ptr<lang::ast::expr::OperatorNode>
+lang::ast::expr::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> expr) {
+  std::deque<std::unique_ptr<Node>> children;
+  children.push_back(std::move(expr));
+  return std::make_unique<OverloadableOperatorNode>(std::move(token), std::move(children));
+}
+
+std::unique_ptr<lang::ast::expr::OperatorNode>
+lang::ast::expr::OperatorNode::binary(lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs) {
+  std::deque<std::unique_ptr<Node>> children;
+  children.push_back(std::move(lhs));
+  children.push_back(std::move(rhs));
+  return std::make_unique<OverloadableOperatorNode>(std::move(token), std::move(children));
+}
+
+lang::ast::expr::Node& lang::ast::expr::OperatorNode::lhs_() const {
+  assert(args_.size() > 0);
+  return *args_.front();
+}
+
+lang::ast::expr::Node& lang::ast::expr::OperatorNode::rhs_() const {
+  assert(args_.size() > 1);
+  return *args_[1];
+}
+
+bool lang::ast::expr::OperatorNode::load_and_check_rvalue(Context& ctx) const {
+  for (auto& arg : args_) {
+    auto result = arg->load(ctx);
+    if (!result) return false;
+
+    // MUST be an rvalue or bad
+    if (!result->is_rvalue()) {
+      auto msg = arg->token().generate_message(message::Error);
+      msg->get() << "expected rvalue, got ";
+      result->type().print_code(msg->get());
+      ctx.messages.add(std::move(msg));
+
+      msg = token_.generate_message(message::Note);
+      msg->get() << "in " << symbol();
+      return false;
+    }
+  }
   return true;
 }
 
-std::ostream &lang::ast::expr::BinaryOperatorNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  os << "(";
-  lhs_->print_code(os, indent_level);
-  os << " " << token_.image << " ";
-  rhs_->print_code(os, indent_level);
-  return os << ")";
-}
-
-std::ostream &lang::ast::expr::BinaryOperatorNode::print_tree(std::ostream &os, unsigned int indent_level) const {
-  Node::print_tree(os, indent_level);
-  os << SHELL_GREEN << token_.image << SHELL_RESET << std::endl;
-
-  lhs_->print_tree(os, indent_level + 1) << std::endl;
-  rhs_->print_tree(os, indent_level + 1);
-  return os;
-}
-
-const lang::ast::type::FunctionNode& lang::ast::expr::BinaryOperatorNode::signature() {
-  // do not give a return type, it is not requires for selecting a candidate
-  return type::FunctionNode::create({
-    lhs_->type(),
-    rhs_->type()
-  },  std::nullopt);
-}
-
-bool lang::ast::expr::BinaryOperatorNode::process(lang::Context& ctx) {
-  return lhs_->process(ctx) && rhs_->process(ctx) && OperatorNode::process(ctx);
-}
-
-bool lang::ast::expr::BinaryOperatorNode::load(lang::Context& ctx) const {
-  // load arguments and invoke operator
-  return lhs_->load(ctx) && rhs_->load(ctx) && OperatorNode::load(ctx);
-}
-
-std::ostream &lang::ast::expr::UnaryOperatorNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  os << "(" << token_.image << " ";
-  expr_->print_code(os, indent_level);
-  return os << ")";
-}
-
-std::ostream &lang::ast::expr::UnaryOperatorNode::print_tree(std::ostream &os, unsigned int indent_level) const {
-  Node::print_tree(os, indent_level);
-  os << SHELL_GREEN << token_.image << SHELL_RESET << std::endl;
-
-  expr_->print_tree(os, indent_level + 1);
-  return os;
-}
-
-const lang::ast::type::FunctionNode& lang::ast::expr::UnaryOperatorNode::signature() {
-  const type::Node& expr_type = expr_->type();
-  return type::FunctionNode::create({expr_type}, std::nullopt);
-}
-
-bool lang::ast::expr::UnaryOperatorNode::process(Context& ctx) {
-  return expr_->process(ctx) && OperatorNode::process(ctx);
-}
-
-bool lang::ast::expr::UnaryOperatorNode::load(lang::Context& ctx) const {
-  // load argument and invoke operator
-  return expr_->load(ctx) && OperatorNode::load(ctx);
-}
-
-std::ostream& lang::ast::expr::CastOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
-  os << "(";
-  target_.print_code(os);
-  os << ") ";
-  expr_->print_code(os, indent_level);
-  return os;
-}
-
-std::ostream& lang::ast::expr::CastOperatorNode::print_tree(std::ostream& os, unsigned int indent_level) const {
-  Node::print_tree(os, indent_level);
-  os << SHELL_GREEN << "(";
-  target_.print_code(os);
-  os << ")" SHELL_RESET << std::endl;
-
-  expr_->print_tree(os, indent_level + 1);
-  return os;
-}
-
 lang::ast::expr::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
-  : UnaryOperatorNode(std::move(token), std::move(expr)), target_(target) {
+  : OperatorNode(std::move(token), {}), target_(target) {
+  args_.push_back(std::move(expr));
+
   std::stringstream stream;
   stream << '(';
   target_.print_code(stream);
@@ -163,20 +204,142 @@ lang::ast::expr::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, co
   symbol_ = stream.str();
 }
 
-bool lang::ast::expr::CastOperatorNode::process(lang::Context& ctx) {
-  // this operator is special in that it doesn't look for operator overloads
-  // just use the cvt<x>2<y> instruction
-  return expr_->process(ctx);
+std::unique_ptr<lang::value::Value> lang::ast::expr::CastOperatorNode::get_value(lang::Context& ctx) const {
+  return std::make_unique<value::Temporary>(target_, value::Options{.computable=true});
 }
 
-bool lang::ast::expr::CastOperatorNode::load(lang::Context& ctx) const {
-  if (!expr_->load(ctx)) return false;
+std::unique_ptr<lang::value::Value> lang::ast::expr::CastOperatorNode::load(lang::Context& ctx) const {
+  if (!load_and_check_rvalue(ctx)) return nullptr;
 
   // emit conversion instruction
-  ops::implicit_cast(ctx, target_.get_asm_datatype());
+  auto value = get_value(ctx);
+  const memory::Ref ref = ops::implicit_cast(ctx, target_.get_asm_datatype());
+  value->set_ref(ref);
+  return value;
+}
+
+lang::ast::expr::DotOperatorNode::DotOperatorNode(lang::lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
+  : OperatorNode(std::move(token), {}) {
+  args_.push_back(std::move(lhs));
+  args_.push_back(std::move(rhs));
+}
+
+bool lang::ast::expr::DotOperatorNode::process(lang::Context& ctx) {
+  if (!lhs_().process(ctx)) return false;
+
+  // get LHS (do not evaluate though)
+  const auto lhs = lhs_().get_value(ctx);
+  if (!lhs) return false;
+
+  // fetch symbol referenced by LHS
+  const symbol::Symbol* parent = nullptr;
+  if (auto symbol = lhs->get_symbol()) {
+    parent = &symbol->get();
+  } else if (auto ref = lhs->get_symbol_ref()) {
+    auto symbols = ctx.symbols.find(ref->get());
+    if (symbols.empty()) {
+      ctx.messages.add(util::error_unresolved_symbol(lhs_().token(), ref->get()));
+      return false;
+    } else if (symbols.size() > 1) {
+      ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(lhs_().token(), ref->get()));
+      return false;
+    }
+    parent = &symbols.front().get();
+  } else {
+    auto msg = lhs_().token().generate_message(message::Error);
+    msg->get() << "expected symbol, got ";
+    lhs->type().print_code(msg->get());
+    msg->get() << " value";
+    ctx.messages.add(std::move(msg));
+
+    msg = token_.generate_message(message::Note);
+    msg->get() << "on lhs of dot operator";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
+  const std::string name_lhs = parent->full_name();
+
+  // get the RHS
+  const auto rhs = rhs_().get_value(ctx);
+  if (!rhs) return false;
+
+  // unlike LHS, this symbol may not be fully resolved
+  std::string name_rhs;
+  if (auto symbol = rhs->get_symbol()) {
+    name_rhs = symbol->get().name();
+  } else if (auto ref = rhs->get_symbol_ref()) {
+    name_rhs = ref->get();
+  } else {
+    auto msg = rhs_().token().generate_message(message::Error);
+    msg->get() << "expected symbol, got ";
+    rhs->type().print_code(msg->get());
+    msg->get() << " value";
+    ctx.messages.add(std::move(msg));
+
+    msg = token_.generate_message(message::Note);
+    msg->get() << "on rhs of dot operator";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
+  // this is the name we refer to:
+  resolved_ = name_lhs + "." + name_rhs;
+
+  // lookup symbol, ensure that we exist
+  auto symbols = ctx.symbols.find(resolved_);
+  if (symbols.empty()) {
+    ctx.messages.add(util::error_no_member(token_, parent->type(), name_lhs, name_rhs));
+    resolved_.clear(); // clear to prevent invalid state going forwards
+    return false;
+  }
+
+  // if only one hit, that's our guy
+  if (symbols.size() == 1) {
+    symbol_ = symbols.front();
+    return true;
+  }
+
   return true;
 }
 
-const lang::ast::type::Node& lang::ast::expr::CastOperatorNode::type() const {
-  return target_;
+std::unique_ptr<lang::value::Value> lang::ast::expr::DotOperatorNode::get_value(lang::Context& ctx) const {
+  assert(!resolved_.empty());
+
+  // if symbol is recorded, return reference to it
+  if (symbol_.has_value()) {
+    auto location = ctx.symbols.locate(symbol_->get().id());
+    return std::make_unique<value::Symbol>(*symbol_, value::Options{.lvalue=location, .computable=location.has_value()});
+  }
+
+  // otherwise, just return reference to name
+  // we can figure it out elsewhere :)
+  return std::make_unique<value::SymbolRef>(resolved_);
+}
+
+std::unique_ptr<lang::value::Value> lang::ast::expr::DotOperatorNode::load(lang::Context& ctx) const {
+  auto value = get_value(ctx);
+  if (!value) return nullptr;
+
+  // if SymbolRef, we do not have sufficient information to continue
+  if (auto ref = value->get_symbol_ref()) {
+    ctx.messages.add(util::error_unresolved_symbol(token_, resolved_));
+
+    auto symbols = ctx.symbols.find(resolved_);
+    for (auto& symbol : symbols) {
+      auto msg = symbol.get().token().generate_message(message::Note);
+      msg->get() << "candidate: " << symbol.get().full_name();
+      ctx.messages.add(std::move(msg));
+    }
+    return nullptr;
+  }
+
+  // load into register if symbol
+  if (auto symbol = value->get_symbol()) {
+    memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(symbol->get()));
+    value->set_ref(ref);
+    return value;
+  }
+
+  return value;
 }

@@ -20,6 +20,7 @@ namespace lang::symbol {
     std::unordered_map<SymbolId, memory::StorageLocation> storage_; // record where each symbol is physically stored, populated by ::locate()
     std::unordered_map<SymbolId, std::unique_ptr<Symbol>> symbols_;
     std::deque<std::reference_wrapper<const ast::FunctionBaseNode>> trace_; // track which function we are in, front = most recent
+    std::deque<std::reference_wrapper<const Symbol>> path_; // track namespace nesting (i.e., path), front = most recent
     memory::StackManager& stack_;
 
   public:
@@ -75,5 +76,14 @@ namespace lang::symbol {
 
     // exit the last function
     void exit_function();
+
+    // record that we are in a new named container
+    void push_path(SymbolId id);
+
+    // get `n`th most recent path item (default n = 0 = most recent)
+    const Symbol& peek_path(unsigned int n = 0);
+
+    // exit the current named container
+    void pop_path();
   };
 }

@@ -41,5 +41,7 @@ std::string lang::symbol::category_to_string(lang::symbol::Category category) {
       return "argument";
     case Category::Function:
       return "function";
+    case Category::Namespace:
+      return "namespace";
   }
 }

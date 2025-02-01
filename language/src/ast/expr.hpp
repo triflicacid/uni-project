@@ -13,7 +13,7 @@ namespace lang::ast {
 
     std::string name() const override { return "expression"; }
 
-    const type::Node& type() const { return expr_->type(); }
+    expr::Node& get() const { return *expr_; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

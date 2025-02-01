@@ -4,6 +4,7 @@
 #include "ast/types/float.hpp"
 #include "shell.hpp"
 #include "context.hpp"
+#include "value/literal.hpp"
 
 std::ostream &lang::ast::expr::LiteralNode::print_code(std::ostream &os, unsigned int indent_level) const {
   os << "(";
@@ -22,7 +23,11 @@ bool lang::ast::expr::LiteralNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::expr::LiteralNode::load(lang::Context& ctx) const {
-  ctx.reg_alloc_manager.find(lit_);
-  return true;
+std::unique_ptr<lang::value::Value> lang::ast::expr::LiteralNode::get_value(lang::Context& ctx) const {
+  return std::make_unique<value::Literal>(lit_); // uninitialised literal (r)value
+}
+
+std::unique_ptr<lang::value::Value> lang::ast::expr::LiteralNode::load(lang::Context& ctx) const {
+  const memory::Ref ref = ctx.reg_alloc_manager.find(lit_);
+  return std::make_unique<value::Literal>(lit_, value::Options{.rvalue=ref});
 }

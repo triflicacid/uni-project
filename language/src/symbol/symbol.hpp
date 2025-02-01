@@ -11,6 +11,7 @@ namespace lang::symbol {
     Ordinary, // ordinary symbol, stack-based, offset determined by StackManager
     Argument, // argument, point to index
     Function, // globally-places function (block-bound)
+    Namespace,
   };
 
   std::string category_to_string(Category category);

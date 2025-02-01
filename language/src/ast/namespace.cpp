@@ -5,14 +5,23 @@
 #include "config.hpp"
 
 std::ostream& lang::ast::NamespaceNode::print_code(std::ostream& os, unsigned int indent_level) const {
-  os << "namespace " << token_.image << " ";
-  return body_->print_code(os, indent_level);
+  os << "namespace " << token_.image << " {";
+  for (auto& line : lines_) {
+    os << std::endl;
+    indent(os, indent_level + 1);
+    line->print_code(os, indent_level + 1);
+  }
+  indent(os, indent_level);
+  return os << "}";
 }
 
 std::ostream& lang::ast::NamespaceNode::print_tree(std::ostream& os, unsigned int indent_level) const {
-  Node::print_tree(os, indent_level) << SHELL_GREEN << token_.image << SHELL_RESET << std::endl;
-  indent(os, indent_level);
-  return body_->print_tree(os, indent_level + 1);
+  Node::print_tree(os, indent_level) << SHELL_GREEN << token_.image << SHELL_RESET;
+  for (auto& line : lines_) {
+    os << std::endl;
+    line->print_tree(os, indent_level + 1);
+  }
+  return os;
 }
 
 bool lang::ast::NamespaceNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
@@ -35,23 +44,18 @@ bool lang::ast::NamespaceNode::collate_registry(message::List& messages, lang::s
 
   // insert into registry as a Namespace symbol
   auto symbol = std::make_unique<symbol::Namespace>(token_);
-  const symbol::SymbolId ns_id = symbol->id();
+  id_ = symbol->id();
   registry.insert(std::move(symbol));
 
-  // collate block body as normal
-  if (!body_->collate_registry(messages, registry))
-    return false;
-
-  // lint: is this namespace empty?
-  if (conf::lint && body_->registry_->empty()) {
-    auto msg = token_.generate_message(conf::lint_level);
-    msg->get() << "namespace " << token_.image << " is empty";
-    messages.add(std::move(msg));
+  // collate lines in a separate registry
+  registry_ = std::make_unique<symbol::Registry>();
+  for (auto& line : lines_) {
+    if (!line->collate_registry(messages, *registry_)) return false;
   }
 
-  // add us as a parent to this symbol
-  auto& ns = registry.get(ns_id);
-  for (auto& [symbolId, symbol] : *body_->registry_) {
+  // add us as a parent to all collated symbols
+  auto& ns = registry.get(id_);
+  for (auto& [symbolId, symbol] : *registry_) {
     symbol->set_parent(ns);
   }
 
@@ -59,5 +63,30 @@ bool lang::ast::NamespaceNode::collate_registry(message::List& messages, lang::s
 }
 
 bool lang::ast::NamespaceNode::process(lang::Context& ctx) {
-  return body_->process(ctx);
+  assert(registry_ != nullptr);
+
+  // record nested structure of namespace
+  ctx.symbols.push_path(id_);
+
+  // insert into symbol table
+  ctx.symbols.insert(*registry_);
+
+  // process children
+  for (auto& line : lines_) {
+    if (!line->process(ctx)) return false;
+  }
+
+  ctx.symbols.pop_path();
+  return true;
+}
+
+void lang::ast::NamespaceNode::add(std::unique_ptr<Node> ast_node) {
+  lines_.push_back(std::move(ast_node));
+}
+
+void lang::ast::NamespaceNode::add(std::deque<std::unique_ptr<Node>> ast_nodes) {
+  while (!ast_nodes.empty()) {
+    lines_.push_back(std::move(ast_nodes.front()));
+    ast_nodes.pop_front();
+  }
 }
