@@ -7,6 +7,7 @@ namespace lang::ast {
   class SymbolDeclarationNode;
 
   class FunctionBaseNode : public Node {
+    lexer::Token name_;
     std::deque<std::unique_ptr<SymbolDeclarationNode>> params_; // note, assume that arg types and param types are equivalent
     symbol::SymbolId id_; // ID of created function (created in ::collate_registry)
 
@@ -25,9 +26,11 @@ namespace lang::ast {
     virtual std::string block_prefix() const = 0;
 
   public:
-    FunctionBaseNode(lexer::Token token, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params);
+    FunctionBaseNode(lexer::Token token, lexer::Token name, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params);
 
     size_t params() const { return params_.size(); }
+
+    const lexer::Token& name() const { return name_; }
 
     const SymbolDeclarationNode& param(unsigned int i) const { return *params_[i]; }
 

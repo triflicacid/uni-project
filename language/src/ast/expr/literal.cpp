@@ -1,6 +1,5 @@
 #include "literal.hpp"
 #include "ast/types/int.hpp"
-#include "uint64.hpp"
 #include "ast/types/float.hpp"
 #include "shell.hpp"
 #include "context.hpp"

@@ -9,9 +9,13 @@ namespace lang::ast {
     std::unique_ptr<expr::Node> expr_;
 
   public:
-    ExprNode(std::unique_ptr<expr::Node> expr) : Node(expr->token()), expr_(std::move(expr)) {}
+    ExprNode(std::unique_ptr<expr::Node> expr) : Node(expr->token_start()), expr_(std::move(expr)) {}
 
-    std::string name() const override { return "expression"; }
+    const lexer::Token& token_start() const override { return expr_->token_start(); }
+
+    const lexer::Token& token_end() const override { return expr_->token_end(); }
+
+    std::string node_name() const override { return "expression"; }
 
     expr::Node& get() const { return *expr_; }
 

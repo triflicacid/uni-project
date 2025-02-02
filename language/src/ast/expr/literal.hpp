@@ -12,9 +12,9 @@ namespace lang::ast::expr {
   public:
     LiteralNode(lexer::Token token, const memory::Literal& lit) : Node(std::move(token)), lit_(lit) {}
     LiteralNode(lexer::Token token, const ast::type::Node& type)
-      : Node(std::move(token)), lit_(memory::Literal::get(type, token_.value)) {}
+      : Node(std::move(token)), lit_(memory::Literal::get(type, token_start().value)) {}
 
-    std::string name() const override { return "literal"; }
+    std::string node_name() const override { return "literal"; }
 
     const memory::Literal& get() const { return lit_; }
 

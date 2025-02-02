@@ -1,6 +1,6 @@
 #include "float.hpp"
 
-std::string lang::ast::type::FloatNode::name() const {
+std::string lang::ast::type::FloatNode::node_name() const {
   return double_ ? "f64" : "f32";
 }
 
@@ -15,7 +15,7 @@ constants::inst::datatype::dt lang::ast::type::FloatNode::get_asm_datatype() con
 }
 
 std::string lang::ast::type::FloatNode::to_label() const {
-  return name();
+  return node_name();
 }
 
 lang::ast::type::FloatNode

@@ -13,7 +13,7 @@ namespace lang::ast::type {
 
     const IntNode* get_int() const override { return this; }
 
-    std::string name() const override;
+    std::string node_name() const override;
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

@@ -1,18 +1,16 @@
-#include <cassert>
 #include "symbol_reference.hpp"
 #include "shell.hpp"
 #include "context.hpp"
-#include "ast/types/namespace.hpp"
 #include "value/symbol.hpp"
 #include "message_helper.hpp"
 
 std::ostream &lang::ast::expr::SymbolReferenceNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  return os << token_.image;
+  return os << token_start().image;
 }
 
 std::ostream &lang::ast::expr::SymbolReferenceNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  return os << SHELL_GREEN << token_.image << SHELL_RESET;
+  return os << SHELL_GREEN << token_start().image << SHELL_RESET;
 }
 
 bool lang::ast::expr::SymbolReferenceNode::process(lang::Context& ctx) {
@@ -21,12 +19,12 @@ bool lang::ast::expr::SymbolReferenceNode::process(lang::Context& ctx) {
 
 std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::get_value(lang::Context& ctx) const {
   // just reference, you guessed it, symbol reference!
-  return std::make_unique<value::SymbolRef>(token_.image);
+  return std::make_unique<value::SymbolRef>(token_start().image);
 }
 
 std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::load(lang::Context& ctx) const {
   auto value = get_value(ctx);
-  value = value->get_symbol_ref()->resolve(ctx, token_, true);
+  value = value->get_symbol_ref()->resolve(ctx, *this, true);
   if (!value) return nullptr;
 
   // exit if we are not computable (e.g., namespace)

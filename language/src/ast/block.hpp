@@ -13,7 +13,7 @@ namespace lang::ast {
   public:
     using Node::Node;
 
-    std::string name() const override { return "block"; }
+    std::string node_name() const override { return "block"; }
 
     void add(std::unique_ptr<Node> ast_node) override;
 

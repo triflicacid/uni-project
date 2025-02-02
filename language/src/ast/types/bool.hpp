@@ -8,7 +8,7 @@ namespace lang::ast::type {
   public:
     BoolNode() = default;
 
-    std::string name() const override { return "bool"; }
+    std::string node_name() const override { return "bool"; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

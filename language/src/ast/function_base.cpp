@@ -6,9 +6,9 @@
 #include "assembly/create.hpp"
 #include "symbol_declaration.hpp"
 
-lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, const type::FunctionNode& type,
+lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, lexer::Token name, const type::FunctionNode& type,
                                               std::deque<std::unique_ptr<SymbolDeclarationNode>> params)
-    : Node(std::move(token)), type_(type), params_(std::move(params)) {}
+    : Node(std::move(token)), name_(std::move(name)), type_(type), params_(std::move(params)) {}
 
 bool lang::ast::FunctionBaseNode::validate_params(message::List& messages) {
   // check for duplicate names
@@ -17,9 +17,9 @@ bool lang::ast::FunctionBaseNode::validate_params(message::List& messages) {
   std::string name;
   for (const auto& param : params_) {
     // extract name & check if it exists already
-    name = param->token().image;
+    name = name_.image;
     if (names.contains(name)) {
-      auto msg = param->token().generate_message(message::Error);
+      auto msg = param->generate_message(message::Error);
       msg->get() << "duplicate parameter name " << name;
       messages.add(std::move(msg));
 
@@ -31,7 +31,7 @@ bool lang::ast::FunctionBaseNode::validate_params(message::List& messages) {
 
     // cache parameter name & its location (token)
     names.insert(name);
-    tokens.insert({name, param->token()});
+    tokens.insert({name, param->token_start()});
   }
 
   return true;
@@ -41,7 +41,7 @@ std::ostream& lang::ast::FunctionBaseNode::print_code(std::ostream& os, unsigned
   // print comma-separated bracketed list of parameter types
   indent(os, indent_level) << block_prefix() << "(";
   for (int i = 0; i < params_.size(); i++) {
-    os << params_[i]->token().image << ": ";
+    os << params_[i]->name().image << ": ";
     type_.arg(i).print_code(os);
     if (i < params_.size() - 1) os << ", ";
   }
@@ -57,7 +57,7 @@ std::ostream& lang::ast::FunctionBaseNode::print_code(std::ostream& os, unsigned
 }
 
 std::ostream& lang::ast::FunctionBaseNode::print_tree(std::ostream& os, unsigned int indent_level) const {
-  Node::print_tree(os, indent_level)  << SHELL_GREEN << token_.image << SHELL_RESET;
+  Node::print_tree(os, indent_level)  << SHELL_GREEN << name_.image << SHELL_RESET;
 
   // print arguments
   for (auto& param : params_) {
@@ -71,7 +71,7 @@ std::ostream& lang::ast::FunctionBaseNode::print_tree(std::ostream& os, unsigned
 
 bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
   // attempt to register the symbol
-  auto maybe_id = symbol::create_variable(registry, symbol::Category::Function, token_, type_, messages);
+  auto maybe_id = symbol::create_variable(registry, symbol::Category::Function, name_, type_, messages);
   if (!maybe_id.has_value()) return false;
   id_ = maybe_id.value();
 

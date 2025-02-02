@@ -5,7 +5,7 @@
 namespace lang::ast::type {
   class NoneNode : public Node {
   public:
-    std::string name() const override { return "none"; }
+    std::string node_name() const override { return "none"; }
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

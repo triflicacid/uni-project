@@ -10,7 +10,7 @@ namespace lang::ast {
   public:
     using Node::Node;
 
-    std::string name() const override { return "program"; }
+    std::string node_name() const override { return "program"; }
 
     void add(std::unique_ptr<Node> ast_node) override;
 

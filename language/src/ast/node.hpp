@@ -17,20 +17,24 @@ namespace lang::ast {
   public:
     virtual ~NodeBase() = default;
 
-    virtual std::string name() const = 0;
+    virtual std::string node_name() const = 0;
 
     // print in code form
     virtual std::ostream& print_code(std::ostream& os, unsigned int indent_level = 0) const = 0;
   };
 
-  class Node : public NodeBase {
-  protected:
-    lexer::Token token_; // token we began with
+  class Node : public NodeBase, public lexer::TokenSpan {
+    lexer::Token tstart_;
+    std::optional<lexer::Token> tend_;
 
   public:
-    explicit Node(lexer::Token token) : NodeBase(), token_(token) {}
+    explicit Node(lexer::Token token) : NodeBase(), tstart_(token) {}
 
-    const lexer::Token& token() const { return token_; }
+    const lexer::Token& token_start() const override { return tstart_; }
+
+    const lexer::Token& token_end() const override { return tend_ ? *tend_ : tstart_; }
+
+    void token_end(const lexer::Token& token) { tend_ = token; }
 
     // print in tree form, default only print name
     virtual std::ostream& print_tree(std::ostream& os, unsigned int indent_level = 0) const;

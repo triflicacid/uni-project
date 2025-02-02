@@ -102,9 +102,9 @@ bool lang::parser::Parser::expect_or_error(const lang::lexer::BasicToken& token)
 
 lang::lexer::Token lang::parser::Parser::consume() {
   if (buffer_.empty()) read_tokens(1);
-  const lexer::Token last = buffer_.front();
+  prev_ = buffer_.front();
   buffer_.pop_front();
-  return last;
+  return prev_;
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::eol = {
@@ -270,7 +270,8 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
     if (is_error()) return nullptr;
 
     // wrap both sides in a binary operator and continue
-    expr = ast::expr::OperatorNode::binary(op_token, std::move(expr), std::move(rest));
+    const lexer::Token token_start = expr->token_start();
+    expr = ast::expr::OperatorNode::binary(token_start, op_token, std::move(expr), std::move(rest));
   }
 
   return expr;
@@ -303,7 +304,9 @@ std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_na
   const ast::type::Node* type = parse_type();
   if (is_error() || !type) return nullptr;
 
-  return std::make_unique<ast::SymbolDeclarationNode>(name, *type);
+  auto node = std::make_unique<ast::SymbolDeclarationNode>(name, name, *type);
+  node->token_end(previous());
+  return node;
 }
 
 void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
@@ -338,8 +341,9 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
     }
 
     // create and add declaration node
-    auto decl = std::make_unique<ast::SymbolDeclarationNode>(name, type, std::move(expr));
+    auto decl = std::make_unique<ast::SymbolDeclarationNode>(name, name, type, std::move(expr));
     decl->set_category(category);
+    decl->token_end(previous());
     container.add(std::move(decl));
 
     // if comma, continue
@@ -379,7 +383,7 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
 
 std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
   // 'func'
-  consume();
+  const lexer::Token token_start = consume();
 
   // name
   if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
@@ -416,7 +420,9 @@ std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
   auto& type = ast::type::FunctionNode::create(param_types, returns);
 
   // construct function type and node
-  return std::make_unique<ast::FunctionNode>(name, type, std::move(params), std::move(body));
+  auto node = std::make_unique<ast::FunctionNode>(token_start, name, type, std::move(params), std::move(body));
+  node->token_end(previous());
+  return node;
 }
 
 std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
@@ -430,7 +436,9 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
     if (is_error()) return nullptr;
   }
 
-  return std::make_unique<ast::ReturnNode>(std::move(token), std::move(expr));
+  auto node = std::make_unique<ast::ReturnNode>(std::move(token), std::move(expr));
+  if (expr.has_value()) node->token_end(previous());
+  return node;
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
@@ -502,12 +510,13 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
   }
 
   consume();
+  block->token_end(previous());
   return block;
 }
 
 std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace() {
   // 'namespace'
-  consume();
+  const lexer::Token token_start = consume();
 
   // name
   if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
@@ -517,7 +526,7 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
   if (!expect_or_error(lexer::TokenType::lbrace)) return nullptr;
   const lexer::Token lbrace = consume();
 
-  auto ns = std::make_unique<ast::NamespaceNode>(name);
+  auto ns = std::make_unique<ast::NamespaceNode>(token_start, name);
   while (true) {
     // remove newlines
     while (expect(firstset::eol)) consume();
@@ -541,7 +550,7 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
   }
 
   consume();
-
+  ns->token_end(previous());
   return ns;
 }
 

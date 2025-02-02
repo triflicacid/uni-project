@@ -63,4 +63,57 @@ namespace message {
         return;
     }
   }
+
+  MessageWithMultilineSource::FormatInfo MessageWithMultilineSource::format() const {
+    switch (level_) {
+      case Note:
+        return {"note", ANSI_BLUE};
+      case Warning:
+        return {"warning", ANSI_YELLOW};
+      case Error:
+        return {"error", ANSI_RED, ANSI_YELLOW};
+    }
+  }
+
+  void MessageWithMultilineSource::print(std::ostream& os) const {
+    const FormatInfo fmt = format();
+    os << fmt.primary << fmt.prefix << ANSI_RESET " " << loc_.path() << ':' << loc_.line() << ':' << loc_.column()
+       << ": " << fmt.secondary << msg_.str() << ANSI_RESET
+       << std::endl << loc_.line() << " | ";
+
+    const std::string prefix = std::string(std::to_string(loc_.line()).length() + 3, ' ');
+
+    // if error is all on one line...
+    if (loc_.line() == end_.line()) {
+      const std::string& line = lines_.front();
+      const int length = end_.column() - loc_.column();
+      os << line.substr(0, loc_.column() - 1)
+         << fmt.primary << line.substr(loc_.column() - 1, length)
+         << ANSI_RESET << line.substr(end_.column() - 1) << std::endl;
+      os << prefix << std::string(loc_.column() - 1, ' ')
+         << fmt.primary << '^' << (length > 1 ? std::string(length - 1, '~') : "")
+         << ANSI_RESET << std::endl;
+
+      return;
+    }
+
+    int i = loc_.line();
+    for (const std::string& line : lines_) {
+      // if start line, error appears here
+      if (i == loc_.line()) {
+        os << line.substr(0, loc_.column() - 1)
+           << fmt.primary << line.substr(loc_.column() - 1) << ANSI_RESET << std::endl;
+        os << prefix << std::string(loc_.column() - 1, ' ')
+           << fmt.primary << '^' << std::string(line.length() - loc_.column() - 1, '~') << ANSI_RESET << std::endl;
+      } else if (i == end_.line()) {
+        os << i << " | " << fmt.primary << line.substr(0, end_.column() - 1) << ANSI_RESET << line.substr(end_.column() - 1) << std::endl;
+        os << prefix << fmt.primary << std::string(end_.column() - 1, '~') << ANSI_RESET << std::endl;
+      } else {
+        os << i << " | " << line << std::endl;
+        os << prefix << std::string(line.length(), '~') << std::endl;
+      }
+
+      i++;
+    }
+  }
 }

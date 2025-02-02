@@ -10,12 +10,12 @@ namespace lang::ast {
 
     bool _process(lang::Context &ctx) override;
 
-    std::string block_prefix() const override { return "func " + token_.image; }
+    std::string block_prefix() const override { return "func " + name().image; }
 
   public:
-    FunctionNode(lexer::Token token, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params, std::optional<std::unique_ptr<BlockNode>> body);
+    FunctionNode(lexer::Token token, lexer::Token, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params, std::optional<std::unique_ptr<BlockNode>> body);
 
-    std::string name() const override { return "function"; }
+    std::string node_name() const override { return "function"; }
 
     // return if we are implemented, i.e., have a body
     bool is_implemented() const { return body_.has_value(); }

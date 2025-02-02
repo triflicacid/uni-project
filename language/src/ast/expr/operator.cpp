@@ -11,7 +11,7 @@
 #include "message_helper.hpp"
 #include "value/symbol.hpp"
 
-std::string lang::ast::expr::OperatorNode::name() const {
+std::string lang::ast::expr::OperatorNode::node_name() const {
   return args_.size() == 2
     ? "binary operator"
     : "unary operator";
@@ -60,18 +60,18 @@ bool lang::ast::expr::OverloadableOperatorNode::process(lang::Context& ctx) {
     if (!value) return false;
     // if symbol reference, attempt to resolve
     if (auto ref = value->get_symbol_ref()) {
-      value = ref->resolve(ctx, token_, true);
+      value = ref->resolve(ctx, arg->token_start(), true);
       if (!value) return false;
     }
     // must be computable to a value (i.e., possible rvalue)
     if (!value->is_computable()) {
-      auto msg = arg->token().generate_message(message::Error);
+      auto msg = arg->generate_message(message::Error);
       msg->get() << "expected rvalue, got ";
       value->type().print_code(msg->get());
       ctx.messages.add(std::move(msg));
 
-      msg = token_.generate_message(message::Note);
-      msg->get() << "while evaluating " << name();
+      msg = op_symbol_.generate_message(message::Note);
+      msg->get() << "while evaluating " << node_name();
       ctx.messages.add(std::move(msg));
       return false;
     }
@@ -104,12 +104,12 @@ bool lang::ast::expr::OverloadableOperatorNode::process(lang::Context& ctx) {
   if (!candidates.empty()) {
     operators.clear();
     for (auto& candidate : candidates) {
-      operators.push_back(ops::get(token_.image, candidate).value());
+      operators.push_back(ops::get(symbol(), candidate).value());
     }
   }
 
   // error to user, reporting our candidate list
-  std::unique_ptr<message::BasicMessage> msg = token_.generate_message(message::Error);
+  std::unique_ptr<message::BasicMessage> msg = op_symbol_.generate_message(message::Error);
   msg->get() << "unable to resolve a suitable candidate for " << to_string();
   ctx.messages.add(std::move(msg));
 
@@ -159,21 +159,21 @@ std::unique_ptr<lang::ast::expr::OperatorNode>
 lang::ast::expr::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> expr) {
   std::deque<std::unique_ptr<Node>> children;
   children.push_back(std::move(expr));
-  return std::make_unique<OverloadableOperatorNode>(std::move(token), std::move(children));
+  return std::make_unique<OverloadableOperatorNode>(token, token, std::move(children));
 }
 
 std::unique_ptr<lang::ast::expr::OperatorNode>
-lang::ast::expr::OperatorNode::binary(lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs) {
+lang::ast::expr::OperatorNode::binary(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs) {
   // check for *special* operators
-  if (token.image == ".") {
-    return std::make_unique<DotOperatorNode>(std::move(token), std::move(lhs), std::move(rhs));
+  if (symbol.image == ".") {
+    return std::make_unique<DotOperatorNode>(std::move(token), std::move(symbol), std::move(lhs), std::move(rhs));
   }
 
   // otherwise, generic binary op
   std::deque<std::unique_ptr<Node>> children;
   children.push_back(std::move(lhs));
   children.push_back(std::move(rhs));
-  return std::make_unique<OverloadableOperatorNode>(std::move(token), std::move(children));
+  return std::make_unique<OverloadableOperatorNode>(std::move(token), std::move(symbol), std::move(children));
 }
 
 lang::ast::expr::Node& lang::ast::expr::OperatorNode::lhs_() const {
@@ -193,13 +193,13 @@ bool lang::ast::expr::OperatorNode::load_and_check_rvalue(Context& ctx) const {
 
     // MUST be an rvalue or bad
     if (!result->is_rvalue()) {
-      auto msg = arg->token().generate_message(message::Error);
+      auto msg = arg->generate_message(message::Error);
       msg->get() << "expected rvalue, got ";
       result->type().print_code(msg->get());
       ctx.messages.add(std::move(msg));
 
-      msg = token_.generate_message(message::Note);
-      msg->get() << "while evaluating " << name();
+      msg = op_symbol_.generate_message(message::Note);
+      msg->get() << "while evaluating " << node_name();
       ctx.messages.add(std::move(msg));
       return false;
     }
@@ -208,7 +208,7 @@ bool lang::ast::expr::OperatorNode::load_and_check_rvalue(Context& ctx) const {
 }
 
 lang::ast::expr::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
-  : OperatorNode(std::move(token), {}), target_(target) {
+  : OperatorNode(token, token, {}), target_(target) {
   args_.push_back(std::move(expr));
 
   std::stringstream stream;
@@ -216,6 +216,8 @@ lang::ast::expr::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, co
   target_.print_code(stream);
   stream << ')';
   symbol_ = stream.str();
+
+  op_symbol_.image = symbol_; // doctor image for correct-looking error reporting
 }
 
 std::unique_ptr<lang::value::Value> lang::ast::expr::CastOperatorNode::get_value(lang::Context& ctx) const {
@@ -232,8 +234,9 @@ std::unique_ptr<lang::value::Value> lang::ast::expr::CastOperatorNode::load(lang
   return value;
 }
 
-lang::ast::expr::DotOperatorNode::DotOperatorNode(lang::lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
-  : OperatorNode(std::move(token), {}) {
+lang::ast::expr::DotOperatorNode::DotOperatorNode(lang::lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
+  : OperatorNode(std::move(token), std::move(symbol), {}) {
+  token_end(rhs->token_end());
   args_.push_back(std::move(lhs));
   args_.push_back(std::move(rhs));
 }
@@ -252,21 +255,21 @@ bool lang::ast::expr::DotOperatorNode::process(lang::Context& ctx) {
   } else if (auto ref = lhs->get_symbol_ref()) {
     auto symbols = ctx.symbols.find(ref->get());
     if (symbols.empty()) {
-      ctx.messages.add(util::error_unresolved_symbol(lhs_().token(), ref->get()));
+      ctx.messages.add(util::error_unresolved_symbol(lhs_(), ref->get()));
       return false;
     } else if (symbols.size() > 1) {
-      ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(lhs_().token(), ref->get()));
+      ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(lhs_(), ref->get()));
       return false;
     }
     parent = &symbols.front().get();
   } else {
-    auto msg = lhs_().token().generate_message(message::Error);
+    auto msg = lhs_().generate_message(message::Error);
     msg->get() << "expected symbol, got ";
     lhs->type().print_code(msg->get());
     msg->get() << " value";
     ctx.messages.add(std::move(msg));
 
-    msg = token_.generate_message(message::Note);
+    msg = op_symbol_.generate_message(message::Note);
     msg->get() << "on lhs of dot operator";
     ctx.messages.add(std::move(msg));
     return false;
@@ -285,13 +288,13 @@ bool lang::ast::expr::DotOperatorNode::process(lang::Context& ctx) {
   } else if (auto ref = rhs->get_symbol_ref()) {
     name_rhs = ref->get();
   } else {
-    auto msg = rhs_().token().generate_message(message::Error);
+    auto msg = rhs_().generate_message(message::Error);
     msg->get() << "expected symbol, got ";
     rhs->type().print_code(msg->get());
     msg->get() << " value";
     ctx.messages.add(std::move(msg));
 
-    msg = token_.generate_message(message::Note);
+    msg = op_symbol_.generate_message(message::Note);
     msg->get() << "on rhs of dot operator";
     ctx.messages.add(std::move(msg));
     return false;
@@ -303,7 +306,7 @@ bool lang::ast::expr::DotOperatorNode::process(lang::Context& ctx) {
   // lookup symbol, ensure that we exist
   auto symbols = ctx.symbols.find(resolved_);
   if (symbols.empty()) {
-    ctx.messages.add(util::error_no_member(token_, parent->type(), name_lhs, name_rhs));
+    ctx.messages.add(util::error_no_member(rhs_(), parent->type(), name_lhs, name_rhs));
     resolved_.clear(); // clear to prevent invalid state going forwards
     return false;
   }
@@ -337,9 +340,9 @@ std::unique_ptr<lang::value::Value> lang::ast::expr::DotOperatorNode::load(lang:
 
   // if SymbolRef, we do not have sufficient information to continue
   if (auto ref = value->get_symbol_ref()) {
-    ctx.messages.add(util::error_unresolved_symbol(token_, resolved_));
+    ctx.messages.add(util::error_unresolved_symbol(*this, ref->get()));
 
-    auto symbols = ctx.symbols.find(resolved_);
+    auto symbols = ctx.symbols.find(ref->get());
     for (auto& symbol : symbols) {
       auto msg = symbol.get().token().generate_message(message::Note);
       msg->get() << "candidate: " << symbol.get().full_name();
@@ -359,7 +362,7 @@ std::unique_ptr<lang::value::Value> lang::ast::expr::DotOperatorNode::load(lang:
 //    symbol->type().print_code(msg->get());
 //    ctx.messages.add(std::move(msg));
 //    return nullptr;
-return value;
+    return value;
   }
 
   // load into register if symbol

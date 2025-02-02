@@ -106,18 +106,36 @@ bool BasicToken::is_valid() const {
   return type != TokenType::invalid;
 }
 
-std::unique_ptr<message::MessageWithSource> Token::generate_message(message::Level level) const {
-  int end_column = source.column() + length();
+std::unique_ptr<message::Message> Token::generate_message(message::Level level) const {
   return std::make_unique<message::MessageWithSource>(
       level,
-      source.copy().column(end_column),
-      source.column() - 1,
-      end_column - source.column(),
-      image_line
+      loc,
+      loc.column() - 1,
+      length(),
+      origin.get().get_line(loc.line())
   );
 }
 
-std::unique_ptr<message::MessageWithSource> Token::generate_syntax_error(const TokenSet& expected_types) const {
+std::unique_ptr<message::Message> TokenSpan::generate_message(message::Level level) const {
+  IStreamWrapper& stream = token_start().origin;
+  Location start = token_start().loc, end = token_end().loc;
+  end.column(end.column() + token_end().image.length());
+
+  // collate error lines
+  std::deque<std::string> lines;
+  for (int i = start.line(); i <= end.line(); i++) {
+    lines.push_back(stream.get_line(i));
+  }
+
+  return std::make_unique<message::MessageWithMultilineSource>(
+      level,
+      start,
+      end,
+      std::move(lines)
+  );
+}
+
+std::unique_ptr<message::Message> Token::generate_syntax_error(const TokenSet& expected_types) const {
   auto error = generate_message(message::Error);
 
   // message: "syntax error: encountered <type>, expected [one of] <type1>[, <type2>[, ...]]"
@@ -137,7 +155,7 @@ std::unique_ptr<message::MessageWithSource> Token::generate_syntax_error(const T
   return error;
 }
 
-std::unique_ptr<message::MessageWithSource>
+std::unique_ptr<message::Message>
 Token::generate_detailed_syntax_error(const std::deque<std::reference_wrapper<const BasicToken>>& expected_tokens) const {
   auto error = generate_message(message::Error);
 
@@ -196,6 +214,10 @@ bool Token::parse_numerical(TokenType num_type) {
   return true;
 }
 
+Token Token::invalid(IStreamWrapper& stream) {
+  return Token(TokenType::invalid, "", stream, Location("/dev/null"));
+}
+
 std::string BasicToken::to_string() const {
   std::string s = token_type_to_string(type);
   if (s.front() != '"') { // if we are a type, add on image
@@ -205,12 +227,12 @@ std::string BasicToken::to_string() const {
 }
 
 Token Lexer::token(const std::string &image, TokenType type) const {
-  const auto& position = stream.get_position();
+  const auto& position = stream_.get_position();
   return Token(
-    type,
-    image,
-    get_line(position.line),
-    Location(get_source_name(), position.line, position.col - image.length())
+      type,
+      image,
+      stream_,
+      Location(get_source_name(), position.line, position.col - image.length())
   );
 }
 
@@ -223,8 +245,8 @@ static bool seen_CR = false;
 
 Token Lexer::next() {
   // eat leading whitespace, then check for eof
-  stream.eat_whitespace();
-  int ch = stream.peek_char();
+  stream_.eat_whitespace();
+  int ch = stream_.peek_char();
   if (ch == EOF) return token("", TokenType::eof);
 //  if (ch == '\n' || ch == '\r') {
 //    stream.get_char(); // skip past newline
@@ -238,26 +260,26 @@ Token Lexer::next() {
 
   // check for a comment
   if (ch == '/') {
-    stream.save_position();
-    stream.get_char();
+    stream_.save_position();
+    stream_.get_char();
 
-    if (stream.peek_char() == ch) {
+    if (stream_.peek_char() == ch) {
       // eat everything up to and including eol
-      stream.eat_line();
+      stream_.eat_line();
       return next();
-    } else if (stream.peek_char() == '*') {
+    } else if (stream_.peek_char() == '*') {
       // eat everything enclosed in braces
-      stream.get_char();
-      while (!stream.is_eof() && (ch = stream.get_char())) {
+      stream_.get_char();
+      while (!stream_.is_eof() && (ch = stream_.get_char())) {
         // check for end of comment
-        if (ch == '*' && stream.peek_char() == '/') {
-          stream.get_char();
+        if (ch == '*' && stream_.peek_char() == '/') {
+          stream_.get_char();
           break;
         }
       }
       return next();
     } else {
-      stream.restore_position();
+      stream_.restore_position();
     }
   }
 
@@ -267,14 +289,14 @@ Token Lexer::next() {
     bool is_float = false;
 
     // eat initial digit sequence
-    stream.eat_while(tmp, [](int ch) { return std::isdigit(ch); });
+    stream_.eat_while(tmp, [](int ch) { return std::isdigit(ch); });
 
     // have we a decimal point?
-    if (stream.peek_char() == '.') {
+    if (stream_.peek_char() == '.') {
       is_float = true;
       tmp << '.';
-      stream.get_char();
-      stream.eat_while(tmp, [](int ch) { return std::isdigit(ch); });
+      stream_.get_char();
+      stream_.eat_while(tmp, [](int ch) { return std::isdigit(ch); });
     }
 
     // create numeric token
@@ -285,7 +307,7 @@ Token Lexer::next() {
   if (std::isalpha(ch) || ch == '_') {
     // extract [0-9A-Za-z_]+
     std::stringstream tmp;
-    stream.eat_while(tmp, [](int ch) { return std::isalnum(ch) || ch == '_'; });
+    stream_.eat_while(tmp, [](int ch) { return std::isalnum(ch) || ch == '_'; });
     const std::string identifier = tmp.str();
 
     // check if this identifier is a keyword
@@ -301,17 +323,17 @@ Token Lexer::next() {
   // search literal_map for a match
   for (auto& map : literal_map)
     for (auto& [literal, type] : map)
-      if (stream.starts_with(literal))
+      if (stream_.starts_with(literal))
         return token(literal, type);
 
   // scan for an operator
   // note, this is after to allow some operators to be parsed as other structures
   if (operator_chars.contains(ch)) {
     std::stringstream tmp;
-    stream.eat_while(tmp, [&](int ch) { return operator_chars.contains(ch); });
+    stream_.eat_while(tmp, [&](int ch) { return operator_chars.contains(ch); });
     return token(tmp.str(), TokenType::op);
   }
 
   // invalid token, then
-  return token(std::string(1, stream.get_char()), TokenType::invalid);
+  return token(std::string(1, stream_.get_char()), TokenType::invalid);
 }

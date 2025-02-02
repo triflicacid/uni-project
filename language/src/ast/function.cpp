@@ -6,10 +6,10 @@
 #include "assembly/create.hpp"
 #include "message_helper.hpp"
 
-lang::ast::FunctionNode::FunctionNode(lang::lexer::Token token, const type::FunctionNode& type,
+lang::ast::FunctionNode::FunctionNode(lang::lexer::Token token, lexer::Token name, const type::FunctionNode& type,
                                       std::deque<std::unique_ptr<SymbolDeclarationNode>> params,
                                       std::optional<std::unique_ptr<BlockNode>> body)
-    : FunctionBaseNode(std::move(token), type, std::move(params)), body_(std::move(body)) {}
+    : FunctionBaseNode(std::move(token), std::move(name), type, std::move(params)), body_(std::move(body)) {}
 
 std::ostream& lang::ast::FunctionNode::print_code(std::ostream& os, unsigned int indent_level) const {
   FunctionBaseNode::print_code(os, indent_level);

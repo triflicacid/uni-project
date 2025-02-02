@@ -14,7 +14,8 @@
 namespace lang::parser {
   class Parser {
     lexer::Lexer& lexer_;
-    std::deque<lexer::Token> buffer_;
+    std::deque<lexer::Token> buffer_; // store upcoming Tokens
+    lexer::Token prev_; // store previous token
     message::List* messages_;
 
     // read at most n tokens from the lexer, stop on eof
@@ -29,7 +30,7 @@ namespace lang::parser {
     std::unique_ptr<ast::expr::Node> _parse_expression(int precedence);
 
   public:
-    explicit Parser(lexer::Lexer& lexer) : lexer_(lexer) {}
+    explicit Parser(lexer::Lexer& lexer) : lexer_(lexer), prev_(lexer::Token::invalid(lexer.stream())) {}
 
     const lexer::Lexer& lexer() const { return lexer_; }
 
@@ -39,6 +40,9 @@ namespace lang::parser {
 
     // test if there was an error
     bool is_error() const;
+
+    // get the previous token
+    const lexer::Token& previous() const { return prev_; }
 
     // peek n tokens into the future, default gets the next token
     const lexer::Token& peek(unsigned int n = 0);
@@ -57,7 +61,7 @@ namespace lang::parser {
     bool expect_or_error(const std::deque<std::reference_wrapper<const lexer::BasicToken>>& tokens);
     bool expect_or_error(const lexer::BasicToken& token);
 
-    // consume the current token and return it
+    // consume the current token and return it (this becomes the previous token)
     lexer::Token consume();
 
     // parse a numeric/boolean literal

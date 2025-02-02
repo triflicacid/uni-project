@@ -22,7 +22,7 @@ namespace lang::value {
 
     // attempt to resolve this symbol, return value::Symbol or nullptr if error
     // argument - generate messages?
-    std::unique_ptr<Symbol> resolve(Context& ctx, const lexer::Token& token, bool generate_messages) const;
+    std::unique_ptr<Symbol> resolve(Context& ctx, const message::MessageGenerator& source, bool generate_messages) const;
   };
 
   // wrapper around symbol::Symbol

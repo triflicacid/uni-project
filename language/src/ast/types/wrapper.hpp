@@ -14,7 +14,7 @@ namespace lang::ast::type {
   public:
     WrapperNode(std::string name, const Node& inner) : name_(std::move(name)), inner_(inner) {}
 
-    std::string name() const override { return name_; }
+    std::string node_name() const override { return name_; }
 
     const WrapperNode* get_wrapper() const override { return this; }
 
@@ -31,7 +31,7 @@ namespace lang::ast::type {
     static const T& create(const std::string& wrapper_name, const Node& inner_type, const std::function<std::unique_ptr<T>()>& create_type) {
       for (auto& [id, type] : graph) {
         if (auto wrapper_type = type.get().get_wrapper()) {
-          if (wrapper_type->name() == wrapper_name && wrapper_type->unwrap().id() == inner_type.id()) {
+          if (wrapper_type->node_name() == wrapper_name && wrapper_type->unwrap().id() == inner_type.id()) {
             return *static_cast<const T*>(wrapper_type);
           }
         }

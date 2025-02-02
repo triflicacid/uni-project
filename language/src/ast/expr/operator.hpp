@@ -15,6 +15,7 @@ namespace lang::ast::expr {
   // define an operator
   class OperatorNode : public Node {
   protected:
+    lexer::Token op_symbol_; // token of our actual symbol
     std::deque<std::unique_ptr<Node>> args_;
 
     Node& lhs_() const;
@@ -24,11 +25,14 @@ namespace lang::ast::expr {
     bool load_and_check_rvalue(Context& ctx) const;
 
   public:
-    OperatorNode(lexer::Token token, std::deque<std::unique_ptr<Node>> args) : Node(std::move(token)), args_(std::move(args)) {}
+    OperatorNode(lexer::Token token, lexer::Token symbol, std::deque<std::unique_ptr<Node>> args)
+      : Node(std::move(token)), op_symbol_(std::move(symbol)), args_(std::move(args)) {
+      if (!args_.empty()) token_end(args_.back()->token_end());
+    }
 
-    virtual const std::string& symbol() const { return token_.image; }
+    virtual const std::string& symbol() const { return op_symbol_.image; }
 
-    std::string name() const override;
+    std::string node_name() const override;
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override final;
 
@@ -40,7 +44,7 @@ namespace lang::ast::expr {
     static std::unique_ptr<OperatorNode> unary(lexer::Token token, std::unique_ptr<Node> expr);
 
     // create a binary overloadable operator node
-    static std::unique_ptr<OperatorNode> binary(lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
+    static std::unique_ptr<OperatorNode> binary(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
   };
 
   // define an overlodable operator - search operatorX(...)
@@ -82,7 +86,7 @@ namespace lang::ast::expr {
     std::optional<std::reference_wrapper<symbol::Symbol>> symbol_; // resolved symbol, may still be empty after ::process
 
   public:
-    DotOperatorNode(lexer::Token token, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
+    DotOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
     bool process(lang::Context &ctx) override;
 

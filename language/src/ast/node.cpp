@@ -8,10 +8,11 @@ std::ostream &lang::ast::indent(std::ostream &os, unsigned int level) {
 
 std::ostream &lang::ast::Node::print_tree(std::ostream &os, unsigned int indent_level) const {
   indent(os, indent_level);
-  return os << SHELL_LIGHT_PURPLE << name() << SHELL_RESET " @<" SHELL_BROWN
-      << token_.source.path() << ":" << token_.source.line() << ":" << token_.source.column() << SHELL_RESET "> ";
+  const lexer::Token& t = token_start();
+  return os << SHELL_LIGHT_PURPLE << node_name() << SHELL_RESET " @<" SHELL_BROWN
+            << t.loc.path() << ":" << t.loc.line() << ":" << t.loc.column() << SHELL_RESET "> ";
 }
 
 bool lang::ast::Node::process(Context& ctx) {
-  throw std::runtime_error(name() + "::process is unimplemented");
+  throw std::runtime_error(node_name() + "::process is unimplemented");
 }

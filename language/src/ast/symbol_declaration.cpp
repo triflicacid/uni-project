@@ -10,7 +10,7 @@
 #include "assembly/create.hpp"
 #include "ast/types/const.hpp"
 
-std::string lang::ast::SymbolDeclarationNode::name() const {
+std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
     case Variable:
       return "symbol declaration";
@@ -27,7 +27,7 @@ const lang::ast::type::Node& lang::ast::SymbolDeclarationNode::type() const {
 }
 
 std::ostream &lang::ast::SymbolDeclarationNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  os << "let " << token_.image << ": ";
+  os << "let " << name_.image << ": ";
   if (type_.has_value()) {
     type_.value().get().print_code(os);
   } else {
@@ -44,7 +44,7 @@ std::ostream &lang::ast::SymbolDeclarationNode::print_code(std::ostream &os, uns
 
 std::ostream &lang::ast::SymbolDeclarationNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  os << SHELL_GREEN << token_.image << SHELL_RESET << ": " << SHELL_CYAN;
+  os << SHELL_GREEN << name_.image << SHELL_RESET << ": " << SHELL_CYAN;
   if (type_.has_value()) {
     type_.value().get().print_code(os);
   } else {
@@ -73,7 +73,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
   // if no type AND no way to deduce it, error
   if (!type_.has_value() && !assignment_.has_value()) {
-    auto msg = token_.generate_message(message::Error);
+    auto msg = name_.generate_message(message::Error);
     msg->get() << "cannot deduce type - expected explicit type or initialiser";
     ctx.messages.add(std::move(msg));
     return false;
@@ -88,7 +88,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
     // if we have declared symbol to be a type, they must match
     if (type_.has_value() && !type::graph.is_subtype(type.id(), type_->get().id())) {
-      ctx.messages.add(util::error_type_mismatch(token_, type, type_.value(), true));
+      ctx.messages.add(util::error_type_mismatch(name_, type, type_.value(), true));
       return false;
     }
 
@@ -97,7 +97,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
   // define symbol
   symbol::Registry registry;
-  auto maybe_id = symbol::create_variable(registry, category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary, token_, type_.value(), ctx.messages);
+  auto maybe_id = symbol::create_variable(registry, category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary, name_, type_.value(), ctx.messages);
   if (!maybe_id.has_value()) return false;
   ctx.symbols.insert(registry);
   id_ = maybe_id.value();
@@ -110,11 +110,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   assert(maybe_expr.has_value());
   // coerce into correct type (this is safe as subtyping checked)
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(maybe_expr.value(), type_.value().get().get_asm_datatype());
-
-  // get location of symbol
-  const auto maybe_loc = ctx.symbols.locate(id_);
-  assert(maybe_loc.has_value());
-  const memory::StorageLocation& loc = maybe_loc.value().get();
 
   // load expr value into symbol
   ctx.symbols.assign_symbol(id_, expr.offset);

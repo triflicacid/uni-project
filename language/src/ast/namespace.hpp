@@ -5,16 +5,19 @@
 
 namespace lang::ast {
   class NamespaceNode : public Node, public ContainerNode {
+    lexer::Token name_;
     std::deque<std::unique_ptr<Node>> lines_;
     std::unique_ptr<symbol::Registry> registry_; // local registry
     symbol::SymbolId id_; // ID of symbol created on our behalf
 
   public:
-    explicit NamespaceNode(lexer::Token token) : Node(std::move(token)) {}
-    NamespaceNode(lexer::Token token, std::deque<std::unique_ptr<Node>> lines)
-        : Node(std::move(token)), lines_(std::move(lines)) {}
+    NamespaceNode(lexer::Token token, lexer::Token name) : Node(std::move(token)), name_(std::move(name)) {}
+    NamespaceNode(lexer::Token token, lexer::Token name, std::deque<std::unique_ptr<Node>> lines)
+        : Node(std::move(token)), name_(std::move(name)), lines_(std::move(lines)) {}
 
-    std::string name() const override { return "namespace"; }
+    std::string node_name() const override { return "namespace"; }
+
+    const lexer::Token& name() const { return name_; }
 
     void add(std::unique_ptr<Node> ast_node) override;
 

@@ -14,7 +14,7 @@ namespace lang::ast::type {
 
     bool is_double() const { return double_; }
 
-    std::string name() const override;
+    std::string node_name() const override;
 
     std::ostream& print_code(std::ostream& os, unsigned int indent_level = 0) const override;
 

@@ -6,19 +6,21 @@
 
 namespace lang::lexer {
   class Lexer {
-    IStreamWrapper& stream;
+    IStreamWrapper& stream_;
 
     // create a token with the given type and image
     Token token(const std::string& image, TokenType type) const;
 
   public:
-    explicit Lexer(IStreamWrapper& stream) : stream(stream) {}
+    explicit Lexer(IStreamWrapper& stream) : stream_(stream) {}
 
-    std::string get_line(unsigned int line) const { return stream.get_line(line); }
+    IStreamWrapper& stream() const { return stream_; }
 
-    std::string get_source_name() const { return stream.get_name("<file>"); }
+    std::string get_line(unsigned int line) const { return stream_.get_line(line); }
 
-    bool is_eof() const { return stream.is_eof(); }
+    std::string get_source_name() const { return stream_.get_name("<file>"); }
+
+    bool is_eof() const { return stream_.is_eof(); }
 
     // read & extract the next token from the input stream
     Token next();

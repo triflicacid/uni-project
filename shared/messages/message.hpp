@@ -46,4 +46,8 @@ namespace message {
 
   /** Get level from int, where lowest is 0 */
   Level level_from_int(int level);
+
+  struct MessageGenerator {
+    virtual std::unique_ptr<message::Message> generate_message(Level lvl) const = 0;
+  };
 }

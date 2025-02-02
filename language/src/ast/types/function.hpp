@@ -15,7 +15,7 @@ namespace lang::ast::type {
     FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters, std::optional<std::reference_wrapper<const Node>> returns)
       : parameters_(std::move(parameters)), returns_(returns.has_value() ? returns.value() : none) {}
 
-    std::string name() const override { return "function"; }
+    std::string node_name() const override { return "function"; }
 
     // get the number of arguments
     size_t args() const { return parameters_.size(); }
