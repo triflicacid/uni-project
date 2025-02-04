@@ -221,27 +221,6 @@ maths + 1; // error: expected rvalue, got namespace
     Note that \texttt{bool} is not related to anything.
     Unlike in other language, \texttt{bool} is treated as a distinct type with abstract true/false values, rather than a synonym for integers 1/0, respectively.
 
-    \subsection{Constant Types}\label{subsec:constant-types}
-
-    The const type wrapper -- \texttt{const<int>} -- informs the programmer that the value attached to this type will not change.
-    As noted earlier in subsection ~\ref{subsec:variables-&-assignment}, a \texttt{const} definition is shorthand for declaring a constant type.
-    That is,
-
-    \begin{lstlisting}[language=CustomLang]
-const pi: float = 3.14159
-// is equivalent to
-let pi: const<float> = 3.14159
-    \end{lstlisting}
-
-    Assigning to a value of type \texttt{const} is not permitted, so this would result in an error.
-
-    \begin{lstlisting}[language=CustomLang]
-const pi: float = 3.14159
-pi = 2.9; // error!
-    \end{lstlisting}
-
-    Note that, this being the case, a constant \textit{must} be initialised.
-
     \section{Functions}
 
     \section{Operators}
