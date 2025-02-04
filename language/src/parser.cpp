@@ -203,6 +203,25 @@ const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_se
     {lexer::TokenType::op}
 });
 
+bool lang::parser::Parser::check_semicolon_after_expression(bool generate_messages) {
+  if (generate_messages) {
+    if (expect_or_error(lexer::TokenType::sc)) {
+      consume();
+      return true;
+    }
+
+    // generate messages  + error --> add note
+    auto msg = previous().generate_message(message::Note);
+    msg->get() << "an expression must be terminated by a semicolon";
+    add_message(std::move(msg));
+  } else if (expect(lexer::TokenType::sc)) {
+    consume();
+    return true;
+  }
+
+  return false;
+}
+
 std::unique_ptr<lang::ast::ExprNode> lang::parser::Parser::parse_expression(int precedence) {
   auto expr = _parse_expression(precedence);
   return is_error() ? nullptr : std::make_unique<ast::ExprNode>(std::move(expr));
@@ -316,6 +335,7 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
   const auto category = (is_const = kw_token.type == lexer::TokenType::const_kw)
       ? ast::SymbolDeclarationNode::Constant
       : ast::SymbolDeclarationNode::Variable;
+  bool was_last_expression = false; // track if we last saw an expression
 
   while (true) {
     // name
@@ -339,6 +359,7 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
       expr = parse_expression();
       if (is_error()) return;
     }
+    was_last_expression = expr.has_value();
 
     // create and add declaration node
     auto decl = std::make_unique<ast::SymbolDeclarationNode>(name, name, type, std::move(expr));
@@ -350,6 +371,9 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
     if (!expect(lexer::TokenType::comma)) break;
     consume();
   }
+
+  // expect semicolon after expression
+  if (was_last_expression && !check_semicolon_after_expression()) return;
 }
 
 std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_arg_list() {
@@ -433,7 +457,7 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
   std::optional<std::unique_ptr<ast::ExprNode>> expr;
   if (expect(firstset::expression)) {
     expr = parse_expression();
-    if (is_error()) return nullptr;
+    if (is_error() || !check_semicolon_after_expression()) return nullptr;
   }
 
   auto node = std::make_unique<ast::ReturnNode>(std::move(token), std::move(expr));
@@ -447,19 +471,11 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
 });
 
 void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
-  static bool was_last_an_expression = false;
-
   if (expect(firstset::expression)) {
-    // one expression cannot immediately follow another
-    if (was_last_an_expression) {
-      add_message(peek().generate_syntax_error(firstset::eol));
-      return;
-    }
-    was_last_an_expression = true;
     block.add(parse_expression());
+    check_semicolon_after_expression();
     return;
   }
-  was_last_an_expression = false;
 
   if (expect(lexer::TokenType::func)) {
     block.add(parse_func());
@@ -563,19 +579,11 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
 });
 
 void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
-  static bool was_last_an_expression = false;
-
   if (expect(firstset::expression)) {
-    // one expression cannot immediately follow another
-    if (was_last_an_expression) {
-      add_message(peek().generate_syntax_error(firstset::eol));
-      return;
-    }
     container.add(parse_expression());
-    was_last_an_expression = true;
+    check_semicolon_after_expression();
     return;
   }
-  was_last_an_expression = false;
 
   if (expect(lexer::TokenType::func)) {
     container.add(parse_func());

@@ -73,6 +73,10 @@ namespace lang::parser {
     // parse a type, return pointer to type, or nullptr if invalid
     const ast::type::Node* parse_type();
 
+    // expect semicolon to follow an expression
+    // check for SC and return if found
+    bool check_semicolon_after_expression(bool generate_messages = true);
+
     // parse an expression
     std::unique_ptr<ast::ExprNode> parse_expression(int precedence = 0);
 

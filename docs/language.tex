@@ -80,18 +80,18 @@ func main() {
     Variables are defined using the \texttt{let} keyword, with the variables type following a colon.
     For example, to define our ``int 3'' from earlier,
     \begin{lstlisting}[language=CustomLang]
-let foo: int = 3
+let foo: int = 3;
     \end{lstlisting}
 
     If required, multiple variables can be defined in the same \texttt{let} statement.
     \begin{lstlisting}[language=CustomLang]
-let foo: int = 3, bar: float = 3.14
+let foo: int = 3, bar: float = 3.14;
     \end{lstlisting}
 
     If the type is omitted, it is deduced from the assigned value.
     Hence, this can only be done if the variable is assigned.
     \begin{lstlisting}[language=CustomLang]
-let foo = 3, bar = 3.14
+let foo = 3, bar = 3.14;
     \end{lstlisting}
     (In this case, both variables adopt the types as previously written.)
 
@@ -101,9 +101,9 @@ let foo = 3, bar = 3.14
 
     In non-local shadowing, the previous definition becomes visible again after the current scope is exited.
     \begin{lstlisting}[language=CustomLang]
-let foo = 1
+let foo = 1;
 {
-    let foo = 2
+    let foo = 2;
     // foo = 2
 }
 // foo = 1
@@ -112,9 +112,9 @@ let foo = 1
     Emit also allows local shadowing.
     In this case, once shadowed, the previous definition is essentially lost and cannot be referenced.
     \begin{lstlisting}[language=CustomLang]
-let foo = 1
+let foo = 1;
 // foo = 1
-let foo = 2
+let foo = 2;
 // foo = 2
     \end{lstlisting}
 
@@ -124,13 +124,44 @@ let foo = 2
     Constants may be defined using the \texttt{const} keyword in place of \texttt{let}.
 
     \begin{lstlisting}[language=CustomLang]
-const pi = 3.14159
+const pi = 3.14159;
     \end{lstlisting}
 
     In the case of multiple definitions, \textit{all} symbols will be defined as const.
-    Note that the \texttt{const} keyword is but shorthand for defining a variable with a constant type (subsection ~\ref{subsec:constant-types}).
 
     \subsection{Expressions \& Statements}\label{subsec:expressions-&-statements}
+
+    Both statement is a piece of code that performs an action but does not necessarily produce a value.
+    Examples include if statements, while loops, function definitions, etc.
+
+    Expressions, however, produce a value.
+    An expression consists of a combination of values and operators, such as \texttt{1 + 2} or \texttt{maths.sin(0.5)}.
+    Expressions \textit{must} be terminated with a semicolon.
+
+    \subsubsection{Value Categories}
+
+    Each expression, be it an operator with operands, literals, or variable names etc., is characterised by a \textit{type} and a \textit{category}.
+    Types, covered in section ~\ref{sec:types}, give meaning to data and what it means in context, whereas the category tells dictates \textit{how} a value can be used.
+
+    Emit has two categories, be them l-- and r-values.
+    The former is a value which refers to a memory location, such as variables, while the latter has no identifiable location in memory.
+    The \textit{l} and \textit{r} stand for \textit{left} and \textit{right} because the respective values may appear on the left-- or right-hand side of an assignment operator.
+    That is,
+
+    \begin{lstlisting}[language=CustomLang]
+a = 1; // a (lvalue) = 1 (rvalue)
+    \end{lstlisting}
+
+    As an rvalue has no identifiable location, it cannot be assigned to, nor can it be access via the dot `\texttt{.}' operator.
+    Instances of misuse of an l-- or rvalue results in an error ``\texttt{expected l/rvalue, got type}''.
+
+    \begin{lstlisting}[language=CustomLang]
+1 = 2; // error: expected lvalue, got i32
+true.a; // error: expected lvalue, got bool
+
+namespace maths {}
+maths + 1; // error: expected rvalue, got namespace
+    \end{lstlisting}
 
     \subsection{Code Blocks}\label{subsec:code-blocks}
 
@@ -139,7 +170,7 @@ const pi = 3.14159
     A block may be written anywhere a statement is expected, allowing the programmer to instead write multiple statements in its body.
     Finally, in Emit, every block introduces a new lexical scope~\ref{sec:scope}.
 
-    \section{Types}
+    \section{Types}\label{sec:types}
 
     Continuing the analogy from variables, a type is a label that tells the program what kind of data a variable holds.
     Every variable and value has a type; a value without a type is meaningless, as a type gives data a meaning.
@@ -248,6 +279,8 @@ pi = 2.9; // error!
             \multirow{1}{*}{10} & \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} \\
             \hline
             \multirow{1}{*}{9} & \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \hline
+            \multirow{1}{*}{1} & \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} \\
             \hline
         \end{tabular}\label{tab:builtin-operators}
     \end{table}
