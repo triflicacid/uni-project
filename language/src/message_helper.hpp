@@ -27,7 +27,4 @@ namespace lang::util {
 
   // generate error for failing to resolve an overloaded symbol due to insufficient information NOT because we have no matches
   std::unique_ptr<message::Message> error_insufficient_info_to_resolve_symbol(const message::MessageGenerator& source, const std::string& name);
-
-  // generate error if the given Value is not a concrete symbol (i.e., value::Symbol), or return nullptr
-  std::unique_ptr<message::Message> check_concrete_symbol(const message::MessageGenerator& source, const value::Value& value);
 }

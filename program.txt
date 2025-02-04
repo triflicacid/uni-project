@@ -1,6 +1,5 @@
-namespace std {
-    namespace maths {
-        let pi: float;
-    }
+namespace maths {
+    let pi: int;
 }
-1 + std.maths;
+
+maths.pi = 3;

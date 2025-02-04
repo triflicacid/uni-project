@@ -102,9 +102,9 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
 const lang::ops::OperatorInfo lang::ops::generic_binary{2, false};
 const lang::ops::OperatorInfo lang::ops::generic_unary{14, true};
 
-std::unique_ptr<lang::value::Temporary> lang::ops::BuiltinOperator::process(lang::Context& ctx) const {
+void lang::ops::BuiltinOperator::process(lang::Context& ctx, value::Value& value) const {
   uint8_t reg = generator_(ctx);
-  return std::make_unique<value::Temporary>(type(), value::Options{memory::Ref::reg(reg)});
+  value.rvalue(std::make_unique<value::RValue>(type().returns(), memory::Ref::reg(reg)));
 }
 
 namespace generators {

@@ -21,8 +21,8 @@ namespace lang::ast::expr {
     Node& lhs_() const;
     Node& rhs_() const;
 
-    // loads all args_ and checks that rvalue, return success
-    bool load_and_check_rvalue(Context& ctx) const;
+    // attempt to resolve argument to an rvalue, return it or nullptr on error
+    std::unique_ptr<value::Value> get_arg_rvalue(Context& ctx, int i) const;
 
   public:
     OperatorNode(lexer::Token token, lexer::Token symbol, std::deque<std::unique_ptr<Node>> args)
@@ -62,7 +62,7 @@ namespace lang::ast::expr {
 
     std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
 
-    std::unique_ptr<value::Value> load(lang::Context &ctx) const override;
+    bool resolve_rvalue(Context& ctx, value::Value& value) const override;
   };
 
   // represents (type) expr
@@ -77,13 +77,13 @@ namespace lang::ast::expr {
 
     std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
 
-    std::unique_ptr<value::Value> load(lang::Context &ctx) const override;
+    bool resolve_rvalue(lang::Context &ctx, value::Value &value) const override;
   };
 
   // represents lhs.rhs
   class DotOperatorNode : public OperatorNode {
-    std::string resolved_; // resolved name
-    std::optional<std::reference_wrapper<symbol::Symbol>> symbol_; // resolved symbol, may still be empty after ::process
+    std::unique_ptr<value::Value> base_; // resolves lhs_()
+    std::string attr_; // resolved attribute name
 
   public:
     DotOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
@@ -92,6 +92,22 @@ namespace lang::ast::expr {
 
     std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
 
-    std::unique_ptr<value::Value> load(lang::Context &ctx) const override;
+    bool resolve_lvalue(lang::Context &ctx, value::Value &value) const override;
+
+    bool resolve_rvalue(lang::Context &ctx, value::Value &value) const override;
+  };
+
+  // represents lhs = rhs
+  class AssignmentOperatorNode : public OperatorNode {
+  public:
+    AssignmentOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
+
+    bool process(lang::Context &ctx) override;
+
+    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
+
+    bool resolve_lvalue(lang::Context &ctx, value::Value &value) const override;
+
+    bool resolve_rvalue(lang::Context &ctx, value::Value &lhs) const override;
   };
 }

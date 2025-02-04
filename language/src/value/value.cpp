@@ -1,6 +1,36 @@
 #include "symbol.hpp"
 #include "context.hpp"
 #include "message_helper.hpp"
+#include "value.hpp"
+#include "ast/types/none.hpp"
+
+lang::value::Value::Value(bool future_lvalue, bool future_rvalue) : future_lvalue_(future_lvalue), future_rvalue_(future_rvalue), type_(ast::type::none) {}
+
+lang::value::Value::Value(const ast::type::Node& type, bool future_lvalue, bool future_rvalue) : future_lvalue_(future_lvalue), future_rvalue_(future_rvalue), type_(type) {}
+
+lang::value::LValue& lang::value::Value::lvalue() const {
+  assert(is_lvalue());
+  return *lvalue_;
+}
+
+void lang::value::Value::lvalue(std::unique_ptr<LValue> v) {
+  type_ = v->type();
+  lvalue_ = std::move(v);
+}
+
+lang::value::RValue& lang::value::Value::rvalue() const {
+  assert(is_rvalue());
+  return *rvalue_;
+}
+
+void lang::value::Value::rvalue(std::unique_ptr<RValue> v) {
+  type_ = v->type();
+  rvalue_ = std::move(v);
+}
+
+void lang::value::Value::rvalue(const lang::memory::Ref& ref) {
+  rvalue_ = std::make_unique<value::RValue>(type_, ref);
+}
 
 std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(lang::Context& ctx, const message::MessageGenerator& source, bool generate_messages) const {
   const auto candidates = ctx.symbols.find(name_);
@@ -22,5 +52,31 @@ std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(lang::Conte
 
   // create Value instance (symbol so lvalue)
   auto location = ctx.symbols.locate(symbol.id());
-  return std::make_unique<value::Symbol>(symbol, value::Options{.lvalue=location, .computable=location.has_value()});
+  return std::make_unique<value::Symbol>(symbol);
 }
+
+std::unique_ptr<lang::value::Value> lang::value::rvalue() {
+  return std::make_unique<Value>(false, true);
+}
+
+std::unique_ptr<lang::value::Value> lang::value::rvalue(const ast::type::Node& type) {
+  return std::make_unique<Value>(type, false, true);
+}
+
+std::unique_ptr<lang::value::Value> lang::value::lvalue() {
+  return std::make_unique<Value>(true, false);
+}
+
+std::unique_ptr<lang::value::Value> lang::value::lvalue(const ast::type::Node& type) {
+  return std::make_unique<Value>(type, true, false);
+}
+
+std::unique_ptr<lang::value::Value> lang::value::rlvalue() {
+  return std::make_unique<Value>(true, true);
+}
+
+std::unique_ptr<lang::value::Value> lang::value::rlvalue(const ast::type::Node& type) {
+  return std::make_unique<Value>(type, true, true);
+}
+
+lang::value::Symbol::Symbol(const symbol::Symbol& symbol) : LValue(symbol.type()), symbol_(symbol) {}

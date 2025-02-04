@@ -2,9 +2,7 @@
 #include "reg_alloc.hpp"
 #include "assembly/create.hpp"
 #include "ast/types/int.hpp"
-#include "value/literal.hpp"
 #include "value/symbol.hpp"
-#include "value/temporary.hpp"
 
 lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program)
   : symbols_(symbols), program_(program) {
@@ -105,10 +103,10 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symbol::Variable &symbol) {
   // check if Object is inside a register
-  int offset = 0;
+  int offset = initial_register;
   for (auto& object : instances_.top().regs) {
-    if (object) {
-      if (auto obj_symbol = object->value->get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
+    if (object && object->value->is_lvalue()) {
+      if (auto obj_symbol = object->value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
         object->required = true;
         return Ref(Ref::Register, offset);
       }
@@ -119,24 +117,27 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
 
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
-    if (auto obj_symbol = object.value->get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
+    if (auto obj_symbol = object.value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
       object.required = true;
       return Ref(Ref::Memory, address);
     }
   }
 
   // otherwise, insert
-  auto source = symbols_.locate(symbol.id());
-  assert(source.has_value());
-  return insert(Object(std::make_shared<value::Symbol>(symbol, *source)));
+  auto value_ptr = value::rlvalue();
+  value::Value& value = *value_ptr;
+  value.lvalue(std::make_unique<value::Symbol>(symbol));
+  Ref ref = insert(Object(std::move(value_ptr)));
+  value.rvalue(ref);
+  return ref;
 }
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::find(const Literal& literal) {
   // check if Object is inside a register
   int offset = 0;
   for (auto& object : instances_.top().regs) {
-    if (object) {
-      if (auto obj_lit = object->value->get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
+    if (object && object->value->is_rvalue()) {
+      if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
         object->required = true;
         return Ref(Ref::Register, offset);
       }
@@ -146,14 +147,19 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const Literal& l
 
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
-    if (auto obj_lit = object.value->get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
+    if (auto obj_lit = object.value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
       object.required = true;
       return Ref(Ref::Memory, offset);
     }
   }
 
   // otherwise, insert
-  return insert(Object(std::make_shared<value::Literal>(literal)));
+  auto value_ptr = value::rvalue();
+  value::Value& value = *value_ptr;
+  value.rvalue(std::make_unique<value::Literal>(literal, Ref::reg(0)));
+  Ref ref = insert(Object(std::move(value_ptr)));
+  value.rvalue().ref(ref);
+  return ref;
 }
 
 const lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) const {
@@ -214,8 +220,8 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
   instances_.top().history.push_front(location);
 
   if (location.type == Ref::Register) {
-    if (auto value = object.value->get_literal()) { // load the immediate into the register
-      const auto& literal = value->get();
+    if (object.value->is_rvalue() && object.value->rvalue().get_literal()) { // load the immediate into the register
+      const auto& literal = object.value->rvalue().get_literal()->get();
       if (auto size = literal.type().size(); size == 8) {
         program_.current().add(assembly::create_load_long(location.offset, literal.data()));
       } else {
@@ -226,8 +232,8 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
       auto& comment = program_.current().back().comment();
       comment << literal.to_string() << ": ";
       literal.type().print_code(comment);
-    } else if (auto value = object.value->get_symbol()) { // load the value at the symbol's offset into the register
-      const auto& symbol = value->get();
+    } else if (object.value->is_lvalue() && object.value->lvalue().get_symbol()) { // load the value at the symbol's offset into the register
+      const symbol::Symbol& symbol = object.value->lvalue().get_symbol()->get();
       const StorageLocation& storage = symbols_.locate(symbol.id())->get();
       std::unique_ptr<assembly::BaseArg> arg;
 
@@ -245,7 +251,6 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
     }
 
     // update our records
-    object.value->set_ref(location);
     instances_.top().regs[location.offset - initial_register] = std::move(object);
     return;
   }
@@ -293,28 +298,28 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
 
   auto& object = instances_.top().regs[ref.offset - initial_register];
   assert(object.has_value());
-  constants::inst::datatype::dt original;
+  auto original = static_cast<constants::inst::datatype::dt>(255);
 
-  if (auto value = object->value->get_symbol()) {
-    const symbol::Symbol& symbol = value->get();
+  if (object->value->is_lvalue() && object->value->lvalue().get_symbol()) {
+    const symbol::Symbol& symbol = object->value->lvalue().get_symbol()->get();
     // get original datatype
     original = symbol.type().get_asm_datatype();
     if (target != original) {
-      // change Object type to `temporary`
-      object = Object(std::make_unique<value::Temporary>(ast::type::from_asm_type(target), ref));
+      // remove lvalue, we are only an rvalue now
+      object = Object(value::rvalue());
+      object->value->rvalue(std::make_unique<value::RValue>(ast::type::from_asm_type(target), ref));
     }
-  } else if (object->value->get_temporary()) {
-    // can't do anything, we have no further information
-    return ref;
-  } else if (auto value = object->value->get_literal()) {
-    const Literal& literal = value->get();
+  } else if (object->value->is_rvalue() && object->value->rvalue().get_literal()) {
+    const Literal& literal = object->value->rvalue().get_literal()->get();
     // get original datatype
     original = literal.type().get_asm_datatype();
     if (target != original) {
       // update Object's contents
-      object = Object(std::make_unique<value::Literal>(Literal::get(ast::type::from_asm_type(target), literal.data())));
-      object->value->set_ref(ref);
+      object->value->rvalue(std::make_unique<value::Literal>(Literal::get(ast::type::from_asm_type(target), literal.data()), ref));
     }
+  } else {
+    // can't do anything, we have no further information
+    return ref;
   }
 
   // emit instruction if needs be

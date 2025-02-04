@@ -1,64 +1,62 @@
 #pragma once
 
-#include <optional>
+#include <memory>
 #include <cassert>
-#include <functional>
-#include "memory/ref.hpp"
-#include "memory/storage_location.hpp"
+#include "lvalue.hpp"
+#include "rvalue.hpp"
 
 namespace lang::ast::type {
   class Node;
 }
 
 namespace lang::value {
-  class Symbol;
   class SymbolRef;
-  class Literal;
-  class Temporary;
-
-  // options used when creating a Value
-  struct Options {
-    std::optional<memory::Ref> rvalue; // reference for an rvalue
-    std::optional<std::reference_wrapper<const memory::StorageLocation>> lvalue; // location for an lvalue
-    bool computable = false; // even if we are not an rvalue currently, can we be computed to become one in the future
-  };
 
   class Value {
-    std::optional<memory::Ref> ref_; // where this item is stored/was placed by the RegisterAllocationManager, opptional as Value can be created prior to storage
-    std::optional<std::reference_wrapper<const memory::StorageLocation>> source_;
-    bool computable_ = false;
+    std::unique_ptr<LValue> lvalue_; // store lvalue, if applicable
+    bool future_lvalue_; // indicates that we have the ability to become an lvalue (after computation)
+
+    std::unique_ptr<RValue> rvalue_;
+    bool future_rvalue_;
+
+    std::reference_wrapper<const ast::type::Node> type_;
 
   public:
-    Value(const Options& options) : ref_(options.rvalue), source_(options.lvalue), computable_(options.computable) {}
+    Value(bool future_lvalue, bool future_rvalue);
+    Value(const ast::type::Node& type, bool future_lvalue, bool future_rvalue);
 
-    virtual ~Value() = default;
+    const ast::type::Node& type() const { return type_; }
 
-    // are we an lvalue, i.e., are we stored somewhere
-    bool is_lvalue() const { return source_.has_value(); }
+    bool is_future_lvalue() const { return future_lvalue_; }
 
-    // are we an rvalue, i.e., are we in a register (have a computed value)
-    bool is_rvalue() const { return ref_.has_value(); }
+    bool is_lvalue() const { return lvalue_ != nullptr; }
 
-    // are we computable - used for "to-be" rvalues
-    bool is_computable() const { return computable_ && !ref_; }
+    LValue& lvalue() const;
 
-    // get reference, error if not rvalue
-    const memory::Ref& ref() const { assert(is_rvalue()); return ref_.value(); }
+    void lvalue(std::unique_ptr<LValue> v);
 
-    // get storage location, error if not lvalue
-    const memory::StorageLocation& source() const { assert(is_lvalue()); return source_.value(); }
+    bool is_future_rvalue() const { return future_rvalue_; }
 
-    // set reference when loaded
-    void set_ref(const memory::Ref& ref) { ref_ = ref; }
+    bool is_rvalue() const { return rvalue_ != nullptr; }
 
-    virtual const ast::type::Node& type() const = 0;
+    RValue& rvalue() const;
 
-    virtual const Symbol* get_symbol() const { return nullptr; }
+    void rvalue(std::unique_ptr<RValue> v);
+
+    void rvalue(const memory::Ref& ref);
 
     virtual const SymbolRef* get_symbol_ref() const { return nullptr; }
-
-    virtual const Literal* get_literal() const { return nullptr; }
-
-    virtual const Temporary* get_temporary() const { return nullptr; }
   };
+
+  // create a Value which is a future rvalue
+  std::unique_ptr<Value> rvalue();
+  std::unique_ptr<Value> rvalue(const ast::type::Node& type);
+
+  // create a Value which is a future lvalue
+  std::unique_ptr<Value> lvalue();
+  std::unique_ptr<Value> lvalue(const ast::type::Node& type);
+
+  // create a Value which is a future l-value & rvalue
+  std::unique_ptr<Value> rlvalue();
+  std::unique_ptr<Value> rlvalue(const ast::type::Node& type);
 }

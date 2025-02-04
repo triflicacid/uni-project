@@ -3,7 +3,7 @@
 #include <functional>
 #include "operator.hpp"
 #include "constants.hpp"
-#include "value/temporary.hpp"
+#include "value/value.hpp"
 
 namespace lang {
   struct Context;
@@ -23,8 +23,8 @@ namespace lang::ops {
     bool builtin() const override { return true; }
 
     // call our underlying generator to create assembly code
-    // return Value result
-    std::unique_ptr<value::Temporary> process(Context& ctx) const;
+    // populate given value
+    void process(Context& ctx, value::Value& value) const;
   };
 
   // initialise builtins

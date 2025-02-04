@@ -79,7 +79,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     return false;
   }
 
-  // if need be, get value to be assign
+  // if need be, get value to be assigned
   std::unique_ptr<value::Value> assignment_value = nullptr;
   if (assignment_.has_value()) {
     assignment_value = assignment_->get()->get().get_value(ctx);

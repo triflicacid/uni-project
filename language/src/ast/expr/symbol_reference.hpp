@@ -19,6 +19,8 @@ namespace lang::ast::expr {
 
     std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
 
-    std::unique_ptr<value::Value> load(lang::Context &ctx) const override;
+    bool resolve_lvalue(Context& ctx, value::Value & value) const override;
+
+    bool resolve_rvalue(Context& ctx, value::Value & value) const override;
   };
 }

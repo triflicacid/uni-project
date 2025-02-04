@@ -22,16 +22,29 @@ std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::get_va
   return std::make_unique<value::SymbolRef>(token_start().image);
 }
 
-std::unique_ptr<lang::value::Value> lang::ast::expr::SymbolReferenceNode::load(lang::Context& ctx) const {
-  auto value = get_value(ctx);
-  value = value->get_symbol_ref()->resolve(ctx, *this, true);
-  if (!value) return nullptr;
+bool lang::ast::expr::SymbolReferenceNode::resolve_lvalue(Context& ctx, value::Value& value) const {
+  // check if already done
+  if (value.is_lvalue()) return true;
 
-  // exit if we are not computable (e.g., namespace)
-  if (!value->is_computable()) return value;
+  // resolve SymbolRef
+  auto symbol = value.get_symbol_ref()->resolve(ctx, *this, true);
+  if (!symbol) return false;
+  value.lvalue(std::move(symbol));
 
-  // load into a register
-  const memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(value->get_symbol()->get()));
-  value->set_ref(ref);
-  return value;
+  return true;
+}
+
+bool lang::ast::expr::SymbolReferenceNode::resolve_rvalue(Context& ctx, value::Value& value) const {
+  // ensure symbol is resolved
+  if (!resolve_lvalue(ctx, value)) return false;
+
+  // get attached symbol
+  const value::Symbol* symbol = value.lvalue().get_symbol();
+  assert(symbol != nullptr);
+
+  // load into registers
+  if (symbol->type().size() == 0) return true;
+  const memory::Ref ref = ctx.reg_alloc_manager.find(static_cast<const symbol::Variable&>(symbol->get()));
+  value.rvalue(std::make_unique<value::RValue>(symbol->type(), ref));
+  return true;
 }

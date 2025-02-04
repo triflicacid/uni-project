@@ -12,11 +12,18 @@ namespace lang::ast::expr {
     using ast::Node::Node;
 
     // return a Value which represents us, but does not load anything
-    // return may be an lvalue, or an un-loaded ("to-be") rvalue
-    // in the latter case, call ::load
+    // call Value::is_future[r|l]value to determine which type(s) it is
+    // then call ::get_rvalue or ::get_lvalue to resolve further
     virtual std::unique_ptr<value::Value> get_value(Context& ctx) const = 0;
 
-    // guaranteed same as ::get_value(), but additionally loads value if is computable
-    virtual std::unique_ptr<value::Value> load(Context& ctx) const = 0;
+    // given result from ::get_value(), populate the lvalue component if possible
+    // returns `false` if error occurred
+    virtual bool resolve_lvalue(Context& ctx, value::Value& value) const
+    { return true; }
+
+    // given result from ::get_value(), populate the rvalue component if possible
+    // returns `false` if error occurred
+    virtual bool resolve_rvalue(Context& ctx, value::Value& value) const
+    { return true; }
   };
 }

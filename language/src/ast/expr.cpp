@@ -13,5 +13,6 @@ std::ostream& lang::ast::ExprNode::print_tree(std::ostream& os, unsigned int ind
 bool lang::ast::ExprNode::process(lang::Context& ctx) {
   // process AND load to ensure entire expression is calculated
   // this is why we need a wrapper for expr::Node :)
-  return expr_->process(ctx) && expr_->load(ctx);
+  std::unique_ptr<value::Value> value;
+  return expr_->process(ctx) && (value = expr_->get_value(ctx)) && expr_->resolve_rvalue(ctx, *value);
 }

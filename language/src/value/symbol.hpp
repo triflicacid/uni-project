@@ -12,31 +12,14 @@ namespace lang::value {
     std::string name_;
 
   public:
-    explicit SymbolRef(std::string name) : Value({.computable=false}), name_(std::move(name)) {}
+    explicit SymbolRef(std::string name) : Value(true, true), name_(std::move(name)) {}
 
     const std::string& get() const { return name_; }
-
-    const ast::type::Node& type() const override { return ast::type::none; }
 
     const SymbolRef* get_symbol_ref() const override { return this; }
 
     // attempt to resolve this symbol, return value::Symbol or nullptr if error
     // argument - generate messages?
     std::unique_ptr<Symbol> resolve(Context& ctx, const message::MessageGenerator& source, bool generate_messages) const;
-  };
-
-  // wrapper around symbol::Symbol
-  class Symbol : public Value {
-    const symbol::Symbol& symbol_;
-
-  public:
-    Symbol(const symbol::Symbol& symbol, const Options& options) : Value(options), symbol_(symbol) {}
-    Symbol(const symbol::Symbol& symbol, const memory::StorageLocation& location) : Value({.lvalue=location, .computable=true}), symbol_(symbol) {}
-
-    const symbol::Symbol& get() const { return symbol_; }
-
-    const ast::type::Node& type() const override { return symbol_.type(); }
-
-    const Symbol* get_symbol() const override { return this; }
   };
 }
