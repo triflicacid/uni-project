@@ -46,18 +46,18 @@ void lang::symbol::Registry::remove(lang::symbol::SymbolId id) {
   symbols_.erase(id);
 }
 
-std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol::Registry& registry, const Category& category, const lang::lexer::Token& token, const lang::ast::type::Node& type, message::List& messages) {
+std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol::Registry& registry, const VariableOptions& options, message::List& messages) {
   // check if the symbol exists, we need additional guarding logic if it does
-  const std::string name = token.image;
+  const std::string name = options.token.image;
   auto& others = registry.get(name);
   if (!others.empty()) {
     // if we are a function, check if this overload already exists
     // otherwise, we are shadowing
-    if (auto func_type = type.get_func()) {
+    if (auto func_type = options.type.get_func()) {
       // iterate through each candidate, check if ID's are equal
       for (SymbolId id : others) {
         if (auto& symbol = registry.get(id); symbol.type().id() == func_type->id()) {
-          auto msg = token.generate_message(message::Error);
+          auto msg = options.token.generate_message(message::Error);
           msg->get() << "unable to define overload - a function matching this signature already exists";
           messages.add(std::move(msg));
 
@@ -77,8 +77,9 @@ std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol
   }
 
   // create Symbol object & register in the symbol table
-  auto symbol = std::make_unique<symbol::Variable>(token, category, type);
+  auto symbol = std::make_unique<symbol::Variable>(options.token, options.category, options.type);
   const SymbolId id = symbol->id();
+  if (options.is_constant) symbol->make_constant();
   registry.insert(std::move(symbol));
   return id;
 }

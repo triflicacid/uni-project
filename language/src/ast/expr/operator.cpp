@@ -377,6 +377,21 @@ bool lang::ast::expr::AssignmentOperatorNode::resolve_lvalue(lang::Context& ctx,
 bool lang::ast::expr::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx, lang::value::Value& lhs) const {
   assert(lhs.is_lvalue());
 
+  // if symbol is constant, error
+  if (auto symbol_value = lhs.lvalue().get_symbol()) {
+    const symbol::Symbol& symbol = symbol_value->get();
+    if (symbol.is_constant()) {
+      auto msg = op_symbol_.generate_message(message::Error);
+      msg->get() << "unable to assign to constant symbol";
+      ctx.messages.add(std::move(msg));
+
+      msg = symbol.token().generate_message(message::Note);
+      msg->get() << "symbol " << symbol.full_name() << " defined here";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+  }
+
   // evaluate RHS
   auto rhs = rhs_().get_value(ctx);
   if (!rhs || !rhs_().resolve_rvalue(ctx, *rhs)) return false;

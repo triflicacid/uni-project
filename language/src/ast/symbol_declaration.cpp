@@ -8,7 +8,6 @@
 #include "ast/types/wrapper.hpp"
 #include "message_helper.hpp"
 #include "assembly/create.hpp"
-#include "ast/types/const.hpp"
 
 std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
@@ -71,6 +70,14 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     if (!assignment_.value()->process(ctx)) return false;
   }
 
+  // a constant must be initialised
+  if (category_ == Constant && !assignment_.has_value()) {
+    auto msg = name_.generate_message(message::Error);
+    msg->get() << "constant symbol must be initialised";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
   // if no type AND no way to deduce it, error
   if (!type_.has_value() && !assignment_.has_value()) {
     auto msg = name_.generate_message(message::Error);
@@ -97,7 +104,13 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
   // define symbol
   symbol::Registry registry;
-  auto maybe_id = symbol::create_variable(registry, category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary, name_, type_.value(), ctx.messages);
+  symbol::VariableOptions options{
+    .token = name_,
+    .type = *type_,
+    .category = category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary,
+    .is_constant = category_ == Constant
+  };
+  auto maybe_id = symbol::create_variable(registry, options, ctx.messages);
   if (!maybe_id.has_value()) return false;
   ctx.symbols.insert(registry);
   id_ = maybe_id.value();

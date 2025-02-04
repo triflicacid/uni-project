@@ -38,7 +38,14 @@ namespace lang::symbol {
     auto end() const { return symbols_.end(); }
   };
 
+  struct VariableOptions {
+    lexer::Token token;
+    const ast::type::Node& type;
+    Category category;
+    bool is_constant = false;
+  };
+
   // create and insert a variable into the given registry if permitted
   // return symbol's id, or nothing if error
-  std::optional<SymbolId> create_variable(lang::symbol::Registry& registry, const Category& category, const lang::lexer::Token& token, const lang::ast::type::Node& type, message::List& messages);
+  std::optional<SymbolId> create_variable(lang::symbol::Registry& registry, const VariableOptions& options, message::List& messages);
 }

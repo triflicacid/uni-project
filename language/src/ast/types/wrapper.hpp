@@ -4,8 +4,6 @@
 #include "graph.hpp"
 
 namespace lang::ast::type {
-  class ConstWrapperNode;
-
   // a wrapper wraps a type
   class WrapperNode : public Node {
     std::string name_;
@@ -17,8 +15,6 @@ namespace lang::ast::type {
     std::string node_name() const override { return name_; }
 
     const WrapperNode* get_wrapper() const override { return this; }
-
-    virtual const ConstWrapperNode* get_const() const { return nullptr; }
 
     const Node& unwrap() const { return inner_; }
 

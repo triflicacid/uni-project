@@ -71,7 +71,12 @@ std::ostream& lang::ast::FunctionBaseNode::print_tree(std::ostream& os, unsigned
 
 bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
   // attempt to register the symbol
-  auto maybe_id = symbol::create_variable(registry, symbol::Category::Function, name_, type_, messages);
+  symbol::VariableOptions options{
+    .token = name_,
+    .type = type_,
+    .category = symbol::Category::Function,
+  };
+  auto maybe_id = symbol::create_variable(registry, options, messages);
   if (!maybe_id.has_value()) return false;
   id_ = maybe_id.value();
 

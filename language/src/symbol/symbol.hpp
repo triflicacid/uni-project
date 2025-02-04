@@ -23,6 +23,7 @@ namespace lang::symbol {
     std::optional<std::reference_wrapper<const Symbol>> parent_; // parent symbol (i.e., namespace)
     SymbolId id_ = -1;
     Category category_;
+    bool constant_ = false;
     bool assigned_ = false; // record if we have been assigned to
 
   public:
@@ -36,6 +37,10 @@ namespace lang::symbol {
     const Category& category() const { return category_; }
 
     const std::string& name() const { return token_.image; }
+
+    void make_constant() { constant_ = true; }
+
+    bool is_constant() const { return constant_; }
 
     // generate fully-qualified name (by tracking parents)
     std::string full_name() const;

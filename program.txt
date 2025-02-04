@@ -1,5 +1,5 @@
 namespace maths {
-    let pi: int;
+    const pi = 3.14159;
 }
 
-maths.pi = 3;
+maths.pi = 2;
