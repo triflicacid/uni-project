@@ -345,3 +345,24 @@ void lang::memory::RegisterAllocationManager::mark_free(const lang::memory::Ref&
     }
   }
 }
+
+void lang::memory::RegisterAllocationManager::evict(const lang::symbol::Symbol& symbol) {
+  // check if Object is inside a register
+  int offset = initial_register;
+  for (auto& object : instances_.top().regs) {
+    if (object && object->value->is_lvalue()) {
+      if (auto obj_symbol = object->value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
+        evict(Ref(Ref::Register, offset));
+      }
+    }
+
+    offset++;
+  }
+
+  // check if Object is stored in spilled memory
+  for (auto& [address, object] : memory_) {
+    if (auto obj_symbol = object.value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
+      evict(Ref(Ref::Memory, address));
+    }
+  }
+}

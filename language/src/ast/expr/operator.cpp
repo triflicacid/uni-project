@@ -412,6 +412,10 @@ bool lang::ast::expr::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx,
   assert(symbol != nullptr);
   ctx.symbols.assign_symbol(symbol->get().id(), expr.offset);
 
+  // if symbol, evict it as it has been updated
+  ctx.reg_alloc_manager.evict(symbol->get());
+
+
   return true;
 }
 

@@ -1,2 +1,4 @@
-namespace maths {}
-maths + 1;
+let a: int;
+a;
+a = 2;
+a;

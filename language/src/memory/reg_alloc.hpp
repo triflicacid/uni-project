@@ -74,6 +74,10 @@ namespace lang::memory {
     // evict item at the given location
     void evict(const Ref& location);
 
+    // evict all instances of this symbol
+    // used when symbol has been updated and is now invalid
+    void evict(const symbol::Symbol& symbol);
+
     // mark object as not required -- from this point onwards, data is not guaranteed to exist
     void mark_free(const Ref& ref);
 
