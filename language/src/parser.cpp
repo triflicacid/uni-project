@@ -159,16 +159,24 @@ std::unique_ptr<lang::ast::LiteralNode> lang::parser::Parser::parse_literal() {
   ast::type::Node* type_node;
 
   // check if type is explicitly suffixed, otherwise set to default int/float types
-  if (expect(numerical_types)) {
-    const lexer::Token type_token = consume();
-    type_node = static_type_map.at(type_token.type);
-    token.parse_numerical(type_token.type); // TODO check if error?
-  } else if (token.type == lexer::TokenType::float_lit) {
-    type_node = &ast::type::float32;
-    token.parse_numerical(lexer::TokenType::float32);
-  } else {
-    type_node = &ast::type::int32;
-    token.parse_numerical(lexer::TokenType::int32);
+  try {
+    if (expect(numerical_types)) {
+      const lexer::Token type_token = consume();
+      type_node = static_type_map.at(type_token.type);
+      token.parse_numerical(type_token.type);
+    } else if (token.type == lexer::TokenType::float_lit) {
+      type_node = &ast::type::float32;
+      token.parse_numerical(lexer::TokenType::float32);
+    } else {
+      type_node = &ast::type::int32;
+      token.parse_numerical(lexer::TokenType::int32);
+    }
+  } catch (const std::out_of_range& e) {
+    auto msg = token.generate_message(message::Error);
+    msg->get() << "literal is out of range for type ";
+    type_node->print_code(msg->get());
+    add_message(std::move(msg));
+    return nullptr;
   }
 
   return std::make_unique<ast::LiteralNode>(token, *type_node);
