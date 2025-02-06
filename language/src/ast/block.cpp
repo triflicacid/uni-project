@@ -3,6 +3,8 @@
 #include "symbol/registry.hpp"
 #include "config.hpp"
 #include "message_helper.hpp"
+#include "value/symbol.hpp"
+#include "optional_ref.hpp"
 
 void lang::ast::BlockNode::add(std::unique_ptr<Node> ast_node) {
   lines_.push_back(std::move(ast_node));
@@ -29,7 +31,6 @@ std::ostream& lang::ast::BlockNode::print_tree(std::ostream& os, unsigned int in
   Node::print_tree(os, indent_level);
   for (auto& line : lines_) {
     os << std::endl;
-    indent(os, indent_level);
     line->print_tree(os, indent_level + 1);
   }
   return os;
@@ -63,9 +64,7 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
 
   // process our children
   for (auto& line : lines_) {
-    if (!line->process(ctx))  {
-      return false;
-    }
+    if (!line->process(ctx) || !line->resolve_value(ctx)) return false;
   }
 
   // remove local scope if necessary
@@ -74,4 +73,9 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
   }
 
   return true;
+}
+
+const lang::value::Value& lang::ast::BlockNode::value() const {
+  if (returns_ && !lines_.empty()) return lines_.back()->value();
+  return Node::value();
 }

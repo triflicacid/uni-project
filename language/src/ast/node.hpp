@@ -3,6 +3,7 @@
 #include <deque>
 #include "messages/list.hpp"
 #include "lexer/token.hpp"
+#include "value/value.hpp"
 
 namespace lang {
   struct Context;
@@ -23,18 +24,36 @@ namespace lang::ast {
     virtual std::ostream& print_code(std::ostream& os, unsigned int indent_level = 0) const = 0;
   };
 
-  class Node : public NodeBase, public lexer::TokenSpan {
+class Node : public NodeBase, public lexer::TokenSpan {
     lexer::Token tstart_;
     std::optional<lexer::Token> tend_;
+
+  protected:
+    std::unique_ptr<value::Value> value_; // every node has a value, which is possibly set in ::process
 
   public:
     explicit Node(lexer::Token token) : NodeBase(), tstart_(token) {}
 
-    const lexer::Token& token_start() const override { return tstart_; }
+    const lexer::Token& token_start() const override final { return tstart_; }
 
-    const lexer::Token& token_end() const override { return tend_ ? *tend_ : tstart_; }
+    const lexer::Token& token_end() const override final { return tend_ ? *tend_ : tstart_; }
 
     void token_end(const lexer::Token& token) { tend_ = token; }
+
+    // refer to the value represents the result of this node
+    virtual const value::Value& value() const;
+
+    // populate/resolve the lvalue component of our value, if possible
+    // returns `false` if error occurred
+    virtual bool resolve_lvalue(Context& ctx) { return true; }
+
+    // populate/resolve the rvalue component of our value, if possible
+    // returns `false` if error occurred
+    virtual bool resolve_rvalue(Context& ctx) { return true; }
+
+    // fully resolve our value, if possible (both l and rvalue)
+    // returns `false` if error occurred
+    bool resolve_value(Context& ctx);
 
     // print in tree form, default only print name
     virtual std::ostream& print_tree(std::ostream& os, unsigned int indent_level = 0) const;

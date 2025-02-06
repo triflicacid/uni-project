@@ -8,6 +8,7 @@
 #include "ast/types/wrapper.hpp"
 #include "message_helper.hpp"
 #include "assembly/create.hpp"
+#include "optional_ref.hpp"
 
 std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
@@ -87,13 +88,23 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   }
 
   // if need be, get value to be assigned
-  std::unique_ptr<value::Value> assignment_value = nullptr;
+  optional_ref<const value::Value> assignment_value;
   if (assignment_.has_value()) {
-    assignment_value = assignment_->get()->get().get_value(ctx);
-    if (!assignment_value) return false;
-    const auto& type = assignment_value->type();
+    // resolve rvalue
+    auto& value = assignment_->get()->value();
+    assignment_value = value;
+    if (!assignment_->get()->resolve_rvalue(ctx)) return false;
+    if (!value.is_rvalue()) {
+      auto msg = assignment_->get()->generate_message(message::Error);
+      msg->get() << "expected lvalue, got ";
+      value.type().print_code(msg->get());
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
 
     // if we have declared symbol to be a type, they must match
+    const auto& type = value.type();
     if (type_.has_value() && !type::graph.is_subtype(type.id(), type_->get().id())) {
       ctx.messages.add(util::error_type_mismatch(name_, type, type_.value(), true));
       return false;
@@ -118,13 +129,17 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   // if no assignment, we're done
   if (!assignment_.has_value()) return true;
 
-  // get location of expr
-  const auto maybe_expr = ctx.reg_alloc_manager.get_recent();
-  assert(maybe_expr.has_value());
   // coerce into correct type (this is safe as subtyping checked)
-  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(maybe_expr.value(), type_.value().get().get_asm_datatype());
+  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(assignment_value->get().rvalue().ref(), type_.value().get().get_asm_datatype());
 
   // load expr value into symbol
   ctx.symbols.assign_symbol(id_, expr.offset);
+
+  // update register to contain this symbol to avoid double-loading
+  auto value = value::rlvalue();
+  value->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
+  value->rvalue(expr);
+  ctx.reg_alloc_manager.update(expr, memory::Object(std::move(value)));
+
   return true;
 }

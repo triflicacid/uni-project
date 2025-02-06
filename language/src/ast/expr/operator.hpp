@@ -1,7 +1,8 @@
 #pragma once
 
-#include "node.hpp"
+#include "ast/node.hpp"
 #include "operators/info.hpp"
+#include "optional_ref.hpp"
 
 namespace lang::ops {
   class Operator;
@@ -11,7 +12,11 @@ namespace lang::symbol {
   class Symbol;
 }
 
-namespace lang::ast::expr {
+namespace lang::ast::type {
+  class FunctionNode;
+}
+
+namespace lang::ast {
   // define an operator
   class OperatorNode : public Node {
   protected:
@@ -20,9 +25,8 @@ namespace lang::ast::expr {
 
     Node& lhs_() const;
     Node& rhs_() const;
-
-    // attempt to resolve argument to an rvalue, return it or nullptr on error
-    std::unique_ptr<value::Value> get_arg_rvalue(Context& ctx, int i) const;
+    
+    optional_ref<const value::Value> get_arg_rvalue(Context& ctx, int i) const;
 
   public:
     OperatorNode(lexer::Token token, lexer::Token symbol, std::deque<std::unique_ptr<Node>> args)
@@ -37,6 +41,8 @@ namespace lang::ast::expr {
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override final;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override final;
+
+    bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
     bool process(lang::Context &ctx) override;
 
@@ -60,9 +66,7 @@ namespace lang::ast::expr {
 
     bool process(lang::Context &ctx) override;
 
-    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
-
-    bool resolve_rvalue(Context& ctx, value::Value& value) const override;
+    bool resolve_rvalue(Context& ctx) override;
   };
 
   // represents (type) expr
@@ -75,14 +79,13 @@ namespace lang::ast::expr {
 
     const std::string& symbol() const override { return symbol_; }
 
-    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
+    bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx, value::Value &value) const override;
+    bool resolve_rvalue(lang::Context &ctx) override;
   };
 
   // represents lhs.rhs
   class DotOperatorNode : public OperatorNode {
-    std::unique_ptr<value::Value> base_; // resolves lhs_()
     std::string attr_; // resolved attribute name
 
   public:
@@ -90,11 +93,9 @@ namespace lang::ast::expr {
 
     bool process(lang::Context &ctx) override;
 
-    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
+    bool resolve_lvalue(lang::Context &ctx) override;
 
-    bool resolve_lvalue(lang::Context &ctx, value::Value &value) const override;
-
-    bool resolve_rvalue(lang::Context &ctx, value::Value &value) const override;
+    bool resolve_rvalue(lang::Context &ctx) override;
   };
 
   // represents lhs = rhs
@@ -104,10 +105,8 @@ namespace lang::ast::expr {
 
     bool process(lang::Context &ctx) override;
 
-    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
+    bool resolve_lvalue(lang::Context &ctx) override;
 
-    bool resolve_lvalue(lang::Context &ctx, value::Value &value) const override;
-
-    bool resolve_rvalue(lang::Context &ctx, value::Value &lhs) const override;
+    bool resolve_rvalue(lang::Context &ctx) override;
   };
 }

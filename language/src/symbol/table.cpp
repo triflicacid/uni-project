@@ -48,17 +48,17 @@ void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool allo
 
 void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
   // do not allocate twice!
-  if (storage_.contains(id)) return;
+  assert(!storage_.contains(id));
 
   const symbol::Symbol& symbol = *symbols_.at(id);
   switch (symbol.category()) {
     case symbol::Category::Ordinary: // if size=0, immaterial
       if (size_t size = symbol.type().size()) {
         // are we global or no?
-        if (trace_.empty()) {
+        if (in_global_scope()) {
           // create block for the variable to reside in
           auto block = assembly::BasicBlock::labelled("globl_" + std::to_string(id));
-          block->comment() << "global " << symbol.full_name() << ": ";
+          block->comment() << "alloc global " << symbol.full_name() << ": ";
           symbol.type().print_code(block->comment());
 
           // reserve space inside the block
@@ -75,7 +75,8 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
           // add symbol to stack iff size>0
           stack_.push(size);
           storage_.insert({id, {stack_.offset()}});
-          auto& comment = stack_.program().current().back().comment() << symbol.full_name() << ": ";
+          auto& comment = stack_.program().current().back().comment();
+          comment << "alloc " << symbol.full_name() << ": ";
           symbol.type().print_code(comment);
         }
       }
@@ -211,12 +212,11 @@ void lang::symbol::SymbolTable::assign_symbol(lang::symbol::SymbolId symbol, uin
   assert(maybe_location.has_value());
   const memory::StorageLocation location = maybe_location.value().get();
 
+  // store register into symbol (resolved location)
   auto argument = resolve_location(location);
-  if (location.type == memory::StorageLocation::Stack) {
-    stack_.program().current().add(assembly::create_load(reg, std::move(argument)));
-  } else {
-    stack_.program().current().add(assembly::create_store(reg, std::move(argument)));
-  }
+  stack_.program().current().add(assembly::create_store(reg, std::move(argument)));
+  auto& comment = stack_.program().current().back().comment();
+  comment << get(symbol).full_name() << " = $" << constants::registers::to_string($reg(reg));
 }
 
 void lang::symbol::SymbolTable::push_path(lang::symbol::SymbolId id) {

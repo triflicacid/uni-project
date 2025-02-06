@@ -1,7 +1,6 @@
 #include "namespace.hpp"
 #include "shell.hpp"
 #include "context.hpp"
-#include "symbol/namespace.hpp"
 #include "config.hpp"
 
 std::ostream& lang::ast::NamespaceNode::print_code(std::ostream& os, unsigned int indent_level) const {
@@ -44,7 +43,7 @@ bool lang::ast::NamespaceNode::collate_registry(message::List& messages, lang::s
   }
 
   // insert into registry as a Namespace symbol
-  auto symbol = std::make_unique<symbol::Namespace>(name_);
+  auto symbol = symbol::create_namespace(name_);
   id_ = symbol->id();
   registry.insert(std::move(symbol));
 

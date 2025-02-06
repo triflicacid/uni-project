@@ -9,6 +9,7 @@ namespace lang::ast {
     std::deque<std::unique_ptr<Node>> lines_;
     bool scope_ = true; // add a new scope
     std::unique_ptr<symbol::Registry> registry_; // local registry, NULL if !scope_
+    bool returns_; // does this block return a value?
 
   public:
     using Node::Node;
@@ -21,6 +22,14 @@ namespace lang::ast {
 
     // is this block the start of a new scope?
     void add_new_scope(bool b) { scope_ = b; }
+
+    // check if this block returns a value
+    bool returns() const { return returns_; }
+
+    // make this block return a value
+    void make_returns() { returns_ = true; }
+
+    const value::Value& value() const override;
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

@@ -3,7 +3,6 @@
 #include <memory>
 #include <stack>
 #include "constants.hpp"
-#include "symbol/variable.hpp"
 #include "ast/expr/literal.hpp"
 #include "assembly/program.hpp"
 #include "symbol/table.hpp"
@@ -63,7 +62,7 @@ namespace lang::memory {
     void destroy_store(bool restore_registers);
 
     // return reference to an item, insert if needed
-    Ref find(const symbol::Variable& symbol);
+    Ref find(const symbol::Symbol& symbol);
 
     // return reference to an item, insert if needed
     Ref find(const Literal& literal);
@@ -81,11 +80,17 @@ namespace lang::memory {
     // mark object as not required -- from this point onwards, data is not guaranteed to exist
     void mark_free(const Ref& ref);
 
+    // mark all objects as free that were allocated in the latest instance
+    void mark_all_free();
+
     // insert Object, assume it does not exist, return reference to it
     Ref insert(Object object);
 
     // same as insert(), but put in a specific position - location is evicted if full
     void insert(const Ref& location, Object object);
+
+    // like insert, but just sets the value without generating any code
+    void update(const Ref& location, Object object);
 
     // get the nth most recent allocation
     // default `n=0` (i.e., most recent)

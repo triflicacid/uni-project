@@ -1,5 +1,4 @@
 #include "registry.hpp"
-#include "variable.hpp"
 #include "ast/types/function.hpp"
 
 bool lang::symbol::Registry::contains(const std::string& name) const {
@@ -77,7 +76,7 @@ std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol
   }
 
   // create Symbol object & register in the symbol table
-  auto symbol = std::make_unique<symbol::Variable>(options.token, options.category, options.type);
+  auto symbol = std::make_unique<symbol::Symbol>(options.token, options.category, options.type);
   const SymbolId id = symbol->id();
   if (options.is_constant) symbol->make_constant();
   registry.insert(std::move(symbol));

@@ -13,7 +13,7 @@ std::ostream& lang::ast::type::FunctionNode::print_code(std::ostream& os, unsign
   os << ")";
 
   // if provided, print return type after an arrow
-  if (returns_.get().id() != none.id()) {
+  if (returns_.get().id() != unit.id()) {
     os << " -> ";
     returns_.get().print_code(os, indent_level);
   }

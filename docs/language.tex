@@ -131,12 +131,20 @@ const pi = 3.14159;
 
     \subsection{Expressions \& Statements}\label{subsec:expressions-&-statements}
 
-    Both statement is a piece of code that performs an action but does not necessarily produce a value.
-    Examples include if statements, while loops, function definitions, etc.
+    Generally, a statement is some code which does not produce a value, whereas an expression does.
+    In Emit, \textit{everything} is an expression, with statements, by default, returning the unit type `\texttt{()}'.
 
-    Expressions, however, produce a value.
-    An expression consists of a combination of values and operators, such as \texttt{1 + 2} or \texttt{maths.sin(0.5)}.
-    Expressions \textit{must} be terminated with a semicolon.
+    Expressions are expected to be terminated by a semicolon.
+    The exception to this is the final expression in a block; if omitted, the block `returns' the result of this expression.
+
+    \begin{lstlisting}[language=CustomLang]
+let a = { 1 + 2; }; // a = ()
+let b = { 1 + 2 }; // b = 3
+let c = { let z = 2 * b; z } + 2; // c = 8
+    \end{lstlisting}
+
+    Note that only the last expression in a block may have their semicolon emitted.
+    By always terminating expressions, the block will act like a statement.
 
     \subsubsection{Value Categories}
 

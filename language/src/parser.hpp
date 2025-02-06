@@ -18,6 +18,9 @@ namespace lang::parser {
     lexer::Token prev_; // store previous token
     message::List* messages_;
 
+    bool expect_block_end; // tracks if we're at the last expression in a block
+    const lexer::Token* expr_last_; // points to the last token of an expression
+
     // read at most n tokens from the lexer, stop on eof
     void read_tokens(unsigned int n);
 
@@ -27,7 +30,7 @@ namespace lang::parser {
     void parse_newlines();
 
     // parse an expression recursively
-    std::unique_ptr<ast::expr::Node> _parse_expression(int precedence);
+    std::unique_ptr<ast::Node> _parse_expression(int precedence);
 
   public:
     explicit Parser(lexer::Lexer& lexer) : lexer_(lexer), prev_(lexer::Token::invalid(lexer.stream())) {}
@@ -65,20 +68,28 @@ namespace lang::parser {
     lexer::Token consume();
 
     // parse a numeric/boolean literal
-    std::unique_ptr<ast::expr::LiteralNode> parse_literal();
+    std::unique_ptr<ast::LiteralNode> parse_literal();
 
     // parse a term - a number, symbol reference, bracketed expression etc.
-    std::unique_ptr<ast::expr::Node> parse_term();
+    std::unique_ptr<ast::Node> parse_term();
 
     // parse a type, return pointer to type, or nullptr if invalid
     const ast::type::Node* parse_type();
 
     // expect semicolon to follow an expression
     // check for SC and return if found
+    // note this consumes the semicolon
     bool check_semicolon_after_expression(bool generate_messages = true);
 
+    enum class ExprExpectSC {
+      No, // no sc required or expected
+      Maybe, // not requires but may be present (sets terminated_ property)
+      Yes, // absolutely required
+    };
+
     // parse an expression
-    std::unique_ptr<ast::ExprNode> parse_expression(int precedence = 0);
+    // argument: check if semicolon, updates `expect_block_end` flag
+    std::unique_ptr<ast::Node> parse_expression(ExprExpectSC expect_sc, int precedence = 0);
 
     // parse a `name: type` pair as a symbol declaration
     std::unique_ptr<ast::SymbolDeclarationNode> parse_name_type_pair();

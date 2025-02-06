@@ -3,7 +3,6 @@
 #include "node.hpp"
 #include "ast/types/node.hpp"
 #include "symbol/symbol.hpp"
-#include "expr.hpp"
 
 namespace lang::ast {
   class SymbolDeclarationNode : public Node {
@@ -19,13 +18,13 @@ namespace lang::ast {
     std::optional<std::reference_wrapper<const type::Node>> type_; // optional if type deduction required
     Category category_ = Variable;
     symbol::SymbolId id_; // ID of created symbol
-    std::optional<std::unique_ptr<ast::ExprNode>> assignment_; // optional assignment
+    std::optional<std::unique_ptr<Node>> assignment_; // optional assignment
 
   public:
     SymbolDeclarationNode(lexer::Token token, lexer::Token name, std::optional<std::reference_wrapper<const type::Node>> type)
       : Node(std::move(token)), name_(std::move(name)), type_(std::move(type)) {}
 
-    SymbolDeclarationNode(lexer::Token token, lexer::Token name, std::optional<std::reference_wrapper<const type::Node>> type, std::optional<std::unique_ptr<ast::ExprNode>> assignment)
+    SymbolDeclarationNode(lexer::Token token, lexer::Token name, std::optional<std::reference_wrapper<const type::Node>> type, std::optional<std::unique_ptr<Node>> assignment)
       : Node(std::move(token)), name_(std::move(name)), type_(std::move(type)), assignment_(std::move(assignment)) {}
 
     std::string node_name() const override;

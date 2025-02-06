@@ -2,7 +2,7 @@
 
 #include "value.hpp"
 #include "symbol/symbol.hpp"
-#include "ast/types/none.hpp"
+#include "ast/types/unit.hpp"
 
 namespace lang::value {
   // represents a symbol name (reference)
@@ -22,4 +22,7 @@ namespace lang::value {
     // argument - generate messages?
     std::unique_ptr<Symbol> resolve(Context& ctx, const message::MessageGenerator& source, bool generate_messages) const;
   };
+
+  // create a Value which is a symbol reference (future l+rvalue)
+  std::unique_ptr<SymbolRef> symbol_ref(const std::string name);
 }

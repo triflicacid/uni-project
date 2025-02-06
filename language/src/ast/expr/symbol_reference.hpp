@@ -1,10 +1,10 @@
 #pragma once
 
 #include <deque>
-#include "node.hpp"
+#include "ast/node.hpp"
 #include "symbol/symbol.hpp"
 
-namespace lang::ast::expr {
+namespace lang::ast {
   class SymbolReferenceNode : public Node {
   public:
     using Node::Node;
@@ -15,12 +15,10 @@ namespace lang::ast::expr {
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
-    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
+    bool resolve_lvalue(Context& ctx) override;
 
-    bool resolve_lvalue(Context& ctx, value::Value & value) const override;
-
-    bool resolve_rvalue(Context& ctx, value::Value & value) const override;
+    bool resolve_rvalue(Context& ctx) override;
   };
 }

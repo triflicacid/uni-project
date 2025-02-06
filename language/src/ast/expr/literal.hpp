@@ -1,13 +1,14 @@
 #pragma once
 
-#include "node.hpp"
+#include "ast/node.hpp"
 #include "memory/literal.hpp"
 
-namespace lang::ast::expr {
+namespace lang::ast {
   // describe a float or int literal
   // essentially a node wrapper around memory::Literal
   class LiteralNode : public Node {
     const memory::Literal& lit_;
+    std::unique_ptr<value::Value> result_;
 
   public:
     LiteralNode(lexer::Token token, const memory::Literal& lit) : Node(std::move(token)), lit_(lit) {}
@@ -24,8 +25,6 @@ namespace lang::ast::expr {
 
     bool process(lang::Context &ctx) override;
 
-    std::unique_ptr<value::Value> get_value(lang::Context &ctx) const override;
-
-    bool resolve_rvalue(Context& ctx, value::Value& value) const override;
+    bool resolve_rvalue(Context& ctx) override;
   };
 }

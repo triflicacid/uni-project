@@ -71,6 +71,7 @@ void lang::memory::RegisterAllocationManager::save_store(bool save_registers) {
 }
 
 void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registers) {
+  mark_all_free();
   instances_.pop();
   if (instances_.empty()) {
     instances_.emplace();
@@ -101,7 +102,7 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
   }
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symbol::Variable &symbol) {
+lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symbol::Symbol &symbol) {
   // check if Object is inside a register
   int offset = initial_register;
   for (auto& object : instances_.top().regs) {
@@ -216,6 +217,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(Object object)
 }
 
 void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object object) {
+  assert(location.type == Ref::Register);
   evict(location);
   instances_.top().history.push_front(location);
 
@@ -271,6 +273,15 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
   memory_.insert({location.offset, std::move(object)});
 }
 
+void lang::memory::RegisterAllocationManager::update(const Ref& location, Object object) {
+  if (location.type == Ref::Register) {
+    instances_.top().regs[location.offset - initial_register] = std::move(object);
+  } else {
+    memory_.erase(location.offset);
+    memory_.insert({location.offset, std::move(object)});
+  }
+}
+
 std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::get_recent(unsigned int n) const {
   if (instances_.empty() || n >= instances_.top().history.size()) return {};
   return instances_.top().history[n];
@@ -301,8 +312,9 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
   auto original = static_cast<constants::inst::datatype::dt>(255);
 
   if (object->value->is_lvalue() && object->value->lvalue().get_symbol()) {
-    const symbol::Symbol& symbol = object->value->lvalue().get_symbol()->get();
+    auto& symbol = object->value->lvalue().get_symbol()->get();
     // get original datatype
+    auto &type = symbol.type();
     original = symbol.type().get_asm_datatype();
     if (target != original) {
       // remove lvalue, we are only an rvalue now
@@ -344,6 +356,24 @@ void lang::memory::RegisterAllocationManager::mark_free(const lang::memory::Ref&
       instances_.top().spill_addr -= size;
     }
   }
+}
+
+void lang::memory::RegisterAllocationManager::mark_all_free() {
+  Store& instance = instances_.top();
+
+  // mark all registers as free
+  for (auto& object : instance.regs) {
+    if (object) object->required = false;
+  }
+
+  // mark all memory objects in topmost instance as free
+  for (auto& [addr, object] : memory_) {
+    if (addr < instance.stack_offset) continue;
+    object.required = false;
+  }
+
+  // reset spill address
+  instance.spill_addr = instance.stack_offset;
 }
 
 void lang::memory::RegisterAllocationManager::evict(const lang::symbol::Symbol& symbol) {

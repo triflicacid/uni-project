@@ -2,9 +2,11 @@
 #include "context.hpp"
 #include "message_helper.hpp"
 #include "value.hpp"
-#include "ast/types/none.hpp"
+#include "ast/types/unit.hpp"
 
-lang::value::Value::Value(bool future_lvalue, bool future_rvalue) : future_lvalue_(future_lvalue), future_rvalue_(future_rvalue), type_(ast::type::none) {}
+lang::value::Value::Value() : type_(ast::type::unit) {}
+
+lang::value::Value::Value(bool future_lvalue, bool future_rvalue) : future_lvalue_(future_lvalue), future_rvalue_(future_rvalue), type_(ast::type::unit) {}
 
 lang::value::Value::Value(const ast::type::Node& type, bool future_lvalue, bool future_rvalue) : future_lvalue_(future_lvalue), future_rvalue_(future_rvalue), type_(type) {}
 
@@ -14,6 +16,7 @@ lang::value::LValue& lang::value::Value::lvalue() const {
 }
 
 void lang::value::Value::lvalue(std::unique_ptr<LValue> v) {
+  future_lvalue_ = false;
   type_ = v->type();
   lvalue_ = std::move(v);
 }
@@ -24,6 +27,7 @@ lang::value::RValue& lang::value::Value::rvalue() const {
 }
 
 void lang::value::Value::rvalue(std::unique_ptr<RValue> v) {
+  future_rvalue_ = false;
   type_ = v->type();
   rvalue_ = std::move(v);
 }
@@ -80,3 +84,9 @@ std::unique_ptr<lang::value::Value> lang::value::rlvalue(const ast::type::Node& 
 }
 
 lang::value::Symbol::Symbol(const symbol::Symbol& symbol) : LValue(symbol.type()), symbol_(symbol) {}
+
+std::unique_ptr<lang::value::SymbolRef> lang::value::symbol_ref(const std::string name) {
+  return std::make_unique<SymbolRef>(name);
+}
+
+const lang::value::Value lang::value::unit_value(ast::type::unit, false, false);

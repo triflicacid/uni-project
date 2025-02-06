@@ -1,7 +1,6 @@
 #include <iostream>
 #include <map>
 #include <ranges>
-#include <cassert>
 #include "parser.hpp"
 #include "ast/block.hpp"
 #include "ast/types/float.hpp"
@@ -11,7 +10,6 @@
 #include "util.hpp"
 #include "ast/program.hpp"
 #include "operators/info.hpp"
-#include "ast/expr.hpp"
 #include "ast/types/bool.hpp"
 #include "config.hpp"
 
@@ -148,12 +146,12 @@ const lang::lexer::TokenSet lang::parser::firstset::number{lexer::TokenType::int
 const lang::lexer::TokenSet lang::parser::firstset::boolean{lexer::TokenType::false_kw, lexer::TokenType::true_kw};
 const lang::lexer::TokenSet lang::parser::firstset::literal = lexer::merge_sets({number, boolean});
 
-std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_literal() {
+std::unique_ptr<lang::ast::LiteralNode> lang::parser::Parser::parse_literal() {
   // Boolean literal?
   if (expect(firstset::boolean)) {
     lexer::Token token = consume();
     token.value = token.type == lexer::TokenType::true_kw ? conf::bools::true_value : conf::bools::false_value;
-    return std::make_unique<ast::expr::LiteralNode>(token, ast::type::boolean);
+    return std::make_unique<ast::LiteralNode>(token, ast::type::boolean);
   }
 
   // assume token is float_lit or int_lit
@@ -173,19 +171,19 @@ std::unique_ptr<lang::ast::expr::LiteralNode> lang::parser::Parser::parse_litera
     token.parse_numerical(lexer::TokenType::int32);
   }
 
-  return std::make_unique<ast::expr::LiteralNode>(token, *type_node);
+  return std::make_unique<ast::LiteralNode>(token, *type_node);
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
     firstset::literal,
-    {lexer::TokenType::ident, lexer::TokenType::lpar}
+    {lexer::TokenType::ident, lexer::TokenType::lpar, lexer::TokenType::lbrace}
 });
 
-std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
+std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
   if (expect(firstset::literal)) {
     return parse_literal();
   } else if (expect(lexer::TokenType::ident)) { // identifier
-    return std::make_unique<ast::expr::SymbolReferenceNode>(consume());
+    return std::make_unique<ast::SymbolReferenceNode>(consume());
   } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
     consume();
     auto expr = _parse_expression(0);
@@ -193,9 +191,11 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::parse_term() {
     if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
     consume(); // ')'
     return expr;
-  } else { // unknown, but should've been caught already
-    return nullptr;
+  } else if (expect(lexer::TokenType::lbrace)) { // block
+    return parse_block();
   }
+
+  return nullptr;
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_sets({
@@ -222,13 +222,29 @@ bool lang::parser::Parser::check_semicolon_after_expression(bool generate_messag
   return false;
 }
 
-std::unique_ptr<lang::ast::ExprNode> lang::parser::Parser::parse_expression(int precedence) {
+std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression(ExprExpectSC expect_sc, int precedence) {
   auto expr = _parse_expression(precedence);
-  return is_error() ? nullptr : std::make_unique<ast::ExprNode>(std::move(expr));
+  if (is_error()) return nullptr;
+
+  if (expect_sc == ExprExpectSC::No) {
+    return expr;
+  }
+
+  bool found_sc = check_semicolon_after_expression(expect_sc == ExprExpectSC::Yes);
+  if (!found_sc) expr_last_ = &expr->token_end();
+
+  if (expect_sc == ExprExpectSC::Yes) {
+    if (!found_sc) return nullptr;
+    return expr;
+  }
+
+  // expect_sc == ExprExpectSC::Maybe
+  expect_block_end = !found_sc;
+  return expr;
 }
 
-std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(int precedence) {
-  std::unique_ptr<ast::expr::Node> expr;
+std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int precedence) {
+  std::unique_ptr<ast::Node> expr;
 
   if (expect(lexer::TokenType::op)) { // unary operator
     const lexer::Token op_token = consume();
@@ -242,7 +258,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
     if (is_error()) return nullptr;
 
     // wrap and continue
-    expr = ast::expr::OperatorNode::unary(op_token, std::move(expr));
+    expr = ast::OperatorNode::unary(op_token, std::move(expr));
   }
   else if (expect(lexer::TokenType::lpar) && expect(firstset::type, 1)) { // primitive cast
     const lexer::Token op_token = consume();
@@ -259,7 +275,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
     if (is_error()) return nullptr;
 
     // wrap and continue
-    expr = std::make_unique<ast::expr::CastOperatorNode>(op_token, *type, std::move(expr));
+    expr = std::make_unique<ast::CastOperatorNode>(op_token, *type, std::move(expr));
   }
   else if (expect(firstset::term)) { // term
     expr = parse_term();
@@ -290,7 +306,7 @@ std::unique_ptr<lang::ast::expr::Node> lang::parser::Parser::_parse_expression(i
 
     // wrap both sides in a binary operator and continue
     const lexer::Token token_start = expr->token_start();
-    expr = ast::expr::OperatorNode::binary(token_start, op_token, std::move(expr), std::move(rest));
+    expr = ast::OperatorNode::binary(token_start, op_token, std::move(expr), std::move(rest));
   }
 
   return expr;
@@ -331,8 +347,7 @@ std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_na
 void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
   // consume 'let' or 'const'
   const auto kw_token = consume();
-  bool is_const = false;
-  const auto category = (is_const = kw_token.type == lexer::TokenType::const_kw)
+  const auto category = kw_token.type == lexer::TokenType::const_kw
       ? ast::SymbolDeclarationNode::Constant
       : ast::SymbolDeclarationNode::Variable;
   bool was_last_expression = false; // track if we last saw an expression
@@ -353,10 +368,10 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
     }
 
     // if assignment, expect expression
-    std::optional<std::unique_ptr<ast::ExprNode>> expr;
+    std::optional<std::unique_ptr<ast::Node>> expr;
     if (expect(lexer::BasicToken(lexer::TokenType::op, "="))) {
       consume();
-      expr = parse_expression();
+      expr = parse_expression(ExprExpectSC::No);
       if (is_error()) return;
     }
     was_last_expression = expr.has_value();
@@ -454,10 +469,10 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
   const lexer::Token token = consume();
 
   // is there an expression?
-  std::optional<std::unique_ptr<ast::ExprNode>> expr;
+  std::optional<std::unique_ptr<ast::Node>> expr;
   if (expect(firstset::expression)) {
-    expr = parse_expression();
-    if (is_error() || !check_semicolon_after_expression()) return nullptr;
+    expr = parse_expression(ExprExpectSC::Yes);
+    if (is_error()) return nullptr;
   }
 
   auto node = std::make_unique<ast::ReturnNode>(std::move(token), std::move(expr));
@@ -472,8 +487,7 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
 
 void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
   if (expect(firstset::expression)) {
-    block.add(parse_expression());
-    check_semicolon_after_expression();
+    block.add(parse_expression(ExprExpectSC::Maybe));
     return;
   }
 
@@ -501,14 +515,14 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
 std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
   // '{'
   const lexer::Token lbrace = consume();
+  expect_block_end = false;
 
   auto block = std::make_unique<ast::BlockNode>(lbrace);
   while (true) {
-    // remove newlines
     while (expect(firstset::eol)) consume();
-    if (expect(lexer::TokenType::rbrace)) break;
 
     // parse line or '}'
+    if (expect(lexer::TokenType::rbrace)) break;
     if (!expect_or_error(lexer::merge_sets({firstset::line, {lexer::TokenType::rbrace}}))) {
       auto msg = lbrace.generate_message(message::Note);
       msg->get() << "block started here";
@@ -516,17 +530,24 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
       return nullptr;
     }
 
-    if (expect(lexer::TokenType::rbrace)) {
-      consume();
-      break;
-    }
-
     parse_line(*block);
     if (is_error()) return nullptr;
+
+    // expect end of block here?
+    if (expect_block_end) {
+      if (expect_or_error(lexer::TokenType::rbrace)) break;
+      auto msg = expr_last_->generate_message(message::Note);
+      msg->get() << "non-semicolon-terminated expression must be last in block";
+      add_message(std::move(msg));
+    }
   }
 
   consume();
   block->token_end(previous());
+
+  // block returns if non-sc-terminated expr present
+  if (expect_block_end) block->make_returns();
+
   return block;
 }
 
@@ -571,7 +592,8 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merge_sets({
-    {lexer::TokenType::const_kw,
+    {lexer::TokenType::lbrace,
+     lexer::TokenType::const_kw,
      lexer::TokenType::func,
      lexer::TokenType::let,
      lexer::TokenType::namespace_kw},
@@ -579,9 +601,13 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
 });
 
 void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
+  if (expect(lexer::TokenType::lbrace)) {
+    container.add(parse_block());
+    return;
+  }
+
   if (expect(firstset::expression)) {
-    container.add(parse_expression());
-    check_semicolon_after_expression();
+    container.add(parse_expression(ExprExpectSC::Yes));
     return;
   }
 

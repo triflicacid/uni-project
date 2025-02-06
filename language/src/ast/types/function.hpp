@@ -2,7 +2,7 @@
 
 #include <deque>
 #include "node.hpp"
-#include "none.hpp"
+#include "unit.hpp"
 
 namespace lang::ast::type {
   class FunctionNode : public Node {
@@ -10,10 +10,10 @@ namespace lang::ast::type {
     std::reference_wrapper<const Node> returns_;
 
   public:
-    explicit FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters) : parameters_(std::move(parameters)), returns_(none) {}
+    explicit FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters) : parameters_(std::move(parameters)), returns_(unit) {}
     FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters, const Node& returns) : parameters_(std::move(parameters)), returns_(returns) {}
     FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters, std::optional<std::reference_wrapper<const Node>> returns)
-      : parameters_(std::move(parameters)), returns_(returns.has_value() ? returns.value() : none) {}
+      : parameters_(std::move(parameters)), returns_(returns.has_value() ? returns.value() : unit) {}
 
     std::string node_name() const override { return "function"; }
 

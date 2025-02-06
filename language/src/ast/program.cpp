@@ -45,9 +45,7 @@ bool lang::ast::ProgramNode::process(lang::Context& ctx) {
 
   // finally, process each of our children
   for (auto& line : lines_) {
-    if (!line->process(ctx))  {
-      return false;
-    }
+    if (!line->process(ctx) || !line->resolve_value(ctx)) return false;
   }
 
   return true;

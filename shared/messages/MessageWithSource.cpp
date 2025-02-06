@@ -109,8 +109,8 @@ namespace message {
         os << i << " | " << fmt.primary << line.substr(0, end_.column() - 1) << ANSI_RESET << line.substr(end_.column() - 1) << std::endl;
         os << prefix << fmt.primary << std::string(end_.column() - 1, '~') << ANSI_RESET << std::endl;
       } else {
-        os << i << " | " << line << std::endl;
-        os << prefix << std::string(line.length(), '~') << std::endl;
+        os << i << " | " << fmt.primary << line << std::endl;
+        os << prefix << std::string(line.length(), '~') << ANSI_RESET << std::endl;
       }
 
       i++;

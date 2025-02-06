@@ -27,6 +27,9 @@ namespace lang::symbol {
     SymbolTable(const SymbolTable&) = delete;
     SymbolTable(memory::StackManager& stack);
 
+    // return if we are in the global scope or not
+    bool in_global_scope() const { return scopes_.size() < 2; }
+
     // get a reference to the underlying StackManager
     memory::StackManager& stack() { return stack_; }
 

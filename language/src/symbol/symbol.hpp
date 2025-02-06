@@ -23,12 +23,13 @@ namespace lang::symbol {
     std::optional<std::reference_wrapper<const Symbol>> parent_; // parent symbol (i.e., namespace)
     SymbolId id_ = -1;
     Category category_;
+    const ast::type::Node& type_;
     bool constant_ = false;
     bool assigned_ = false; // record if we have been assigned to
 
   public:
-    explicit Symbol(lexer::Token name);
-    Symbol(lexer::Token name, Category category);
+    Symbol(lexer::Token name, const ast::type::Node& type_);
+    Symbol(lexer::Token name, Category category, const ast::type::Node& type_);
 
     virtual ~Symbol() = default;
 
@@ -51,6 +52,9 @@ namespace lang::symbol {
 
     uint32_t id() const { return id_; }
 
-    virtual const ast::type::Node& type() const = 0;
+    const ast::type::Node& type() const { return type_; }
   };
+
+  // create a new namespace
+  std::unique_ptr<Symbol> create_namespace(const lexer::Token& name);
 }

@@ -11,20 +11,21 @@ namespace lang {
 
 namespace lang::ops {
   class BuiltinOperator : public Operator {
+    using GeneratorFn = std::function<uint8_t(Context&, const std::deque<std::reference_wrapper<const value::Value>>&)>;
+
     // function to generate appropriate code
-    // we use RegisterAllocationManager::get_recent to fetch arguments - RHS is most recent (n=0), LHS is next (n=1)
-    // returns the resulting register
-    std::function<uint8_t(Context&)> generator_;
+    // provided array of arguments -- left to right
+    // returns result
+    GeneratorFn generator_;
 
   public:
-    BuiltinOperator(std::string symbol, const ast::type::FunctionNode& type, const std::function<uint8_t(Context&)>& generator)
+    BuiltinOperator(std::string symbol, const ast::type::FunctionNode& type, const GeneratorFn& generator)
       : Operator(std::move(symbol), type), generator_(generator) {}
 
     bool builtin() const override { return true; }
 
-    // call our underlying generator to create assembly code
-    // populate given value
-    void process(Context& ctx, value::Value& value) const;
+    // get the attached function
+    const GeneratorFn& generator() const { return generator_; }
   };
 
   // initialise builtins

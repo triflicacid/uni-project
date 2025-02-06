@@ -22,6 +22,7 @@ namespace lang::value {
     std::reference_wrapper<const ast::type::Node> type_;
 
   public:
+    explicit Value();
     Value(bool future_lvalue, bool future_rvalue);
     Value(const ast::type::Node& type, bool future_lvalue, bool future_rvalue);
 
@@ -59,4 +60,8 @@ namespace lang::value {
   // create a Value which is a future l-value & rvalue
   std::unique_ptr<Value> rlvalue();
   std::unique_ptr<Value> rlvalue(const ast::type::Node& type);
+
+  // value with unit type, cannot be anything els
+  // used to signify "empty" or "none"
+  extern const Value unit_value;
 }

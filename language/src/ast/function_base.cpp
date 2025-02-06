@@ -48,7 +48,7 @@ std::ostream& lang::ast::FunctionBaseNode::print_code(std::ostream& os, unsigned
   os << ") ";
 
   // if provided, print return type after an arrow
-  if (auto& returns = type_.returns(); returns.id() != type::none.id()) {
+  if (auto& returns = type_.returns(); returns.id() != type::unit.id()) {
     os << "-> ";
     returns.print_code(os);
   }
