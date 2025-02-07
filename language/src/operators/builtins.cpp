@@ -90,6 +90,7 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"*", {15, false}},  // multiplication
     {"/", {15, false}},  // division
     {"%", {15, false}},  // modulus
+    {"()", {19, false}},  // function call
     {".", {20, false, false}},  // member access
 };
 

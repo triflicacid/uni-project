@@ -293,22 +293,37 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
   }
 
   // sequence of binary operators
-  while (expect(lexer::TokenType::op)) {
+  while (true) {
+    // given token, lookup operator info which tells us how to continue parsing
     const lexer::Token op_token = peek();
-    auto& info = ops::builtin_binary.contains(op_token.image)
-                    ? ops::builtin_binary.at(op_token.image)
-                    : ops::generic_binary;
+    const ops::OperatorInfo* info;
+
+    if (expect(lexer::TokenType::op)) {
+      info = ops::builtin_binary.contains(op_token.image)
+             ? &ops::builtin_binary.at(op_token.image)
+             : &ops::generic_binary;
+    } else if (expect(lexer::TokenType::lpar)) {
+      info = &ops::builtin_binary.at("()");
+      // exit if lower precedence - some things are tighter than a call
+      if (precedence >= info->precedence) break;
+      // parse call and make new LHS
+      expr = parse_function_call(std::move(expr));
+      if (is_error()) return nullptr;
+      continue; // continue to next operator
+    } else {
+      break;
+    }
 
     // exit if lower precedence
-    if (precedence >= info.precedence) {
+    if (precedence >= info->precedence) {
       break;
     }
 
     // parse RHS of expression, supplying the operator's precedence as a new baseline
     consume();
     if (!expect_or_error(firstset::expression)) return nullptr;
-    int new_precedence = info.precedence;
-    if (info.right_associative) new_precedence--;
+    int new_precedence = info->precedence;
+    if (info->right_associative) new_precedence--;
     auto rest = _parse_expression(new_precedence);
     if (is_error()) return nullptr;
 
@@ -399,7 +414,7 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
   if (was_last_expression && !check_semicolon_after_expression()) return;
 }
 
-std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_arg_list() {
+std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_param_list() {
   // '('
   const lexer::Token lpar = consume();
 
@@ -428,6 +443,40 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
   return args;
 }
 
+std::unique_ptr<lang::ast::FunctionCallNode> lang::parser::Parser::parse_function_call(std::unique_ptr<ast::Node> subject) {
+  // '('
+  const lexer::Token lpar = consume();
+
+  std::deque<std::unique_ptr<ast::Node>> args;
+  if (!expect(lexer::TokenType::rpar)) {
+    while (true) {
+      // parse argument expression
+      if (!expect_or_error(firstset::expression)) return nullptr;
+      args.push_back(parse_expression(ExprExpectSC::No));
+      if (is_error()) return nullptr;
+
+      // if comma, continue
+      if (!expect(lexer::TokenType::comma)) break;
+      consume();
+    }
+
+    // ')'
+    if (!expect_or_error(lexer::TokenType::rpar)) {
+      auto msg = lpar.generate_message(message::Note);
+      msg->get() << "parenthesis opened here";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+  }
+  const lexer::Token rpar = consume();
+
+  // construct function call node
+  const lexer::Token token_start = subject->token_start();
+  auto node = std::make_unique<ast::FunctionCallNode>(token_start, std::move(subject), std::move(args));
+  node->token_end(rpar);
+  return node;
+}
+
 std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
   // 'func'
   const lexer::Token token_start = consume();
@@ -439,7 +488,7 @@ std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
   // parse any supplied arguments
   std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
   if (expect(lexer::TokenType::lpar)) {
-    params = parse_arg_list();
+    params = parse_param_list();
     if (is_error()) return nullptr;
   }
 
