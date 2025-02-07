@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+#include "either.hpp"
 #include "token.hpp"
 #include "istream_wrapper.hpp"
 #include "messages/MessageWithSource.hpp"

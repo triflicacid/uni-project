@@ -5,6 +5,7 @@
 #include "messages/MessageWithSource.hpp"
 #include "istream_wrapper.hpp"
 #include <deque>
+#include <set>
 
 namespace lang::lexer {
   class Lexer;
@@ -13,7 +14,7 @@ namespace lang::lexer {
     TokenType type; // type of the token
     std::string image; // the image which created us (source)
 
-    explicit BasicToken(TokenType type) : type(type), image(token_type_to_string(type)) {}
+    explicit BasicToken(TokenType type) : type(type) {}
     BasicToken(TokenType type, std::string image) : type(type), image(std::move(image)) {}
 
     size_t length() const { return image.size(); }
@@ -21,7 +22,24 @@ namespace lang::lexer {
     bool is_valid() const;
 
     std::string to_string() const;
+
+    // required for storing in a set
+    bool operator<(const BasicToken& other) const {
+      return type == other.type
+        ? image < other.image
+        : type < other.type;
+    }
+
+    bool operator==(const BasicToken& other) const {
+      return type == other.type && (image.empty() || image == other.image);
+    }
   };
+
+  using TokenSet = std::set<BasicToken>;
+
+  TokenSet merge_sets(const std::vector<TokenSet>& sets);
+
+  TokenSet convert_set(const TokenTypeSet& types);
 
   struct Token : BasicToken, message::MessageGenerator {
     std::reference_wrapper<IStreamWrapper> origin;
@@ -38,10 +56,10 @@ namespace lang::lexer {
     std::unique_ptr<message::Message> generate_message(message::Level level) const override;
 
     // generate an error message about a syntax error with this token
-    std::unique_ptr<message::Message> generate_syntax_error(const std::set<TokenType>& expected_types) const;
+    std::unique_ptr<message::Message> generate_syntax_error(const lexer::TokenTypeSet& expected_types) const;
 
     // generate an error message about a syntax error with this token
-    std::unique_ptr<message::Message> generate_detailed_syntax_error(const std::deque<std::reference_wrapper<const BasicToken>>& expected_tokens) const;
+    std::unique_ptr<message::Message> generate_detailed_syntax_error(const lexer::TokenSet& expected_tokens) const;
 
     // create an invalid token
     // token's location is dud, so don't try to use it to look anything up

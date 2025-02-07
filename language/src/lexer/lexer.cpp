@@ -89,10 +89,28 @@ std::string lang::lexer::token_type_to_string(TokenType type, bool add_quotes) {
   return "unknown";
 }
 
+TokenTypeSet lang::lexer::merge_sets(const std::vector<TokenTypeSet>& sets) {
+  TokenTypeSet result;
+  for (const auto &set : sets) {
+    result.insert(set.begin(), set.end());
+  }
+
+  return result;
+}
+
 TokenSet lang::lexer::merge_sets(const std::vector<TokenSet> &sets) {
   TokenSet result;
   for (const auto &set : sets) {
     result.insert(set.begin(), set.end());
+  }
+
+  return result;
+}
+
+TokenSet lang::lexer::convert_set(const TokenTypeSet& types) {
+  TokenSet result;
+  for (TokenType type : types) {
+    result.insert(BasicToken(type));
   }
 
   return result;
@@ -135,7 +153,7 @@ std::unique_ptr<message::Message> TokenSpan::generate_message(message::Level lev
   );
 }
 
-std::unique_ptr<message::Message> Token::generate_syntax_error(const TokenSet& expected_types) const {
+std::unique_ptr<message::Message> Token::generate_syntax_error(const TokenTypeSet& expected_types) const {
   auto error = generate_message(message::Error);
 
   // message: "syntax error: encountered <type>, expected [one of] <type1>[, <type2>[, ...]]"
@@ -156,7 +174,7 @@ std::unique_ptr<message::Message> Token::generate_syntax_error(const TokenSet& e
 }
 
 std::unique_ptr<message::Message>
-Token::generate_detailed_syntax_error(const std::deque<std::reference_wrapper<const BasicToken>>& expected_tokens) const {
+Token::generate_detailed_syntax_error(const lexer::TokenSet& expected_tokens) const {
   auto error = generate_message(message::Error);
 
   // message: "syntax error: encountered <token>, expected [one of] <token1>[, <token2>[, ...]]"
@@ -167,7 +185,7 @@ Token::generate_detailed_syntax_error(const std::deque<std::reference_wrapper<co
     if (expected_tokens.size() > 1) stream << "one of ";
     int i = 0;
     for (auto& expected : expected_tokens) {
-      stream << expected.get().to_string();
+      stream << expected.to_string();
       if (++i < expected_tokens.size()) stream << ", ";
     }
   }
@@ -220,7 +238,7 @@ Token Token::invalid(IStreamWrapper& stream) {
 
 std::string BasicToken::to_string() const {
   std::string s = token_type_to_string(type);
-  if (s.front() != '"') { // if we are a type, add on image
+  if (s.front() != '"' && !image.empty() && image != s) { // if we are a type, add on image
     s += " \"" + image + "\"";
   }
   return s;

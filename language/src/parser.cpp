@@ -50,16 +50,16 @@ bool lang::parser::Parser::expect(lang::lexer::TokenType type, unsigned int n) {
   return peek(n).type == type;
 }
 
-bool lang::parser::Parser::expect(const std::deque<std::reference_wrapper<const lexer::BasicToken>>& tokens, unsigned int n) {
+bool lang::parser::Parser::expect(const lexer::TokenSet& tokens, unsigned int n) {
   auto& next = peek(n);
-  return std::any_of(tokens.begin(), tokens.end(), [&next](auto& token) {
-    return next.type == token.get().type && next.image == token.get().image;
-  });
+  for (auto& token : tokens) {
+    if (token == next) return true;
+  }
+  return false;
 }
 
 bool lang::parser::Parser::expect(const lang::lexer::BasicToken& token, unsigned int n) {
-  auto& next = peek(n);
-  return next.type == token.type && next.image == token.image;
+  return peek(n) == token;
 }
 
 bool lang::parser::Parser::expect_or_error(const std::set<lexer::TokenType> &types) {
@@ -80,7 +80,7 @@ bool lang::parser::Parser::expect_or_error(lang::lexer::TokenType type) {
   return false;
 }
 
-bool lang::parser::Parser::expect_or_error(const std::deque<std::reference_wrapper<const lexer::BasicToken>>& tokens) {
+bool lang::parser::Parser::expect_or_error(const lexer::TokenSet& tokens) {
   if (expect(tokens)) {
     return true;
   }
@@ -105,16 +105,16 @@ lang::lexer::Token lang::parser::Parser::consume() {
   return prev_;
 }
 
-const lang::lexer::TokenSet lang::parser::firstset::eol = {
-    lexer::TokenType::sc,
-    lexer::TokenType::nl,
+const lang::lexer::TokenSet lang::parser::firstset::eol{
+    lexer::BasicToken{lexer::TokenType::sc},
+    lexer::BasicToken{lexer::TokenType::nl},
 };
 
 void lang::parser::Parser::parse_newlines() {
   while(expect(lexer::TokenType::nl)) consume();
 }
 
-static const lang::lexer::TokenSet numerical_types = {
+static const lang::lexer::TokenTypeSet numerical_types = {
     lang::lexer::TokenType::uint8,
     lang::lexer::TokenType::int8,
     lang::lexer::TokenType::uint16,
@@ -142,8 +142,14 @@ static const std::unordered_map<lang::lexer::TokenType, lang::ast::type::Node*> 
     {lang::lexer::TokenType::boolean, &lang::ast::type::boolean},
 };
 
-const lang::lexer::TokenSet lang::parser::firstset::number{lexer::TokenType::int_lit, lexer::TokenType::float_lit};
-const lang::lexer::TokenSet lang::parser::firstset::boolean{lexer::TokenType::false_kw, lexer::TokenType::true_kw};
+const lang::lexer::TokenSet lang::parser::firstset::number{
+  lexer::BasicToken(lexer::TokenType::int_lit),
+  lexer::BasicToken(lexer::TokenType::float_lit)
+};
+const lang::lexer::TokenSet lang::parser::firstset::boolean{
+  lexer::BasicToken(lexer::TokenType::false_kw),
+  lexer::BasicToken(lexer::TokenType::true_kw)
+};
 const lang::lexer::TokenSet lang::parser::firstset::literal = lexer::merge_sets({number, boolean});
 
 std::unique_ptr<lang::ast::LiteralNode> lang::parser::Parser::parse_literal() {
@@ -184,7 +190,11 @@ std::unique_ptr<lang::ast::LiteralNode> lang::parser::Parser::parse_literal() {
 
 const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
     firstset::literal,
-    {lexer::TokenType::ident, lexer::TokenType::lpar, lexer::TokenType::lbrace}
+    {
+      lexer::BasicToken(lexer::TokenType::ident),
+      lexer::BasicToken(lexer::TokenType::lpar),
+      lexer::BasicToken(lexer::TokenType::lbrace)
+    }
 });
 
 std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
@@ -208,7 +218,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
 
 const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_sets({
     firstset::term,
-    {lexer::TokenType::op}
+    {lexer::BasicToken(lexer::TokenType::op)}
 });
 
 bool lang::parser::Parser::check_semicolon_after_expression(bool generate_messages) {
@@ -336,8 +346,8 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
-    numerical_types,
-    {lexer::TokenType::boolean}
+    lexer::convert_set(numerical_types),
+    {lexer::BasicToken(lexer::TokenType::boolean)}
 });
 
 const lang::ast::type::Node* lang::parser::Parser::parse_type() {
@@ -503,7 +513,7 @@ std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
   }
 
   // parse function body (optional)
-  if (!expect_or_error({lexer::TokenType::sc, lexer::TokenType::lbrace})) return nullptr;
+  if (!expect_or_error(lexer::TokenTypeSet{lexer::TokenType::sc, lexer::TokenType::lbrace})) return nullptr;
   std::optional<std::unique_ptr<ast::BlockNode>> body;
   if (expect(lexer::TokenType::lbrace)) {
     body = parse_block();
@@ -538,7 +548,13 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
-   {lexer::TokenType::const_kw, lexer::TokenType::func, lexer::TokenType::let, lexer::TokenType::namespace_kw, lexer::TokenType::return_kw},
+   {
+     lexer::BasicToken(lexer::TokenType::const_kw),
+     lexer::BasicToken(lexer::TokenType::func),
+     lexer::BasicToken(lexer::TokenType::let),
+     lexer::BasicToken(lexer::TokenType::namespace_kw),
+     lexer::BasicToken(lexer::TokenType::return_kw),
+   },
    firstset::expression,
 });
 
@@ -553,7 +569,7 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
     return;
   }
 
-  if (expect({lexer::TokenType::let, lexer::TokenType::const_kw})) {
+  if (expect(lexer::TokenTypeSet{lexer::TokenType::let, lexer::TokenType::const_kw})) {
     parse_var_decl(block);
     return;
   }
@@ -570,6 +586,8 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
 }
 
 std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
+  static const auto line_or_brace = lexer::merge_sets({firstset::line, {lexer::BasicToken(lexer::TokenType::rbrace)}});
+
   // '{'
   const lexer::Token lbrace = consume();
   expect_block_end = false;
@@ -580,7 +598,7 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
 
     // parse line or '}'
     if (expect(lexer::TokenType::rbrace)) break;
-    if (!expect_or_error(lexer::merge_sets({firstset::line, {lexer::TokenType::rbrace}}))) {
+    if (!expect_or_error(line_or_brace)) {
       auto msg = lbrace.generate_message(message::Note);
       msg->get() << "block started here";
       add_message(std::move(msg));
@@ -609,6 +627,8 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
 }
 
 std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace() {
+  static const auto line_or_brace = lexer::merge_sets({firstset::top_level_line, {lexer::BasicToken(lexer::TokenType::rbrace)}});
+
   // 'namespace'
   const lexer::Token token_start = consume();
 
@@ -627,7 +647,7 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
     if (expect(lexer::TokenType::rbrace)) break;
 
     // parse line or '}'
-    if (!expect_or_error(lexer::merge_sets({firstset::top_level_line, {lexer::TokenType::rbrace}}))) {
+    if (!expect_or_error(line_or_brace)) {
       auto msg = lbrace.generate_message(message::Note);
       msg->get() << "block started here";
       add_message(std::move(msg));
@@ -649,12 +669,14 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merge_sets({
-    {lexer::TokenType::lbrace,
-     lexer::TokenType::const_kw,
-     lexer::TokenType::func,
-     lexer::TokenType::let,
-     lexer::TokenType::namespace_kw},
-     firstset::expression,
+    {
+      lexer::BasicToken(lexer::TokenType::lbrace),
+      lexer::BasicToken(lexer::TokenType::const_kw),
+      lexer::BasicToken(lexer::TokenType::func),
+      lexer::BasicToken(lexer::TokenType::let),
+      lexer::BasicToken(lexer::TokenType::namespace_kw),
+    },
+    firstset::expression,
 });
 
 void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
@@ -673,7 +695,7 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
     return;
   }
 
-  if (expect({lexer::TokenType::let, lexer::TokenType::const_kw})) {
+  if (expect(lexer::TokenTypeSet{lexer::TokenType::let, lexer::TokenType::const_kw})) {
     parse_var_decl(container);
     return;
   }

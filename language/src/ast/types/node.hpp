@@ -8,6 +8,7 @@ namespace lang::ast::type {
   class FloatNode;
   class FunctionNode;
   class WrapperNode;
+  class PointerNode;
 
   using TypeId = unsigned int;
 
@@ -30,6 +31,9 @@ namespace lang::ast::type {
 
     // are we a wrapper type?
     virtual const WrapperNode* get_wrapper() const { return nullptr; }
+
+    // are we a pointer type?
+    virtual const PointerNode* get_pointer() const { return nullptr; }
 
     // return size, in bytes, an instance of this type occupies
     virtual size_t size() const = 0;
