@@ -1,1 +1,2 @@
-maths.sin(1)();
+let ptr: *i32 = 0;
+

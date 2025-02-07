@@ -58,7 +58,7 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
         if (in_global_scope()) {
           // create block for the variable to reside in
           auto block = assembly::BasicBlock::labelled("globl_" + std::to_string(id));
-          block->comment() << "alloc global " << symbol.full_name() << ": ";
+          block->comment() << "alloc " << symbol.full_name() << ": ";
           symbol.type().print_code(block->comment());
 
           // reserve space inside the block

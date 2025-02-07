@@ -11,6 +11,7 @@
 #include "ast/program.hpp"
 #include "operators/info.hpp"
 #include "ast/types/bool.hpp"
+#include "ast/types/pointer.hpp"
 #include "config.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
@@ -345,15 +346,29 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
   return expr;
 }
 
+static const lang::lexer::BasicToken star(lang::lexer::TokenType::op, "*");
 const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
     lexer::convert_set(numerical_types),
-    {lexer::BasicToken(lexer::TokenType::boolean)}
+    {
+      lexer::BasicToken(lexer::TokenType::boolean),
+      star
+    }
 });
 
 const lang::ast::type::Node* lang::parser::Parser::parse_type() {
+  // is this a static type match?
   if (auto it = static_type_map.find(peek().type); it != static_type_map.end()) {
     consume();
     return it->second;
+  }
+
+  // pointer?
+  if (expect(star)) {
+    consume();
+    if (!expect_or_error(firstset::type)) return nullptr;
+    auto inner = parse_type();
+    if (is_error() || !inner) return nullptr;
+    return &ast::type::PointerNode::create(*inner);
   }
 
   return nullptr;
@@ -383,7 +398,6 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
   const auto category = kw_token.type == lexer::TokenType::const_kw
       ? ast::SymbolDeclarationNode::Constant
       : ast::SymbolDeclarationNode::Variable;
-  bool was_last_expression = false; // track if we last saw an expression
 
   while (true) {
     // name
@@ -407,7 +421,6 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
       expr = parse_expression(ExprExpectSC::No);
       if (is_error()) return;
     }
-    was_last_expression = expr.has_value();
 
     // create and add declaration node
     auto decl = std::make_unique<ast::SymbolDeclarationNode>(name, name, type, std::move(expr));
@@ -420,8 +433,7 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
     consume();
   }
 
-  // expect semicolon after expression
-  if (was_last_expression && !check_semicolon_after_expression()) return;
+  if (!check_semicolon_after_expression()) return;
 }
 
 std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_param_list() {
