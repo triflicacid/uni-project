@@ -204,11 +204,13 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
   } else if (expect(lexer::TokenType::ident)) { // identifier
     return std::make_unique<ast::SymbolReferenceNode>(consume());
   } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
-    consume();
+    const lexer::Token token_start = consume();
     auto expr = _parse_expression(0);
     // ensure we have a closing bracket, or propagate error
     if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
-    consume(); // ')'
+    const lexer::Token token_end = consume(); // ')'
+    expr->token_start(token_start);
+    expr->token_end(token_end);
     return expr;
   } else if (expect(lexer::TokenType::lbrace)) { // block
     return parse_block();
@@ -273,7 +275,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     auto& info = ops::builtin_unary.contains(op_token.image)
         ? ops::builtin_unary.at(op_token.image)
         : ops::generic_unary;
-    expr = _parse_expression(info.precedence);
+    expr = _parse_expression(0);
     if (is_error()) return nullptr;
 
     // wrap and continue

@@ -24,5 +24,8 @@ namespace lang::memory {
 
     // get the following Literal object
     static const Literal& get(const ast::type::Node& type, uint64_t data);
+
+    // get a zero constant of the given type
+    static const Literal& zero(const ast::type::Node& type);
   };
 }

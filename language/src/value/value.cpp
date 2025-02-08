@@ -33,6 +33,7 @@ void lang::value::Value::rvalue(std::unique_ptr<RValue> v) {
 }
 
 void lang::value::Value::rvalue(const lang::memory::Ref& ref) {
+  future_rvalue_ = false;
   rvalue_ = std::make_unique<value::RValue>(type_, ref);
 }
 

@@ -135,7 +135,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::find(const Literal& literal) {
   // check if Object is inside a register
-  int offset = 0;
+  int offset = initial_register;
   for (auto& object : instances_.top().regs) {
     if (object && object->value->is_rvalue()) {
       if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {

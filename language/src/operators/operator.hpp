@@ -28,6 +28,8 @@ namespace lang::ops {
 
     const ast::type::FunctionNode& type() const { return type_; }
 
+    std::ostream& print_code(std::ostream& os) const;
+
     // are we built-in or overloaded
     virtual bool builtin() const = 0;
   };

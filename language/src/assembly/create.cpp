@@ -103,7 +103,9 @@ std::unique_ptr<GenericInstruction> lang::assembly::create_store(uint8_t reg, st
 }
 
 std::unique_ptr<GenericInstruction> lang::assembly::create_sub(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value) {
-  return create_reg_reg_value("sub", reg_dst, reg, std::move(value));
+  auto inst = create_reg_reg_value("sub", reg_dst, reg, std::move(value));
+  inst->set_datatype(datatype);
+  return inst;
 }
 
 std::unique_ptr<GenericInstruction> lang::assembly::create_system_call(std::unique_ptr<BaseArg> value) {

@@ -8,6 +8,12 @@ static lang::ops::OperatorId current_id = 0;
 lang::ops::Operator::Operator(std::string symbol, const lang::ast::type::FunctionNode& type)
   : symbol_(std::move(symbol)), type_(type), id_(current_id++) {}
 
+std::ostream& lang::ops::Operator::print_code(std::ostream& os) const {
+  os << "operator" << symbol();
+  type_.print_code(os);
+  return os;
+}
+
 static std::unordered_map<lang::ops::OperatorId, std::unique_ptr<lang::ops::Operator>> operators;
 
 std::deque<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(const std::string symbol) {

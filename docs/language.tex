@@ -234,43 +234,54 @@ maths + 1; // error: expected rvalue, got namespace
     \section{Operators}
 
     Operators are special symbols which combine one or two expressions, known as unary and binary operators, respectively.
-    The table below lists the built-in operators and their behaviour, along with their precedence (higher is tighter) and associativity.
+    The table below lists the built-in operators alongside their behaviour and associativity.
+    Operators start from tightest to loosest precedence, with those of the same precedence grouped.
 
     \begin{table}[h]
         \caption{Built-In Operators}
-        \begin{tabular}{|c|l|l|c|}
+        \begin{tabular}{|l|l|c|}
             \hline
-            \textbf{Precedence} & \textbf{Operator} & \textbf{Description} & \textbf{Associativity} \\
+            \textbf{Operator} & \textbf{Description} & \textbf{Associativity} \\
             \hline
-            \multirow{1}{*}{20} & \texttt{a.b} & Member access \\
+            \texttt{a.b} & Member access & \(\longrightarrow\) \\
             \hline
-            \multirow{3}{*}{14} & \texttt{a * b} & Multiplication & \multirow{3}{*}{\(\longrightarrow\)} \\
-            & \texttt{a / b} & Division & \\
-            & \texttt{a \% b} & Modulo (remainder) & \\
+            \texttt{a()} & Function Call & \(\longrightarrow\) \\
             \hline
-            \multirow{2}{*}{14} & \texttt{a + b} & Addition & \multirow{2}{*}{\(\longrightarrow\)} \\
-            & \texttt{a - b} & Subtraction & \\
+            \texttt{a as T} & Cast & \multirow{5}{*}{\(\longleftarrow\)} \\
+            \texttt{(T) a} & Primitive cast\(^\ast\) & \\
+            \texttt{-a} & Negation & \\
+            \texttt{~a} & Bitwise NOT & \\
+            \texttt{!a} & Boolean NOT & \\
             \hline
-            \multirow{2}{*}{13} & \texttt{a << b} & Bitwise left shift & \multirow{2}{*}{\(\longrightarrow\)} \\
-            & \texttt{a >> b} & Bitwise left shift & \\
+            \texttt{a * b} & Multiplication & \multirow{3}{*}{\(\longrightarrow\)} \\
+            \texttt{a / b} & Division & \\
+            \texttt{a \% b} & Modulo (remainder) & \\
             \hline
-            \multirow{6}{*}{12} & \texttt{a == b} & \multirow{6}{*}{Relational operators} & \multirow{6}{*}{\(\longrightarrow\)} \\
-            & \texttt{a != b} & & \\
-            & \texttt{a < b} & & \\
-            & \texttt{a <= b} & & \\
-            & \texttt{a > b} & & \\
-            & \texttt{a >= b} & & \\
+            \texttt{a + b} & Addition & \multirow{2}{*}{\(\longrightarrow\)} \\
+            \texttt{a - b} & Subtraction & \\
             \hline
-            \multirow{1}{*}{11} & \texttt{a \& b} & Bitwise AND & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \texttt{a << b} & Bitwise left shift & \multirow{2}{*}{\(\longrightarrow\)} \\
+            \texttt{a >> b} & Bitwise left shift & \\
             \hline
-            \multirow{1}{*}{10} & \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \texttt{a == b} & \multirow{6}{*}{Relational operators} & \multirow{6}{*}{\(\longrightarrow\)} \\
+            \texttt{a != b} & & \\
+            \texttt{a < b} & & \\
+            \texttt{a <= b} & & \\
+            \texttt{a > b} & & \\
+            \texttt{a >= b} & & \\
             \hline
-            \multirow{1}{*}{9} & \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \texttt{a \& b} & Bitwise AND & \multirow{1}{*}{\(\longrightarrow\)} \\
             \hline
-            \multirow{1}{*}{1} & \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} \\
+            \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \hline
+            \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \hline
+            \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} \\
             \hline
         \end{tabular}\label{tab:builtin-operators}
     \end{table}
+
+    \((\ast)\) The term \textit{primitive} cast means that this C-style cast may only be done on primitive, atomic types such as \texttt{int} and \texttt{float}, whereas the cast using \texttt{as} may be any type.
 
     \section{Control Flow}
 

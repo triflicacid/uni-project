@@ -131,13 +131,14 @@ bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
   }
 
   // error to user, reporting our candidate list
-  std::unique_ptr<message::BasicMessage> msg = op_symbol_.generate_message(message::Error);
+  std::unique_ptr<message::BasicMessage> msg = generate_message(message::Error);
   msg->get() << "unable to resolve a suitable candidate for " << to_string();
   ctx.messages.add(std::move(msg));
 
   for (auto& option : operators) {
     msg = std::make_unique<message::BasicMessage>(message::Note);
-    msg->get() << "candidate: " << to_string();
+    msg->get() << "candidate: ";
+    option.get().print_code(msg->get());
     ctx.messages.add(std::move(msg));
   }
   return false;

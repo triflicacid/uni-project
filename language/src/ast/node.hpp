@@ -38,6 +38,8 @@ class Node : public NodeBase, public lexer::TokenSpan {
 
     const lexer::Token& token_end() const override final { return tend_ ? *tend_ : tstart_; }
 
+  void token_start(const lexer::Token& token) { tstart_ = token; }
+
     void token_end(const lexer::Token& token) { tend_ = token; }
 
     // refer to the value represents the result of this node

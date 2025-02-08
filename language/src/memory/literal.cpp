@@ -34,3 +34,22 @@ const lang::memory::Literal& lang::memory::Literal::get(const lang::ast::type::N
   literals.insert({key, std::move(literal)});
   return *literals.at(key);
 }
+
+const lang::memory::Literal& lang::memory::Literal::zero(const lang::ast::type::Node& type) {
+  static const float zero_f32 = 0;
+  static const double zero_f64 = 0;
+
+  uint64_t data;
+  switch (type.get_asm_datatype()) {
+    case constants::inst::datatype::flt:
+      data = *(uint32_t*)&zero_f32;
+      break;
+    case constants::inst::datatype::dbl:
+      data = *(uint64_t*)&zero_f64;
+      break;
+    default:
+      data = 0x0;
+  }
+
+  return get(type, data);
+}
