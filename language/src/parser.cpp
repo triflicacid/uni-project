@@ -275,7 +275,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     auto& info = ops::builtin_unary.contains(op_token.image)
         ? ops::builtin_unary.at(op_token.image)
         : ops::generic_unary;
-    expr = _parse_expression(0);
+    expr = _parse_expression(info.precedence);
     if (is_error()) return nullptr;
 
     // wrap and continue
@@ -315,6 +315,8 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
       info = ops::builtin_binary.contains(op_token.image)
              ? &ops::builtin_binary.at(op_token.image)
              : &ops::generic_binary;
+      // exit if lower precedence
+      if (precedence >= info->precedence) break;
       consume();
     } else if (expect(lexer::TokenType::lpar)) { // '(' --> function call
       info = &ops::builtin_binary.at("()");
@@ -325,10 +327,10 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
       if (is_error()) return nullptr;
       continue; // continue to next operator
     } else if (expect(lexer::TokenType::as_kw)) { // 'as' --> cast
-      consume();
       info = &ops::builtin_binary.at("as");
       // exit if lower precedence - some things are tighter than a 'as'
       if (precedence >= info->precedence) break;
+      consume();
       // expect type
       if (!expect_or_error(firstset::type)) return nullptr;
       auto type = parse_type();
@@ -341,9 +343,6 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     } else {
         break;
     }
-
-    // exit if lower precedence
-    if (precedence >= info->precedence) break;
 
     // parse RHS of expression, supplying the operator's precedence as a new baseline
     if (!expect_or_error(firstset::expression)) return nullptr;
