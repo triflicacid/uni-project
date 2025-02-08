@@ -20,7 +20,7 @@ bool lang::ast::LiteralNode::process(lang::Context& ctx) {
 }
 
 bool lang::ast::LiteralNode::resolve_rvalue(Context& ctx) {
-  const memory::Ref ref = ctx.reg_alloc_manager.find(lit_);
+  const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(lit_);
   value_->rvalue(std::make_unique<value::Literal>(lit_, ref));
   return true;
 }

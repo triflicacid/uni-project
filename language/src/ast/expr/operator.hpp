@@ -27,6 +27,7 @@ namespace lang::ast {
     Node& rhs_() const;
     
     optional_ref<const value::Value> get_arg_rvalue(Context& ctx, int i) const;
+    optional_ref<const value::Value> get_arg_lvalue(Context& ctx, int i) const;
 
   public:
     OperatorNode(lexer::Token token, lexer::Token symbol, std::deque<std::unique_ptr<Node>> args)
@@ -125,5 +126,18 @@ namespace lang::ast {
     bool resolve_lvalue(lang::Context &ctx) override;
 
     bool resolve_rvalue(lang::Context &ctx) override;
+  };
+
+  // represents registerof expr
+  // returns the register offset of the given symbol
+  class RegisterOfOperatorNode : public OperatorNode {
+  public:
+    RegisterOfOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
+
+    bool process(lang::Context &ctx) override;
+
+    bool resolve_rvalue(lang::Context &ctx) override;
+
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
   };
 }

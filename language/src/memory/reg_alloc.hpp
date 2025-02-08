@@ -61,11 +61,17 @@ namespace lang::memory {
     // remove the latest store
     void destroy_store(bool restore_registers);
 
-    // return reference to an item, insert if needed
-    Ref find(const symbol::Symbol& symbol);
+    // return reference to an item if present
+    std::optional<Ref> find(const symbol::Symbol& symbol);
 
     // return reference to an item, insert if needed
-    Ref find(const Literal& literal);
+    Ref find_or_insert(const symbol::Symbol& symbol);
+
+    // return reference to an item if present
+    std::optional<Ref> find(const Literal& literal);
+
+    // return reference to an item, insert if needed
+    Ref find_or_insert(const Literal& literal);
 
     // find the given reference
     const lang::memory::Object& find(const Ref& location) const;

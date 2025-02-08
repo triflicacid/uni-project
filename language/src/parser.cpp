@@ -189,7 +189,8 @@ const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
     {
       lexer::BasicToken(lexer::TokenType::ident),
       lexer::BasicToken(lexer::TokenType::lpar),
-      lexer::BasicToken(lexer::TokenType::lbrace)
+      lexer::BasicToken(lexer::TokenType::lbrace),
+      lexer::BasicToken(lexer::TokenType::registerof_kw),
     }
 });
 
@@ -197,7 +198,8 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
   if (expect(firstset::literal)) {
     return parse_literal();
   } else if (expect(lexer::TokenType::ident)) { // identifier
-    return std::make_unique<ast::SymbolReferenceNode>(consume());
+    const lexer::Token token = consume();
+    return std::make_unique<ast::SymbolReferenceNode>(token, token.image);
   } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
     const lexer::Token token_start = consume();
     auto expr = _parse_expression(0);
@@ -262,7 +264,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression(ExprExpe
 std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int precedence) {
   std::unique_ptr<ast::Node> expr;
 
-  if (expect(lexer::TokenType::op)) { // unary operator
+  if (expect(lexer::TokenType::op) || expect(lexer::TokenType::registerof_kw)) { // unary operator
     const lexer::Token op_token = consume();
 
     // followed by an expression
@@ -306,7 +308,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     const lexer::Token op_token = peek();
     const ops::OperatorInfo* info;
 
-    if (expect(lexer::TokenType::op)) { // any operator
+    if (expect(lexer::TokenType::op)) {
       info = ops::builtin_binary.contains(op_token.image)
              ? &ops::builtin_binary.at(op_token.image)
              : &ops::generic_binary;

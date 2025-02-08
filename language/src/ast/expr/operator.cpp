@@ -11,6 +11,7 @@
 #include "message_helper.hpp"
 #include "value/symbol.hpp"
 #include "ast/types/graph.hpp"
+#include "ast/types/int.hpp"
 
 std::string lang::ast::OperatorNode::node_name() const {
   return args_.size() == 2
@@ -64,6 +65,26 @@ optional_ref<const lang::value::Value> lang::ast::OperatorNode::get_arg_rvalue(C
   if (!value.is_rvalue()) {
     auto msg = arg->generate_message(message::Error);
     msg->get() << "expected rvalue, got ";
+    value.type().print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+
+    msg = op_symbol_.generate_message(message::Note);
+    msg->get() << "while evaluating " << node_name();
+    ctx.messages.add(std::move(msg));
+    return {};
+  }
+
+  return value;
+}
+
+optional_ref<const lang::value::Value> lang::ast::OperatorNode::get_arg_lvalue(Context& ctx, int i) const {
+  auto& arg = args_[i];
+  const value::Value& value = arg->value();
+  if (value.is_future_lvalue() && !arg->resolve_lvalue(ctx)) return {};
+  // must be computable to a value (i.e., possible rvalue)
+  if (!value.is_lvalue()) {
+    auto msg = arg->generate_message(message::Error);
+    msg->get() << "expected lvalue, got ";
     value.type().print_code(msg->get());
     ctx.messages.add(std::move(msg));
 
@@ -181,6 +202,12 @@ bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
 std::unique_ptr<lang::ast::OperatorNode>
 lang::ast::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> expr) {
+  // check for *special* operators
+  if (token.type == lexer::TokenType::registerof_kw) {
+    return std::make_unique<RegisterOfOperatorNode>(token, token, std::move(expr));
+  }
+
+  // otherwise, generic unary op
   std::deque<std::unique_ptr<Node>> children;
   children.push_back(std::move(expr));
   return std::make_unique<OverloadableOperatorNode>(token, token, std::move(children));
@@ -323,7 +350,7 @@ bool lang::ast::DotOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
   // load into registers
   if (symbol->type().size() == 0) return true;
-  const memory::Ref ref = ctx.reg_alloc_manager.find(symbol->get());
+  const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(symbol->get());
   value_->rvalue(std::make_unique<value::RValue>(symbol->type(), ref));
   return true;
 }
@@ -440,4 +467,56 @@ std::ostream& lang::ast::CastOperatorNode::print_tree(std::ostream& os, unsigned
 
   args_.front()->print_tree(os, indent_level + 1);
   return os;
+}
+
+lang::ast::RegisterOfOperatorNode::RegisterOfOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
+: OperatorNode(token, token, {}) {
+  args_.push_back(std::move(expr));
+}
+
+bool lang::ast::RegisterOfOperatorNode::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
+  value_ = value::rvalue(type::int32); // we will hold the register offset or -1
+  return true;
+}
+
+std::ostream& lang::ast::RegisterOfOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
+  os << op_symbol_.image << "(";
+  args_.front()->print_code(os);
+  return os << ")";
+}
+
+bool lang::ast::RegisterOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  // get argument value, expect symbol
+  auto& arg = args_.front();
+  const value::Value& value = arg->value();
+  if (value.is_future_lvalue() && !arg->resolve_lvalue(ctx)) return {};
+  // must be computable to a value (i.e., possible rvalue)
+  if (!value.is_lvalue() || !value.lvalue().get_symbol()) {
+    auto msg = arg->generate_message(message::Error);
+    msg->get() << "expected symbol, got ";
+    value.type().print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+
+    msg = op_symbol_.generate_message(message::Note);
+    msg->get() << "while evaluating " << node_name();
+    ctx.messages.add(std::move(msg));
+    return {};
+  }
+
+  // hunt for the given symbol
+  const symbol::Symbol& symbol = arg->value().lvalue().get_symbol()->get();
+  auto maybe_ref = ctx.reg_alloc_manager.find(symbol);
+
+  // get numerical register offset of symbol
+  int offset = maybe_ref.has_value()
+      ? ctx.reg_alloc_manager.guarantee_register(*maybe_ref).offset
+      : -1;
+
+  // load result into a register
+  const memory::Literal& lit = memory::Literal::get(value_->type(), offset);
+  memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(lit);
+  value_->rvalue(std::make_unique<value::Literal>(lit, ref));
+
+  return true;
 }

@@ -104,7 +104,7 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
   }
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symbol::Symbol &symbol) {
+std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(const symbol::Symbol& symbol) {
   // check if Object is inside a register
   int offset = initial_register;
   for (auto& object : instances_.top().regs) {
@@ -126,6 +126,16 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
     }
   }
 
+  // otherwise, failure
+  return std::nullopt;
+}
+
+lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const symbol::Symbol& symbol) {
+  // get location; return if found
+  if (auto ref = find(symbol)) {
+    return *ref;
+  }
+
   // otherwise, insert
   auto value_ptr = value::rlvalue();
   value::Value& value = *value_ptr;
@@ -135,16 +145,17 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const lang::symb
   return ref;
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::find(const Literal& literal) {
+std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(const Literal& literal) {
   // check if Object is inside a register
   int offset = initial_register;
   for (auto& object : instances_.top().regs) {
-    if (object && object->value->is_rvalue()) {
+    if (object && object->value->is_lvalue()) {
       if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
         object->required = true;
         return Ref(Ref::Register, offset);
       }
     }
+
     offset++;
   }
 
@@ -152,8 +163,18 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find(const Literal& l
   for (auto& [address, object] : memory_) {
     if (auto obj_lit = object.value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
       object.required = true;
-      return Ref(Ref::Memory, offset);
+      return Ref(Ref::Memory, address);
     }
+  }
+
+  // otherwise, failure
+  return std::nullopt;
+}
+
+lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const Literal& literal) {
+  // get location; return if found
+  if (auto ref = find(literal)) {
+    return *ref;
   }
 
   // otherwise, insert

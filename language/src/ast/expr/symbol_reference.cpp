@@ -5,16 +5,16 @@
 #include "message_helper.hpp"
 
 std::ostream &lang::ast::SymbolReferenceNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  return os << token_start().image;
+  return os << symbol_;
 }
 
 std::ostream &lang::ast::SymbolReferenceNode::print_tree(std::ostream &os, unsigned int indent_level) const {
   Node::print_tree(os, indent_level);
-  return os << SHELL_GREEN << token_start().image << SHELL_RESET;
+  return os << SHELL_GREEN << symbol_ << SHELL_RESET;
 }
 
 bool lang::ast::SymbolReferenceNode::process(lang::Context& ctx) {
-  value_ = value::symbol_ref(token_start().image); // just reference, you guessed it, symbol reference!
+  value_ = value::symbol_ref(symbol_); // just reference, you guessed it, symbol reference!
   return true;
 }
 
@@ -40,7 +40,7 @@ bool lang::ast::SymbolReferenceNode::resolve_rvalue(Context& ctx) {
 
   // load into registers
   if (symbol->type().size() == 0) return true;
-  const memory::Ref ref = ctx.reg_alloc_manager.find(symbol->get());
+  const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(symbol->get());
   value_->rvalue(std::make_unique<value::RValue>(symbol->type(), ref));
   return true;
 }

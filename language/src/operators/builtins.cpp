@@ -112,7 +112,9 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"-", {18, true}}, // negation
     {"!", {18, true}}, // logical NOT
     {"~", {18, true}}, // bitwise NOT
-    {"(type)", {18, true}}, // primitive cast
+    {"(type)", {18, true, false}}, // primitive cast
+    {"registerof", {18, true, false}}, // register lookup
+    {"register", {18, true, false}}, // get register
 };
 
 const lang::ops::OperatorInfo lang::ops::generic_binary{2, false};
@@ -232,7 +234,7 @@ namespace generators {
     // TODO make more efficient?
     // TODO how can we ensure both are in a register?
     const memory::Literal& zero = memory::Literal::zero(ast::type::from_asm_type(datatype));
-    memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(ctx.reg_alloc_manager.find(zero));
+    memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(ctx.reg_alloc_manager.find_or_insert(zero));
 
     ctx.program.current().add(assembly::create_sub(datatype, reg_arg, ref.offset, assembly::Arg::reg(reg_arg)));
     return reg_arg;

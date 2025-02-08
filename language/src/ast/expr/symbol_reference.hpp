@@ -6,8 +6,10 @@
 
 namespace lang::ast {
   class SymbolReferenceNode : public Node {
+    std::string symbol_;
+
   public:
-    using Node::Node;
+    SymbolReferenceNode(lexer::Token token, std::string symbol) : Node(std::move(token)), symbol_(std::move(symbol)) {}
 
     std::string node_name() const override { return "symbol"; }
 

@@ -234,6 +234,28 @@ maths + 1; // error: expected rvalue, got namespace
     Note that \texttt{bool} is not related to anything.
     Unlike in other language, \texttt{bool} is treated as a distinct type with abstract true/false values, rather than a synonym for integers 1/0, respectively.
 
+    \subsection{Casting}\label{subsec:type-casting}
+
+    Casting refers to the changing of a type, and can be split into two categories: implicit, and explicit.
+
+    Implicit casting is where a cast is done behind-the-scenes.
+    Type \(a\) may be implicitly cast (also known as \textit{coerced}) to another type \(b\) if and only if \(a < b\), that is, \(a\) is a subtype of \(b\).
+    In other words, \(a\) can be coerced into \(b\) if \(b\) is sufficient to represent \(a\) without data loss.
+    For example, \texttt{u8} may be coerced into \texttt{u64}, or \texttt{float} into \txettt{double}, but \textbf{not} \texttt{i32} into \texttt{i16}.
+    Implicit casting is done automatically in the following:
+
+    \begin{lstlisting}[language=CustomLang]
+let a: double = 3.14; // float -> double
+    \end{lstlisting}
+
+    On the other hand, explicit casting violates these rules, and hence the cast may be \textit{explicit}.
+    Note that not all datatypes may be cast between each-other using explicit casting, but the subtype relationships may be largely violated.
+
+    \begin{lstlisting}[language=CustomLang]
+let a: u8 = 42; // error!
+let a = 42 as u8; // i32 -> u8
+    \end{lstlisting}
+
     \section{Functions}
 
     \section{Operators}
@@ -250,13 +272,15 @@ maths + 1; // error: expected rvalue, got namespace
             \hline
             \texttt{a.b} & Member access & \(\longrightarrow\) \\
             \hline
-            \texttt{a()} & Function Call & \(\longrightarrow\) \\
+            \texttt{a()} & Function call & \(\longrightarrow\) \\
             \hline
-            \texttt{a as T} & Cast & \multirow{5}{*}{\(\longleftarrow\)} \\
-            \texttt{(T) a} & Primitive cast\(^\ast\) & \\
+            \texttt{(T) a} & Primitive cast & \multirow{5}{*}{\(\longleftarrow\)} \\
             \texttt{-a} & Negation & \\
             \texttt{~a} & Bitwise NOT & \\
             \texttt{!a} & Boolean NOT & \\
+            \texttt{registerof a} & Register lookup & \\
+            \hline
+            \texttt{a as T} & Cast & \(\longleftarrow\) \\
             \hline
             \texttt{a * b} & Multiplication & \multirow{3}{*}{\(\longrightarrow\)} \\
             \texttt{a / b} & Division & \\
@@ -286,7 +310,49 @@ maths + 1; // error: expected rvalue, got namespace
         \end{tabular}\label{tab:builtin-operators}
     \end{table}
 
-    \((\ast)\) The term \textit{primitive} cast means that this C-style cast may only be done on primitive, atomic types such as \texttt{int} and \texttt{float}, whereas the cast using \texttt{as} may be any type.
+    \subsection{Casting}\label{subsec:op-casting}
+
+    The concept of casting is explained in subsection ~\ref{subsec:type-casting}.
+    Note that the table above presents two casting operators: \texttt{(T) a} and \texttt{a as T}.
+
+    The former is a \textit{primitive} cast, meaning it only supports casting to primitive, atomic types.
+    This cast is direct and is ignorant of the type of \texttt{a} and whether the cast is meaningful.
+
+    The latter, using the \texttt{as} keyword, is a straightforward explicit cast.
+    There are no restrictions on \texttt{T} and, as explained in subsection ~\ref{subsec:type-casting}, this cast still must obey some rules.
+
+    \begin{lstlisting}[language=CustomLang]
+let a = (int) 3.14; // ok
+let b = (*int) 0; // error
+let c = 0 as *int; // ok
+    \end{lstlisting}
+
+    Also note the difference in precedence: the \texttt{as} cast is slightly looser than other unary operators.
+
+    \begin{lstlisting}[language=CustomLang]
+!1 as bool; // same as `(!1) as bool' NOT `!(1 as bool)'
+    \end{lstlisting}
+
+    \subsection{Register Lookup}
+
+    This is a lower-level operator meant for exploration of the processor's registers.
+
+    Expecting a symbol argument, the \texttt{registerof} operator returns the index (offset) of where the given symbol is located.
+    This allows one to gain insight into the register allocation algorithm.
+
+    For example, given the basic program below, one would expect the following.
+
+    \begin{lstlisting}[language=CustomLang]
+let a = 5;
+registerof a; // = 11, corresponding to $r1
+    \end{lstlisting}
+
+    If the symbol has not been loaded into registers (i.e., it has not been used at all/recently), the operator returns \(-1\).
+
+    \begin{lstlisting}[language=CustomLang]
+let a: int;
+registerof a; // = -1
+    \end{lstlisting}
 
     \section{Control Flow}
 
