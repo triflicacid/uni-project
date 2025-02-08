@@ -470,16 +470,18 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
   const lexer::Token lpar = consume();
 
   std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> args;
-  while (true) {
-    // parse `name: type` pair
-    if (!expect_or_error(lexer::TokenType::ident)) return {};
-    args.push_back(parse_name_type_pair());
-    args.back()->set_category(ast::SymbolDeclarationNode::Argument);
-    if (is_error()) return {};
+  if (!expect(lexer::TokenType::rpar)) {
+    while (true) {
+      // parse `name: type` pair
+      if (!expect_or_error(lexer::TokenType::ident)) return {};
+      args.push_back(parse_name_type_pair());
+      args.back()->set_category(ast::SymbolDeclarationNode::Argument);
+      if (is_error()) return {};
 
-    // if comma, continue
-    if (!expect(lexer::TokenType::comma)) break;
-    consume();
+      // if comma, continue
+      if (!expect(lexer::TokenType::comma)) break;
+      consume();
+    }
   }
 
   // ')'
