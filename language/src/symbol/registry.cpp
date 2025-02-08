@@ -55,7 +55,7 @@ std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol
     if (auto func_type = options.type.get_func()) {
       // iterate through each candidate, check if ID's are equal
       for (SymbolId id : others) {
-        if (auto& symbol = registry.get(id); symbol.type().id() == func_type->id()) {
+        if (auto& symbol = registry.get(id); symbol.type() == *func_type) {
           auto msg = options.token.generate_message(message::Error);
           msg->get() << "unable to define overload - a function matching this signature already exists";
           messages.add(std::move(msg));

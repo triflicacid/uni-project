@@ -27,7 +27,7 @@ namespace lang::ast::type {
     static const T& create(const std::string& wrapper_name, const Node& inner_type, const std::function<std::unique_ptr<T>()>& create_type) {
       for (auto& [id, type] : graph) {
         if (auto wrapper_type = type.get().get_wrapper()) {
-          if (wrapper_type->node_name() == wrapper_name && wrapper_type->unwrap().id() == inner_type.id()) {
+          if (wrapper_type->node_name() == wrapper_name && wrapper_type->unwrap() == inner_type) {
             return *static_cast<const T*>(wrapper_type);
           }
         }

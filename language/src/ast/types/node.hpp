@@ -43,6 +43,8 @@ namespace lang::ast::type {
 
     // get asm datatype representing this node
     virtual constants::inst::datatype::dt get_asm_datatype() const = 0;
+
+    bool operator==(const Node& other) const;
   };
 
   // return type node from the given asm type

@@ -6,6 +6,10 @@ static lang::ast::type::TypeId current_id = 0;
 
 lang::ast::type::Node::Node(): id_(current_id++) {}
 
+bool lang::ast::type::Node::operator==(const lang::ast::type::Node& other) const {
+  return id() == other.id();
+}
+
 const lang::ast::type::Node& lang::ast::type::from_asm_type(constants::inst::datatype::dt type) {
   switch (type) {
     case constants::inst::datatype::u32:

@@ -29,7 +29,7 @@ std::deque<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(con
 std::optional<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(const std::string symbol, const lang::ast::type::FunctionNode& type) {
   // search to see if a matching operator exists
   for (auto& [id, op] : operators) {
-    if (op->symbol() == symbol && op->type().id() == type.id()) {
+    if (op->symbol() == symbol && op->type() == type) {
       return *op;
     }
   }

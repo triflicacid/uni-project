@@ -3,6 +3,8 @@
 #include "assembly/create.hpp"
 #include "ast/types/int.hpp"
 #include "value/symbol.hpp"
+#include "ast/types/bool.hpp"
+#include "operators/builtin.hpp"
 
 lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program)
   : symbols_(symbols), program_(program) {
@@ -342,6 +344,36 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
     comment << " -> ";
     ast::type::from_asm_type(target).print_code(comment);
   }
+
+  return ref;
+}
+
+lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(const lang::memory::Ref& ref, const lang::ast::type::Node& target) {
+  if (target == ast::type::boolean) {
+    return guarantee_boolean(ref);
+  } else {
+    return guarantee_datatype(ref, target.get_asm_datatype());
+  }
+}
+
+lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_boolean(const lang::memory::Ref& old_ref) {
+  // first, we must be in a register
+  Ref ref = guarantee_register(old_ref);
+
+  auto& object = instances_.top().regs[ref.offset - initial_register];
+  assert(object.has_value());
+
+  // if we are not an rvalue, or already a Boolean, exit
+  if (!object->value->is_rvalue() || object->value->type() == ast::type::boolean) {
+    return ref;
+  }
+
+  // generate code for the cast
+  ops::generate_bool_cast(program_.current(), ref.offset);
+
+  // update object in memory
+  object = Object(value::rvalue());
+  object->value->rvalue(std::make_unique<value::RValue>(ast::type::boolean, ref));
 
   return ref;
 }

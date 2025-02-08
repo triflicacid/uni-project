@@ -235,8 +235,9 @@ bool lang::ast::CStyleCastOperatorNode::resolve_rvalue(lang::Context& ctx) {
   if (!get_arg_rvalue(ctx, 0)) return false;
 
   // emit conversion instruction
-  const memory::Ref ref = ops::implicit_cast(ctx, target_.get_asm_datatype());
+  const memory::Ref ref = ops::cast(ctx, target_);
   value_->rvalue(std::make_unique<value::RValue>(target_, ref));
+  // TODO more checks for Boolean
   return true;
 }
 
@@ -286,7 +287,7 @@ bool lang::ast::DotOperatorNode::process(lang::Context& ctx) {
 
   // if base is a namespace, then this is a symbol reference
   // TODO add support for structs here
-  if (lhs.type().id() == type::name_space.id()) {
+  if (lhs.type() == type::name_space) {
     const symbol::Symbol& symbol = lhs.lvalue().get_symbol()->get();
     const std::string full_name = symbol.full_name() + "." + attr_;
 
@@ -393,7 +394,7 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
   }
 
   // coerce into correct type (this is safe as subtyping checked)
-  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(rhs.rvalue().ref(), lhs.type().get_asm_datatype());
+  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(rhs.rvalue().ref(), lhs.type());
   value_->rvalue(expr);
 
   // load expr value into symbol
@@ -423,7 +424,7 @@ bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
   if (!get_arg_rvalue(ctx, 0)) return false;
 
   // emit conversion instruction
-  const memory::Ref ref = ops::implicit_cast(ctx, target_.get_asm_datatype());
+  const memory::Ref ref = ops::cast(ctx, target_);
   value_->rvalue(std::make_unique<value::RValue>(target_, ref));
   return true;
 }

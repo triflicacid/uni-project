@@ -56,7 +56,7 @@ lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<co
           are_equal = false;
         }
       }
-      if (are_equal && returns.has_value()) are_equal = returns.value().get().id() == func_type->returns().id();
+      if (are_equal && returns.has_value()) are_equal = returns.value().get() == func_type->returns();
       if (are_equal) return *func_type;
     }
   }
@@ -85,7 +85,7 @@ lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference
     bool is_candidate = true;
     int score = 0;
     for (int i = 0; is_candidate && i < parameters.size(); i++) {
-      if (parameters[i].get().id() == option.get().arg(i).id()) score++;
+      if (parameters[i].get() == option.get().arg(i)) score++;
       if (!graph.is_subtype(parameters[i].get().id(), option.get().arg(i).id())) is_candidate = false;
     }
     // if perfect score, exact match, so ignore all others

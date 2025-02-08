@@ -157,7 +157,7 @@ std::unique_ptr<lang::ast::LiteralNode> lang::parser::Parser::parse_literal() {
   // Boolean literal?
   if (expect(firstset::boolean)) {
     lexer::Token token = consume();
-    token.value = token.type == lexer::TokenType::true_kw ? conf::bools::true_value : conf::bools::false_value;
+    token.value = token.type == lexer::TokenType::true_kw ? 1 : 0;
     return std::make_unique<ast::LiteralNode>(token, ast::type::boolean);
   }
 

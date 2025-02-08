@@ -15,9 +15,9 @@ std::string lang::memory::Literal::to_string() const {
            ? std::to_string(uint64::to_double(data_))
            : std::to_string(uint64::to_float(data_));
   } else { // must be a Boolean
-    return data_ == lang::conf::bools::true_value
-           ? lang::conf::bools::true_string
-           : lang::conf::bools::false_string;
+    return data_ == 0
+           ? lang::conf::bools::false_string
+           : lang::conf::bools::true_string;
   }
 }
 

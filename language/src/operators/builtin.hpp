@@ -9,6 +9,10 @@ namespace lang {
   struct Context;
 }
 
+namespace lang::assembly {
+  class BasicBlock;
+}
+
 namespace lang::ops {
   class BuiltinOperator : public Operator {
     using GeneratorFn = std::function<uint8_t(Context&, const std::deque<std::reference_wrapper<const value::Value>>&)>;
@@ -33,5 +37,8 @@ namespace lang::ops {
 
   // generate a conversion for the current register to `target`
   // return resulting Ref
-  memory::Ref implicit_cast(Context& ctx, constants::inst::datatype::dt target);
+  memory::Ref cast(lang::Context& ctx, const ast::type::Node& target);
+
+  // generate code for a Boolean cast, but does not update the register
+  void generate_bool_cast(assembly::BasicBlock& block, uint8_t reg);
 }

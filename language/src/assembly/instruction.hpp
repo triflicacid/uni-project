@@ -41,6 +41,12 @@ namespace lang::assembly {
     GenericInstruction& add_arg(std::unique_ptr<BaseArg> arg);
   };
 
+  // shorthand function for setting the conditional test flag of an instruction
+  std::unique_ptr<GenericInstruction> set_conditional(std::unique_ptr<GenericInstruction>, constants::cmp::flag cmp);
+
+  // shorthand function for setting the datatype of an instruction
+  std::unique_ptr<GenericInstruction> set_datatype(std::unique_ptr<GenericInstruction>, constants::inst::datatype::dt dt);
+
   // special instance for `cvt<x>2<y>` instruction
   class ConversionInstruction : public Instruction {
     datatype from_type_, to_type_;

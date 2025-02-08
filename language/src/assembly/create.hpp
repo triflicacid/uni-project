@@ -17,7 +17,11 @@ namespace lang::assembly {
   // creates a conditional branch
   std::unique_ptr<GenericInstruction> create_branch(condition guard, std::unique_ptr<BaseArg> to);
 
-  std::unique_ptr<GenericInstruction> create_comparison(datatype datatype, uint8_t reg_dst, uint8_t reg, std::unique_ptr<BaseArg> value);
+  // create a comparison between the register and the other value
+  std::unique_ptr<GenericInstruction> create_comparison(datatype datatype, uint8_t reg, std::unique_ptr<BaseArg> value);
+
+  // create_comparison() but with the default datatype
+  std::unique_ptr<GenericInstruction> create_comparison(uint8_t reg, std::unique_ptr<BaseArg> value);
 
   std::unique_ptr<ConversionInstruction> create_conversion(datatype from_type, uint8_t from_reg, datatype to_type, uint8_t to_reg);
 

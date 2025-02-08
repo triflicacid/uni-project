@@ -104,6 +104,12 @@ namespace lang::memory {
     // note, this also guarantees the value is in a register
     Ref guarantee_datatype(const Ref& ref, constants::inst::datatype::dt target);
 
+    // same as other guarantee_datatype, but handles Booleans as well
+    Ref guarantee_datatype(const Ref& ref, const ast::type::Node& target);
+
+    // like guarantee datatype, but for Boolean
+    Ref guarantee_boolean(const Ref& ref);
+
     // create assembly argument resolving a reference
     // argument: mark as free?
     std::unique_ptr<assembly::Arg> resolve_ref(const Ref& ref, bool mark_free);

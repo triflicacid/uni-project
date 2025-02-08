@@ -3,6 +3,7 @@
 #include "info.hpp"
 #include "builtin.hpp"
 #include "context.hpp"
+#include "assembly/basic_block.hpp"
 #include "ast/types/function.hpp"
 #include "ast/types/int.hpp"
 #include "assembly/create.hpp"
@@ -209,7 +210,7 @@ namespace generators {
   // like generate_add, but for a comparison
   static uint8_t generate_cmp(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
-    ctx.program.current().add(assembly::create_comparison(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    ctx.program.current().add(assembly::create_comparison(datatype, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
@@ -219,9 +220,7 @@ namespace generators {
     // zero-out the register
     ctx.program.current().add(assembly::create_zero(reg));
     // set to true if flag matches
-    auto inst = assembly::create_load(reg, assembly::Arg::imm(1));
-    inst->set_conditional(cmp);
-    ctx.program.current().add(std::move(inst));
+    ctx.program.current().add(set_conditional(assembly::create_load(reg, assembly::Arg::imm(1)), cmp));
     return reg;
   }
 
@@ -489,17 +488,29 @@ void lang::ops::init_builtins() {
   negation();
 }
 
-lang::memory::Ref lang::ops::implicit_cast(lang::Context& ctx, constants::inst::datatype::dt target) {
+lang::memory::Ref lang::ops::cast(lang::Context& ctx, const ast::type::Node& target) {
   // get most recent location
   auto maybe_ref = ctx.reg_alloc_manager.get_recent();
   assert(maybe_ref.has_value());
   const memory::Ref ref = maybe_ref.value();
 
   // if types already match, exit
-  if (ctx.reg_alloc_manager.find(ref).value->type().get_asm_datatype() == target) {
+  if (ctx.reg_alloc_manager.find(ref).value->type() == target) {
     return ref;
   }
 
   // otherwise, convert!
   return ctx.reg_alloc_manager.guarantee_datatype(ref, target);
+}
+
+void lang::ops::generate_bool_cast(assembly::BasicBlock& block, uint8_t reg) {
+  // compare with 0
+  block.add(assembly::create_comparison(reg, assembly::Arg::imm(0x0)));
+  auto& comment = block.back().comment();
+  // zero out the register if ==
+  block.add(set_conditional(assembly::create_zero(reg), constants::cmp::eq));
+  // set to 1 if !=
+  block.add(set_conditional(assembly::create_load(reg, assembly::Arg::imm(1)), constants::cmp::ne));
+  // add comment
+  comment << "boolean cast";
 }

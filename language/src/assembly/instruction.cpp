@@ -49,3 +49,13 @@ std::ostream& LoadImmediateInstruction::_print(std::ostream& os) const {
      << "0x" << std::hex << imm_ << std::dec;
   return os;
 }
+
+std::unique_ptr<GenericInstruction> lang::assembly::set_conditional(std::unique_ptr<GenericInstruction> i, constants::cmp::flag cmp) {
+  i->set_conditional(cmp);
+  return i;
+}
+
+std::unique_ptr<GenericInstruction> lang::assembly::set_datatype(std::unique_ptr<GenericInstruction> i, constants::inst::datatype::dt dt) {
+  i->set_datatype(dt);
+  return i;
+}
