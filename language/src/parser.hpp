@@ -27,9 +27,6 @@ namespace lang::parser {
 
     void add_message(std::unique_ptr<message::Message> m);
 
-    // parse optional newlines
-    void parse_newlines();
-
     // parse an expression recursively
     std::unique_ptr<ast::Node> _parse_expression(int precedence);
 

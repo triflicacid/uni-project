@@ -15,7 +15,6 @@ namespace lang::lexer {
     lpar, // (
     rpar, // )
     sc, // ;
-    nl, // \n
     colon, // :
     comma, // ,
     arrow, // ->

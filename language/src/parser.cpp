@@ -107,13 +107,8 @@ lang::lexer::Token lang::parser::Parser::consume() {
 }
 
 const lang::lexer::TokenSet lang::parser::firstset::eol{
-    lexer::BasicToken{lexer::TokenType::sc},
-    lexer::BasicToken{lexer::TokenType::nl},
+    lexer::BasicToken{lexer::TokenType::sc}
 };
-
-void lang::parser::Parser::parse_newlines() {
-  while(expect(lexer::TokenType::nl)) consume();
-}
 
 static const lang::lexer::TokenTypeSet numerical_types = {
     lang::lexer::TokenType::uint8,

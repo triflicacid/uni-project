@@ -68,8 +68,6 @@ std::string lang::lexer::token_type_to_string(TokenType type, bool add_quotes) {
       return "int";
     case TokenType::float_lit:
       return "float";
-    case TokenType::nl:
-      return "newline";
     case TokenType::invalid:
       return "invalid";
     default: ;
@@ -259,23 +257,11 @@ Token Lexer::token(const std::string &image, TokenType type) const {
 // inspired by the Haskell report (https://www.haskell.org/onlinereport/lexemes.html)
 static std::unordered_set<char> operator_chars = {'!', '#', '$', '%', '&', '*', '+', '.', '/', '<', '=', '>', '?', '@', '\\', '^', '|', '-', '~'};
 
-// used to avoid translating `\r\n` into two newlines
-static bool seen_CR = false;
-
 Token Lexer::next() {
   // eat leading whitespace, then check for eof
   stream_.eat_whitespace();
   int ch = stream_.peek_char();
   if (ch == EOF) return token("", TokenType::eof);
-//  if (ch == '\n' || ch == '\r') {
-//    stream.get_char(); // skip past newline
-//    if (seen_CR && ch == '\n') { // if we've already found '\r', ignore '\n' and continue to next token
-//      seen_CR = false;
-//      return next();
-//    }
-//    seen_CR = ch == '\r';
-//    return token("", TokenType::nl);
-//  }
 
   // check for a comment
   if (ch == '/') {
