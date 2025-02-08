@@ -47,7 +47,7 @@ void lang::ast::type::TypeGraph::add_subtype_chain(const std::vector<TypeId>& ch
 }
 
 bool lang::ast::type::TypeGraph::is_subtype(lang::ast::type::TypeId child, lang::ast::type::TypeId parent) const {
-  return graph_.are_connected(parent, child);
+  return child == parent || graph_.are_connected(parent, child);
 }
 
 lang::ast::type::TypeGraph lang::ast::type::graph;

@@ -492,6 +492,8 @@ void lang::ops::init_builtins() {
 }
 
 lang::memory::Ref lang::ops::cast(lang::Context& ctx, const ast::type::Node& target) {
+  assert(target.size() > 0);
+
   // get most recent location
   auto maybe_ref = ctx.reg_alloc_manager.get_recent();
   assert(maybe_ref.has_value());

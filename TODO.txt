@@ -1,18 +1,5 @@
-This file contains some primary objectives which need to be met.
-
-[===== NECESSARY =====]
-- Function calls
-     - User-defined operator overloading
-- Implement other lvalue builtin operators
-- Handle assignment operator
-    - rvalues
-- Casts: do not allow every cast, e.g., bool -> T
-
-[===== DESIRED =====]
-- Implement array types
-- Implement structs
-- Implement strings
-- Implement `import` statement, i.e., multiple files
-
-[===== MAYBE =====]
-- Memory spill functionality
+PLAN
+- Check function return types are OK
+- Function call operator
+- If statements
+- While loops

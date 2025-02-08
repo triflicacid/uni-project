@@ -235,6 +235,23 @@ maths + 1; // error: expected rvalue, got namespace
     Note that \texttt{bool} is not related to anything.
     Unlike in other language, \texttt{bool} is treated as a distinct type with abstract true/false values, rather than a synonym for integers 1/0, respectively.
 
+    \subsection{The Unit Type}
+
+    Ths unit type, denotes by empty brackets `\texttt{()}', is a special type meaning \textit{empty}.
+    Representing an object with no value, it is a zero-width type, meaning a symbol of this type occupies no space.
+    For examples of use, a unit is returned from a block which returns no value.
+
+    \begin{lstlisting}[language=CustomLang]
+let a = {}; // a: ()
+    \end{lstlisting}
+
+    Note that a unit is neither an r-- nor an l-value, so it cannot be used in expressions.
+    That is, the below program errors before even trying to find a candidate for \texttt{+}.
+
+    \begin{lstlisting}[language=CustomLang]
+() + 1; // error: expected rvalue, got ()
+    \end{lstlisting}
+
     \subsection{Pointer Types}\label{subsec:pointer-types}
 
     The use of pointers is designed to be minimal in Edel, but they are available nonetheless.
@@ -250,6 +267,7 @@ maths + 1; // error: expected rvalue, got namespace
     \subsection{Casting}\label{subsec:type-casting}
 
     Casting refers to the changing of a type, and can be split into two categories: implicit, and explicit.
+    Note that the destination type of either cast \textbf{cannot} be zero-sized.
 
     Implicit casting is where a cast is done behind-the-scenes.
     Type \(a\) may be implicitly cast (also known as \textit{coerced}) to another type \(b\) if and only if \(a < b\), that is, \(a\) is a subtype of \(b\).

@@ -13,6 +13,7 @@
 #include "ast/types/bool.hpp"
 #include "ast/types/pointer.hpp"
 #include "config.hpp"
+#include "ast/expr/unit.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -202,10 +203,19 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
     return std::make_unique<ast::SymbolReferenceNode>(token, token.image);
   } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
     const lexer::Token token_start = consume();
+    // if there's an immediate ')', then this refers to the unit
+    if (expect(lexer::TokenType::rpar)) {
+      auto unit = std::make_unique<ast::UnitNode>(token_start);
+      unit->token_end(consume());
+      return unit;
+    }
+    // otherwise, try to parse an expression
+    if (!expect_or_error(firstset::expression)) return nullptr;
     auto expr = _parse_expression(0);
     // ensure we have a closing bracket, or propagate error
     if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
     const lexer::Token token_end = consume(); // ')'
+    // include brackets in token span
     expr->token_start(token_start);
     expr->token_end(token_end);
     return expr;
@@ -361,6 +371,7 @@ const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
     lexer::convert_set(numerical_types),
     {
       lexer::BasicToken(lexer::TokenType::boolean),
+      lexer::BasicToken(lexer::TokenType::lpar),
       star
     }
 });
@@ -379,6 +390,14 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     auto inner = parse_type();
     if (is_error() || !inner) return nullptr;
     return &ast::type::PointerNode::get(*inner);
+  }
+
+  // unit type?
+  if (expect(lexer::TokenType::lpar)) {
+    consume();
+    if (!expect_or_error(lexer::TokenType::rpar)) return nullptr;
+    consume();
+    return &ast::type::unit;
   }
 
   return nullptr;

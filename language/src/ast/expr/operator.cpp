@@ -387,18 +387,14 @@ bool lang::ast::AssignmentOperatorNode::process(lang::Context& ctx) {
     return false;
   }
 
-  return true;
-}
+  // set value to LHS
+  value_ = value::rlvalue();
 
-bool lang::ast::AssignmentOperatorNode::resolve_lvalue(lang::Context& ctx) {
-  // ::get_value should return an rvalue anyway
-  assert(value().is_lvalue());
   return true;
 }
 
 bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
-  const auto& lhs = value();
-  assert(lhs.is_lvalue());
+  const auto& lhs = lhs_().value();
 
   // if symbol is constant, error
   if (auto symbol_value = lhs.lvalue().get_symbol()) {
@@ -413,6 +409,8 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
       ctx.messages.add(std::move(msg));
       return false;
     }
+    // update resulting value
+    value_->lvalue(std::make_unique<value::Symbol>(symbol));
   }
 
   // evaluate RHS
@@ -425,7 +423,7 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
     return false;
   }
 
-  // coerce into correct type (this is safe as subtyping checked)
+  // coerce into correct type (this is safe as subtyping checked) and update our value
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(rhs.rvalue().ref(), lhs.type());
   value_->rvalue(expr);
 
@@ -447,6 +445,15 @@ lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const la
 }
 
 bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
+  // ensure target size is non-zero
+  if (target_.size() == 0) {
+    auto msg = lexer::TokenSpan::generate_message(message::Error);
+    msg->get() << "attempted cast to zero-sized type ";
+    target_.print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
   if (!OperatorNode::process(ctx)) return false;
   value_ = value::rvalue(target_);
   return true;

@@ -1,7 +1,6 @@
 #include "node.hpp"
 #include "shell.hpp"
 #include "context.hpp"
-#include "ast/types/unit.hpp"
 
 std::ostream &lang::ast::indent(std::ostream &os, unsigned int level) {
   return os << std::string(level * 2, ' ');

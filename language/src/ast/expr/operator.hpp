@@ -123,8 +123,6 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_lvalue(lang::Context &ctx) override;
-
     bool resolve_rvalue(lang::Context &ctx) override;
   };
 

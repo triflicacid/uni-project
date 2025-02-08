@@ -61,8 +61,7 @@ std::ostream &lang::ast::SymbolDeclarationNode::print_tree(std::ostream &os, uns
 }
 
 bool lang::ast::SymbolDeclarationNode::collate_registry(message::List& messages, symbol::Registry& registry) {
-  // symbols are not available prior to definition, so do nothing here
-  return true;
+  return !assignment_.has_value() || assignment_->get()->collate_registry(messages, registry);
 }
 
 bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
@@ -94,14 +93,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     auto& value = assignment_->get()->value();
     assignment_value = value;
     if (!assignment_->get()->resolve_rvalue(ctx)) return false;
-    if (!value.is_rvalue()) {
-      auto msg = assignment_->get()->generate_message(message::Error);
-      msg->get() << "expected lvalue, got ";
-      value.type().print_code(msg->get());
-      ctx.messages.add(std::move(msg));
-      return false;
-    }
-
 
     // if we have declared symbol to be a type, they must match
     const auto& type = value.type();
@@ -129,17 +120,30 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   // if no assignment, we're done
   if (!assignment_.has_value()) return true;
 
+  // if zero-sized type, we're also done
+  auto& value = assignment_->get()->value();
+  if (value.type().size() == 0) return true;
+
+  // must have a ref, i.e., rvalue
+  if (!value.is_rvalue()) {
+    auto msg = assignment_->get()->generate_message(message::Error);
+    msg->get() << "expected rvalue, got ";
+    value.type().print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
   // coerce into correct type (this is safe as subtyping checked)
-  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(assignment_value->get().rvalue().ref(), type_.value().get().get_asm_datatype());
+  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(value.rvalue().ref(), type_.value().get().get_asm_datatype());
 
   // load expr value into symbol
   ctx.symbols.assign_symbol(id_, expr.offset);
 
   // update register to contain this symbol to avoid double-loading
-  auto value = value::rlvalue();
-  value->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
-  value->rvalue(expr);
-  ctx.reg_alloc_manager.update(expr, memory::Object(std::move(value)));
+  auto obj_value = value::rlvalue();
+  obj_value->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
+  obj_value->rvalue(expr);
+  ctx.reg_alloc_manager.update(expr, memory::Object(std::move(obj_value)));
 
   return true;
 }
