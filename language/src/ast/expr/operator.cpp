@@ -211,7 +211,7 @@ lang::ast::Node& lang::ast::OperatorNode::rhs_() const {
   return *args_[1];
 }
 
-lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
+lang::ast::CStyleCastOperatorNode::CStyleCastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
   : OperatorNode(token, token, {}), target_(target) {
   args_.push_back(std::move(expr));
 
@@ -224,12 +224,13 @@ lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const la
   op_symbol_.image = symbol_; // doctor image for correct-looking error reporting
 }
 
-bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
+bool lang::ast::CStyleCastOperatorNode::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
   value_ = value::rvalue(target_);
   return true;
 }
 
-bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
+bool lang::ast::CStyleCastOperatorNode::resolve_rvalue(lang::Context& ctx) {
   if (!get_arg_rvalue(ctx, 0)) return false;
 
   // emit conversion instruction
@@ -406,3 +407,36 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
   return true;
 }
 
+lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
+: OperatorNode(token, token, {}), target_(target) {
+  args_.push_back(std::move(expr));
+}
+
+bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
+  value_ = value::rvalue(target_);
+  return true;
+}
+
+bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  if (!get_arg_rvalue(ctx, 0)) return false;
+
+  // emit conversion instruction
+  const memory::Ref ref = ops::implicit_cast(ctx, target_.get_asm_datatype());
+  value_->rvalue(std::make_unique<value::RValue>(target_, ref));
+  return true;
+}
+
+std::ostream& lang::ast::CastOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
+  args_.front()->print_code(os) << " as ";
+  return target_.print_code(os);
+}
+
+std::ostream& lang::ast::CastOperatorNode::print_tree(std::ostream& os, unsigned int indent_level) const {
+  Node::print_tree(os, indent_level);
+  os << SHELL_GREEN << "as" << SHELL_RESET " " SHELL_CYAN;
+  target_.print_code(os) << SHELL_RESET << std::endl;
+
+  args_.front()->print_tree(os, indent_level + 1);
+  return os;
+}

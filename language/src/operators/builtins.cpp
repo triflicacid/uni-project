@@ -91,6 +91,7 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"/", {15, false}},  // division
     {"%", {15, false}},  // modulus
     {"()", {19, false}},  // function call
+    {"as", {19, false, false}},  // cast
     {".", {20, false, false}},  // member access
 };
 
@@ -98,7 +99,7 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"-", {14, true}}, // negation
     {"!", {14, true}}, // logical NOT
     {"~", {14, true}}, // bitwise NOT
-    {"(type)", {14, true}}, // cast
+    {"(type)", {14, true}}, // primitive cast
 };
 
 const lang::ops::OperatorInfo lang::ops::generic_binary{2, false};

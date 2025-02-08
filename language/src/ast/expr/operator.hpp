@@ -38,9 +38,9 @@ namespace lang::ast {
 
     std::string node_name() const override;
 
-    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override final;
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override final;
+    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
@@ -69,13 +69,30 @@ namespace lang::ast {
     bool resolve_rvalue(Context& ctx) override;
   };
 
-  // represents (type) expr
+  // represents `expr as type`
   class CastOperatorNode : public OperatorNode {
+    const type::Node& target_;
+
+  public:
+    CastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr);
+
+    bool process(lang::Context &ctx) override;
+
+    bool resolve_rvalue(lang::Context &ctx) override;
+
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+  };
+
+  // represents (type) expr
+  // this is used for basic C-style casting (only primitive types are permitted)
+  class CStyleCastOperatorNode : public OperatorNode {
     const type::Node& target_;
     std::string symbol_; // (type) symbol, stored for future reference (printing)
 
   public:
-    CastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr);
+    CStyleCastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr);
 
     const std::string& symbol() const override { return symbol_; }
 

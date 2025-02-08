@@ -41,6 +41,7 @@ namespace lang::lexer {
     float_lit, // any floating literal
 
     // keywords
+    as_kw,
     const_kw,
     false_kw,
     func,

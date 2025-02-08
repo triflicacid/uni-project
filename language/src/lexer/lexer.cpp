@@ -32,6 +32,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
       {"double", TokenType::float64},
     },
     {
+      {"as", TokenType::as_kw},
       {"const", TokenType::const_kw},
       {"func", TokenType::func},
       {"let", TokenType::let},

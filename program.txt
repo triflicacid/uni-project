@@ -1,2 +1,1 @@
-let ptr: *i32 = 0;
-
+let ptr = 0 as *i32;

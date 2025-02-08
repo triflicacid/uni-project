@@ -294,7 +294,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     if (is_error()) return nullptr;
 
     // wrap and continue
-    expr = std::make_unique<ast::CastOperatorNode>(op_token, *type, std::move(expr));
+    expr = std::make_unique<ast::CStyleCastOperatorNode>(op_token, *type, std::move(expr));
   }
   else if (expect(firstset::term)) { // term
     expr = parse_term();
@@ -309,11 +309,12 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     const lexer::Token op_token = peek();
     const ops::OperatorInfo* info;
 
-    if (expect(lexer::TokenType::op)) {
+    if (expect(lexer::TokenType::op)) { // any operator
       info = ops::builtin_binary.contains(op_token.image)
              ? &ops::builtin_binary.at(op_token.image)
              : &ops::generic_binary;
-    } else if (expect(lexer::TokenType::lpar)) {
+      consume();
+    } else if (expect(lexer::TokenType::lpar)) { // '(' --> function call
       info = &ops::builtin_binary.at("()");
       // exit if lower precedence - some things are tighter than a call
       if (precedence >= info->precedence) break;
@@ -321,17 +322,28 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
       expr = parse_function_call(std::move(expr));
       if (is_error()) return nullptr;
       continue; // continue to next operator
+    } else if (expect(lexer::TokenType::as_kw)) { // 'as' --> cast
+      consume();
+      info = &ops::builtin_binary.at("as");
+      // exit if lower precedence - some things are tighter than a 'as'
+      if (precedence >= info->precedence) break;
+      // expect type
+      if (!expect_or_error(firstset::type)) return nullptr;
+      auto type = parse_type();
+      if (is_error() || !type) return nullptr;
+      // construct node and continue to next operation
+      const lexer::Token token_start = expr->token_start();
+      expr = std::make_unique<ast::CastOperatorNode>(token_start, *type, std::move(expr));
+      expr->token_end(previous());
+      continue;
     } else {
-      break;
+        break;
     }
 
     // exit if lower precedence
-    if (precedence >= info->precedence) {
-      break;
-    }
+    if (precedence >= info->precedence) break;
 
     // parse RHS of expression, supplying the operator's precedence as a new baseline
-    consume();
     if (!expect_or_error(firstset::expression)) return nullptr;
     int new_precedence = info->precedence;
     if (info->right_associative) new_precedence--;
