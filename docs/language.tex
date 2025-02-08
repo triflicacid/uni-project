@@ -27,15 +27,14 @@
 
     \section{Introduction}\label{sec:introduction}
 
-    This document will contain information about the Emit language.
+    This document will contain information about the Edel language.
     As an educational tool, it is designed to be simple and easy to learn and operate, with the goals of being clear a readable.
-    The name itself is simple, tied to the emission of code and an acronym for Educational Machine Instruction and Translation.
     Each section is written from the perspective of little programming knowledge.
 
     \subsection{Overview}\label{subsec:overview}
 
     As the most wide-spread paradigm, this language is imperative by nature.
-    Its syntax is heavily inspired by C, but borrows features from C++ such as namespaces and operator overloading.
+    Its syntax is inspired by C, but borrows features from C++ such as namespaces and operator overloading.
     However, unlike these two languages, names are \textit{forward declared}, meaning they can be used prior to their definition.
     This foregoes the need for header files of explicit forward declarations as in C and C++, and allows a much freer programming experience similar to modern languages.
 
@@ -47,13 +46,19 @@
 
     \medskip
     \begin{lstlisting}[style=bashconsole]
-$ ./compiler <input_file> -o <output_file> [flags]
+$ ./compiler <input_file> [-o <output_file>] [flags]
     \end{lstlisting}
     \medskip
 
+    Where \texttt{[flags]} are as follows:
+    \begin{itemize}
+        \item \texttt{--ast} - prints the parsed program's AST.
+    \end{itemize}
+    Note that the output file is optional.
+
     \subsection{``Hello, World''}\label{subsec:hello-world}
 
-    As is customary, a quick ``hello world'' program written in Emit.
+    As is customary, a quick ``hello world'' program written in Edel.
 
     \begin{lstlisting}[language=CustomLang]
 func main() {
@@ -63,7 +68,7 @@ func main() {
 
     \section{Basic Syntax}\label{sec:basic-syntax}
 
-    Inspires by C, Emit is not whitespace sensitive, with scopes marked by braces \texttt{\{\}}.
+    Inspires by C, Edel is not whitespace sensitive, with scopes marked by braces \texttt{\{\}}.
     Semicolons are not requires after every line, namely closing braces, but are required after expressions.
 
     Comments come in two forms: single-- and multi-line.
@@ -97,7 +102,7 @@ let foo = 3, bar = 3.14;
 
     \subsubsection{Shadowing}
 
-    Emit allows names to be \textit{shadowed}, meaning a variable may re-use a variable's name.
+    Edel allows names to be \textit{shadowed}, meaning a variable may re-use a variable's name.
 
     In non-local shadowing, the previous definition becomes visible again after the current scope is exited.
     \begin{lstlisting}[language=CustomLang]
@@ -109,7 +114,7 @@ let foo = 1;
 // foo = 1
     \end{lstlisting}
 
-    Emit also allows local shadowing.
+    Edel also allows local shadowing.
     In this case, once shadowed, the previous definition is essentially lost and cannot be referenced.
     \begin{lstlisting}[language=CustomLang]
 let foo = 1;
@@ -132,7 +137,7 @@ const pi = 3.14159;
     \subsection{Expressions \& Statements}\label{subsec:expressions-&-statements}
 
     Generally, a statement is some code which does not produce a value, whereas an expression does.
-    In Emit, \textit{everything} is an expression, with statements, by default, returning the unit type `\texttt{()}'.
+    In Edel, \textit{everything} is an expression, with statements, by default, returning the unit type `\texttt{()}'.
 
     Expressions are expected to be terminated by a semicolon.
     The exception to this is the final expression in a block; if omitted, the block `returns' the result of this expression.
@@ -151,7 +156,7 @@ let c = { let z = 2 * b; z } + 2; // c = 8
     Each expression, be it an operator with operands, literals, or variable names etc., is characterised by a \textit{type} and a \textit{category}.
     Types, covered in section ~\ref{sec:types}, give meaning to data and what it means in context, whereas the category tells dictates \textit{how} a value can be used.
 
-    Emit has two categories, be them l-- and r-values.
+    Edel has two categories, be them l-- and r-values.
     The former is a value which refers to a memory location, such as variables, while the latter has no identifiable location in memory.
     The \textit{l} and \textit{r} stand for \textit{left} and \textit{right} because the respective values may appear on the left-- or right-hand side of an assignment operator.
     That is,
@@ -173,10 +178,10 @@ maths + 1; // error: expected rvalue, got namespace
 
     \subsection{Code Blocks}\label{subsec:code-blocks}
 
-    As a whitespace-ignorant language, Emit uses blocks to denote structure and scope.
+    As a whitespace-ignorant language, Edel uses blocks to denote structure and scope.
     A block is introduced by braces \texttt{\{\}} and contains a section of code.
     A block may be written anywhere a statement is expected, allowing the programmer to instead write multiple statements in its body.
-    Finally, in Emit, every block introduces a new lexical scope~\ref{sec:scope}.
+    Finally, in Edel, every block introduces a new lexical scope~\ref{sec:scope}.
 
     \section{Types}\label{sec:types}
 

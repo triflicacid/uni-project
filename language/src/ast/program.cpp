@@ -3,6 +3,7 @@
 #include "symbol/registry.hpp"
 #include "config.hpp"
 #include "message_helper.hpp"
+#include "assembly/create.hpp"
 
 void lang::ast::ProgramNode::add(std::unique_ptr<Node> ast_node) {
   lines_.push_back(std::move(ast_node));
@@ -47,6 +48,9 @@ bool lang::ast::ProgramNode::process(lang::Context& ctx) {
   for (auto& line : lines_) {
     if (!line->process(ctx) || !line->resolve_value(ctx)) return false;
   }
+
+  // add 'exit' to ensure program exits OK
+  ctx.program.current().add(assembly::create_exit());
 
   return true;
 }

@@ -68,7 +68,8 @@ void lang::assembly::Program::select(lang::assembly::Position pos) {
 
 std::ostream& lang::assembly::Program::print(std::ostream& os) const {
   for (auto& block : blocks_) {
-    block->print(os) << std::endl;
+    block->print(os);
+    if (block != blocks_.back()) os << std::endl;
   }
   return os;
 }
