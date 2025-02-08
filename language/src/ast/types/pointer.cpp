@@ -6,8 +6,8 @@ std::ostream& lang::ast::type::PointerNode::print_code(std::ostream& os, unsigne
   return os;
 }
 
-const lang::ast::type::PointerNode& lang::ast::type::PointerNode::create(const lang::ast::type::Node& inner) {
-  return WrapperNode::create<PointerNode>("pointer", inner, [&] {
+const lang::ast::type::PointerNode& lang::ast::type::PointerNode::get(const lang::ast::type::Node& inner) {
+  return WrapperNode::get<PointerNode>("pointer", inner, [&] {
     return std::make_unique<PointerNode>(inner);
   });
 }

@@ -76,6 +76,9 @@ namespace lang::memory {
     // find the given reference
     const lang::memory::Object& find(const Ref& location) const;
 
+    // find the given reference
+    lang::memory::Object& find(const Ref& location);
+
     // evict item at the given location
     void evict(const Ref& location);
 

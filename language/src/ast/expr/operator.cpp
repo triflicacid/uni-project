@@ -12,6 +12,8 @@
 #include "value/symbol.hpp"
 #include "ast/types/graph.hpp"
 #include "ast/types/int.hpp"
+#include "ast/types/pointer.hpp"
+#include "assembly/create.hpp"
 
 std::string lang::ast::OperatorNode::node_name() const {
   return args_.size() == 2
@@ -205,6 +207,10 @@ lang::ast::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> expr) {
   // check for *special* operators
   if (token.type == lexer::TokenType::registerof_kw) {
     return std::make_unique<RegisterOfOperatorNode>(token, token, std::move(expr));
+  } else if (token.image == "&") {
+    return std::make_unique<AddressOfOperatorNode>(token, token, std::move(expr));
+  } else if (token.image == "*") {
+    return std::make_unique<DereferenceOperatorNode>(token, token, std::move(expr));
   }
 
   // otherwise, generic unary op
@@ -490,7 +496,7 @@ bool lang::ast::RegisterOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // get argument value, expect symbol
   auto& arg = args_.front();
   const value::Value& value = arg->value();
-  if (value.is_future_lvalue() && !arg->resolve_lvalue(ctx)) return {};
+  if (!arg->resolve_value(ctx)) return {};
   // must be computable to a value (i.e., possible rvalue)
   if (!value.is_lvalue() || !value.lvalue().get_symbol()) {
     auto msg = arg->generate_message(message::Error);
@@ -517,6 +523,169 @@ bool lang::ast::RegisterOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
   const memory::Literal& lit = memory::Literal::get(value_->type(), offset);
   memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(lit);
   value_->rvalue(std::make_unique<value::Literal>(lit, ref));
+
+  return true;
+}
+
+lang::ast::AddressOfOperatorNode::AddressOfOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
+    : OperatorNode(token, token, {}) {
+  args_.push_back(std::move(expr));
+}
+
+bool lang::ast::AddressOfOperatorNode::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
+  value_ = value::rvalue();
+  return true;
+}
+
+bool lang::ast::AddressOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  // get argument value, expect symbol
+  Node& arg = *args_.front();
+  const value::Value& value = arg.value();
+  if (!arg.resolve_value(ctx)) return {};
+  // must be computable to a value (i.e., possible rvalue)
+  if (!value.is_lvalue() || !value.lvalue().get_symbol()) {
+    auto msg = arg.generate_message(message::Error);
+    msg->get() << "expected symbol, got ";
+    value.type().print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+
+    msg = op_symbol_.generate_message(message::Note);
+    msg->get() << "while evaluating " << node_name();
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
+  // get the symbol
+  const symbol::Symbol& symbol = arg.value().lvalue().get_symbol()->get();
+
+  // get location (must have size then)
+  auto maybe_location = ctx.symbols.locate(symbol.id());
+
+  if (!maybe_location) {
+    auto msg = arg.generate_message(message::Error);
+    msg->get() << "symbol of type ";
+    symbol.type().print_code(msg->get());
+    msg->get() << " does not have an address";
+    ctx.messages.add(std::move(msg));
+
+    msg = symbol.token().generate_message(message::Note);
+    msg->get() << "symbol defined here";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
+  // determine resultant type
+  const type::PointerNode& ptr_type = type::PointerNode::get(symbol.type());
+
+  // find destination register
+  memory::Ref ref = ctx.reg_alloc_manager.insert({nullptr});
+  ref = ctx.reg_alloc_manager.guarantee_register(ref);
+
+  // get address and store in register
+  const memory::StorageLocation& location = maybe_location->get();
+
+  if (location.type == memory::StorageLocation::Stack) { // calculate offset from $sp
+    const uint64_t stack_offset = ctx.stack_manager.offset();
+
+    if (location.offset == stack_offset) {
+      ctx.program.current().add(assembly::create_load(
+          ref.offset,
+          assembly::Arg::reg(constants::registers::sp)
+      ));
+    } else if (location.offset < stack_offset) {
+      ctx.program.current().add(assembly::create_sub(
+          constants::inst::datatype::u64,
+          ref.offset,
+          constants::registers::sp,
+          assembly::Arg::imm(stack_offset - location.offset)
+      ));
+    } else {
+      ctx.program.current().add(assembly::create_add(
+          constants::inst::datatype::u64,
+          ref.offset,
+          constants::registers::sp,
+          assembly::Arg::imm(location.offset - location.offset)
+      ));
+    }
+  } else {
+    ctx.program.current().add(assembly::create_load(
+        ref.offset,
+        assembly::Arg::label(location.block)
+    ));
+  }
+
+  // add comment
+  auto& comment = ctx.program.current().back().comment();
+  comment << op_symbol_.image << symbol.full_name() << ": ";
+  ptr_type.print_code(comment);
+
+  // update value_ & object
+  memory::Object& object = ctx.reg_alloc_manager.find(ref);
+  object.value = value::rvalue(ptr_type);
+  object.value->rvalue(ref);
+  value_->rvalue(std::make_unique<value::RValue>(ptr_type, ref));
+
+  return true;
+}
+
+lang::ast::DereferenceOperatorNode::DereferenceOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
+    : OperatorNode(token, token, {}) {
+  args_.push_back(std::move(expr));
+}
+
+bool lang::ast::DereferenceOperatorNode::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
+  value_ = value::rvalue();
+  return true;
+}
+
+bool lang::ast::DereferenceOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  // expect rvalue
+  if (!get_arg_rvalue(ctx, 0)) return false;
+
+  // must have a pointer type
+  Node& arg = *args_.front();
+  const auto ptr_type = arg.value().type().get_pointer();
+  if (!ptr_type) {
+    auto msg = arg.generate_message(message::Error);
+    msg->get() << "expected pointer type, got ";
+    arg.value().type().print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+
+    msg = op_symbol_.generate_message(message::Note);
+    msg->get() << "while evaluating " << node_name();
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
+  // get the inner type (pointer minus star)
+  const auto& deref_type = ptr_type->unwrap();
+
+  // get the source (pointer location)
+  memory::Ref src = arg.value().rvalue().ref();
+  src = ctx.reg_alloc_manager.guarantee_register(src);
+
+  // reserve a register to place the result
+  memory::Ref dest = ctx.reg_alloc_manager.insert({nullptr});
+  dest = ctx.reg_alloc_manager.guarantee_register(dest);
+
+  // load into register
+  ctx.program.current().add(assembly::create_load(
+      dest.offset,
+      assembly::Arg::reg_indirect(src.offset)
+    ));
+
+  // add comment
+  auto& comment = ctx.program.current().back().comment();
+  comment << "deref ";
+  arg.value().type().print_code(comment);
+
+  // update value_ & object
+  memory::Object& object = ctx.reg_alloc_manager.find(dest);
+  object.value = value::rvalue(deref_type);
+  object.value->rvalue(dest);
+  value_->rvalue(std::make_unique<value::RValue>(deref_type, dest));
 
   return true;
 }

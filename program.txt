@@ -1,2 +1,3 @@
-let a: int;
-registerof a;
+let a = 5;
+let p = &a;
+let b = *p;

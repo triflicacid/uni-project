@@ -186,6 +186,16 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
   return ref;
 }
 
+ lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) {
+  if (location.type == Ref::Register) {
+    auto& maybe = instances_.top().regs[location.offset - initial_register];
+    assert(maybe.has_value());
+    return maybe.value();
+  } else {
+    return memory_.at(location.offset);
+  }
+}
+
 const lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) const {
   if (location.type == Ref::Register) {
     auto& maybe = instances_.top().regs[location.offset - initial_register];
@@ -245,7 +255,9 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
   instances_.top().history.push_front(location);
 
   if (location.type == Ref::Register) {
-    if (object.value->is_rvalue() && object.value->rvalue().get_literal()) { // load the immediate into the register
+    // if object is empty, do nothing
+    if (!object.value);
+    else if (object.value->is_rvalue() && object.value->rvalue().get_literal()) { // load the immediate into the register
       const auto& literal = object.value->rvalue().get_literal()->get();
       if (auto size = literal.type().size(); size == 8) {
         program_.current().add(assembly::create_load_long(location.offset, literal.data()));
@@ -279,15 +291,6 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
     instances_.top().regs[location.offset - initial_register] = std::move(object);
     return;
   }
-
-//  switch (object->type) {
-//    case Object::Literal:
-//      break;
-//    case Object::Temporary:
-//      break;
-//    case Object::Symbol:
-//      break;
-//  }
 
   // TODO implement this
   throw std::runtime_error("register allocator: spilling into memory is not permitted.");

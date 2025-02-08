@@ -17,6 +17,6 @@ namespace lang::ast::type {
     { return constants::inst::datatype::u64; }
 
     // create or return existing reference
-    static const PointerNode& create(const Node& inner);
+    static const PointerNode& get(const lang::ast::type::Node& inner);
   };
 }

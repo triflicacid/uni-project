@@ -24,7 +24,7 @@ namespace lang::ast::type {
 
     // get reference to a wrapper type, or create it
     template <class T> requires std::is_base_of_v<WrapperNode, T>
-    static const T& create(const std::string& wrapper_name, const Node& inner_type, const std::function<std::unique_ptr<T>()>& create_type) {
+    static const T& get(const std::string& wrapper_name, const Node& inner_type, const std::function<std::unique_ptr<T>()>& create_type) {
       for (auto& [id, type] : graph) {
         if (auto wrapper_type = type.get().get_wrapper()) {
           if (wrapper_type->node_name() == wrapper_name && wrapper_type->unwrap() == inner_type) {

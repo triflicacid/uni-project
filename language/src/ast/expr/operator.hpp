@@ -140,4 +140,26 @@ namespace lang::ast {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
   };
+
+  // represents &expr
+  // returns/computes the address of the given lvalue
+  class AddressOfOperatorNode : public OperatorNode {
+  public:
+    AddressOfOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
+
+    bool process(lang::Context &ctx) override;
+
+    bool resolve_rvalue(lang::Context &ctx) override;
+  };
+
+  // represents *expr
+  // gets the value stored in the given lvalue
+  class DereferenceOperatorNode : public OperatorNode {
+  public:
+    DereferenceOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
+
+    bool process(lang::Context &ctx) override;
+
+    bool resolve_rvalue(lang::Context &ctx) override;
+  };
 }

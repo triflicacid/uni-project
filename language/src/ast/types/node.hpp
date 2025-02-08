@@ -17,6 +17,7 @@ namespace lang::ast::type {
 
   public:
     Node();
+    Node(const Node&) = delete;
 
     TypeId id() const { return id_; }
 

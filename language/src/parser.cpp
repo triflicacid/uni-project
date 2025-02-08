@@ -378,7 +378,7 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     if (!expect_or_error(firstset::type)) return nullptr;
     auto inner = parse_type();
     if (is_error() || !inner) return nullptr;
-    return &ast::type::PointerNode::create(*inner);
+    return &ast::type::PointerNode::get(*inner);
   }
 
   return nullptr;
