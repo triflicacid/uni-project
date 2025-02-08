@@ -237,7 +237,6 @@ bool lang::ast::CStyleCastOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // emit conversion instruction
   const memory::Ref ref = ops::cast(ctx, target_);
   value_->rvalue(std::make_unique<value::RValue>(target_, ref));
-  // TODO more checks for Boolean
   return true;
 }
 
