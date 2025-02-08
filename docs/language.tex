@@ -194,6 +194,7 @@ maths + 1; // error: expected rvalue, got namespace
 
     \medskip
     \begin{table}[H]
+        \centering
         \begin{tabular}{|c|c|c|l|}
             \hline
             \textbf{Type} & \textbf{Alias} & \textbf{Description} \\
@@ -234,6 +235,18 @@ maths + 1; // error: expected rvalue, got namespace
     Note that \texttt{bool} is not related to anything.
     Unlike in other language, \texttt{bool} is treated as a distinct type with abstract true/false values, rather than a synonym for integers 1/0, respectively.
 
+    \subsection{Pointer Types}\label{subsec:pointer-types}
+
+    The use of pointers is designed to be minimal in Edel, but they are available nonetheless.
+    Simply put, a pointer stores the \textit{location} (or \textit{address}) of a variable, which can then be used to later reference and access that data.
+    A pointer is indicated by a star `\texttt{*}' preceding the type;
+    that is, type \texttt{*T} is telling the compiler \textit{hey, see this location? Data of type} \texttt{T} \textit{is stored there}.
+
+    Subsection ~\ref{subsec:address-of-&-dereferencing} explains the use of the \texttt{\&} and \texttt{*} unary operators to manipulate pointers.
+
+    Pointers do not fit into the type hierarchy, and cannot be implicitly cast.
+    For safety, it is best not to cast pointer types unless one really knows and understands what is going on.
+
     \subsection{Casting}\label{subsec:type-casting}
 
     Casting refers to the changing of a type, and can be split into two categories: implicit, and explicit.
@@ -241,7 +254,7 @@ maths + 1; // error: expected rvalue, got namespace
     Implicit casting is where a cast is done behind-the-scenes.
     Type \(a\) may be implicitly cast (also known as \textit{coerced}) to another type \(b\) if and only if \(a < b\), that is, \(a\) is a subtype of \(b\).
     In other words, \(a\) can be coerced into \(b\) if \(b\) is sufficient to represent \(a\) without data loss.
-    For example, \texttt{u8} may be coerced into \texttt{u64}, or \texttt{float} into \txettt{double}, but \textbf{not} \texttt{i32} into \texttt{i16}.
+    For example, \texttt{u8} may be coerced into \texttt{u64}, or \texttt{float} into \texttt{double}, but \textbf{not} \texttt{i32} into \texttt{i16}.
     Implicit casting is done automatically in the following:
 
     \begin{lstlisting}[language=CustomLang]
@@ -265,47 +278,51 @@ let a = 42 as u8; // i32 -> u8
     Operators start from tightest to loosest precedence, with those of the same precedence grouped.
 
     \begin{table}[h]
+        \centering
         \caption{Built-In Operators}
-        \begin{tabular}{|l|l|c|}
+        \begin{tabular}{|l|l|c|c|}
             \hline
-            \textbf{Operator} & \textbf{Description} & \textbf{Associativity} \\
+            \textbf{Operator} & \textbf{Description} & \textbf{Associativity} & \textbf{Overloadable} \\
             \hline
-            \texttt{a.b} & Member access & \(\longrightarrow\) \\
+            \texttt{a.b} & Member access & \(\longrightarrow\) & No \\
             \hline
-            \texttt{a()} & Function call & \(\longrightarrow\) \\
+            \texttt{a()} & Function call & \(\longrightarrow\) & Yes \\
             \hline
-            \texttt{(T) a} & Primitive cast & \multirow{5}{*}{\(\longleftarrow\)} \\
-            \texttt{-a} & Negation & \\
-            \texttt{~a} & Bitwise NOT & \\
-            \texttt{!a} & Boolean NOT & \\
-            \texttt{registerof a} & Register lookup & \\
+            \texttt{(T) a} & Primitive cast & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{No} \\
+            \texttt{\&a} & Address-of & & \\
+            \texttt{*a} & Dereference & & \\
+            \texttt{registerof a} & Register lookup & & \\
             \hline
-            \texttt{a as T} & Cast & \(\longleftarrow\) \\
+            \texttt{-a} & Negation & \multirow{3}{*}{\(\longleftarrow\)} & \multirow{3}{*}{Yes} \\
+            \texttt{~a} & Bitwise NOT & & \\
+            \texttt{!a} & Boolean NOT & & \\
             \hline
-            \texttt{a * b} & Multiplication & \multirow{3}{*}{\(\longrightarrow\)} \\
-            \texttt{a / b} & Division & \\
-            \texttt{a \% b} & Modulo (remainder) & \\
+            \texttt{a as T} & Cast & \(\longleftarrow\) & No \\
             \hline
-            \texttt{a + b} & Addition & \multirow{2}{*}{\(\longrightarrow\)} \\
-            \texttt{a - b} & Subtraction & \\
+            \texttt{a * b} & Multiplication & \multirow{3}{*}{\(\longrightarrow\)} & \multirow{3}{*}{Yes} \\
+            \texttt{a / b} & Division & & \\
+            \texttt{a \% b} & Modulo (remainder) & & \\
             \hline
-            \texttt{a << b} & Bitwise left shift & \multirow{2}{*}{\(\longrightarrow\)} \\
-            \texttt{a >> b} & Bitwise left shift & \\
+            \texttt{a + b} & Addition & \multirow{2}{*}{\(\longrightarrow\)} & \multirow{2}{*}{Yes} \\
+            \texttt{a - b} & Subtraction & & \\
             \hline
-            \texttt{a == b} & \multirow{6}{*}{Relational operators} & \multirow{6}{*}{\(\longrightarrow\)} \\
-            \texttt{a != b} & & \\
-            \texttt{a < b} & & \\
-            \texttt{a <= b} & & \\
-            \texttt{a > b} & & \\
-            \texttt{a >= b} & & \\
+            \texttt{a << b} & Bitwise left shift & \multirow{2}{*}{\(\longrightarrow\)} & \multirow{2}{*}{Yes} \\
+            \texttt{a >> b} & Bitwise left shift & & \\
             \hline
-            \texttt{a \& b} & Bitwise AND & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \texttt{a == b} & \multirow{6}{*}{Relational operators} & \multirow{6}{*}{\(\longrightarrow\)} & \multirow{6}{*}{Yes} \\
+            \texttt{a != b} & & & \\
+            \texttt{a < b} & & & \\
+            \texttt{a <= b} & & & \\
+            \texttt{a > b} & & & \\
+            \texttt{a >= b} & & & \\
             \hline
-            \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \texttt{a \& b} & Bitwise AND & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
             \hline
-            \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} \\
+            \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
             \hline
-            \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} \\
+            \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
+            \hline
+            \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} & No \\
             \hline
         \end{tabular}\label{tab:builtin-operators}
     \end{table}
@@ -331,6 +348,22 @@ let c = 0 as *int; // ok
 
     \begin{lstlisting}[language=CustomLang]
 !1 as bool; // same as `(!1) as bool' NOT `!(1 as bool)'
+    \end{lstlisting}
+
+    \subsection{Address-Of \& Dereferencing}\label{subsec:address-of-&-dereferencing}
+
+    Both operations involve pointers, with the former generating pointers, and the latter `consuming' them.
+
+    The address-of operator, \texttt{\&}, calculates the memory address of a symbol.
+    That is, if \texttt{a: T}, then \texttt{\&a} is of type \texttt{*T}.
+
+    Dereferencing, then, is address-of's twin; it retrieved the value stored at a pointer.
+    That is, if \texttt{p: *T}, then \texttt{*a} is of type \texttt{T}.
+
+    \begin{lstlisting}[language=CustomLang]
+let a: int = 5;
+let p: *int = &a;
+let b: int = *p; // then a == b
     \end{lstlisting}
 
     \subsection{Register Lookup}
