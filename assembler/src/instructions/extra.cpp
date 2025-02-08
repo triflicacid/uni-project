@@ -4,9 +4,7 @@
 #include <util.hpp>
 
 namespace assembler::instruction::transform {
-  void
-  transform_reg_reg(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-                    int overload) {
+  void transform_reg_reg(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     if (instruction->args.size() == 1) {
       // duplicate <reg>
       instruction->args.emplace_back(instruction->args[0]);
@@ -16,8 +14,7 @@ namespace assembler::instruction::transform {
     instructions.push_back(std::move(instruction));
   }
 
-  void transform_reg_reg_val(std::vector<std::unique_ptr<Instruction>> &instructions,
-                             std::unique_ptr<Instruction> instruction, int overload) {
+  void transform_reg_reg_val(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     if (instruction->args.size() == 2) {
       // duplicate <reg>
       instruction->args.emplace_front(instruction->args[0]);
@@ -27,17 +24,14 @@ namespace assembler::instruction::transform {
     instructions.push_back(std::move(instruction));
   }
 
-  void transform_last_imm_to_byte(std::vector<std::unique_ptr<Instruction>> &instructions,
-                                  std::unique_ptr<Instruction> instruction, int overload) {
+  void transform_last_imm_to_byte(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     auto &arg = instruction->args[instruction->args.size() - 1];
     arg.update(ArgumentType::Byte, arg.get_data());
     instructions.push_back(std::move(instruction));
   }
 
 
-  void
-  transform_jal(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-                int overload) {
+  void transform_jal(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     if (instruction->args.size() == 1) {
       // add $rip as register
       instruction->args.emplace_front(ArgumentType::Register, constants::registers::rpc);
@@ -47,8 +41,7 @@ namespace assembler::instruction::transform {
     instructions.push_back(std::move(instruction));
   }
 
-  void branch(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-              int overload) {
+  void branch(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     // original: "b $addr"
     // "load $ip, $addr"
     instruction->signature = &Signature::_load;
@@ -57,8 +50,7 @@ namespace assembler::instruction::transform {
     instructions.push_back(std::move(instruction));
   }
 
-  void exit(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-            int overload) {
+  void exit(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     // original: "exit [code]"
     // extract code?
     uint64_t code = 0;
@@ -84,8 +76,7 @@ namespace assembler::instruction::transform {
     instructions.push_back(std::move(instruction));
   }
 
-  void interrupt(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-                 int overload) {
+  void interrupt(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     // original: "int <value>"
     // "or $isr, <value>"
     instruction->signature = &Signature::_or;
@@ -96,8 +87,7 @@ namespace assembler::instruction::transform {
   }
 
   void
-  interrupt_return(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-                   int overload) {
+  interrupt_return(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     // original: "rti"
     // "load $ip, $iip"
     instruction->signature = &Signature::_load;
@@ -117,14 +107,11 @@ namespace assembler::instruction::transform {
     instructions.push_back(std::move(instruction));
   }
 
-  void jump(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-            int overload) {
+  void jump(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     branch(instructions, std::move(instruction), overload);
   }
 
-  void
-  load_immediate(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-                 int overload) {
+  void load_immediate(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     // original: "loadi $r, $i"
     uint64_t imm = instruction->args[1].get_data();
 
@@ -132,7 +119,7 @@ namespace assembler::instruction::transform {
     instruction->signature = &Signature::_load;
     instruction->overload = 0;
     instruction->args[1].update(ArgumentType::Immediate, imm & 0xffffffff);
-    auto *p = instruction.get();
+    Instruction *p = instruction.get();
     instructions.push_back(std::move(instruction));
 
     // "loadu $r, $i[32:]"
@@ -143,8 +130,7 @@ namespace assembler::instruction::transform {
     instructions.push_back(std::move(instruction));
   }
 
-  void zero(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-            int overload) {
+  void zero(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload) {
     // original: "zero $r"
     // "load $r, 0"
     instruction->signature = &Signature::_load;
@@ -155,15 +141,9 @@ namespace assembler::instruction::transform {
 }
 
 namespace assembler::instruction::parse {
-  void
-  convert(const Data &data, Location &loc, std::unique_ptr<Instruction> &instruction, std::string &options,
-          message::List &msgs) {
-    int &col = loc.columnref();
-
+  void convert(const Data &data, Location &loc, std::unique_ptr<Instruction> &instruction, std::string &options, message::List &msgs) {
     for (uint8_t i = 0; i < 2; i++) {
       // parse datatype
-      bool found = false;
-
       int j = 0;
       auto dt = constants::inst::datatype::from_string(options, j);
 

@@ -14,7 +14,7 @@ namespace assembler::instruction {
     Register, // <reg>, no indicator bits
     RegisterIndirect, // PRIVATE.
     Value, // <value>
-    Label, // PRIVATE.
+    Label, // PRIVATE. substituted as signature sees fit (imm unless <addr>)
   };
 
   /** Data structure used for representing an indirect register. */

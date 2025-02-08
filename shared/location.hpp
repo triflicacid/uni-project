@@ -5,7 +5,6 @@
 #include <utility>
 
 class Location {
-private:
     std::filesystem::path m_path;
     int m_line;
     int m_col;
@@ -31,9 +30,9 @@ public:
 
     [[nodiscard]] Location copy() const { return {*this}; }
 
-    std::ostream &print(std::ostream &os) const {
-//        os << weakly_canonical(m_path).string();
-        os << m_path;
+    std::ostream &print(std::ostream &os, bool canonicalise = false) const {
+        if (canonicalise) os << weakly_canonical(m_path).string();
+        else os << m_path.string();
 
         if (m_line > -1) {
             os << ":" << m_line;

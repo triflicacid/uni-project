@@ -384,7 +384,8 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
     }
 
     // highlight the $pc line
-    elements[location.line() - 1] |= style::highlight_execution;
+    if (location.line() <= elements.size())
+      elements[location.line() - 1] |= style::highlight_execution;
 
     // if enabled, show selected/traced lines
     if (state::show_selected_line && state::selected_pane) {

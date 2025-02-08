@@ -252,7 +252,7 @@ namespace assembler::parser {
       return true;
     }
 
-    auto &line = data.lines[loc.line()];
+    auto &line = data.lines[line_idx];
 
     if (directive == "space" || directive == "org") {
       int col = loc.column();
@@ -763,7 +763,8 @@ namespace assembler::parser {
       if (data.cli_args.debug) {
         os << "\t; ";
         //if (!chunk->is_data()) os << "0x" << std::hex << chunk->get_instruction()->compile() << std::dec << " ";
-        os << chunk->location() << "+" << chunk->offset << std::endl;
+        chunk->location().print(os, true);
+        os << "+" << chunk->offset << std::endl;
       }
     }
   }
