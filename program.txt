@@ -1,3 +1,2 @@
-func main() {
-
-}
+let pi: double;
+pi;

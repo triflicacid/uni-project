@@ -272,17 +272,27 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
     } else if (object.value->is_lvalue() && object.value->lvalue().get_symbol()) { // load the value at the symbol's offset into the register
       const symbol::Symbol& symbol = object.value->lvalue().get_symbol()->get();
       const StorageLocation& storage = symbols_.locate(symbol.id())->get();
-      std::unique_ptr<assembly::BaseArg> arg;
 
-      // TODO what if the size exceeds one word?
+      int idx = program_.current().size();
       if (storage.type == StorageLocation::Stack) {
-        arg = assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - storage.offset);
+        program_.current().add(assembly::create_load(
+            location.offset,
+            assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - storage.offset)
+          ));
       } else {
-        arg = assembly::Arg::label(storage.block);
+        // load address into register
+        program_.current().add(assembly::create_load(
+            location.offset,
+            assembly::Arg::label(storage.block)
+        ));
+        // read register as an address (indirectly)
+        program_.current().add(assembly::create_load(
+            location.offset,
+            assembly::Arg::reg_indirect(location.offset)
+        ));
       }
 
-      program_.current().add(assembly::create_load(location.offset, std::move(arg)));
-      auto& comment = program_.current().back().comment();
+      auto& comment = program_.current()[idx].comment();
       comment << symbol.full_name() << ": ";
       symbol.type().print_code(comment);
     }

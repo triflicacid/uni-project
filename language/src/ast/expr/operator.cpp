@@ -374,7 +374,7 @@ bool lang::ast::AssignmentOperatorNode::process(lang::Context& ctx) {
 
   // lhs must be an lvalue
   auto& lhs = lhs_().value();
-  if (lhs.is_future_rvalue() && !lhs_().resolve_rvalue(ctx)) return false;
+  if (lhs.is_future_lvalue() && !lhs_().resolve_lvalue(ctx)) return false;
   if (!lhs.is_lvalue()) {
     auto msg = lhs_().generate_message(message::Error);
     msg->get() << "expected lvalue, got ";
