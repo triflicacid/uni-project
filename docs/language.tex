@@ -287,7 +287,76 @@ let a: u8 = 42; // error!
 let a = 42 as u8; // i32 -> u8
     \end{lstlisting}
 
-    \section{Functions}
+    \section{Functions}\label{sec:functions}
+
+    Functions are labelled blocks of code which may be called by the programmer.
+    A function may take some input values, known as \textit{arguments}, and may optionally return a value.
+
+    An example of a function which takes two integers and returns an integer:
+    \begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+    \end{lstlisting}
+
+    That is, a function is defined using the \texttt{func} keyword, followed by a name.
+    Parameters in the form \texttt{name: type} are listed, comma-separated, between brackets.
+    Note that if no arguments are required, the brackets may be omitted altogether.
+    The function's return type is listed after an arrow; if no return type is needed, this may be omitted.
+    For example,
+    \begin{lstlisting}[language=CustomLang]
+func foo {
+    // ...
+}
+
+func bar(a: float) { // equivalent to `-> ()'
+    // ...
+}
+    \end{lstlisting}
+
+    \subsection{Returning a Value}
+
+    The \texttt{return} keyword is used to exit/return from the current function.
+    Optionally, the keyword may be followed by an expression, in which case that value will be returned.
+    The type of the returned expression must match, or be a subtype of, the function's return type.
+    Furthermore, if the function returns a non-unit type, a return statement must be present.
+
+    \begin{lstlisting}[language=CustomLang]
+func foo {
+    return 42; // error: cannot convert i32 to ()
+}
+
+func bar -> int {
+} // error: missing return statement
+    \end{lstlisting}
+
+    Note that \textit{all} code paths should return, even if you, the programmer, knows that a path is never taken.
+    % TODO update if constant optimisation added
+    That is because the compiler cannot currently recognise, for example, always-falsy conditions.
+
+    \begin{lstlisting}[language=CustomLang]
+func foo -> int {
+    if false {
+    } else {
+        return 42;
+    }
+} // error: missing return statement
+    \end{lstlisting}
+
+    \subsubsection{Unreachable Code}
+
+    As \texttt{return} exits the function, any code after said statement is \textit{unreachable}.
+    This code will never be executed, and a warning will be reported.
+
+    \begin{lstlisting}[language=CustomLang]
+func foo {
+    return;
+    a; // warning: unreachable code detected
+}
+    \end{lstlisting}
+
+    The above code would usually result in an error, as symbol `\texttt{a}' is not defined.
+    However, as the code is not reached, no error is raised.
 
     \section{Operators}
 

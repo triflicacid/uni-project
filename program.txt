@@ -1,4 +1,3 @@
-func main() {
-    return;
-    b;
+func main() -> int {
+
 }
