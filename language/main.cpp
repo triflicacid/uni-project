@@ -141,8 +141,6 @@ int main(int argc, char** argv) {
   // write to output file is provided
   if (options.output) {
     ctx.program.print(options.output->stream);
-  } else {
-    std::cout << "no output file provided, no .asm was produced" << std::endl;
   }
 
   return EXIT_SUCCESS;
