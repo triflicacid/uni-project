@@ -27,6 +27,10 @@ int parse_arguments(int argc, char** argv, Options& options) {
         options.print_ast = true;
       } else if (argv[i][1] == 'd') { // debug
         lang::conf::debug = true;
+      } else if (!strcmp(argv[i], "--function-placeholder")) { // conf::function_placeholder = true
+        lang::conf::function_placeholder = true;
+      } else if (!strcmp(argv[i], "--no-function-placeholder")) { // conf::function_placeholder = false
+        lang::conf::function_placeholder = false;
       } else if (argv[i][1] == 'o') { // output file
         if (options.output) {
           std::cerr << argv[i] << ": an output file was already provided" << std::endl;

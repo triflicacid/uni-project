@@ -53,6 +53,7 @@ $ ./compiler <input_file> [-o <output_file>] [flags]
     Where \texttt{[flags]} are as follows:
     \begin{itemize}
         \item \texttt{--ast} - prints the parsed program's AST.
+        \item \texttt{--[no-]function-placeholder} - changes behaviour of a function declaration; see subsection \ref{subsec:function-declaration}.
     \end{itemize}
     Note that the output file is optional.
 
@@ -264,6 +265,10 @@ let a = {}; // a: ()
     Pointers do not fit into the type hierarchy, and cannot be implicitly cast.
     For safety, it is best not to cast pointer types unless one really knows and understands what is going on.
 
+    \subsection{Function Types}\label{subsec:function-types}
+
+    % TODO
+
     \subsection{Casting}\label{subsec:type-casting}
 
     Casting refers to the changing of a type, and can be split into two categories: implicit, and explicit.
@@ -357,6 +362,97 @@ func foo {
 
     The above code would usually result in an error, as symbol `\texttt{a}' is not defined.
     However, as the code is not reached, no error is raised.
+
+    \subsection{Function Declaration}\label{subsec:function-declaration}
+
+    A function declaration is one which has no body.
+    For example,
+
+    \begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int;
+    \end{lstlisting}
+
+    As functions in Edel do not require forward-declaration, what does this do?
+    Depending on the compiler flag \texttt{--function-placeholder}, it does one of two things.
+
+    \paragraph*{Enforce Existence}
+
+    The default, \texttt{--no-function-placeholder}, a function declaration is used to inform the programmer about the existence of a function.
+    One common use is in auto-generated standard library files, where the function exists but is implemented internally.
+    If the function does not exist, an error will be raised.
+
+    \begin{lstlisting}[language=CustomLang]
+func imaginary_function(x: int) -> bool; // error: function was declared but does not exist
+    \end{lstlisting}
+
+    \paragraph*{Generate Placeholder}
+
+    In this instance, if a function is declared but does not exist, the function will be created to return zero, `\texttt{()}', false, or null, depending on the return type.
+    This is useful when a function is yet to be implemented.
+
+    For example, the following are identical.
+    \begin{lstlisting}[language=CustomLang]
+func imaginary_function(x: int) -> bool;
+// ==
+func imaginary_function(x: int) -> bool {
+    return false;
+}
+    \end{lstlisting}
+
+
+    Note that as this generates a definition, it cannot be re-defined.
+
+    \subsection{Function Overloading}
+
+    A function in Edel is not only identified by its name, but also its \textit{signature}.
+    The signature of a function is a combination of its name and parameter types.
+    In an Edel program, a function signature must be unique, or the result would be an error.
+    This means that multiple functions with the same name can exist.
+    This is known as function overloading, and a variant of a function with the same name but different parameters is called an \textit{overload}.
+
+    \begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+func add(a: float, b: float) -> float {
+    return a + b;
+}
+    \end{lstlisting}
+
+    In this case, a reference to \texttt{add} no longer just refers to one symbol.
+    Instead, it becomes what is known as an \textit{overload set}, and more information is required for a resolution.
+
+    \begin{lstlisting}[language=CustomLang]
+add; // error: unable to resolve symbol `add'
+    \end{lstlisting}
+
+    \subsubsection{Overload Resolution}
+
+    This is the process by which an overload is selected.
+    Firstly, a list of candidates is generated; this would be all functions with a matching name.
+    A candidate is considered a match if the number of arguments match and the type of each parameter matches.
+    Due to subtyping rules, the latter check may lead to the generating of multiple `matching' candidates.
+    In such a case, the candidate with the highest number of identical types wins.
+
+    \begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int;
+func add(a: long, b: long) -> long;
+
+add(1, 2); // signature is add(int, int)
+    \end{lstlisting}
+
+    In the above snippet, both candidates match the callee.
+    However, the former wins as \texttt{int == int} while \texttt{int < long}.
+
+    If there are still ties at this point, an error is raised as a candidate cannot be decided.
+    In this case, it is best to explicitly cast one or more arguments to reach the desired candidate.
+
+    \begin{lstlisting}[language=CustomLang]
+func add(a: int, b: long) -> long;
+func add(a: long, b: int) -> long;
+
+add(1, 2); // error: unable to resolve
+    \end{lstlisting}
 
     \section{Operators}
 

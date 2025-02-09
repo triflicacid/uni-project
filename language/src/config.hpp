@@ -11,8 +11,8 @@ namespace lang::conf {
   // lint - note or warning
   extern message::Level lint_level;
 
-  // function declaration behaviour - enforce existence or define as empty
-  extern bool func_decl_generate_shell;
+  // function declaration behaviour - enforce existence or define as empty (placeholder)
+  extern bool function_placeholder;
 
   namespace bools {
     extern std::string true_string;

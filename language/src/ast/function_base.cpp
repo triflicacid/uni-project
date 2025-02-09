@@ -74,7 +74,7 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
   // if not implemented, so some checks
   if (!is_implemented()) {
     // if we are enforcing existence, skip
-    if (!lang::conf::func_decl_generate_shell) return true;
+    if (!lang::conf::function_placeholder) return true;
 
     // check is symbol already exists
     auto maybe_symbol = registry.get(name_.image, type_);
@@ -116,7 +116,7 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   if (!generate_code_) return true;
 
   // if unimplemented and not generating a shell, check that we exist
-  if (!is_implemented() && !lang::conf::func_decl_generate_shell) {
+  if (!is_implemented() && !lang::conf::function_placeholder) {
     // lookup symbol
     const std::string name = ctx.symbols.path_name(name_.image);
     auto maybe_symbol = ctx.symbols.find(name, type_);
