@@ -5,6 +5,7 @@
 #include "context.hpp"
 #include "assembly/create.hpp"
 #include "symbol_declaration.hpp"
+#include "config.hpp"
 
 lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, lexer::Token name, const type::FunctionNode& type,
                                               std::deque<std::unique_ptr<SymbolDeclarationNode>> params)
@@ -17,7 +18,7 @@ bool lang::ast::FunctionBaseNode::validate_params(message::List& messages) {
   std::string name;
   for (const auto& param : params_) {
     // extract name & check if it exists already
-    name = name_.image;
+    name = param->name().image;
     if (names.contains(name)) {
       auto msg = param->generate_message(message::Error);
       msg->get() << "duplicate parameter name " << name;
@@ -70,6 +71,21 @@ std::ostream& lang::ast::FunctionBaseNode::print_tree(std::ostream& os, unsigned
 }
 
 bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
+  // if not implemented, so some checks
+  if (!is_implemented()) {
+    // if we are enforcing existence, skip
+    if (!lang::conf::func_decl_generate_shell) return true;
+
+    // check is symbol already exists
+    auto maybe_symbol = registry.get(name_.image, type_);
+
+    // if we do, no need to generate code
+    if (maybe_symbol.has_value()) {
+      generate_code_ = false;
+      return true;
+    }
+  }
+
   // attempt to register the symbol
   symbol::VariableOptions options{
     .token = name_,
@@ -77,7 +93,8 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
     .category = symbol::Category::Function,
   };
   auto maybe_id = symbol::create_variable(registry, options, messages);
-  if (!maybe_id.has_value()) return false;
+  // fail if implemented, otherwise, this is fine
+  if (!maybe_id.has_value()) return !is_implemented();
   id_ = maybe_id.value();
 
   // create local registry
@@ -95,6 +112,32 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
 }
 
 bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
+  // if we aren't generating code, exit and assume all is well
+  if (!generate_code_) return true;
+
+  // if unimplemented and not generating a shell, check that we exist
+  if (!is_implemented() && !lang::conf::func_decl_generate_shell) {
+    // lookup symbol
+    const std::string name = ctx.symbols.path_name(name_.image);
+    auto maybe_symbol = ctx.symbols.find(name, type_);
+
+    // check the symbol exists
+    if (maybe_symbol.has_value()) {
+      id_ = maybe_symbol->get().id();
+      return true;
+    }
+
+    // error otherwise
+    std::unique_ptr<message::BasicMessage> msg = generate_message(message::Error);
+    msg->get() << "function was declared but does not exist";
+    ctx.messages.add(std::move(msg));
+
+    msg = std::make_unique<message::BasicMessage>(message::Note);
+    msg->get() << "function declarations are used to enforce the existence of a function, did you forget to include a library?";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
   // first: validation
   if (!validate_params(ctx.messages)) {
     return false;
@@ -108,6 +151,13 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   // change cursor position
   const assembly::BasicBlock& previous = ctx.program.current();
   ctx.program.select(function_block);
+
+  // if not implemented (so generating a shell), we can skip some stuff
+  if (!is_implemented()) {
+    ctx.program.current().add(assembly::create_return(assembly::Arg::imm(0))); // return '0' to clear $ret;
+    ctx.program.select(previous);
+    return true;
+  }
 
   // enter the function
   ctx.symbols.enter_function(*this);

@@ -12,6 +12,16 @@ const std::deque<lang::symbol::SymbolId> lang::symbol::Registry::get(const std::
   return {};
 }
 
+optional_ref<const lang::symbol::Symbol> lang::symbol::Registry::get(const std::string& name, const lang::ast::type::Node& type) const {
+  if (auto it = names_.find(name); it != names_.end()) {
+    for (SymbolId id : it->second) {
+      const Symbol& symbol = get(id);
+      if (symbol.type() == type) return symbol;
+    }
+  }
+  return {};
+}
+
 const lang::symbol::Symbol& lang::symbol::Registry::get(SymbolId id) const {
   return *symbols_.find(id)->second;
 }
@@ -45,7 +55,7 @@ void lang::symbol::Registry::remove(lang::symbol::SymbolId id) {
   symbols_.erase(id);
 }
 
-std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol::Registry& registry, const VariableOptions& options, message::List& messages) {
+std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol::Registry& registry, const VariableOptions& options, optional_ref<message::List> messages) {
   // check if the symbol exists, we need additional guarding logic if it does
   const std::string name = options.token.image;
   auto& others = registry.get(name);
@@ -56,15 +66,18 @@ std::optional<lang::symbol::SymbolId> lang::symbol::create_variable(lang::symbol
       // iterate through each candidate, check if ID's are equal
       for (SymbolId id : others) {
         if (auto& symbol = registry.get(id); symbol.type() == *func_type) {
-          auto msg = options.token.generate_message(message::Error);
-          msg->get() << "unable to define overload - a function matching this signature already exists";
-          messages.add(std::move(msg));
+          // add messages to list if provided
+          if (messages.has_value()) {
+            auto msg = options.token.generate_message(message::Error);
+            msg->get() << "unable to define overload - a function matching this signature already exists";
+            messages->get().add(std::move(msg));
 
-          msg = symbol.token().generate_message(message::Note);
-          msg->get() << "signature " << name;
-          func_type->print_code(msg->get());
-          msg->get() << " previously defined here";
-          messages.add(std::move(msg));
+            msg = symbol.token().generate_message(message::Note);
+            msg->get() << "signature " << name;
+            func_type->print_code(msg->get());
+            msg->get() << " previously defined here";
+            messages->get().add(std::move(msg));
+          }
 
           return {};
         }

@@ -1,3 +1,6 @@
-func main() -> int {
-
+func add(a: int, b: int) -> int {
+    return 42;
 }
+
+func add(a: int, b: int) -> int;
+func add(a: float, b: float) -> float;

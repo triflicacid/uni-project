@@ -3,6 +3,11 @@
 #include <unordered_map>
 #include "symbol.hpp"
 #include "assembly/basic_block.hpp"
+#include "optional_ref.hpp"
+
+namespace lang::ast::type {
+  class Node;
+}
 
 namespace lang::symbol {
   class Registry {
@@ -26,6 +31,8 @@ namespace lang::symbol {
 
     const std::deque<SymbolId> get(const std::string& name) const;
 
+    optional_ref<const Symbol> get(const std::string& name, const ast::type::Node& type) const;
+
     const Symbol& get(SymbolId id) const;
 
     void remove(SymbolId id);
@@ -47,5 +54,6 @@ namespace lang::symbol {
 
   // create and insert a variable into the given registry if permitted
   // return symbol's id, or nothing if error
-  std::optional<SymbolId> create_variable(lang::symbol::Registry& registry, const VariableOptions& options, message::List& messages);
+  // if messages provided, append error to there, otherwise fail silently
+  std::optional<SymbolId> create_variable(lang::symbol::Registry& registry, const VariableOptions& options, optional_ref<message::List> messages = std::nullopt);
 }

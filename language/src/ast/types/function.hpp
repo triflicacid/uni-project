@@ -3,6 +3,7 @@
 #include <deque>
 #include "node.hpp"
 #include "unit.hpp"
+#include "optional_ref.hpp"
 
 namespace lang::ast::type {
   class FunctionNode : public Node {
@@ -52,9 +53,17 @@ namespace lang::ast::type {
     // same as static ::filter_candidates, but uses this type's parameter list
     std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const FunctionNode>>& options) const;
 
+    // same as static ::select_candidates, but uses this type's parameter list
+    optional_ref<const FunctionNode> select_candidate(const std::deque<std::reference_wrapper<const FunctionNode>>& options, message::List& messages) const;
+
     // given list of parameter types, return list of possible candidates from input list of options
     // if there is a perfect match, return this
     // otherwise, there are selection issues, so return all suitable candidates
     static std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::deque<std::reference_wrapper<const FunctionNode>>& options);
+
+    // runs ::filter_candidates on first two parameters
+    // if |candidates|=1, return it
+    // otherwise, generate error messages
+    static optional_ref<const FunctionNode> select_candidate(const FunctionNode& target, std::deque<std::reference_wrapper<const FunctionNode>> options, message::List& messages);
   };
 }

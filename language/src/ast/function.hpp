@@ -18,7 +18,7 @@ namespace lang::ast {
     std::string node_name() const override { return "function"; }
 
     // return if we are implemented, i.e., have a body
-    bool is_implemented() const { return body_.has_value(); }
+    bool is_implemented() const override { return body_.has_value(); }
 
     bool always_returns() const override;
 

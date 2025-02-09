@@ -9,6 +9,7 @@
 #include "memory/stack.hpp"
 #include "memory/storage_location.hpp"
 #include "assembly/arg.hpp"
+#include "optional_ref.hpp"
 
 namespace lang::ast {
   class FunctionBaseNode;
@@ -35,6 +36,9 @@ namespace lang::symbol {
 
     // return symbol(s) with the given name
     const std::deque<std::reference_wrapper<Symbol>> find(const std::string& name) const;
+
+    // return symbol with the given name and type
+    optional_ref<Symbol> find(const std::string& name, const ast::type::Node& type) const;
 
     // return symbol with the given id
     const Symbol& get(SymbolId id) const;
@@ -88,5 +92,11 @@ namespace lang::symbol {
 
     // exit the current named container
     void pop_path();
+
+    // generate full path name
+    std::string path_name() const;
+
+    // generate full path name with `name` appended on the end
+    std::string path_name(const std::string& name) const;
   };
 }

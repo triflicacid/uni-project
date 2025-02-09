@@ -73,6 +73,11 @@ std::deque<std::reference_wrapper<const lang::ast::type::FunctionNode>> lang::as
   return filter_candidates(parameters_, options);
 }
 
+optional_ref<const lang::ast::type::FunctionNode>
+lang::ast::type::FunctionNode::select_candidate(const std::deque<std::reference_wrapper<const FunctionNode>>& options, message::List& messages) const {
+  return select_candidate(*this, options, messages);
+}
+
 std::deque<std::reference_wrapper<const lang::ast::type::FunctionNode>>
 lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters,
                                                  const std::deque<std::reference_wrapper<const FunctionNode>>& options) {
@@ -108,4 +113,36 @@ lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference
 
 constants::inst::datatype::dt lang::ast::type::FunctionNode::get_asm_datatype() const {
   return constants::inst::datatype::u64; // pointer type
+}
+
+optional_ref<const lang::ast::type::FunctionNode>
+lang::ast::type::FunctionNode::select_candidate(const FunctionNode& target, std::deque<std::reference_wrapper<const FunctionNode>> options, message::List& messages) {
+  // filter candidates
+  auto candidates = filter_candidates(target.parameters_, options);
+  if (candidates.size() == 1) {
+    return candidates.front();
+  }
+
+  // otherwise, if candidates is non-empty, we can narrow options down for message
+  if (!candidates.empty()) {
+    options.clear();
+    options = candidates;
+  }
+
+  // error to user, reporting our candidate list
+//  std::unique_ptr<message::BasicMessage> msg = target.generate_message(message::Error);
+//  msg->get() << "unable to resolve a suitable candidate for (";
+//  for (auto& param : parameters) {
+//    param.get().print_code(msg->get());
+//    if (param.get() != parameters.back().get()) msg->get() << ", ";
+//  }
+//  msg->get() << ")";
+//  messages.add(std::move(msg));
+//
+//  for (auto& option : options) {
+//    msg = std::make_unique<message::BasicMessage>(message::Note);
+//    msg->get() << "candidate: ";
+//    option.get().print_code(msg->get());
+//    ctx.messages.add(std::move(msg));
+//  }
 }

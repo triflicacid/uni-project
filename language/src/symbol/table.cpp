@@ -25,6 +25,14 @@ const std::deque<std::reference_wrapper<lang::symbol::Symbol>> lang::symbol::Sym
   return {};
 }
 
+optional_ref<lang::symbol::Symbol> lang::symbol::SymbolTable::find(const std::string& name, const lang::ast::type::Node& type) const {
+  auto symbols = find(name);
+  for (Symbol& symbol : symbols) {
+    if (symbol.type() == type) return symbol;
+  }
+  return {};
+}
+
 void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool alloc) {
   // look at path_, add parent
   symbol->set_parent(peek_path());
@@ -229,4 +237,24 @@ void lang::symbol::SymbolTable::pop_path() {
 
 const lang::symbol::Symbol& lang::symbol::SymbolTable::peek_path(unsigned int n) {
   return path_[n];
+}
+
+std::string lang::symbol::SymbolTable::path_name() const {
+  std::stringstream stream;
+  for (int i = path_.size() - 1; i >= 0; i--) {
+    stream << path_[i].get().name();
+    if (i > 0) stream << ".";
+  }
+  return stream.str();
+}
+
+std::string lang::symbol::SymbolTable::path_name(const std::string& name) const {
+  if (path_.empty()) return name;
+
+  std::stringstream stream;
+  for (int i = path_.size() - 1; i >= 0; i--) {
+    stream << path_[i].get().name() << ".";
+  }
+  stream << name;
+  return stream.str();
 }
