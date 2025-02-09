@@ -115,6 +115,25 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   // process as child directs
   if (!_process(ctx)) return false;
 
+  // check that the function returns
+  if (!always_returns()) {
+    // ... if it doesn't, that we return ()
+    if (type_.returns() != type::unit) {
+      auto msg = token_end().generate_message(message::Error);
+      msg->get() << "missing return statement in function returning type ";
+      type_.returns().print_code(msg->get());
+      ctx.messages.add(std::move(msg));
+
+      msg = name_.generate_message(message::Note);
+      msg->get() << "enclosing function defined here";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
+    // otherwise, add a return instruction
+    ctx.program.current().add(assembly::create_return());
+  }
+
   // restore cursor to previous block and exit function
   ctx.symbols.exit_function();
   ctx.program.select(previous);

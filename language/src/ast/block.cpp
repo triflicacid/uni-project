@@ -63,8 +63,19 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
   }
 
   // process our children
-  for (auto& line : lines_) {
-    if (!line->process(ctx) || !line->resolve_value(ctx)) return false;
+  for (int i = 0; i < lines_.size(); i++) {
+    Node& line = *lines_[i];
+
+    // if previous line returned, warn on unreachable code
+    if (i > 0 && lines_[i - 1]->always_returns()) {
+      auto msg = line.generate_message(message::Warning);
+      msg->get() << "unreachable code detected; this code will never be executed";
+      ctx.messages.add(std::move(msg));
+      break; // do not generate code further
+    }
+
+    // else, process this line
+    if (!line.process(ctx) || !line.resolve_value(ctx)) return false;
   }
 
   // remove local scope if necessary
@@ -78,4 +89,12 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
 const lang::value::Value& lang::ast::BlockNode::value() const {
   if (returns_ && !lines_.empty()) return lines_.back()->value();
   return Node::value();
+}
+
+bool lang::ast::BlockNode::always_returns() const {
+  // we return if any of our children does
+  for (auto& line : lines_) {
+    if (line->always_returns()) return true;
+  }
+  return false;
 }

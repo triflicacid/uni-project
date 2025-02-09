@@ -15,5 +15,11 @@ namespace lang::ast {
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    bool always_returns() const override { return true; }
+
+    const value::Value& value() const override;
+
+    bool process(lang::Context &ctx) override;
   };
 }

@@ -23,11 +23,10 @@ namespace lang::ast {
     // is this block the start of a new scope?
     void add_new_scope(bool b) { scope_ = b; }
 
-    // check if this block returns a value
-    bool returns() const { return returns_; }
+    // make this block return a value, i.e., become an expression
+    void make_expr() { returns_ = true; }
 
-    // make this block return a value
-    void make_returns() { returns_ = true; }
+    bool always_returns() const override;
 
     const value::Value& value() const override;
 

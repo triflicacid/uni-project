@@ -42,6 +42,10 @@ class Node : public NodeBase, public lexer::TokenSpan {
 
     void token_end(const lexer::Token& token) { tend_ = token; }
 
+    // does this node return absolutely from a function?
+    // used to check if control reaches the end of a function
+    virtual bool always_returns() const { return false; }
+
     // refer to the value represents the result of this node
     virtual const value::Value& value() const;
 

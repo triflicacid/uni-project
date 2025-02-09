@@ -37,6 +37,8 @@ namespace lang::ast {
     // get ID of created function
     symbol::SymbolId id() const { return id_; }
 
+    const ast::type::FunctionNode& type() const { return type_; }
+
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;

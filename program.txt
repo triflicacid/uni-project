@@ -1,2 +1,4 @@
-let pi: double;
-pi;
+func main() {
+    return;
+    b;
+}

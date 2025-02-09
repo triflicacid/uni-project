@@ -1,5 +1,0 @@
-PLAN
-- Check function return types are OK
-- Function call operator
-- If statements
-- While loops

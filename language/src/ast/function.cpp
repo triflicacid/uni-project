@@ -68,3 +68,7 @@ bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
 
   return true;
 }
+
+bool lang::ast::FunctionNode::always_returns() const {
+  return body_.has_value() && body_.value()->always_returns();
+}

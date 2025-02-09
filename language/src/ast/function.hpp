@@ -20,6 +20,8 @@ namespace lang::ast {
     // return if we are implemented, i.e., have a body
     bool is_implemented() const { return body_.has_value(); }
 
+    bool always_returns() const override;
+
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;

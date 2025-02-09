@@ -664,7 +664,7 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
   block->token_end(previous());
 
   // block returns if non-sc-terminated expr present
-  if (expect_block_end) block->make_returns();
+  if (expect_block_end) block->make_expr();
 
   return block;
 }
