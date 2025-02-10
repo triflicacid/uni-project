@@ -69,6 +69,12 @@ namespace lang::symbol {
     // note: errors if symbol has no physical location
     void assign_symbol(SymbolId symbol, uint8_t reg) const;
 
+    // remove the given symbol
+    void erase(SymbolId symbol);
+
+    // remove the given symbols from the local scope
+    void erase(const std::string& name);
+
     // create new lexical scope
     void push();
 
@@ -91,7 +97,7 @@ namespace lang::symbol {
     void push_path(SymbolId id);
 
     // get `n`th most recent path item (default n = 0 = most recent)
-    const Symbol& peek_path(unsigned int n = 0);
+    optional_ref<const Symbol> peek_path(unsigned int n = 0);
 
     // exit the current named container
     void pop_path();

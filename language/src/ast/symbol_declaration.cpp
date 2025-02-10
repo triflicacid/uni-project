@@ -9,6 +9,7 @@
 #include "message_helper.hpp"
 #include "assembly/create.hpp"
 #include "optional_ref.hpp"
+#include "ast/types/namespace.hpp"
 
 std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
@@ -104,18 +105,66 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     type_ = type;
   }
 
+  // check if name already exists, and if it can be shadowed
+  auto& others = ctx.symbols.find(name_.image);
+  bool are_shadowing = false;
+  for (const symbol::Symbol& other : others) {
+    // if other is a namespace, error
+    if (other.type() == type::name_space) {
+      auto msg = name_.generate_message(message::Error);
+      msg->get() << "name is bound to a namespace which cannot be shadowed";
+      ctx.messages.add(std::move(msg));
+
+      msg = other.token().generate_message(message::Note);
+      msg->get() << "previously defined here";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
+    // if function, this is OK, unless we are not a function
+    if (other.type().get_func()) {
+      if (type_->get().get_func()) continue;
+
+      auto msg = name_.generate_message(message::Error);
+      msg->get() << "name is bound to a function which cannot be shadowed by type ";
+      type_->get().print_code(msg->get());
+      ctx.messages.add(std::move(msg));
+
+      msg = other.token().generate_message(message::Note);
+      msg->get() << "previously defined here";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
+    // otherwise, we are shadowing it
+    are_shadowing = true;
+  }
+
+  if (are_shadowing) { // erase symbols? used when shadowing
+    ctx.symbols.erase(name_.image);
+  }
+
+//  symbol::Registry registry;
+//  symbol::VariableOptions options{
+//    .token = name_,
+//    .type = *type_,
+//    .category = category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary,
+//    .is_constant = category_ == Constant
+//  };
+//  auto maybe_id = symbol::create_variable(registry, options, ctx.messages);
+//  if (!maybe_id.has_value()) return false;
+//  ctx.symbols.insert(registry);
+//  id_ = maybe_id.value();
+
   // define symbol
-  symbol::Registry registry;
-  symbol::VariableOptions options{
-    .token = name_,
-    .type = *type_,
-    .category = category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary,
-    .is_constant = category_ == Constant
-  };
-  auto maybe_id = symbol::create_variable(registry, options, ctx.messages);
-  if (!maybe_id.has_value()) return false;
-  ctx.symbols.insert(registry);
-  id_ = maybe_id.value();
+  auto symbol = std::make_unique<symbol::Symbol>(
+      name_,
+      category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary,
+      *type_
+    );
+  id_ = symbol->id();
+  if (category_ == Constant) symbol->make_constant();
+  ctx.symbols.insert(std::move(symbol));
 
   // if no assignment, we're done
   if (!assignment_.has_value()) return true;
@@ -125,7 +174,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   if (value.type().size() == 0) return true;
 
   // must have a ref, i.e., rvalue
-
   if (!value.is_rvalue()) {
     auto msg = assignment_->get()->generate_message(message::Error);
     msg->get() << "expected rvalue, got ";

@@ -36,7 +36,9 @@ optional_ref<lang::symbol::Symbol> lang::symbol::SymbolTable::find(const std::st
 void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool alloc) {
   // look at path_, add parent UNLESS argument
   if (symbol->category() != Category::Argument) {
-    symbol->set_parent(peek_path());
+    if (auto parent = peek_path()) {
+      symbol->set_parent(*parent);
+    }
   }
 
   const std::string& name = symbol->full_name();
@@ -244,8 +246,9 @@ void lang::symbol::SymbolTable::pop_path() {
   if (!path_.empty()) path_.pop_front();
 }
 
-const lang::symbol::Symbol& lang::symbol::SymbolTable::peek_path(unsigned int n) {
-  return path_[n];
+optional_ref<const lang::symbol::Symbol> lang::symbol::SymbolTable::peek_path(unsigned int n) {
+  if (n < path_.size()) return path_[n];
+  return {};
 }
 
 std::string lang::symbol::SymbolTable::path_name() const {
@@ -266,4 +269,31 @@ std::string lang::symbol::SymbolTable::path_name(const std::string& name) const 
   }
   stream << name;
   return stream.str();
+}
+
+void lang::symbol::SymbolTable::erase(lang::symbol::SymbolId id) {
+  if (!symbols_.contains(id)) return;
+  auto& symbol = symbols_.at(id);
+
+  // remove from scopes
+  for (auto& scope : scopes_) {
+    scope.at(symbol->name()).erase(id);
+  }
+
+  // remove from symbols_
+  symbols_.erase(id);
+}
+
+void lang::symbol::SymbolTable::erase(const std::string& name) {
+  if (scopes_.empty()) return;
+  auto& scope = scopes_.front();
+  if (!scope.contains(name)) return;
+
+  // remove all IDs from dictionary
+  for (SymbolId id : scope.at(name)) {
+    symbols_.erase(id);
+  }
+
+  // remove entry in scope
+  scope.erase(name);
 }

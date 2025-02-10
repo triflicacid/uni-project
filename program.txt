@@ -1,13 +1,7 @@
 namespace maths {
-
-func add(a: int, b: int) -> long {
-    return a + b;
+    func sin(x: double) -> double;
 }
 
-func add(a: float, b: float) -> double {
-    return a + b;
+namespace maths {
+    func cos(x: double) -> double;
 }
-
-}
-
-maths.add(1, 2);

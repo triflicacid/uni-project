@@ -675,15 +675,23 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
   // 'namespace'
   const lexer::Token token_start = consume();
 
-  // name
-  if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
-  const lexer::Token name = consume();
+  // parse dot-separated names
+  std::deque<lexer::Token> names;
+  while (true) {
+    // name
+    if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
+    names.push_back(consume());
+
+    // '.' to continue?
+    if (!expect(lexer::BasicToken(lexer::TokenType::op, "."))) break;
+    consume();
+  }
 
   // '{'
   if (!expect_or_error(lexer::TokenType::lbrace)) return nullptr;
   const lexer::Token lbrace = consume();
 
-  auto ns = std::make_unique<ast::NamespaceNode>(token_start, name);
+  auto ns = std::make_unique<ast::NamespaceNode>(token_start, names);
   while (true) {
     // remove newlines
     while (expect(firstset::eol)) consume();
