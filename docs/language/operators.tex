@@ -1,0 +1,125 @@
+\section{Operators}\label{sec:operators}
+
+Operators are special symbols which combine one or two expressions, known as unary and binary operators, respectively.
+The table below lists the built-in operators alongside their behaviour and associativity.
+Operators start from tightest to loosest precedence, with those of the same precedence grouped.
+
+\begin{table}[h]
+    \centering
+    \caption{Built-In Operators}
+    \begin{tabular}{|l|l|c|c|}
+        \hline
+        \textbf{Operator} & \textbf{Description} & \textbf{Associativity} & \textbf{Overloadable} \\
+        \hline
+        \texttt{a.b} & Member access & \(\longrightarrow\) & No \\
+        \hline
+        \texttt{a()} & Function call & \(\longrightarrow\) & Yes \\
+        \hline
+        \texttt{(T) a} & Primitive cast & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{No} \\
+        \texttt{\&a} & Address-of & & \\
+        \texttt{*a} & Dereference & & \\
+        \texttt{registerof a} & Register lookup & & \\
+        \hline
+        \texttt{-a} & Negation & \multirow{3}{*}{\(\longleftarrow\)} & \multirow{3}{*}{Yes} \\
+        \texttt{~a} & Bitwise NOT & & \\
+        \texttt{!a} & Boolean NOT & & \\
+        \hline
+        \texttt{a as T} & Cast & \(\longleftarrow\) & No \\
+        \hline
+        \texttt{a * b} & Multiplication & \multirow{3}{*}{\(\longrightarrow\)} & \multirow{3}{*}{Yes} \\
+        \texttt{a / b} & Division & & \\
+        \texttt{a \% b} & Modulo (remainder) & & \\
+        \hline
+        \texttt{a + b} & Addition & \multirow{2}{*}{\(\longrightarrow\)} & \multirow{2}{*}{Yes} \\
+        \texttt{a - b} & Subtraction & & \\
+        \hline
+        \texttt{a << b} & Bitwise left shift & \multirow{2}{*}{\(\longrightarrow\)} & \multirow{2}{*}{Yes} \\
+        \texttt{a >> b} & Bitwise left shift & & \\
+        \hline
+        \texttt{a == b} & \multirow{6}{*}{Relational operators} & \multirow{6}{*}{\(\longrightarrow\)} & \multirow{6}{*}{Yes} \\
+        \texttt{a != b} & & & \\
+        \texttt{a < b} & & & \\
+        \texttt{a <= b} & & & \\
+        \texttt{a > b} & & & \\
+        \texttt{a >= b} & & & \\
+        \hline
+        \texttt{a \& b} & Bitwise AND & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
+        \hline
+        \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
+        \hline
+        \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
+        \hline
+        \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} & No \\
+        \hline
+    \end{tabular}\label{tab:builtin-operators}
+\end{table}
+
+\subsection{Casting}\label{subsec:op-casting}
+
+The concept of casting is explained in subsection ~\ref{subsec:type-casting}.
+Note that the table above presents two casting operators: \texttt{(T) a} and \texttt{a as T}.
+
+The former is a \textit{primitive} cast, meaning it only supports casting to primitive, atomic types.
+This cast is direct and is ignorant of the type of \texttt{a} and whether the cast is meaningful.
+
+The latter, using the \texttt{as} keyword, is a straightforward explicit cast.
+There are no restrictions on \texttt{T} and, as explained in subsection ~\ref{subsec:type-casting}, this cast still must obey some rules.
+
+\begin{lstlisting}[language=CustomLang]
+let a = (int) 3.14; // ok
+let b = (*int) 0; // error
+let c = 0 as *int; // ok
+\end{lstlisting}
+
+Also note the difference in precedence: the \texttt{as} cast is slightly looser than other unary operators.
+
+\begin{lstlisting}[language=CustomLang]
+!1 as bool; // same as `(!1) as bool' NOT `!(1 as bool)'
+\end{lstlisting}
+
+\subsection{Address-Of \& Dereferencing}\label{subsec:address-of-&-dereferencing}
+
+Both operations involve pointers, with the former generating pointers, and the latter `consuming' them.
+
+The address-of operator, \texttt{\&}, calculates the memory address of a symbol.
+That is, if \texttt{a: T}, then \texttt{\&a} is of type \texttt{*T}.
+
+Dereferencing, then, is address-of's twin; it retrieved the value stored at a pointer.
+That is, if \texttt{p: *T}, then \texttt{*a} is of type \texttt{T}.
+
+\begin{lstlisting}[language=CustomLang]
+let a: int = 5;
+let p: *int = &a;
+let b: int = *p; // then a == b
+\end{lstlisting}
+
+The dereference operator returns an lvalue, so it may be assigned to.
+In this case, the memory pointed to by the pointer will be written to.
+Continuing the example from above,
+
+\begin{lstlisting}[language=CustomLang]
+*p = 10; // a = 10
+\end{lstlisting}
+
+However, \texttt{b} will still be 5 as it was assigned the dereferenced \texttt{p} beforehand.
+
+\subsection{Register Lookup}
+
+This is a lower-level operator meant for exploration of the processor's registers.
+
+Expecting a symbol argument, the \texttt{registerof} operator returns the index (offset) of where the given symbol is located.
+This allows one to gain insight into the register allocation algorithm.
+
+For example, given the basic program below, one would expect the following.
+
+\begin{lstlisting}[language=CustomLang]
+let a = 5;
+registerof a; // = 11, corresponding to $r1
+\end{lstlisting}
+
+If the symbol has not been loaded into registers (i.e., it has not been used at all/recently), the operator returns \(-1\).
+
+\begin{lstlisting}[language=CustomLang]
+let a: int;
+registerof a; // = -1
+\end{lstlisting}

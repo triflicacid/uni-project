@@ -1,0 +1,58 @@
+\section{Basic Syntax}\label{sec:basic-syntax}
+
+Inspires by C, Edel is not whitespace sensitive, with scopes marked by braces \texttt{\{\}}.
+Semicolons are not requires after every line, namely closing braces, but are required after expressions.
+
+Comments come in two forms: single-- and multi-line.
+Single-line comments \texttt{// ...} comment out the remainder of the current line;
+multi-line comments \texttt{/* ... */} comment out anything they enclose.
+
+\subsection{Expressions \& Statements}\label{subsec:expressions-&-statements}
+
+Generally, a statement is some code which does not produce a value, whereas an expression does.
+In Edel, \textit{everything} is an expression, with statements, by default, returning the unit type `\texttt{()}'.
+
+Expressions are expected to be terminated by a semicolon.
+The exception to this is the final expression in a block; if omitted, the block `returns' the result of this expression.
+
+\begin{lstlisting}[language=CustomLang]
+let a = { 1 + 2; }; // a = ()
+let b = { 1 + 2 }; // b = 3
+let c = { let z = 2 * b; z } + 2; // c = 8
+\end{lstlisting}
+
+Note that only the last expression in a block may have their semicolon emitted.
+By always terminating expressions, the block will act like a statement.
+
+\subsubsection{Value Categories}
+
+Each expression, be it an operator with operands, literals, or variable names etc., is characterised by a \textit{type} and a \textit{category}.
+Types, covered in section ~\ref{sec:types}, give meaning to data and what it means in context, whereas the category tells dictates \textit{how} a value can be used.
+
+Edel has two categories, be them l-- and r-values.
+The former is a value which refers to a memory location, such as variables, while the latter has no identifiable location in memory.
+The \textit{l} and \textit{r} stand for \textit{left} and \textit{right} because the respective values may appear on the left-- or right-hand side of an assignment operator.
+That is,
+
+\begin{lstlisting}[language=CustomLang]
+a = 1; // a (lvalue) = 1 (rvalue)
+\end{lstlisting}
+
+As an rvalue has no identifiable location, it cannot be assigned to, nor can it be access via the dot `\texttt{.}' operator.
+Instances of misuse of an l-- or rvalue results in an error ``\texttt{expected l/rvalue, got type}''.
+
+\begin{lstlisting}[language=CustomLang]
+1 = 2; // error: expected lvalue, got i32
+true.a; // error: expected lvalue, got bool
+
+namespace maths {}
+maths + 1; // error: expected rvalue, got namespace
+\end{lstlisting}
+
+\subsection{Code Blocks}\label{subsec:code-blocks}
+
+As a whitespace-ignorant language, Edel uses blocks to denote structure and scope.
+A block is introduced by braces \texttt{\{\}} and contains a section of code.
+As previously mentioned, a block may be an expression or a statement, hence is permitted anywhere they would be expected.
+
+Blocks in Edel introduce a new lexical scope (see section ~\ref{sec:names-&-scope} for scope resolution).

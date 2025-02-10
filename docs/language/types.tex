@@ -1,0 +1,107 @@
+\section{Types}\label{sec:types}
+
+Continuing the analogy from variables, a type is a label that tells the program what kind of data a variable holds.
+Every variable and value has a type; a value without a type is meaningless, as a type gives data a meaning.
+
+\subsection{Primitive Types}
+
+Primitive types are a subset of those provided by the compiler representing atomic values, such as numbers.
+
+\medskip
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|c|c|c|l|}
+        \hline
+        \textbf{Type} & \textbf{Alias} & \textbf{Description} \\
+        \hline
+        \texttt{bool} & & A truth value -- either \texttt{true} or \texttt{false} \\
+        \hline
+        \texttt{u8} & \texttt{byte} & Unsigned 8-bit integer \\
+        \texttt{i8} & & Signed 8-bit integer \\
+        \hline
+        \texttt{u16} & & Unsigned 16-bit integer \\
+        \texttt{i16} & & Signed 16-bit integer \\
+        \hline
+        \texttt{u32} & & Unsigned 32-bit integer \\
+        \texttt{i32} & \texttt{int} & Signed 32-bit integer \\
+        \hline
+        \texttt{u64} & & Unsigned 64-bit integer \\
+        \texttt{i64} & \texttt{long} & Signed 64-bit integer \\
+        \hline
+        \texttt{f32} & \texttt{float} & 32-bit floating-point number \\
+        \texttt{f64} & \texttt{double} & 64-bit floating-point number \\
+        \hline
+    \end{tabular}
+    \caption{Primitive Types}\label{tab:primitive-types}
+\end{table}
+
+% TODO type hierarchy
+
+These types have the following type hierarchy:
+\begin{itemize}
+    \item \texttt{int8 < int16 < int32 < int64}
+    \item \texttt{uint8 < uint16 < uint32 < uint64}
+    \item \texttt{uint\(n\) < int\((n+k)\)}
+    \item \texttt{float32 < float64}
+    \item \texttt{[u]int\(n\) < float64}
+    \item \texttt{[u]int\(n\) < float32} where \(n < 64\).
+\end{itemize}
+
+Note that \texttt{bool} is not related to anything.
+Unlike in other language, \texttt{bool} is treated as a distinct type with abstract true/false values, rather than a synonym for integers 1/0, respectively.
+
+\subsection{The Unit Type}
+
+Ths unit type, denotes by empty brackets `\texttt{()}', is a special type meaning \textit{empty}.
+Representing an object with no value, it is a zero-width type, meaning a symbol of this type occupies no space.
+For examples of use, a unit is returned from a block which returns no value.
+
+\begin{lstlisting}[language=CustomLang]
+let a = {}; // a: ()
+\end{lstlisting}
+
+Note that a unit is neither an r-- nor an l-value, so it cannot be used in expressions.
+That is, the below program errors before even trying to find a candidate for \texttt{+}.
+
+\begin{lstlisting}[language=CustomLang]
+() + 1; // error: expected rvalue, got ()
+\end{lstlisting}
+
+\subsection{Pointer Types}\label{subsec:pointer-types}
+
+The use of pointers is designed to be minimal in Edel, but they are available nonetheless.
+Simply put, a pointer stores the \textit{location} (or \textit{address}) of a variable, which can then be used to later reference and access that data.
+A pointer is indicated by a star `\texttt{*}' preceding the type;
+that is, type \texttt{*T} is telling the compiler \textit{hey, see this location? Data of type} \texttt{T} \textit{is stored there}.
+
+Subsection ~\ref{subsec:address-of-&-dereferencing} explains the use of the \texttt{\&} and \texttt{*} unary operators to manipulate pointers.
+
+Pointers do not fit into the type hierarchy, and cannot be implicitly cast.
+For safety, it is best not to cast pointer types unless one really knows and understands what is going on.
+
+\subsection{Function Types}\label{subsec:function-types}
+
+% TODO
+
+\subsection{Casting}\label{subsec:type-casting}
+
+Casting refers to the changing of a type, and can be split into two categories: implicit, and explicit.
+Note that the destination type of either cast \textbf{cannot} be zero-sized.
+
+Implicit casting is where a cast is done behind-the-scenes.
+Type \(a\) may be implicitly cast (also known as \textit{coerced}) to another type \(b\) if and only if \(a < b\), that is, \(a\) is a subtype of \(b\).
+In other words, \(a\) can be coerced into \(b\) if \(b\) is sufficient to represent \(a\) without data loss.
+For example, \texttt{u8} may be coerced into \texttt{u64}, or \texttt{float} into \texttt{double}, but \textbf{not} \texttt{i32} into \texttt{i16}.
+Implicit casting is done automatically in the following:
+
+\begin{lstlisting}[language=CustomLang]
+let a: double = 3.14; // float -> double
+\end{lstlisting}
+
+On the other hand, explicit casting violates these rules, and hence the cast may be \textit{explicit}.
+Note that not all datatypes may be cast between each-other using explicit casting, but the subtype relationships may be largely violated.
+
+\begin{lstlisting}[language=CustomLang]
+let a: u8 = 42; // error!
+let a = 42 as u8; // i32 -> u8
+\end{lstlisting}

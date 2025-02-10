@@ -1,0 +1,183 @@
+\section{Functions}\label{sec:functions}
+
+Functions are labelled blocks of code which may be called by the programmer.
+A function may take some input values, known as \textit{arguments}, and may optionally return a value.
+
+An example of a function which takes two integers and returns an integer:
+\begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+\end{lstlisting}
+
+That is, a function is defined using the \texttt{func} keyword, followed by a name.
+Parameters in the form \texttt{name: type} are listed, comma-separated, between brackets.
+Note that if no arguments are required, the brackets may be omitted altogether.
+The function's return type is listed after an arrow; if no return type is needed, this may be omitted.
+For example,
+\begin{lstlisting}[language=CustomLang]
+func foo {
+    // ...
+}
+
+func bar(a: float) { // equivalent to `-> ()'
+    // ...
+}
+\end{lstlisting}
+
+\subsection{Calling Functions}
+
+Functions are called by following the function name with brackets `\texttt{()}' (this is the operator name).
+Any arguments to be supplied to the function are comma-separated inside these brackets, known as an \textit{argument list}.
+A function with a matching signature is then found (see subsection ~\ref{subsec:function-overloading} on function overloading), and its return value produced.
+
+\begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+let result = add(1, 4); // result: int = 5
+\end{lstlisting}
+
+Note that \texttt{()} is an operator like any other.
+Therefore, if the subject is not a function type, an overload for \texttt{operator()} is searched for.
+The signature will be the subject type followed by each argument's type.
+For example,
+
+\begin{lstlisting}[language=CustomLang]
+5(3.14, true); // operator()(i32, f32, bool)
+\end{lstlisting}
+
+\subsection{Returning a Value}
+
+The \texttt{return} keyword is used to exit/return from the current function.
+Optionally, the keyword may be followed by an expression, in which case that value will be returned.
+The type of the returned expression must match, or be a subtype of, the function's return type.
+Furthermore, if the function returns a non-unit type, a return statement must be present.
+
+\begin{lstlisting}[language=CustomLang]
+func foo {
+    return 42; // error: cannot convert i32 to ()
+}
+
+func bar -> int {
+} // error: missing return statement
+\end{lstlisting}
+
+Note that \textit{all} code paths should return, even if you, the programmer, knows that a path is never taken.
+% TODO update if constant optimisation added
+That is because the compiler cannot currently recognise, for example, always-falsy conditions.
+
+\begin{lstlisting}[language=CustomLang]
+func foo -> int {
+    if false {
+    } else {
+        return 42;
+    }
+} // error: missing return statement
+\end{lstlisting}
+
+\subsubsection{Unreachable Code}
+
+As \texttt{return} exits the function, any code after said statement is \textit{unreachable}.
+This code will never be executed, and a warning will be reported.
+
+\begin{lstlisting}[language=CustomLang]
+func foo {
+    return;
+    a; // warning: unreachable code detected
+}
+\end{lstlisting}
+
+The above code would usually result in an error, as symbol `\texttt{a}' is not defined.
+However, as the code is not reached, no error is raised.
+
+\subsection{Function Declaration}\label{subsec:function-declaration}
+
+A function declaration is one which has no body.
+For example,
+
+\begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int;
+\end{lstlisting}
+
+As functions in Edel do not require forward-declaration, what does this do?
+Depending on the compiler flag \texttt{--function-placeholder}, it does one of two things.
+
+\paragraph*{Enforce Existence}
+
+The default, \texttt{--no-function-placeholder}, a function declaration is used to inform the programmer about the existence of a function.
+One common use is in auto-generated standard library files, where the function exists but is implemented internally.
+If the function does not exist, an error will be raised.
+
+\begin{lstlisting}[language=CustomLang]
+func imaginary_function(x: int) -> bool; // error: function was declared but does not exist
+\end{lstlisting}
+
+\paragraph*{Generate Placeholder}
+
+In this instance, if a function is declared but does not exist, the function will be created to return zero, `\texttt{()}', false, or null, depending on the return type.
+This is useful when a function is yet to be implemented.
+
+For example, the following are identical.
+\begin{lstlisting}[language=CustomLang]
+func imaginary_function(x: int) -> bool;
+// ==
+func imaginary_function(x: int) -> bool {
+    return false;
+}
+\end{lstlisting}
+
+
+Note that as this generates a definition, it cannot be re-defined.
+
+\subsection{Function Overloading}\label{subsec:function-overloading}
+
+A function in Edel is not only identified by its name, but also its \textit{signature}.
+The signature of a function is a combination of its name and parameter types.
+In an Edel program, a function signature must be unique, or the result would be an error.
+This means that multiple functions with the same name can exist.
+This is known as function overloading, and a variant of a function with the same name but different parameters is called an \textit{overload}.
+
+\begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+func add(a: float, b: float) -> float {
+    return a + b;
+}
+\end{lstlisting}
+
+In this case, a reference to \texttt{add} no longer just refers to one symbol.
+Instead, it becomes what is known as an \textit{overload set}, and more information is required for a resolution.
+
+\begin{lstlisting}[language=CustomLang]
+add; // error: unable to resolve symbol `add'
+\end{lstlisting}
+
+\subsubsection{Overload Resolution}
+
+This is the process by which an overload is selected.
+Firstly, a list of candidates is generated; this would be all functions with a matching name.
+A candidate is considered a match if the number of arguments match and the type of each parameter matches.
+Due to subtyping rules, the latter check may lead to the generating of multiple `matching' candidates.
+In such a case, the candidate with the highest number of identical types wins.
+
+\begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int;
+func add(a: long, b: long) -> long;
+
+add(1, 2); // signature is add(int, int)
+\end{lstlisting}
+
+In the above snippet, both candidates match the callee.
+However, the former wins as \texttt{int == int} while \texttt{int < long}.
+
+If there are still ties at this point, an error is raised as a candidate cannot be decided.
+In this case, it is best to explicitly cast one or more arguments to reach the desired candidate.
+
+\begin{lstlisting}[language=CustomLang]
+func add(a: int, b: long) -> long;
+func add(a: long, b: int) -> long;
+
+add(1, 2); // error: unable to resolve
+\end{lstlisting}
