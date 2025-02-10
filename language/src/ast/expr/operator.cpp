@@ -103,14 +103,9 @@ bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
   if (!OperatorNode::process(ctx)) return false;
 
   // generate our signature
-  // TODO when adding user-defined overloads, we don't want to resolve args immediately
   std::deque<std::reference_wrapper<const type::Node>> arg_types;
-  for (int i = 0; i < args_.size(); i++) {
-    if (auto value = get_arg_rvalue(ctx, i); value.has_value()) {
-      arg_types.push_back(value->get().type());
-    } else {
-      return false;
-    }
+  for (auto& arg : args_) {
+    arg_types.push_back(arg->value().type());
   }
   const auto& signature = type::FunctionNode::create(arg_types, std::nullopt);
   signature_ = signature;
@@ -122,8 +117,9 @@ bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
 
   // make sure to replace with the correct signature (esp. for the return type)
   signature_ = op_->get().type();
-  value_ = value::rvalue(op_->get().type().returns());
 
+  // update rvalue return
+  value_ = value::rvalue(op_->get().type().returns());
   return true;
 }
 
@@ -146,14 +142,24 @@ bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
     if (!get_arg_rvalue(ctx, i)) return false;
   }
 
-  // TODO user-defined operators
+  // get the operator we resolved to
   auto& op = op_.value().get();
-  assert(op.builtin());
 
-  // accumulate argument values
+  // are we built-in?
+  // TODO user-defined operators
+  assert(op.builtin());
   auto& builtin = static_cast<const ops::BuiltinOperator&>(op);
+
+  // evaluate & accumulate argument values
   std::deque<std::reference_wrapper<const value::Value>> args;
-  for (auto& arg : args_) args.push_back(arg->value());
+  for (int i = 0; i < args_.size(); i++) {
+    if (auto value = get_arg_rvalue(ctx, i)) {
+      args.push_back(value.value());
+    } else {
+      return false;
+    }
+  }
+
   // generate code, attach rvalue reference
   uint8_t reg = builtin.generator()(ctx, args);
   value_->rvalue(memory::Ref::reg(reg));

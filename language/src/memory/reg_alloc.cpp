@@ -369,7 +369,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
   } else {
     // otherwise, analyse what Object contains and update the type accordingly
     // also track if we need to actually emit any instructions
-    auto asm_original = static_cast<constants::inst::datatype::dt>(255);
+    constants::inst::datatype::dt asm_original;
 
     if (object->value->is_lvalue() && object->value->lvalue().get_symbol()) {
       auto& symbol = object->value->lvalue().get_symbol()->get();
