@@ -68,3 +68,62 @@ const pi = 3.14159;
 \end{lstlisting}
 
 In the case of multiple definitions, \textit{all} symbols will be defined as const.
+
+\subsection{Namespaces}
+
+Namespaces allow the programmer to group related names in an environment.
+Not only does this aid in organisation, but also helps to prevent naming collisions.
+Note that this does \textbf{not} create a new lexical scope.
+
+A namespace is created using the \texttt{namespace} keyword, and may contain any structure which is permitted at the global level.
+
+\begin{lstlisting}[language=CustomLang]
+namespace maths {
+    func cos(x: double) -> double;
+}
+\end{lstlisting}
+
+To reference a name outside the namespace, its name must be prefixed by the namespace's name.
+
+\begin{lstlisting}[language=CustomLang]
+cos(0); // error: unable to resolve symbol `sin'
+maths.cos(0); // = 1
+\end{lstlisting}
+
+Unlike variables, namespaces cannot be shadowed.
+Note that the \texttt{namespace} keyword only creates a namespace if it does not already exist.
+If it does, then the declarations will be added to the existing namespace.
+For example, the below snippet would result in the definitions of the two functions \texttt{maths.sin} and \texttt{maths.cos}.
+
+\begin{lstlisting}[language=CustomLang]
+namespace maths {
+    func sin(x: double) -> double;
+}
+namespace maths {
+    func cos(x: double) -> double;
+}
+\end{lstlisting}
+
+\subsubsection{Nested Namespaces}
+
+Namespaces may be nested explicitly as follows.
+
+\begin{lstlisting}[language=CustomLang]
+namespace std {
+    namespace maths {
+        func cos(x: double) -> double;
+    }
+}
+maths.cos; // error: cannot resolve symbol `maths'
+std.maths.cos; // ok
+\end{lstlisting}
+
+However, namespace names may contain paths, that is, multiple identifiers joined by the dot `\texttt{.}' operator.
+This would be equivalent to explicitly nesting each identifier as a namespace.
+For example, one may re-write the above snippet as
+
+\begin{lstlisting}[language=CustomLang]
+namespace std.maths {
+    func cos(x: double) -> double;
+}
+\end{lstlisting}

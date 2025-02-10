@@ -39,26 +39,6 @@
 
     \section{Control Flow}
 
-    \section{Namespaces}
-
-    Namespaces allow the programmer to group related functions, variables etc. together in an environment.
-    Not only does this aid in organisation, but also helps to prevent naming collisions.
-
-    A namespace is created using the \texttt{namespace} keyword, and may contain any structure which is permitted at the global level.
-
-    \begin{lstlisting}[language=CustomLang]
-namespace maths {
-    func cos(x: double) -> double;
-}
-    \end{lstlisting}
-
-    To reference a name outside the namespace, its name must be prefixed by the namespace's name.
-
-    \begin{lstlisting}[language=CustomLang]
-cos(0); // error: unable to resolve symbol `sin'
-maths.cos(0); // = 1
-    \end{lstlisting}
-
     \section{Modules \& Imports}
 
     \section{Standard Library}
