@@ -31,6 +31,10 @@ int parse_arguments(int argc, char** argv, Options& options) {
         lang::conf::function_placeholder = true;
       } else if (!strcmp(argv[i], "--no-function-placeholder")) { // conf::function_placeholder = false
         lang::conf::function_placeholder = false;
+      } else if (!strcmp(argv[i], "--indentation")) { // conf::indent_asm_code = true
+        lang::conf::indent_asm_code = true;
+      } else if (!strcmp(argv[i], "--no-indentation")) { // conf::indent_asm_code = false
+        lang::conf::indent_asm_code = false;
       } else if (argv[i][1] == 'o') { // output file
         if (options.output) {
           std::cerr << argv[i] << ": an output file was already provided" << std::endl;

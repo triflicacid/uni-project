@@ -28,14 +28,14 @@
     \section{Introduction}\label{sec:introduction}
 
     This document will contain information about the Edel language.
-    As an educational tool, it is designed to be simple and easy to learn and operate, with the goals of being clear a readable.
+    As an educational language, it is designed to be simple and easy to learn and operate, with the goals of being clear a readable.
     Each section is written from the perspective of little programming knowledge.
 
     \subsection{Overview}\label{subsec:overview}
 
     As the most wide-spread paradigm, this language is imperative by nature.
     Its syntax is inspired by C, but borrows features from C++ such as namespaces and operator overloading.
-    However, unlike these two languages, names are \textit{forward declared}, meaning they can be used prior to their definition.
+    However, unlike these two languages, names (except variables) are \textit{forward declared}, meaning they can be used prior to their definition.
     This foregoes the need for header files of explicit forward declarations as in C and C++, and allows a much freer programming experience similar to modern languages.
 
     % TODO talk about imports
@@ -53,7 +53,8 @@ $ ./compiler <input_file> [-o <output_file>] [flags]
     Where \texttt{[flags]} are as follows:
     \begin{itemize}
         \item \texttt{--ast} - prints the parsed program's AST.
-        \item \texttt{--[no-]function-placeholder} - changes behaviour of a function declaration; see subsection \ref{subsec:function-declaration}.
+        \item \texttt{--[no-]function-placeholder} - changes behaviour of a function declaration; see subsection ~\ref{subsec:function-declaration}.
+        \item \texttt{--[no-]indentation} - adds/removes indentation from generated assembly.
     \end{itemize}
     Note that the output file is optional.
 
