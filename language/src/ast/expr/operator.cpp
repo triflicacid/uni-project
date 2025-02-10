@@ -726,7 +726,7 @@ bool lang::ast::DereferenceOperatorNode::resolve_rvalue(lang::Context& ctx) {
 lang::ast::FunctionCallOperatorNode::FunctionCallOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> subject, std::deque<std::unique_ptr<Node>> args)
   : OperatorNode(token, token, std::move(args)), subject_(std::move(subject)) {
   token_start(subject_->token_start());
-  token_end(args_.back()->token_end());
+  if (!args_.empty()) token_end(args_.back()->token_end());
 }
 
 bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
