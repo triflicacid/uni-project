@@ -68,6 +68,21 @@ func main() {
 }
     \end{lstlisting}
 
+    \section{Scope}
+
+    A \textit{name} in Edel refers to an identifier, which includes functions, variables, and namespaces.
+    All names have a \textit{scope}, which is the area in which that name exists/may be referenced.
+    That is, outside its scope, a symbol does not exist.
+
+    The outermost scope is known as the \textit{global} scope.
+    Names defined here will be available anywhere in the current file.
+
+    The counterpart is the \textit{local} scope, which refers to the latest scope.
+    New scopes are created by using code blocks, for example, in while loops and functions.
+    Subsection ~\ref{subsec:variables} covers variable definitions and scope in more detail.
+
+
+
     \section{Basic Syntax}\label{sec:basic-syntax}
 
     Inspires by C, Edel is not whitespace sensitive, with scopes marked by braces \texttt{\{\}}.
@@ -77,7 +92,7 @@ func main() {
     Single-line comments \texttt{// ...} comment out the remainder of the current line;
     multi-line comments \texttt{/* ... */} comment out anything they enclose.
 
-    \subsection{Variables}\label{subsec:variables-&-assignment}
+    \subsection{Variables}\label{subsec:variables}
 
     Using the common analogy, a variable is like a labeled box which stored data.
     Each box has a \textit{type} which tells us what it stores.
@@ -182,8 +197,9 @@ maths + 1; // error: expected rvalue, got namespace
 
     As a whitespace-ignorant language, Edel uses blocks to denote structure and scope.
     A block is introduced by braces \texttt{\{\}} and contains a section of code.
-    A block may be written anywhere a statement is expected, allowing the programmer to instead write multiple statements in its body.
-    Finally, in Edel, every block introduces a new lexical scope~\ref{sec:scope}.
+    As previously mentioned, a block may be an expression or a statement, hence is permitted anywhere they would be expected.
+
+    Blocks in Edel introduce a new lexical scope (see section ~\ref{sec:scope} for scope resolution).
 
     \section{Types}\label{sec:types}
 
@@ -595,7 +611,25 @@ registerof a; // = -1
 
     \section{Control Flow}
 
-    \section{Scope \& Name Resolution}\label{sec:scope}
+    \section{Namespaces}
+
+    Namespaces allow the programmer to group related functions, variables etc. together in an environment.
+    Not only does this aid in organisation, but also helps to prevent naming collisions.
+
+    A namespace is created using the \texttt{namespace} keyword, and may contain any structure which is permitted at the global level.
+
+    \begin{lstlisting}[language=CustomLang]
+namespace maths {
+    func cos(x: double) -> double;
+}
+    \end{lstlisting}
+
+    To reference a name outside the namespace, its name must be prefixed by the namespace's name.
+
+    \begin{lstlisting}[language=CustomLang]
+cos(0); // error: unable to resolve symbol `sin'
+maths.cos(0); // = 1
+    \end{lstlisting}
 
     \section{Modules \& Imports}
 
