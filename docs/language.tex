@@ -320,6 +320,28 @@ func bar(a: float) { // equivalent to `-> ()'
 }
     \end{lstlisting}
 
+    \subsection{Calling Functions}
+
+    Functions are called by following the function name with brackets `\texttt{()}' (this is the operator name).
+    Any arguments to be supplied to the function are comma-separated inside these brackets, known as an \textit{argument list}.
+    A function with a matching signature is then found (see subsection ~\ref{subsec:function-overloading} on function overloading), and its return value produced.
+
+    \begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+let result = add(1, 4); // result: int = 5
+    \end{lstlisting}
+
+    Note that \texttt{()} is an operator like any other.
+    Therefore, if the subject is not a function type, an overload for \texttt{operator()} is searched for.
+    The signature will be the subject type followed by each argument's type.
+    For example,
+
+    \begin{lstlisting}[language=CustomLang]
+5(3.14, true); // operator()(i32, f32, bool)
+    \end{lstlisting}
+
     \subsection{Returning a Value}
 
     The \texttt{return} keyword is used to exit/return from the current function.
@@ -403,7 +425,7 @@ func imaginary_function(x: int) -> bool {
 
     Note that as this generates a definition, it cannot be re-defined.
 
-    \subsection{Function Overloading}
+    \subsection{Function Overloading}\label{subsec:function-overloading}
 
     A function in Edel is not only identified by its name, but also its \textit{signature}.
     The signature of a function is a combination of its name and parameter types.
