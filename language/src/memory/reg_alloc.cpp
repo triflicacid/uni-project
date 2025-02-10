@@ -45,16 +45,17 @@ void lang::memory::RegisterAllocationManager::save_store(bool save_registers) {
     // if asked, save any occupied registers to the stack
     int i = initial_register;
     for (auto& object : instances_.top().regs) {
-      if (object) {
+      if (object && object->required) {
         // create necessary space on the stack
         size_t bytes = object->size();
-        uint64_t offset = symbols_.stack().offset();
         symbols_.stack().push(bytes);
+
+        program_.current().back().comment() << "save $" << constants::registers::to_string($reg(i));
 
         // store data in register here
         assembly::create_store(
             i,
-            assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - offset),
+            assembly::Arg::reg_indirect(constants::registers::sp),
             bytes,
             program_.current()
         );
@@ -86,19 +87,21 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
 
     auto& regs = instances_.top().regs;;
     for (int i = regs.size() - 1; i >= 0; i--) {
-      if (auto& object = regs[i]) {
+      if (auto& object = regs[i]; object && object->required) {
         // determine offset to register save
         size_t bytes = object->size();
         addr -= bytes;
 
         // store region back in the correct register
+        int idx = program_.current().size();
         assembly::create_load(
             initial_register + i,
-            assembly::Arg::reg_indirect(constants::registers::sp, addr - symbols_.stack().offset()),
+            assembly::Arg::reg_indirect(constants::registers::sp, addr),
             bytes,
             program_.current(),
             false
           );
+        program_.current()[idx].comment() << "restore $" << constants::registers::to_string($reg(initial_register + i));
       }
     }
   }
@@ -274,22 +277,28 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
       const StorageLocation& storage = symbols_.locate(symbol.id())->get();
 
       int idx = program_.current().size();
-      if (storage.type == StorageLocation::Stack) {
-        program_.current().add(assembly::create_load(
-            location.offset,
-            assembly::Arg::reg_indirect(constants::registers::sp, symbols_.stack().offset() - storage.offset)
+      switch (storage.type) {
+        case StorageLocation::Block:
+          // load address into register
+          program_.current().add(assembly::create_load(
+              location.offset,
+              assembly::Arg::label(storage.block)
           ));
-      } else {
-        // load address into register
-        program_.current().add(assembly::create_load(
-            location.offset,
-            assembly::Arg::label(storage.block)
-        ));
-        // read register as an address (indirectly)
-        program_.current().add(assembly::create_load(
-            location.offset,
-            assembly::Arg::reg_indirect(location.offset)
-        ));
+          // read register as an address (indirectly)
+          // do not deference (essential) if pointer/function type
+          if (auto& type = symbol.type(); !type.get_pointer() && !type.get_func()) {
+            program_.current().add(assembly::create_load(
+                location.offset,
+                assembly::Arg::reg_indirect(location.offset)
+            ));
+          }
+          break;
+        case StorageLocation::Stack:
+          program_.current().add(assembly::create_load(
+              location.offset,
+              assembly::Arg::reg_indirect(constants::registers::fp, -storage.offset)
+          ));
+          break;
       }
 
       auto& comment = program_.current()[idx].comment();

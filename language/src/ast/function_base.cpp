@@ -97,17 +97,6 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
   if (!maybe_id.has_value()) return !is_implemented();
   id_ = maybe_id.value();
 
-  // create local registry
-  registry_ = std::make_unique<symbol::Registry>();
-
-  // collate parameter definitions
-  for (auto& param : params_) {
-    param->set_category(SymbolDeclarationNode::Argument); // ensure they are arguments
-    if (!param->collate_registry(messages, *registry_)) {
-      return false;
-    }
-  }
-
   return true;
 }
 
@@ -161,6 +150,26 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
 
   // enter the function
   ctx.symbols.enter_function(*this);
+  ctx.symbols.push();
+  ctx.reg_alloc_manager.save_store(false); // registers only need to be saved in asm on call
+
+  // process parameters - we know where they should be located
+  uint64_t offset = 0; // offset from $fp
+  for (const auto& param : params_) {
+    // increase offset by our width
+    auto& type = param->type();
+    offset += type.size();
+
+    // create argument symbol with this location
+    auto symbol = std::make_unique<symbol::Symbol>(param->name(), symbol::Category::Argument, type);
+    const symbol::SymbolId id = symbol->id();
+
+    // insert into scope, DO NOT allocate
+    ctx.symbols.insert(std::move(symbol), false);
+
+    // tell symbol table its stack location
+    ctx.symbols.allocate(id, memory::StorageLocation::stack(offset));
+  }
 
   // process as child directs
   if (!_process(ctx)) return false;
@@ -184,8 +193,12 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
     ctx.program.current().add(assembly::create_return());
   }
 
-  // restore cursor to previous block and exit function
+  // exit function
+  ctx.reg_alloc_manager.destroy_store(false);
+  ctx.symbols.pop();
   ctx.symbols.exit_function();
+
+  // move cursor back to previous position
   ctx.program.select(previous);
 
   return true;

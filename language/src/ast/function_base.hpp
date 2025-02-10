@@ -17,9 +17,8 @@ namespace lang::ast {
 
   protected:
     const type::FunctionNode& type_;
-    std::unique_ptr<symbol::Registry> registry_;
 
-    // processing once stack frame etc. have been set up
+    // processing once stack frame etc. have been set up but prior to cleanup
     virtual bool _process(lang::Context& ctx) = 0;
 
     // contents which precede argument list in print_code

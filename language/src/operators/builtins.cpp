@@ -10,20 +10,12 @@
 #include "ast/types/float.hpp"
 #include "ast/types/bool.hpp"
 
-enum class ArgSelect {
-  lhs, // lhs argument in binary operator
-  rhs, // lhs argument in binary operator
-  sole // sole argument in unary operator
-};
-
 using Args = const std::deque<std::reference_wrapper<const lang::value::Value>>&;
 
 // fetch the given argument, return assembly argument to resolve it
-static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args, ArgSelect arg_select) {
+static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args, int arg) {
   // determine argument offset based on selection
-  auto& value = arg_select == ArgSelect::rhs
-      ? args[1]
-      : args[0];
+  auto& value = args[arg];
   const lang::memory::Ref& ref = value.get().rvalue().ref();
   return ctx.reg_alloc_manager.resolve_ref(ref, true);
 }
@@ -31,11 +23,9 @@ static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args,
 // fetch the given argument, return assembly argument to resolve it
 // returns the register location, as we guarantee register placement
 // optionally, also guarantee the datatype
-static uint8_t fetch_reg(lang::Context& ctx, Args args, ArgSelect arg_select, std::optional<constants::inst::datatype::dt> cast_to = std::nullopt) {
+static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, std::optional<constants::inst::datatype::dt> cast_to = std::nullopt) {
   // determine argument offset based on selection
-  auto& value = arg_select == ArgSelect::rhs
-                ? args[1]
-                : args[0];
+  auto& value = args[arg_select];
   lang::memory::Ref ref = value.get().rvalue().ref();
 
   if (cast_to.has_value()) ref = ctx.reg_alloc_manager.guarantee_datatype(ref, cast_to.value());
@@ -198,14 +188,14 @@ namespace generators {
 
   // like generate_add, but for bitwise NOT
   static uint8_t generate_bitwise_not(Context& ctx, Args args) {
-    uint8_t reg = fetch_reg(ctx, args, ArgSelect::sole);
+    uint8_t reg = fetch_reg(ctx, args, 0);
     ctx.program.current().add(assembly::create_not(reg, reg));
     return reg;
   }
 
   // like generate_add, but for Boolean NOT
   static uint8_t generate_boolean_not(Context& ctx, Args args) {
-    uint8_t reg = fetch_reg(ctx, args, ArgSelect::sole);
+    uint8_t reg = fetch_reg(ctx, args, 0);
     ctx.program.current().add(assembly::create_xor(reg, reg, assembly::Arg::imm(1)));
     return reg;
   }
@@ -229,7 +219,7 @@ namespace generators {
 
   // like generate_add, but for negation
   static uint8_t generate_neg(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
-    uint8_t reg_arg = fetch_reg(ctx, args, ArgSelect::sole, datatype);
+    uint8_t reg_arg = fetch_reg(ctx, args, 0, datatype);
 
     // load 0 into register
     // TODO make more efficient?
@@ -497,15 +487,8 @@ lang::memory::Ref lang::ops::cast(lang::Context& ctx, const ast::type::Node& tar
   // get most recent location
   auto maybe_ref = ctx.reg_alloc_manager.get_recent();
   assert(maybe_ref.has_value());
-  const memory::Ref ref = maybe_ref.value();
 
-  // if types already match, exit
-  if (ctx.reg_alloc_manager.find(ref).value->type() == target) {
-    return ref;
-  }
-
-  // otherwise, convert!
-  return ctx.reg_alloc_manager.guarantee_datatype(ref, target);
+  return ctx.reg_alloc_manager.guarantee_datatype(maybe_ref.value(), target);
 }
 
 void lang::ops::generate_bool_cast(assembly::BasicBlock& block, uint8_t reg) {

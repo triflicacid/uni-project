@@ -79,8 +79,7 @@ lang::ast::type::FunctionNode::select_candidate(const std::deque<std::reference_
 }
 
 std::deque<std::reference_wrapper<const lang::ast::type::FunctionNode>>
-lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters,
-                                                 const std::deque<std::reference_wrapper<const FunctionNode>>& options) {
+lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::deque<std::reference_wrapper<const FunctionNode>>& options) {
   std::deque<std::reference_wrapper<const FunctionNode>> candidates;
   std::deque<int> scores; // measure similarity between parameters and candidates[i], i.e., how many params are equal
   int max_score = -1;

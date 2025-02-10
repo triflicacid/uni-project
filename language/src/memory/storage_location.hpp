@@ -9,7 +9,7 @@ namespace lang::memory {
   struct StorageLocation {
     enum Type {
       Block,
-      Stack
+      Stack, // offset `$sp + n`
     };
 
     Type type;
@@ -18,7 +18,10 @@ namespace lang::memory {
       std::reference_wrapper<assembly::BasicBlock> block;
     };
 
-    StorageLocation(uint64_t offset) : type(Stack), offset(offset) {}
-    StorageLocation(assembly::BasicBlock& block) : type(Block), block(block) {}
+    // location is based globally, tied to a block
+    static StorageLocation global(assembly::BasicBlock& block) { return StorageLocation{ .type = Block, .block = block }; }
+
+    // location is `offset` on the stack
+    static StorageLocation stack(uint64_t offset) { return StorageLocation{ .type = Stack, .offset = offset }; }
   };
 }

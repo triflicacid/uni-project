@@ -496,7 +496,7 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
   return args;
 }
 
-std::unique_ptr<lang::ast::FunctionCallNode> lang::parser::Parser::parse_function_call(std::unique_ptr<ast::Node> subject) {
+std::unique_ptr<lang::ast::FunctionCallOperatorNode> lang::parser::Parser::parse_function_call(std::unique_ptr<ast::Node> subject) {
   // '('
   const lexer::Token lpar = consume();
 
@@ -525,7 +525,7 @@ std::unique_ptr<lang::ast::FunctionCallNode> lang::parser::Parser::parse_functio
 
   // construct function call node
   const lexer::Token token_start = subject->token_start();
-  auto node = std::make_unique<ast::FunctionCallNode>(token_start, std::move(subject), std::move(args));
+  auto node = std::make_unique<ast::FunctionCallOperatorNode>(token_start, lpar, std::move(subject), std::move(args));
   node->token_end(rpar);
   return node;
 }

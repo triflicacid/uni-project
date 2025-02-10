@@ -10,7 +10,7 @@
 #include "ast/program.hpp"
 #include "ast/return.hpp"
 #include "ast/namespace.hpp"
-#include "ast/expr/function_call.hpp"
+#include "ast/expr/operator.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -100,7 +100,7 @@ namespace lang::parser {
     std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> parse_param_list();
 
     // parse a function call: given subject, parse argument list `(...)` and return node
-    std::unique_ptr<ast::FunctionCallNode> parse_function_call(std::unique_ptr<ast::Node> subject);
+    std::unique_ptr<ast::FunctionCallOperatorNode> parse_function_call(std::unique_ptr<ast::Node> subject);
 
     // parse a function statement
     std::unique_ptr<ast::FunctionNode> parse_func();

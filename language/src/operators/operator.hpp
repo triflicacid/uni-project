@@ -1,9 +1,14 @@
 #pragma once
 
 #include <string>
-#include <optional>
 #include <memory>
 #include <deque>
+#include "optional_ref.hpp"
+
+namespace message {
+  class MessageGenerator;
+  class List;
+}
 
 namespace lang::ast::type {
   class FunctionNode;
@@ -35,11 +40,14 @@ namespace lang::ops {
   };
 
   // get a list of references of operators with this name
-  std::deque<std::reference_wrapper<const Operator>> get(const std::string symbol);
+  std::deque<std::reference_wrapper<const Operator>> get(const std::string& symbol);
 
   // get a reference to the given operator, return None if it does not exist
-  std::optional<std::reference_wrapper<const Operator>> get(const std::string symbol, const ast::type::FunctionNode& type);
+  std::optional<std::reference_wrapper<const Operator>> get(const std::string& symbol, const ast::type::FunctionNode& type);
 
   // add operator to store
   void store_operator(std::unique_ptr<Operator> op);
+
+  // try to find the given operator, generating an error if not
+  optional_ref<const Operator> select_candidate(const std::string& symbol, const ast::type::FunctionNode& signature, const message::MessageGenerator& source, message::List& messages);
 }

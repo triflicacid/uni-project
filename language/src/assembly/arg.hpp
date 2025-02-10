@@ -54,7 +54,7 @@ namespace lang::assembly {
     static std::unique_ptr<Arg> mem(uint32_t addr);
 
     // create a register-indirect argument
-    static std::unique_ptr<Arg> reg_indirect(uint8_t reg, uint32_t offset = 0);
+    static std::unique_ptr<Arg> reg_indirect(uint8_t reg, int32_t offset = 0);
 
     // create an argument to a label
     static std::unique_ptr<LabelArg> label(const std::string& label);

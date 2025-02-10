@@ -36,6 +36,8 @@ namespace lang::value {
 
     void lvalue(std::unique_ptr<LValue> v);
 
+    void lvalue(const memory::Ref& ref);
+
     bool is_future_rvalue() const { return future_rvalue_; }
 
     bool is_rvalue() const { return rvalue_ != nullptr; }

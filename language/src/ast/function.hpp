@@ -7,6 +7,7 @@ namespace lang::ast {
 
   class FunctionNode : public FunctionBaseNode {
     std::optional<std::unique_ptr<BlockNode>> body_; // body is optional, empty = 'not implemented'
+    std::unique_ptr<symbol::Registry> registry_;
 
     bool _process(lang::Context &ctx) override;
 

@@ -103,68 +103,28 @@ bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
   if (!OperatorNode::process(ctx)) return false;
 
   // generate our signature
+  // TODO when adding user-defined overloads, we don't want to resolve args immediately
   std::deque<std::reference_wrapper<const type::Node>> arg_types;
-  for (auto& arg : args_) {
-    // fetch argument's value
-    const value::Value& value = arg->value();
-    if (value.is_future_rvalue() && !arg->resolve_rvalue(ctx)) return false;
-    // must be computable to a value (i.e., possible rvalue)
-    if (!value.is_rvalue()) {
-      auto msg = arg->generate_message(message::Error);
-      msg->get() << "expected rvalue, got ";
-      value.type().print_code(msg->get());
-      ctx.messages.add(std::move(msg));
-
-      msg = op_symbol_.generate_message(message::Note);
-      msg->get() << "while evaluating " << node_name();
-      ctx.messages.add(std::move(msg));
+  for (int i = 0; i < args_.size(); i++) {
+    if (auto value = get_arg_rvalue(ctx, i); value.has_value()) {
+      arg_types.push_back(value->get().type());
+    } else {
       return false;
     }
-    arg_types.push_back(value.type());
   }
   const auto& signature = type::FunctionNode::create(arg_types, std::nullopt);
   signature_ = signature;
 
-  // search for a matching operator
-  auto operators = ops::get(symbol());
+  // try to find candidate
+  auto maybe_op = ops::select_candidate(symbol(), signature, *this, ctx.messages);
+  if (!maybe_op.has_value()) return false;
+  op_ = maybe_op->get();
 
-  // extract types into an option list
-  std::deque<std::reference_wrapper<const type::FunctionNode>> candidates;
-  for (auto& op : operators) {
-    candidates.push_back(op.get().type());
-  }
+  // make sure to replace with the correct signature (esp. for the return type)
+  signature_ = op_->get().type();
+  value_ = value::rvalue(op_->get().type().returns());
 
-  // filter to viable candidates
-  candidates = signature.filter_candidates(candidates);
-
-  // if only one candidate remaining: this is us! use signature + name to find operator object
-  if (candidates.size() == 1) {
-    op_ = ops::get(symbol(), candidates.front());
-    signature_ = op_->get().type(); // make sure to replace with the correct signature (esp. for the return type)
-    value_ = value::rvalue(op_->get().type().returns());
-    return true;
-  }
-
-  // otherwise, if candidates is non-empty, we can narrow options down for message
-  if (!candidates.empty()) {
-    operators.clear();
-    for (auto& candidate : candidates) {
-      operators.push_back(ops::get(symbol(), candidate).value());
-    }
-  }
-
-  // error to user, reporting our candidate list
-  std::unique_ptr<message::BasicMessage> msg = generate_message(message::Error);
-  msg->get() << "unable to resolve a suitable candidate for " << to_string();
-  ctx.messages.add(std::move(msg));
-
-  for (auto& option : operators) {
-    msg = std::make_unique<message::BasicMessage>(message::Note);
-    msg->get() << "candidate: ";
-    option.get().print_code(msg->get());
-    ctx.messages.add(std::move(msg));
-  }
-  return false;
+  return true;
 }
 
 std::string lang::ast::OverloadableOperatorNode::to_string() const {
@@ -248,6 +208,7 @@ lang::ast::Node& lang::ast::OperatorNode::rhs_() const {
 lang::ast::CStyleCastOperatorNode::CStyleCastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
   : OperatorNode(token, token, {}), target_(target) {
   args_.push_back(std::move(expr));
+  token_end(args_.back()->token_end());
 
   std::stringstream stream;
   stream << '(';
@@ -275,9 +236,12 @@ bool lang::ast::CStyleCastOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
 lang::ast::DotOperatorNode::DotOperatorNode(lang::lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
   : OperatorNode(std::move(token), std::move(symbol), {}) {
+  token_start(lhs->token_start());
   token_end(rhs->token_end());
+
   args_.push_back(std::move(lhs));
   args_.push_back(std::move(rhs));
+
 }
 
 bool lang::ast::DotOperatorNode::process(lang::Context& ctx) {
@@ -319,6 +283,7 @@ bool lang::ast::DotOperatorNode::process(lang::Context& ctx) {
 
   // if base is a namespace, then this is a symbol reference
   // TODO add support for structs here
+  assert(lhs.type() == type::name_space);
   if (lhs.type() == type::name_space) {
     const symbol::Symbol& symbol = lhs.lvalue().get_symbol()->get();
     const std::string full_name = symbol.full_name() + "." + attr_;
@@ -330,9 +295,11 @@ bool lang::ast::DotOperatorNode::process(lang::Context& ctx) {
     }
 
     value_ = value::symbol_ref(full_name);
+    return true;
   }
 
-  throw std::runtime_error("DotOperatorNode::get_value");
+  // unreachable
+  return false;
 }
 
 bool lang::ast::DotOperatorNode::resolve_lvalue(lang::Context& ctx) {
@@ -363,7 +330,9 @@ bool lang::ast::DotOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
 lang::ast::AssignmentOperatorNode::AssignmentOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
     : OperatorNode(std::move(token), std::move(symbol), {}) {
+  token_start(lhs->token_start());
   token_end(rhs->token_end());
+
   args_.push_back(std::move(lhs));
   args_.push_back(std::move(rhs));
 }
@@ -388,17 +357,13 @@ bool lang::ast::AssignmentOperatorNode::process(lang::Context& ctx) {
   }
 
   // set value to LHS
-  value_ = value::rlvalue();
+  value_ = value::rlvalue(lhs.type());
 
-  return true;
-}
-
-bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
-  const auto& lhs = lhs_().value();
-
-  // if symbol is constant, error
+  // check if LHS is a symbol
   if (auto symbol_value = lhs.lvalue().get_symbol()) {
     const symbol::Symbol& symbol = symbol_value->get();
+
+    // cannot assign to a constant outside of declaration
     if (symbol.is_constant()) {
       auto msg = op_symbol_.generate_message(message::Error);
       msg->get() << "unable to assign to constant symbol";
@@ -409,9 +374,16 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
       ctx.messages.add(std::move(msg));
       return false;
     }
+
     // update resulting value
     value_->lvalue(std::make_unique<value::Symbol>(symbol));
   }
+
+  return true;
+}
+
+bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  const auto& lhs = lhs_().value();
 
   // evaluate RHS
   auto& rhs = rhs_().value();
@@ -420,6 +392,14 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // check that types match
   if (!type::graph.is_subtype(rhs.type().id(), lhs.type().id())) {
     ctx.messages.add(util::error_type_mismatch(op_symbol_, rhs.type(), lhs.type(), true));
+
+    // add note if assigning to a pointer
+    if (lhs.type().get_pointer()) {
+      auto msg = std::make_unique<message::BasicMessage>(message::Note);
+      msg->get() << "use the deference operator to update the value stored at the pointer";
+      ctx.messages.add(std::move(msg));
+    }
+
     return false;
   }
 
@@ -427,14 +407,22 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(rhs.rvalue().ref(), lhs.type());
   value_->rvalue(expr);
 
-  // load expr value into symbol
-  // TODO what if LHS if not a symbol
-  auto symbol = lhs.lvalue().get_symbol();
-  assert(symbol != nullptr);
-  ctx.symbols.assign_symbol(symbol->get().id(), expr.offset);
+  // if symbol, assign symbol to register
+  if (auto symbol = lhs.lvalue().get_symbol()) {
+    ctx.symbols.assign_symbol(symbol->get().id(), expr.offset);
 
-  // if symbol, evict it as it has been updated
-  ctx.reg_alloc_manager.evict(symbol->get());
+    // then evict it as it has been updated
+    ctx.reg_alloc_manager.evict(symbol->get());
+    return true;
+  }
+
+  // otherwise, treat as ptr
+  auto lvalue_ref = lhs.lvalue().get_ref();
+  assert(lvalue_ref);
+  ctx.program.current().add(assembly::create_store(
+      expr.offset,
+      assembly::Arg::reg_indirect(lvalue_ref->get().offset)
+    ));
 
   return true;
 }
@@ -442,6 +430,7 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
 lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
 : OperatorNode(token, token, {}), target_(target) {
   args_.push_back(std::move(expr));
+  token_end(args_.back()->token_end());
 }
 
 bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
@@ -484,6 +473,7 @@ std::ostream& lang::ast::CastOperatorNode::print_tree(std::ostream& os, unsigned
 
 lang::ast::RegisterOfOperatorNode::RegisterOfOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
 : OperatorNode(token, token, {}) {
+  token_end(expr->token_end());
   args_.push_back(std::move(expr));
 }
 
@@ -536,20 +526,17 @@ bool lang::ast::RegisterOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
 lang::ast::AddressOfOperatorNode::AddressOfOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
     : OperatorNode(token, token, {}) {
+  token_end(expr->token_end());
   args_.push_back(std::move(expr));
 }
 
 bool lang::ast::AddressOfOperatorNode::process(lang::Context& ctx) {
   if (!OperatorNode::process(ctx)) return false;
-  value_ = value::rvalue();
-  return true;
-}
 
-bool lang::ast::AddressOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // get argument value, expect symbol
   Node& arg = *args_.front();
   const value::Value& value = arg.value();
-  if (!arg.resolve_value(ctx)) return {};
+  if (!arg.resolve_lvalue(ctx)) return {};
   // must be computable to a value (i.e., possible rvalue)
   if (!value.is_lvalue() || !value.lvalue().get_symbol()) {
     auto msg = arg.generate_message(message::Error);
@@ -565,12 +552,23 @@ bool lang::ast::AddressOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
   // get the symbol
   const symbol::Symbol& symbol = arg.value().lvalue().get_symbol()->get();
+  symbol_ = symbol;
 
-  // get location (must have size then)
+  // get the type and set our type
+  auto& ptr_type = type::PointerNode::get(symbol.type());
+  value_ = value::rvalue(ptr_type);
+  return true;
+}
+
+bool lang::ast::AddressOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  assert(symbol_.has_value());
+
+  // get location of the symbol (must have size then)
+  const symbol::Symbol& symbol = symbol_->get();
   auto maybe_location = ctx.symbols.locate(symbol.id());
 
   if (!maybe_location) {
-    auto msg = arg.generate_message(message::Error);
+    auto msg = args_.front()->generate_message(message::Error);
     msg->get() << "symbol of type ";
     symbol.type().print_code(msg->get());
     msg->get() << " does not have an address";
@@ -581,9 +579,6 @@ bool lang::ast::AddressOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
     ctx.messages.add(std::move(msg));
     return false;
   }
-
-  // determine resultant type
-  const type::PointerNode& ptr_type = type::PointerNode::get(symbol.type());
 
   // find destination register
   memory::Ref ref = ctx.reg_alloc_manager.insert({nullptr});
@@ -623,6 +618,7 @@ bool lang::ast::AddressOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
   }
 
   // add comment
+  auto& ptr_type = value_->type();
   auto& comment = ctx.program.current().back().comment();
   comment << op_symbol_.image << symbol.full_name() << ": ";
   ptr_type.print_code(comment);
@@ -632,22 +628,18 @@ bool lang::ast::AddressOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
   object.value = value::rvalue(ptr_type);
   object.value->rvalue(ref);
   value_->rvalue(std::make_unique<value::RValue>(ptr_type, ref));
-
   return true;
 }
 
 lang::ast::DereferenceOperatorNode::DereferenceOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
     : OperatorNode(token, token, {}) {
+  token_end(expr->token_end());
   args_.push_back(std::move(expr));
 }
 
 bool lang::ast::DereferenceOperatorNode::process(lang::Context& ctx) {
   if (!OperatorNode::process(ctx)) return false;
-  value_ = value::rvalue();
-  return true;
-}
 
-bool lang::ast::DereferenceOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // expect rvalue
   if (!get_arg_rvalue(ctx, 0)) return false;
 
@@ -668,10 +660,31 @@ bool lang::ast::DereferenceOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
   // get the inner type (pointer minus star)
   const auto& deref_type = ptr_type->unwrap();
+  value_ = value::rlvalue(deref_type);
+  return true;
+}
+
+bool lang::ast::DereferenceOperatorNode::resolve_lvalue(lang::Context& ctx) {
+  Node& arg = *args_.front();
 
   // get the source (pointer location)
   memory::Ref src = arg.value().rvalue().ref();
   src = ctx.reg_alloc_manager.guarantee_register(src);
+
+  // update value to point to the original
+  value_->lvalue(src);
+
+  return true;
+}
+
+bool lang::ast::DereferenceOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  if (!resolve_lvalue(ctx)) return false;
+
+  Node& arg = *args_.front();
+  const auto& deref_type = value_->type();
+
+  // get the source (pointer location)
+  const memory::Ref& src = value_->lvalue().get_ref()->get();
 
   // reserve a register to place the result
   memory::Ref dest = ctx.reg_alloc_manager.insert({nullptr});
@@ -692,7 +705,190 @@ bool lang::ast::DereferenceOperatorNode::resolve_rvalue(lang::Context& ctx) {
   memory::Object& object = ctx.reg_alloc_manager.find(dest);
   object.value = value::rvalue(deref_type);
   object.value->rvalue(dest);
-  value_->rvalue(std::make_unique<value::RValue>(deref_type, dest));
+
+  value_->rvalue(dest);
 
   return true;
 }
+
+lang::ast::FunctionCallOperatorNode::FunctionCallOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> subject, std::deque<std::unique_ptr<Node>> args)
+  : OperatorNode(token, token, std::move(args)), subject_(std::move(subject)) {
+  token_start(subject_->token_start());
+  token_end(args_.back()->token_end());
+}
+
+bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
+  // process our subject and children
+  if (!subject_->process(ctx) || !OperatorNode::process(ctx))
+    return false;
+
+  // get type of each argument
+  std::deque<std::reference_wrapper<const type::Node>> arg_types;
+  for (auto& arg : args_) {
+    if (!arg->resolve_lvalue(ctx)) return false;
+    arg_types.push_back(arg->value().type());
+  }
+
+  // if subject is a symbol ref...
+  if (auto symbol_ref = subject_->value().get_symbol_ref()) {
+    // get all possible symbols
+    const std::string& name = symbol_ref->get();
+    auto symbols = ctx.symbols.find(name);
+
+    // if no symbols, this is easy
+    if (symbols.empty()) {
+      ctx.messages.add(util::error_unresolved_symbol(*subject_, name));
+      return false;
+    }
+
+    // extract function types into an option list
+    std::deque<std::reference_wrapper<const type::FunctionNode>> candidates;
+    for (auto& symbol : symbols) {
+      if (auto func_type = symbol.get().type().get_func())
+        candidates.push_back(*func_type);
+    }
+
+    // if no candidates immediately, means it is not a function, so continue as normal
+    if (!candidates.empty()) {
+// filter to viable candidates
+      candidates = type::FunctionNode::filter_candidates(arg_types, candidates);
+
+      // if only one candidate remaining, this is good!
+      if (candidates.size() == 1) {
+        // update signature
+        symbol::Symbol& symbol = ctx.symbols.find(name, candidates.front()).value();
+        signature_ = candidates.front();
+        func_name_ = name;
+
+        // record function's location
+        loc_ = ctx.symbols.locate(symbol.id());
+        assert(loc_.has_value());
+
+        value_ = value::rvalue(signature_->get().returns());
+        return true;
+      }
+
+      // otherwise, we have insufficient information
+      auto msg = generate_message(message::Error);
+      msg->get() << "unable to resolve a suitable overload for " << name << "(";
+      for (int i = 0; i < arg_types.size(); i++) {
+        arg_types[i].get().print_code(msg->get());
+        if (i + 1 < arg_types.size()) msg->get() << ", ";
+      }
+      msg->get() << ")";
+      ctx.messages.add(std::move(msg));
+
+      // print *function* candidates
+      for (const symbol::Symbol& symbol : symbols) {
+        if (auto func_type = symbol.type().get_func()) {
+          msg = symbol.token().generate_message(message::Note);
+          msg->get() << "candidate: " << symbol.full_name();
+          func_type->print_code(msg->get());
+          ctx.messages.add(std::move(msg));
+        }
+      }
+      return false;
+    }
+  }
+
+  // TODO what if value has function type?
+
+  // otherwise, we need to hunt for an overload
+  // first, evaluate our subject
+  if (!subject_->resolve_rvalue(ctx)) return false;
+
+  // add the subject's type to the signature
+  arg_types.push_front(subject_->value().type());
+  const auto& signature = type::FunctionNode::create(arg_types, std::nullopt);
+  signature_ = signature;
+
+  // try to find candidate
+  auto op = ops::select_candidate("()", signature, *this, ctx.messages);
+  if (!op.has_value()) return false;
+
+  // make sure to replace with the correct signature (esp. for the return type)
+  signature_ = op->get().type();
+  value_ = value::rvalue(op->get().type().returns());
+
+  return true;
+}
+
+bool lang::ast::FunctionCallOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  assert(loc_.has_value());
+
+  // save registers
+  ctx.reg_alloc_manager.save_store(true);
+
+  // save $fp
+  ctx.stack_manager.push_frame(true);
+
+  // push arguments
+  for (int i = 0; i < args_.size(); i++) {
+    auto value = get_arg_rvalue(ctx, i);
+    if (!value.has_value()) return false;
+
+    // get location of the argument
+    const memory::Ref location = value->get().rvalue().ref();
+
+    // create necessary space on the stack
+    size_t bytes = value->get().type().size();
+    ctx.stack_manager.push(bytes);
+    ctx.program.current().back().comment() << "arg #" << (i + 1);
+
+    // store data in register here
+    assembly::create_store(
+        location.offset,
+        assembly::Arg::reg_indirect(constants::registers::sp),
+        bytes,
+        ctx.program.current()
+    );
+
+    // we are done with this register now
+    ctx.reg_alloc_manager.mark_free(location);
+  }
+
+  // call the function (via jal) and add comment
+  auto arg = ctx.symbols.resolve_location(loc_->get());
+  ctx.program.current().add(assembly::create_jump_and_link(std::move(arg)));
+  auto& comment = ctx.program.current().back().comment();
+  comment << "call " << func_name_;
+  signature_->get().print_code(comment);
+
+  // update value_'s location
+  value_->rvalue(memory::Ref::reg(constants::registers::ret));
+
+  // restore $sp
+  ctx.stack_manager.pop_frame(true);
+
+  // restore registers
+  ctx.reg_alloc_manager.destroy_store(true);
+
+  return true;
+}
+
+std::ostream& lang::ast::FunctionCallOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
+  subject_->print_code(os, indent_level);
+  os << "(";
+
+  for (int i = 0; i < args_.size(); i++) {
+    args_[i]->print_code(os);
+    if (i < args_.size() - 1) os << std::endl;
+  }
+
+  return os << ")";
+}
+
+std::ostream& lang::ast::FunctionCallOperatorNode::print_tree(std::ostream& os, unsigned int indent_level) const {
+  Node::print_tree(os, indent_level);
+
+  os << std::endl;
+  subject_->print_tree(os, indent_level + 1);
+
+  for (auto& arg : args_) {
+    os << std::endl;
+    arg->print_tree(os, indent_level + 1);
+  }
+
+  return os;
+}
+

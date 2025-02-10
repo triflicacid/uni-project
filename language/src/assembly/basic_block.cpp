@@ -1,4 +1,5 @@
 #include "basic_block.hpp"
+#include "config.hpp"
 
 lang::assembly::BasicBlock& lang::assembly::BasicBlock::add(std::unique_ptr<Line> i) {
   contents_.push_back(std::move(i));
@@ -12,8 +13,9 @@ std::ostream& lang::assembly::BasicBlock::print(std::ostream& os) const {
   os << std::endl;
 
   // print our instructions
-  for (auto& instruction : contents_) {
-    instruction->print(os) << std::endl;
+  for (auto& line : contents_) {
+    if (conf::indent_asm_code) os << "  ";
+    line->print(os) << std::endl;
   }
 
   return os;

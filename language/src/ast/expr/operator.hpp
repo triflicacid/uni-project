@@ -3,6 +3,7 @@
 #include "ast/node.hpp"
 #include "operators/info.hpp"
 #include "optional_ref.hpp"
+#include "memory/storage_location.hpp"
 
 namespace lang::ops {
   class Operator;
@@ -142,6 +143,8 @@ namespace lang::ast {
   // represents &expr
   // returns/computes the address of the given lvalue
   class AddressOfOperatorNode : public OperatorNode {
+    optional_ref<const symbol::Symbol> symbol_;
+
   public:
     AddressOfOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
 
@@ -159,5 +162,29 @@ namespace lang::ast {
     bool process(lang::Context &ctx) override;
 
     bool resolve_rvalue(lang::Context &ctx) override;
+
+    bool resolve_lvalue(lang::Context &ctx) override;
+  };
+
+  // represents expr(<args>)
+  // i.e., a function call but generalised
+  class FunctionCallOperatorNode : public OperatorNode {
+    std::unique_ptr<Node> subject_; // note, args_ only contains things in (...)
+    optional_ref<const type::FunctionNode> signature_;
+    std::string func_name_; // function name, printed in asm comment
+    optional_ref<const memory::StorageLocation> loc_; // location of function
+
+  public:
+    FunctionCallOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> subject, std::deque<std::unique_ptr<Node>> args);
+
+    std::string node_name() const override { return "function call"; }
+
+    bool process(lang::Context &ctx) override;
+
+    bool resolve_rvalue(lang::Context &ctx) override;
+
+    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
   };
 }

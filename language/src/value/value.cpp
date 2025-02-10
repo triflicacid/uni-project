@@ -37,6 +37,11 @@ void lang::value::Value::rvalue(const lang::memory::Ref& ref) {
   rvalue_ = std::make_unique<value::RValue>(type_, ref);
 }
 
+void lang::value::Value::lvalue(const lang::memory::Ref& ref) {
+  future_lvalue_ = false;
+  lvalue_ = std::make_unique<value::Reference>(type_, ref);
+}
+
 std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(lang::Context& ctx, const message::MessageGenerator& source, bool generate_messages) const {
   const auto candidates = ctx.symbols.find(name_);
 

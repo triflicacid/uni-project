@@ -1,5 +1,7 @@
 #pragma once
 
+#include "memory/ref.hpp"
+
 namespace lang::ast::type {
   class Node;
 }
@@ -10,7 +12,7 @@ namespace lang::symbol {
 
 namespace lang::value {
   class Symbol;
-  class Address;
+  class Reference;
 
   // an lvalue is something with storage
   class LValue {
@@ -23,7 +25,7 @@ namespace lang::value {
 
     virtual const Symbol* get_symbol() const { return nullptr; }
 
-    virtual const Address* get_address() const { return nullptr; }
+    virtual const Reference* get_ref() const { return nullptr; }
   };
 
   // this lvalue refers to a symbol
@@ -38,15 +40,15 @@ namespace lang::value {
     const symbol::Symbol& get() const { return symbol_; }
   };
 
-  // this lvalue refers to an address (e.g., dereferenced pointer)
-  class Address : public LValue {
-    uint64_t addr_;
+  // this lvalue refers to a location
+  class Reference : public LValue {
+    memory::Ref ref_;
 
   public:
-    Address(const ast::type::Node& type, uint64_t addr) : LValue(type), addr_(addr) {}
+    Reference(const ast::type::Node& type, memory::Ref ref) : LValue(type), ref_(std::move(ref)) {}
 
-    const Address* get_address() const override { return this; }
+    const Reference* get_ref() const override { return this; }
 
-    uint64_t get() const { return addr_; }
+    const memory::Ref& get() const { return ref_; }
   };
 }

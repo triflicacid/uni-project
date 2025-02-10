@@ -40,8 +40,9 @@ bool lang::ast::FunctionNode::collate_registry(message::List& messages, lang::sy
   if (!FunctionBaseNode::collate_registry(messages, registry))
     return false;
 
-  // collate function body with our registry
+  // ensure our body has no scope
   if (body_.has_value()) {
+    registry_ = std::make_unique<symbol::Registry>();
     body_.value()->add_new_scope(false);
     if (!body_.value()->collate_registry(messages, *registry_))
       return false;
@@ -51,22 +52,15 @@ bool lang::ast::FunctionNode::collate_registry(message::List& messages, lang::sy
 }
 
 bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
-  // insert our registry into the symbol table
-  ctx.symbols.push();
+  // if no body, we are fine
+  if (!body_.has_value()) return true;
+
+  // add registry to our scope
   ctx.symbols.insert(*registry_);
+  registry_ = nullptr;
 
-  // if we have no body, this is *really* easy
-  if (body_.has_value()) {
-    if (!body_.value()->process(ctx)) return false;
-  } else {
-    // just return TODO type??
-    ctx.program.current().add(assembly::create_return());
-  }
-
-  // remove function scope
-  ctx.symbols.pop();
-
-  return true;
+  // finally, process our body
+  return body_->get()->process(ctx);
 }
 
 bool lang::ast::FunctionNode::always_returns() const {

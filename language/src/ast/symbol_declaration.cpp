@@ -125,6 +125,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   if (value.type().size() == 0) return true;
 
   // must have a ref, i.e., rvalue
+
   if (!value.is_rvalue()) {
     auto msg = assignment_->get()->generate_message(message::Error);
     msg->get() << "expected rvalue, got ";
@@ -144,6 +145,9 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   obj_value->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
   obj_value->rvalue(expr);
   ctx.reg_alloc_manager.update(expr, memory::Object(std::move(obj_value)));
+
+  // mark as free, though, as it is not required
+  ctx.reg_alloc_manager.mark_free(expr);
 
   return true;
 }

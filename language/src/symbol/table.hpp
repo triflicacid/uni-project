@@ -55,6 +55,9 @@ namespace lang::symbol {
     // note, be careful not to allocate scope's in a different order
     void allocate(SymbolId symbol);
 
+    // tell symbol where it is located
+    void allocate(SymbolId symbol, memory::StorageLocation location);
+
     // get the storage location of the given symbol
     // may be optional if the symbol (1) has not been allocated, or (2) has no physical width (e.g., a namespace)
     std::optional<std::reference_wrapper<const memory::StorageLocation>> locate(SymbolId symbol) const;

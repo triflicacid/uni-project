@@ -1,3 +1,13 @@
-func add(a: int, b: long) -> long;
-func add(a: long, b: int) -> long;
+namespace maths {
 
+func add(a: int, b: int) -> long {
+    return a + b;
+}
+
+func add(a: float, b: float) -> double {
+    return a + b;
+}
+
+}
+
+maths.add(1, 2);
