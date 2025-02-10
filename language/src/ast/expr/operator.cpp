@@ -729,6 +729,14 @@ lang::ast::FunctionCallOperatorNode::FunctionCallOperatorNode(lang::lexer::Token
   if (!args_.empty()) token_end(args_.back()->token_end());
 }
 
+bool lang::ast::FunctionCallOperatorNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
+  if (!subject_->collate_registry(messages, registry)) return false;
+  for (auto& arg : args_) {
+    if (!arg->collate_registry(messages, registry)) return false;
+  }
+  return true;
+}
+
 bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
   // process our subject and children
   if (!subject_->process(ctx) || !OperatorNode::process(ctx))
@@ -903,4 +911,3 @@ std::ostream& lang::ast::FunctionCallOperatorNode::print_tree(std::ostream& os, 
 
   return os;
 }
-

@@ -179,6 +179,8 @@ namespace lang::ast {
 
     std::string node_name() const override { return "function call"; }
 
+    bool collate_registry(message::List &messages, symbol::Registry &registry) override;
+
     bool process(lang::Context &ctx) override;
 
     bool resolve_rvalue(lang::Context &ctx) override;
