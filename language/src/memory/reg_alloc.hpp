@@ -109,15 +109,9 @@ namespace lang::memory {
     // i.e., if in memory, insert into a register
     Ref guarantee_register(const Ref& ref);
 
-    // ensure `Ref` is of the given asm datatype - if not, a conversion is emitted
+    // ensure `Ref` is of the given datatype - if not, a conversion is emitted
     // note, this also guarantees the value is in a register
-    Ref guarantee_datatype(const Ref& ref, constants::inst::datatype::dt target);
-
-    // same as other guarantee_datatype, but handles Booleans as well
     Ref guarantee_datatype(const Ref& ref, const ast::type::Node& target);
-
-    // like guarantee datatype, but for Boolean
-    Ref guarantee_boolean(const Ref& ref);
 
     // create assembly argument resolving a reference
     // argument: mark as free?

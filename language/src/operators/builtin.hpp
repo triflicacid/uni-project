@@ -35,10 +35,10 @@ namespace lang::ops {
   // initialise builtins
   void init_builtins();
 
-  // generate a conversion for the current register to `target`
-  // return resulting Ref
-  memory::Ref cast(lang::Context& ctx, const ast::type::Node& target);
+  // generate a conversion for `reg` to the target type
+  // (if types are equal, do nothing)
+  void cast(assembly::BasicBlock& block, uint8_t reg, constants::inst::datatype::dt original, constants::inst::datatype::dt target);
 
   // generate code for a Boolean cast, but does not update the register
-  void generate_bool_cast(assembly::BasicBlock& block, uint8_t reg);
+  void boolean_cast(assembly::BasicBlock& block, uint8_t reg);
 }

@@ -1,7 +1,2 @@
-namespace maths {
-    func sin(x: double) -> double;
-}
-
-namespace maths {
-    func cos(x: double) -> double;
-}
+let p = 1u64 as *i32;
+p + 1;

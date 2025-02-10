@@ -348,75 +348,51 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_register(co
   return ref;
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(const lang::memory::Ref& old_ref, constants::inst::datatype::dt target) {
+lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(const lang::memory::Ref& old_ref, const lang::ast::type::Node& target) {
+  assert(target.size() > 0);
+
   // first, we must be in a register
   Ref ref = guarantee_register(old_ref);
 
+  // fetch the object stored here
   auto& object = instances_.top().regs[ref.offset - initial_register];
   assert(object.has_value());
-  auto original = static_cast<constants::inst::datatype::dt>(255);
 
-  if (object->value->is_lvalue() && object->value->lvalue().get_symbol()) {
-    auto& symbol = object->value->lvalue().get_symbol()->get();
-    // get original datatype
-    auto &type = symbol.type();
-    original = symbol.type().get_asm_datatype();
-    if (target != original) {
+  // doe the types already match?
+  if (object->value->type() == target) {
+    return ref;
+  }
+
+  // if Boolean, do something special
+  if (target == ast::type::boolean) {
+    ops::boolean_cast(program_.current(), ref.offset);
+  } else {
+    // otherwise, analyse what Object contains and update the type accordingly
+    // also track if we need to actually emit any instructions
+    auto asm_original = static_cast<constants::inst::datatype::dt>(255);
+
+    if (object->value->is_lvalue() && object->value->lvalue().get_symbol()) {
+      auto& symbol = object->value->lvalue().get_symbol()->get();
+      // get original datatype
+      auto& type = symbol.type();
+      asm_original = symbol.type().get_asm_datatype();
       // remove lvalue, we are only an rvalue now
       object = Object(value::rvalue());
-      object->value->rvalue(std::make_unique<value::RValue>(ast::type::from_asm_type(target), ref));
-    }
-  } else if (object->value->is_rvalue() && object->value->rvalue().get_literal()) {
-    const Literal& literal = object->value->rvalue().get_literal()->get();
-    // get original datatype
-    original = literal.type().get_asm_datatype();
-    if (target != original) {
+      object->value->rvalue(std::make_unique<value::RValue>(target, ref));
+    } else if (object->value->is_rvalue() && object->value->rvalue().get_literal()) {
+      const Literal& literal = object->value->rvalue().get_literal()->get();
+      // get original datatype
+      asm_original = literal.type().get_asm_datatype();
       // update Object's contents
-      object->value->rvalue(std::make_unique<value::Literal>(Literal::get(ast::type::from_asm_type(target), literal.data()), ref));
+      object->value->rvalue(std::make_unique<value::Literal>(Literal::get(target, literal.data()), ref));
+    } else {
+      // can't do anything, we have no further information
+      return ref;
     }
-  } else {
-    // can't do anything, we have no further information
-    return ref;
+
+    // emit cast instructions if necessary
+    ops::cast(program_.current(), ref.offset, asm_original, target.get_asm_datatype());
   }
-
-  // emit instruction if needs be
-  if (original != target) {
-    program_.current().add(assembly::create_conversion(original, ref.offset, target, ref.offset));
-    auto& comment = program_.current().back().comment();
-    ast::type::from_asm_type(original).print_code(comment);
-    comment << " -> ";
-    ast::type::from_asm_type(target).print_code(comment);
-  }
-
-  return ref;
-}
-
-lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(const lang::memory::Ref& ref, const lang::ast::type::Node& target) {
-  if (target == ast::type::boolean) {
-    return guarantee_boolean(ref);
-  } else {
-    return guarantee_datatype(ref, target.get_asm_datatype());
-  }
-}
-
-lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_boolean(const lang::memory::Ref& old_ref) {
-  // first, we must be in a register
-  Ref ref = guarantee_register(old_ref);
-
-  auto& object = instances_.top().regs[ref.offset - initial_register];
-  assert(object.has_value());
-
-  // if we are not an rvalue, or already a Boolean, exit
-  if (!object->value->is_rvalue() || object->value->type() == ast::type::boolean) {
-    return ref;
-  }
-
-  // generate code for the cast
-  ops::generate_bool_cast(program_.current(), ref.offset);
-
-  // update object in memory
-  object = Object(value::rvalue());
-  object->value->rvalue(std::make_unique<value::RValue>(ast::type::boolean, ref));
 
   return ref;
 }

@@ -23,7 +23,7 @@ static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args,
 // fetch the given argument, return assembly argument to resolve it
 // returns the register location, as we guarantee register placement
 // optionally, also guarantee the datatype
-static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, std::optional<constants::inst::datatype::dt> cast_to = std::nullopt) {
+static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional_ref<const lang::ast::type::Node> cast_to = std::nullopt) {
   // determine argument offset based on selection
   auto& value = args[arg_select];
   lang::memory::Ref ref = value.get().rvalue().ref();
@@ -36,7 +36,7 @@ static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, std::opt
 // fetch LHS and RHS argument pair, enforcing at least one is in a register
 // return <register argument, other argument>
 // argument: cast arguments to this type?
-static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx, Args args, std::optional<constants::inst::datatype::dt> cast_to = std::nullopt) {
+static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx, Args args, optional_ref<const lang::ast::type::Node> cast_to = std::nullopt) {
   // fetch references to lhs and rhs
   const auto& lhs = args[0].get();
   lang::memory::Ref lhs_ref = lhs.rvalue().ref();
@@ -117,30 +117,30 @@ namespace generators {
   // generate an addition instruction for the given asm datatype
   // assume values stored in LHS and RHS are compatible with the asm datatype
   // return which register the result is in
-  static uint8_t generate_add(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
+  static uint8_t generate_add(Context& ctx, Args args, const ast::type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
-    ctx.program.current().add(assembly::create_add(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    ctx.program.current().add(assembly::create_add(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // like generate_add, but for subtraction
-  static uint8_t generate_sub(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
+  static uint8_t generate_sub(Context& ctx, Args args, const ast::type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
-    ctx.program.current().add(assembly::create_sub(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    ctx.program.current().add(assembly::create_sub(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // like generate_add, but for multiplication
-  static uint8_t generate_mul(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
+  static uint8_t generate_mul(Context& ctx, Args args, const ast::type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
-    ctx.program.current().add(assembly::create_mul(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    ctx.program.current().add(assembly::create_mul(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // like generate_add, but for multiplication
-  static uint8_t generate_div(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
+  static uint8_t generate_div(Context& ctx, Args args, const ast::type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
-    ctx.program.current().add(assembly::create_div(datatype, reg_arg, reg_arg, std::move(other_arg)));
+    ctx.program.current().add(assembly::create_div(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
@@ -201,14 +201,14 @@ namespace generators {
   }
 
   // like generate_add, but for a comparison
-  static uint8_t generate_cmp(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
+  static uint8_t generate_cmp(Context& ctx, Args args, const ast::type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
-    ctx.program.current().add(assembly::create_comparison(datatype, reg_arg, std::move(other_arg)));
+    ctx.program.current().add(assembly::create_comparison(datatype.get_asm_datatype(), reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // generate a comparison, setting a Boolean result if equal to a test flag
-  static uint8_t generate_cmp_bool(Context& ctx, Args args, constants::inst::datatype::dt datatype, constants::cmp::flag cmp) {
+  static uint8_t generate_cmp_bool(Context& ctx, Args args, std::reference_wrapper<const ast::type::Node> datatype, constants::cmp::flag cmp) {
     uint8_t reg = generate_cmp(ctx, args, datatype);
     // zero-out the register
     ctx.program.current().add(assembly::create_zero(reg));
@@ -218,16 +218,16 @@ namespace generators {
   }
 
   // like generate_add, but for negation
-  static uint8_t generate_neg(Context& ctx, Args args, constants::inst::datatype::dt datatype) {
+  static uint8_t generate_neg(Context& ctx, Args args, const ast::type::Node& datatype) {
     uint8_t reg_arg = fetch_reg(ctx, args, 0, datatype);
 
     // load 0 into register
     // TODO make more efficient?
     // TODO how can we ensure both are in a register?
-    const memory::Literal& zero = memory::Literal::zero(ast::type::from_asm_type(datatype));
+    const memory::Literal& zero = memory::Literal::zero(datatype);
     memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(ctx.reg_alloc_manager.find_or_insert(zero));
 
-    ctx.program.current().add(assembly::create_sub(datatype, reg_arg, ref.offset, assembly::Arg::reg(reg_arg)));
+    ctx.program.current().add(assembly::create_sub(datatype.get_asm_datatype(), reg_arg, ref.offset, assembly::Arg::reg(reg_arg)));
     return reg_arg;
   }
 }
@@ -240,13 +240,11 @@ namespace init_builtin {
   static void addition() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
-      const auto asm_type = type.get().get_asm_datatype();
-
       // operator+(T, T)
       store_operator(std::make_unique<BuiltinOperator>(
           "+",
           FunctionNode::create({type, type}, type),
-          [asm_type](Context& ctx, Args args) { return generators::generate_add(ctx, args, asm_type); }
+          [type](Context& ctx, Args args) { return generators::generate_add(ctx, args, type); }
       ));
     }
   }
@@ -254,13 +252,11 @@ namespace init_builtin {
   static void subtraction() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
-      const auto asm_type = type.get().get_asm_datatype();
-
       // operator-(T, T)
       store_operator(std::make_unique<BuiltinOperator>(
           "-",
           FunctionNode::create({type, type}, type),
-          [asm_type](Context& ctx, Args args) { return generators::generate_sub(ctx, args, asm_type); }
+          [type](Context& ctx, Args args) { return generators::generate_sub(ctx, args, type); }
       ));
     }
   }
@@ -268,13 +264,11 @@ namespace init_builtin {
   static void multiplication() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
-      const auto asm_type = type.get().get_asm_datatype();
-
       // operator*(T, T)
       store_operator(std::make_unique<BuiltinOperator>(
           "*",
           FunctionNode::create({type, type}, type),
-          [asm_type](Context& ctx, Args args) { return generators::generate_mul(ctx, args, asm_type); }
+          [type](Context& ctx, Args args) { return generators::generate_mul(ctx, args, type); }
       ));
     }
   }
@@ -282,13 +276,11 @@ namespace init_builtin {
   static void division() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
-      const auto asm_type = type.get().get_asm_datatype();
-
       // operator/(T, T)
       store_operator(std::make_unique<BuiltinOperator>(
           "/",
           FunctionNode::create({type, type}, type),
-          [asm_type](Context& ctx, Args args) { return generators::generate_div(ctx, args, asm_type); }
+          [type](Context& ctx, Args args) { return generators::generate_div(ctx, args, type); }
       ));
     }
   }
@@ -393,14 +385,12 @@ namespace init_builtin {
     };
 
     for (const auto& [op, cmp] : ops) {
-      for (const Node& type : numerical) {
-        const auto asm_type = type.get_asm_datatype();
-
+      for (const auto& type : numerical) {
         // operatorX(T, T)
         store_operator(std::make_unique<BuiltinOperator>(
             op,
             FunctionNode::create({type, type}, boolean),
-            [cmp, asm_type](Context& ctx, Args args) { return generators::generate_cmp_bool(ctx, args, asm_type, cmp); }
+            [cmp, type](Context& ctx, Args args) { return generators::generate_cmp_bool(ctx, args, type, cmp); }
         ));
       }
     }
@@ -452,13 +442,11 @@ namespace init_builtin {
   static void negation() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
-      const auto asm_type = type.get().get_asm_datatype();
-
       // operator-(T)
       store_operator(std::make_unique<BuiltinOperator>(
           "-",
           FunctionNode::create({type}, type),
-          [asm_type](Context& ctx, Args args) { return generators::generate_neg(ctx, args, asm_type); }
+          [type](Context& ctx, Args args) { return generators::generate_neg(ctx, args, type); }
       ));
     }
   }
@@ -481,17 +469,7 @@ void lang::ops::init_builtins() {
   negation();
 }
 
-lang::memory::Ref lang::ops::cast(lang::Context& ctx, const ast::type::Node& target) {
-  assert(target.size() > 0);
-
-  // get most recent location
-  auto maybe_ref = ctx.reg_alloc_manager.get_recent();
-  assert(maybe_ref.has_value());
-
-  return ctx.reg_alloc_manager.guarantee_datatype(maybe_ref.value(), target);
-}
-
-void lang::ops::generate_bool_cast(assembly::BasicBlock& block, uint8_t reg) {
+void lang::ops::boolean_cast(assembly::BasicBlock& block, uint8_t reg) {
   // compare with 0
   block.add(assembly::create_comparison(reg, assembly::Arg::imm(0x0)));
   auto& comment = block.back().comment();
@@ -501,4 +479,17 @@ void lang::ops::generate_bool_cast(assembly::BasicBlock& block, uint8_t reg) {
   block.add(set_conditional(assembly::create_load(reg, assembly::Arg::imm(1)), constants::cmp::ne));
   // add comment
   comment << "boolean cast";
+}
+
+void lang::ops::cast(lang::assembly::BasicBlock& block, uint8_t reg, constants::inst::datatype::dt original, constants::inst::datatype::dt target) {
+  // exit if types are equal
+  if (original == target) return;
+
+  block.add(assembly::create_conversion(original, reg, target, reg));
+
+  // add comment
+  auto& comment = block.comment();
+  ast::type::from_asm_type(original).print_code(comment);
+  comment << " -> ";
+  ast::type::from_asm_type(target).print_code(comment);
 }

@@ -228,8 +228,11 @@ bool lang::ast::CStyleCastOperatorNode::process(lang::Context& ctx) {
 bool lang::ast::CStyleCastOperatorNode::resolve_rvalue(lang::Context& ctx) {
   if (!get_arg_rvalue(ctx, 0)) return false;
 
-  // emit conversion instruction
-  const memory::Ref ref = ops::cast(ctx, target_);
+  // fetch reference to arg and convert
+  memory::Ref ref = args_.front()->value().rvalue().ref();
+  ref = ctx.reg_alloc_manager.guarantee_datatype(ref, target_);
+
+  // update rvalue
   value_->rvalue(std::make_unique<value::RValue>(target_, ref));
   return true;
 }
@@ -451,8 +454,11 @@ bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
 bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
   if (!get_arg_rvalue(ctx, 0)) return false;
 
-  // emit conversion instruction
-  const memory::Ref ref = ops::cast(ctx, target_);
+  // fetch reference to arg and convert
+  memory::Ref ref = args_.front()->value().rvalue().ref();
+  ref = ctx.reg_alloc_manager.guarantee_datatype(ref, target_);
+
+  // update rvalue
   value_->rvalue(std::make_unique<value::RValue>(target_, ref));
   return true;
 }

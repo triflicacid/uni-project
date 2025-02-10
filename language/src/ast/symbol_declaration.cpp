@@ -183,7 +183,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   }
 
   // coerce into correct type (this is safe as subtyping checked)
-  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(value.rvalue().ref(), type_.value().get().get_asm_datatype());
+  const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(value.rvalue().ref(), type_.value());
 
   // load expr value into symbol
   ctx.symbols.assign_symbol(id_, expr.offset);
