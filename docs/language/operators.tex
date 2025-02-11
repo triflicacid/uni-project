@@ -1,12 +1,28 @@
 \section{Operators}\label{sec:operators}
 
 Operators are special symbols which combine one or two expressions, known as unary and binary operators, respectively.
-The table below lists the built-in operators alongside their behaviour and associativity.
-Operators start from tightest to loosest precedence, with those of the same precedence grouped.
+In Edel, operators are generic, and any string containing the following characters is parsed as an operator:
+
+\begin{center}
+    \texttt{!\#\$\%\&*+./<=>?@{\string^}|-~}
+\end{center}
+
+As operators are generic (rather than a pre-defined set of symbols), certain information is determined by its use.
+Namely, an operator's \textit{arity} is determined by its placement: unary if it is seen preceding a term, binary otherwise.
+
+An operator's \textit{associativity} determines the direction in which a chain of said operators are evaluated.
+For example, given an operator \(\sim\), the expression \(a \sim b \sim c\) is equivalent to \((a \sim b) \sim c\) if \(\sim\) is left-associative (ltr, \(\longrightarrow\)), and \(a \sim (b \sim c)\) is it is right-associative (rtl, \(\longleftarrow\)).
+
+Finally, operators have a \textit{precedence}.
+This is how tightly an operator binds, and is useful to avoid having to explicitly include brackets everywhere.
+For example, \(a + b * c \equiv a + (b * c) \not \equiv (a + b) * c\) as \texttt{*} binds tighter than \texttt{+}.
+
+The table below displays a list of built-in operators alongside their associativity and precedence.
+The associativity and precedence of a generic (non built-in) operator is also shown.
 
 \begin{table}[h]
     \centering
-    \caption{Built-In Operators}
+    \caption{Operator Precedence and Associativity}
     \begin{tabular}{|l|l|c|c|}
         \hline
         \textbf{Operator} & \textbf{Description} & \textbf{Associativity} & \textbf{Overloadable} \\
@@ -20,9 +36,10 @@ Operators start from tightest to loosest precedence, with those of the same prec
         \texttt{*a} & Dereference & & \\
         \texttt{registerof a} & Register lookup & & \\
         \hline
-        \texttt{-a} & Negation & \multirow{3}{*}{\(\longleftarrow\)} & \multirow{3}{*}{Yes} \\
+        \texttt{-a} & Negation & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{Yes} \\
         \texttt{~a} & Bitwise NOT & & \\
         \texttt{!a} & Boolean NOT & & \\
+        \(\langle op \rangle\)\texttt{a} & \textit{Generic} & & \\
         \hline
         \texttt{a as T} & Cast & \(\longleftarrow\) & No \\
         \hline
@@ -48,6 +65,8 @@ Operators start from tightest to loosest precedence, with those of the same prec
         \texttt{a \string^ b} & Bitwise XOR & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
         \hline
         \texttt{a | b} & Bitwise OR & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
+        \hline
+        \texttt{a \(\langle op \rangle\) b} & \textit{Generic} & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
         \hline
         \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} & No \\
         \hline
@@ -122,4 +141,51 @@ If the symbol has not been loaded into registers (i.e., it has not been used at 
 \begin{lstlisting}[language=CustomLang]
 let a: int;
 registerof a; // = -1
+\end{lstlisting}
+
+\subsection{Operator Overloading}
+
+Much like functions, operators may be overridden, but this also allows new, custom operators to be defined.
+An operator overload is defined much like a function, except starting with the \texttt{operator} keyword, followed by the operator symbol.
+For example,
+
+\begin{lstlisting}[language=CustomLang]
+operator $(x: int) -> int {
+    return x * 100;
+}
+\end{lstlisting}
+
+defines a new unary overload for the operator \texttt{\$} when applied to an integer.
+Similarly, one may define a binary overload.
+
+\begin{lstlisting}[language=CustomLang]
+operator $(a: int, b: int) -> int {
+    return $a + $b;
+}
+\end{lstlisting}
+
+Given these definitions, one could then do the following.
+
+\begin{lstlisting}[language=CustomLang]
+let a = $5; // = 5 * 100 = 500
+let b = 1 $ 2; // = 1 * 100 + 2 * 100 = 300
+\end{lstlisting}
+
+It is perfectly permissible to overload built-in operators.
+Just note that these operators have a non-standard associativity and precedence.
+
+\begin{lstlisting}[language=CustomLang]
+operator +(a: int, b: float) -> float {
+    return (float) a + b;
+}
+let ans = 1 + 3.14; // = 4.14
+\end{lstlisting}
+
+Like functions, an existing operator overload cannot be shadowed.
+For example, the following would fail.
+
+\begin{lstlisting}[language=CustomLang]
+operator +(a: int, b: int) -> int { // error: operator+(i32, i32) already exists
+    // ...
+}
 \end{lstlisting}

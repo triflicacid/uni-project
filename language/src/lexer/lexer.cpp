@@ -257,7 +257,7 @@ Token Lexer::token(const std::string &image, TokenType type) const {
 
 // characters which may be used for an operator
 // inspired by the Haskell report (https://www.haskell.org/onlinereport/lexemes.html)
-static std::unordered_set<char> operator_chars = {'!', '#', '$', '%', '&', '*', '+', '.', '/', '<', '=', '>', '?', '@', '\\', '^', '|', '-', '~'};
+static std::unordered_set<char> operator_chars = {'!', '#', '$', '%', '&', '*', '+', '.', '/', '<', '=', '>', '?', '@', '^', '|', '-', '~'};
 
 Token Lexer::next() {
   // eat leading whitespace, then check for eof

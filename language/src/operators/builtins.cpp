@@ -109,7 +109,7 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
 };
 
 const lang::ops::OperatorInfo lang::ops::generic_binary{2, false};
-const lang::ops::OperatorInfo lang::ops::generic_unary{14, true};
+const lang::ops::OperatorInfo lang::ops::generic_unary{18, true};
 
 namespace generators {
   using namespace lang;
