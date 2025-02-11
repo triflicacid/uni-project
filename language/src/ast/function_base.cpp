@@ -158,7 +158,22 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
 
   // if not implemented (so generating a shell), we can skip some stuff
   if (!is_implemented()) {
-    ctx.program.current().add(assembly::create_return(assembly::Arg::imm(0))); // return '0' to clear $ret;
+    // generate `ret` statement and update $ret contents in alloc manager
+    const type::Node& return_type = type_.returns();
+    std::unique_ptr<value::Value> value;
+    if (return_type.size() == 0) {
+      value = value::rvalue(return_type, memory::Ref::reg(constants::registers::ret));
+      ctx.program.current().add(assembly::create_return()); // don't bother supplying a value as it'll never be referenced
+    } else {
+      value = value::rvalue();
+      value->rvalue(std::make_unique<value::Literal>(
+          memory::Literal::zero(return_type),
+          memory::Ref::reg(constants::registers::ret)
+      ));
+      ctx.program.current().add(assembly::create_return(assembly::Arg::imm(0))); // return '0' to clear $ret;
+    }
+    ctx.reg_alloc_manager.update_ret(memory::Object(std::move(value)));
+
     ctx.program.select(previous);
     return true;
   }
@@ -193,6 +208,12 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   // process as child directs
   if (!_process(ctx)) return false;
 
+  // exit function (propagate $ret)
+  ctx.reg_alloc_manager.propagate_ret();
+  ctx.reg_alloc_manager.destroy_store(false);
+  ctx.symbols.pop();
+  ctx.symbols.exit_function();
+
   // check that the function returns
   if (!always_returns()) {
     // ... if it doesn't, that we return ()
@@ -210,12 +231,14 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
 
     // otherwise, add a return instruction
     ctx.program.current().add(assembly::create_return());
-  }
 
-  // exit function
-  ctx.reg_alloc_manager.destroy_store(false);
-  ctx.symbols.pop();
-  ctx.symbols.exit_function();
+    // set $ret to ()
+    auto value = value::rvalue(
+        type::unit,
+        memory::Ref::reg(constants::registers::ret)
+      );
+    ctx.reg_alloc_manager.update_ret(memory::Object(std::move(value)));
+  }
 
   // move cursor back to previous position
   ctx.program.select(previous);

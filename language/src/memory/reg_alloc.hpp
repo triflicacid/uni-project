@@ -30,6 +30,7 @@ namespace lang::memory {
 
   struct Store {
     std::array<std::optional<Object>, total_registers> regs; // Objects stored in registers, may be null
+    std::optional<Object> ret; // $ret register. this is only accessible by a subset of functions, and is generally read-only
     std::deque<Ref> history; // history of allocations; front = [0] = most recent
     uint64_t stack_offset; // point to stack offset when store was saved
     uint64_t spill_addr; // current address for memory spill
@@ -37,7 +38,7 @@ namespace lang::memory {
 
   // class for managing register allocation and register spills
   class RegisterAllocationManager {
-    std::stack<Store> instances_;
+    std::deque<Store> instances_; // front = most recent
     std::map<uint64_t, Object> memory_; // Objects stored in memory from memory spill, may not be null
     assembly::Program& program_;
     symbol::SymbolTable& symbols_;
@@ -100,6 +101,15 @@ namespace lang::memory {
 
     // like insert, but just sets the value without generating any code
     void update(const Ref& location, Object object);
+
+    // update the $ret register
+    void update_ret(Object object);
+
+    // set $ret equal to another location
+    void update_ret(const memory::Ref& ref);
+
+    // propagate $ret's value to the next store
+    void propagate_ret();
 
     // get the nth most recent allocation
     // default `n=0` (i.e., most recent)

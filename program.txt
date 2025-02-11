@@ -2,4 +2,4 @@ func kestrel(_: int, y: int) -> int {
     return y;
 }
 
-kestrel(1, 2);
+let two = kestrel(1, 2);

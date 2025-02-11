@@ -8,12 +8,12 @@
 
 lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program)
   : symbols_(symbols), program_(program) {
-  instances_.emplace();
+  instances_.emplace_front();
 }
 
 int lang::memory::RegisterAllocationManager::count_free() const {
   int count = 0;
-  for (auto& object : instances_.top().regs) {
+  for (auto& object : instances_.front().regs) {
     if (!object)
       count++;
   }
@@ -25,7 +25,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::get_oldest() const {
   uint32_t oldest_ticks = 0;
   int oldest_reg = i;
 
-  for (auto& object : instances_.top().regs) {
+  for (auto& object : instances_.front().regs) {
     if (object && object->occupied_ticks >= oldest_ticks) {
       oldest_ticks = object->occupied_ticks;
       oldest_reg = i;
@@ -36,15 +36,15 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::get_oldest() const {
 }
 
 void lang::memory::RegisterAllocationManager::new_store() {
-  if (!instances_.empty()) instances_.top().stack_offset = symbols_.stack().offset();
-  instances_.emplace();
+  if (!instances_.empty()) instances_.front().stack_offset = symbols_.stack().offset();
+  instances_.emplace_front();
 }
 
 void lang::memory::RegisterAllocationManager::save_store(bool save_registers) {
   if (!instances_.empty() && save_registers) {
     // if asked, save any occupied registers to the stack
     int i = initial_register;
-    for (auto& object : instances_.top().regs) {
+    for (auto& object : instances_.front().regs) {
       if (object && object->required) {
         // create necessary space on the stack
         size_t bytes = object->size();
@@ -66,26 +66,26 @@ void lang::memory::RegisterAllocationManager::save_store(bool save_registers) {
 
   // if we already have an instance, copy it
   if (instances_.empty()) {
-    instances_.emplace();
+    instances_.emplace_front();
   } else {
-    instances_.top().stack_offset = symbols_.stack().offset();
-    instances_.push(instances_.top());
+    instances_.front().stack_offset = symbols_.stack().offset();
+    instances_.push_front(instances_.front());
   }
 }
 
 void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registers) {
   mark_all_free();
-  instances_.pop();
+  instances_.pop_front();
   if (instances_.empty()) {
-    instances_.emplace();
+    instances_.emplace_front();
     return;
   }
 
   if (restore_registers) {
     // point to the top of the register cache and work backwards
-    uint64_t& addr = instances_.top().stack_offset;
+    uint64_t& addr = instances_.front().stack_offset;
 
-    auto& regs = instances_.top().regs;;
+    auto& regs = instances_.front().regs;;
     for (int i = regs.size() - 1; i >= 0; i--) {
       if (auto& object = regs[i]; object && object->required) {
         // determine offset to register save
@@ -110,7 +110,7 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
 std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(const symbol::Symbol& symbol) {
   // check if Object is inside a register
   int offset = initial_register;
-  for (auto& object : instances_.top().regs) {
+  for (auto& object : instances_.front().regs) {
     if (object && object->value->is_lvalue()) {
       if (auto obj_symbol = object->value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
         object->required = true;
@@ -151,7 +151,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
 std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(const Literal& literal) {
   // check if Object is inside a register
   int offset = initial_register;
-  for (auto& object : instances_.top().regs) {
+  for (auto& object : instances_.front().regs) {
     if (object && object->value->is_lvalue()) {
       if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
         object->required = true;
@@ -191,7 +191,10 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
 
  lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) {
   if (location.type == Ref::Register) {
-    auto& maybe = instances_.top().regs[location.offset - initial_register];
+    // lookup register, special case for $ret
+    auto& maybe = location.offset == constants::registers::ret
+                  ? instances_.front().ret
+                  : instances_.front().regs[location.offset - initial_register];
     assert(maybe.has_value());
     return maybe.value();
   } else {
@@ -201,7 +204,9 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
 
 const lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) const {
   if (location.type == Ref::Register) {
-    auto& maybe = instances_.top().regs[location.offset - initial_register];
+    auto& maybe = location.offset == constants::registers::ret
+                  ? instances_.front().ret
+                  : instances_.front().regs[location.offset - initial_register];
     assert(maybe.has_value());
     return maybe.value();
   } else {
@@ -212,18 +217,18 @@ const lang::memory::Object& lang::memory::RegisterAllocationManager::find(const 
 
 void lang::memory::RegisterAllocationManager::evict(const Ref& location) {
   // remove from allocation history
-  erase_if(instances_.top().history, [&](const Ref& loc) { return location == loc; });
+  erase_if(instances_.front().history, [&](const Ref& loc) { return location == loc; });
 
   if (location.type == Ref::Register) {
     // nothing is required assembly-wise
-    instances_.top().regs[location.offset - initial_register] = std::nullopt;
+    instances_.front().regs[location.offset - initial_register] = std::nullopt;
     return;
   }
 
   // adjust the stack pointer if top, otherwise do nothing
   auto& object = memory_.at(location.offset);
-  if (size_t size = object.size(); location.offset - size == instances_.top().spill_addr) {
-    instances_.top().spill_addr -= size;
+  if (size_t size = object.size(); location.offset - size == instances_.front().spill_addr) {
+    instances_.front().spill_addr -= size;
   }
 
   // remove memory address from Object mapping
@@ -235,7 +240,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(Object object)
   // if not, use the first freed register
   int i = initial_register;
   const int free_count = count_free();
-  for (auto& stored_object : instances_.top().regs) {
+  for (auto& stored_object : instances_.front().regs) {
     if (stored_object && (free_count != 0 || stored_object->required)) {
       stored_object->occupied_ticks++;
     } else {
@@ -247,7 +252,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(Object object)
   }
 
   // otherwise, spill into memory
-  Ref location(Ref::Memory, instances_.top().spill_addr);
+  Ref location(Ref::Memory, instances_.front().spill_addr);
   insert(location, std::move(object));
   return location;
 }
@@ -255,7 +260,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(Object object)
 void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object object) {
   assert(location.type == Ref::Register);
   evict(location);
-  instances_.top().history.push_front(location);
+  instances_.front().history.push_front(location);
 
   if (location.type == Ref::Register) {
     // if object is empty, do nothing
@@ -307,7 +312,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
     }
 
     // update our records
-    instances_.top().regs[location.offset - initial_register] = std::move(object);
+    instances_.front().regs[location.offset - initial_register] = std::move(object);
     return;
   }
 
@@ -320,16 +325,33 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
 
 void lang::memory::RegisterAllocationManager::update(const Ref& location, Object object) {
   if (location.type == Ref::Register) {
-    instances_.top().regs[location.offset - initial_register] = std::move(object);
+    if (location.offset == constants::registers::ret) {
+      update_ret(std::move(object));
+    } else {
+      instances_.front().regs[location.offset - initial_register] = std::move(object);
+    }
   } else {
     memory_.erase(location.offset);
     memory_.insert({location.offset, std::move(object)});
   }
 }
 
+void lang::memory::RegisterAllocationManager::update_ret(lang::memory::Object object) {
+  instances_.front().ret = std::move(object);
+}
+
+void lang::memory::RegisterAllocationManager::update_ret(const memory::Ref& ref) {
+  update_ret(find(ref));
+}
+
+void lang::memory::RegisterAllocationManager::propagate_ret() {
+  if (instances_.size() < 2) return;
+  instances_[1].ret = instances_.front().ret;
+}
+
 std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::get_recent(unsigned int n) const {
-  if (instances_.empty() || n >= instances_.top().history.size()) return {};
-  return instances_.top().history[n];
+  if (instances_.empty() || n >= instances_.front().history.size()) return {};
+  return instances_.front().history[n];
 }
 
 std::unique_ptr<lang::assembly::Arg> lang::memory::RegisterAllocationManager::resolve_ref(const lang::memory::Ref& ref, bool mark_free) {
@@ -355,11 +377,10 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
   Ref ref = guarantee_register(old_ref);
 
   // fetch the object stored here
-  auto& object = instances_.top().regs[ref.offset - initial_register];
-  assert(object.has_value());
+  auto& object = find(ref);
 
-  // doe the types already match?
-  if (object->value->type() == target) {
+  // do the types already match?
+  if (object.value->type() == target) {
     return ref;
   }
 
@@ -371,20 +392,20 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
     // also track if we need to actually emit any instructions
     constants::inst::datatype::dt asm_original;
 
-    if (object->value->is_lvalue() && object->value->lvalue().get_symbol()) {
-      auto& symbol = object->value->lvalue().get_symbol()->get();
+    if (object.value->is_lvalue() && object.value->lvalue().get_symbol()) {
+      auto& symbol = object.value->lvalue().get_symbol()->get();
       // get original datatype
       auto& type = symbol.type();
       asm_original = symbol.type().get_asm_datatype();
       // remove lvalue, we are only an rvalue now
       object = Object(value::rvalue());
-      object->value->rvalue(std::make_unique<value::RValue>(target, ref));
-    } else if (object->value->is_rvalue() && object->value->rvalue().get_literal()) {
-      const Literal& literal = object->value->rvalue().get_literal()->get();
+      object.value->rvalue(std::make_unique<value::RValue>(target, ref));
+    } else if (object.value->is_rvalue() && object.value->rvalue().get_literal()) {
+      const Literal& literal = object.value->rvalue().get_literal()->get();
       // get original datatype
       asm_original = literal.type().get_asm_datatype();
       // update Object's contents
-      object->value->rvalue(std::make_unique<value::Literal>(Literal::get(target, literal.data()), ref));
+      object.value->rvalue(std::make_unique<value::Literal>(Literal::get(target, literal.data()), ref));
     } else {
       // can't do anything, we have no further information
       return ref;
@@ -399,18 +420,18 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
 
 void lang::memory::RegisterAllocationManager::mark_free(const lang::memory::Ref& ref) {
   if (ref.type == Ref::Register) {
-    instances_.top().regs[ref.offset - initial_register]->required = false;
+    instances_.front().regs[ref.offset - initial_register]->required = false;
   } else {
     auto& object = memory_.at(ref.offset);
     object.required = false;
-    if (size_t size = object.size(); ref.offset - size == instances_.top().spill_addr) {
-      instances_.top().spill_addr -= size;
+    if (size_t size = object.size(); ref.offset - size == instances_.front().spill_addr) {
+      instances_.front().spill_addr -= size;
     }
   }
 }
 
 void lang::memory::RegisterAllocationManager::mark_all_free() {
-  Store& instance = instances_.top();
+  Store& instance = instances_.front();
 
   // mark all registers as free
   for (auto& object : instance.regs) {
@@ -430,7 +451,7 @@ void lang::memory::RegisterAllocationManager::mark_all_free() {
 void lang::memory::RegisterAllocationManager::evict(const lang::symbol::Symbol& symbol) {
   // check if Object is inside a register
   int offset = initial_register;
-  for (auto& object : instances_.top().regs) {
+  for (auto& object : instances_.front().regs) {
     if (object && object->value->is_lvalue()) {
       if (auto obj_symbol = object->value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
         evict(Ref(Ref::Register, offset));

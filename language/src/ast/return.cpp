@@ -78,5 +78,9 @@ bool lang::ast::ReturnNode::process(lang::Context& ctx) {
   // otherwise, return a value
   memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(value().rvalue().ref());
   ctx.program.current().add(assembly::create_return(assembly::Arg::reg(ref.offset)));
+
+  // set $ret in allocation manager
+  ctx.reg_alloc_manager.update_ret(ref);
+
   return true;
 }
