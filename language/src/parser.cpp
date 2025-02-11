@@ -531,6 +531,9 @@ std::unique_ptr<lang::ast::FunctionCallOperatorNode> lang::parser::Parser::parse
 }
 
 std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_function_tail(lang::lexer::Token token_start, lang::lexer::Token name, const std::function<std::unique_ptr<ast::FunctionBaseNode>(FunctionTailContent)>& create) {
+  // '->'
+  static const lexer::BasicToken arrow(lexer::TokenType::op, "->");
+
   // parse any supplied arguments
   std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
   if (expect(lexer::TokenType::lpar)) {
@@ -540,7 +543,7 @@ std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_functio
 
   // parse an optional return type
   std::reference_wrapper<const ast::type::Node> returns = ast::type::unit;
-  if (expect(lexer::TokenType::arrow)) {
+  if (expect(arrow)) {
     consume();
     if (!expect_or_error(firstset::type)) return nullptr;
     auto type = parse_type();

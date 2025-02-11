@@ -488,7 +488,7 @@ void lang::ops::cast(lang::assembly::BasicBlock& block, uint8_t reg, constants::
   block.add(assembly::create_conversion(original, reg, target, reg));
 
   // add comment
-  auto& comment = block.comment();
+  auto& comment = block.back().comment();
   ast::type::from_asm_type(original).print_code(comment);
   comment << " -> ";
   ast::type::from_asm_type(target).print_code(comment);

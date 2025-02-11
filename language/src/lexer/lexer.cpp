@@ -42,11 +42,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
       {"return", TokenType::return_kw},
     }
   },
-  literal_map = {
-    {
-        {"->", TokenType::arrow},
-    },
-    {
+  literal_map = {{
         {"{", TokenType::lbrace},
         {"}", TokenType::rbrace},
         {")", TokenType::rpar},

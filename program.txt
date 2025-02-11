@@ -1,5 +1,5 @@
-func kestrel(_: int, y: int) -> int {
-    return y;
+operator->(a: int, b: int) -> int {
+    return b;
 }
 
-let two = kestrel(1, 2);
+1 -> 2;

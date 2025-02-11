@@ -17,7 +17,6 @@ namespace lang::lexer {
     sc, // ;
     colon, // :
     comma, // ,
-    arrow, // ->
 
     // operators
     op, // generic operator
