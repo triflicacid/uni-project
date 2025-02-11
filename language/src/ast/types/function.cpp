@@ -16,10 +16,10 @@ std::ostream& lang::ast::type::FunctionNode::print_code(std::ostream& os, bool p
   }
   os << ")";
 
-  // if provided, print return type after an arrow
-  if (print_return && returns_.get() != unit) {
+  // if desired, print return type after an arrow
+  if (print_return) {
     os << " -> ";
-    returns_.get().print_code(os, indent_level);
+    returns_.print_code(os, indent_level);
   }
 
   return os;
@@ -48,7 +48,7 @@ bool lang::ast::type::FunctionNode::is_subtype(const lang::ast::type::FunctionNo
 }
 
 const lang::ast::type::FunctionNode&
-lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::optional<std::reference_wrapper<const Node>>& returns) {
+lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<const Node>>& parameters, optional_ref<const Node> returns) {
   // iterate through all registered types, check if already exists
   for (auto& [id, type] : graph) {
     if (auto func_type = type.get().get_func()) {
@@ -66,7 +66,7 @@ lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<co
   }
 
   // otherwise, create a new type
-  auto type = std::make_unique<FunctionNode>(parameters, std::move(returns));
+  auto type = std::make_unique<FunctionNode>(parameters, returns ? *returns : type::unit);
   const TypeId id = type->id();
   graph.insert(std::move(type));
   return static_cast<FunctionNode&>(graph.get(id));
