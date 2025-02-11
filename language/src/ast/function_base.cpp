@@ -63,7 +63,6 @@ std::ostream& lang::ast::FunctionBaseNode::print_tree(std::ostream& os, unsigned
   // print arguments
   for (auto& param : params_) {
     os << std::endl;
-    indent(os, indent_level);
     param->print_tree(os, indent_level + 1);
   }
 

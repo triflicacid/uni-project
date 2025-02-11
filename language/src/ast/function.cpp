@@ -28,7 +28,6 @@ std::ostream& lang::ast::FunctionNode::print_tree(std::ostream& os, unsigned int
   // print body
   if (body_.has_value()) {
     os << std::endl;
-    indent(os, indent_level);
     body_.value()->print_tree(os, indent_level + 1);
   }
 
