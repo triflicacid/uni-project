@@ -1,3 +1,5 @@
-func foo() {}
+func kestrel(_: int, y: int) -> int {
+    return y;
+}
 
-foo();
+kestrel(1, 2);

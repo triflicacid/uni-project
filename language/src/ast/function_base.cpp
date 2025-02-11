@@ -6,6 +6,7 @@
 #include "assembly/create.hpp"
 #include "symbol_declaration.hpp"
 #include "config.hpp"
+#include "message_helper.hpp"
 
 lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, lexer::Token name, const type::FunctionNode& type,
                                               std::deque<std::unique_ptr<SymbolDeclarationNode>> params)
@@ -19,6 +20,10 @@ bool lang::ast::FunctionBaseNode::validate_params(message::List& messages) {
   for (const auto& param : params_) {
     // extract name & check if it exists already
     name = param->name().image;
+
+    // skip if special discard symbol
+    if (name == "_") continue;
+
     if (names.contains(name)) {
       auto msg = param->generate_message(message::Error);
       msg->get() << "duplicate parameter name " << name;
@@ -70,6 +75,12 @@ std::ostream& lang::ast::FunctionBaseNode::print_tree(std::ostream& os, unsigned
 }
 
 bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
+  // name cannot be the discard symbol '_'
+  if (name_.image == "_") {
+    messages.add(util::error_underscore_bad_use(name_));
+    return false;
+  }
+
   // if not implemented, so some checks
   if (!is_implemented()) {
     // if we are enforcing existence, skip
@@ -160,6 +171,10 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   // process parameters - we know where they should be located
   uint64_t offset = 0; // offset from $fp
   for (const auto& param : params_) {
+    // TODO if discard '_', ignore
+    // requires implementation in caller as well (FunctionCallOperatorNode, OperatorOverloadNode)
+    // if (param->name().image == "_") continue;
+
     // increase offset by our width
     auto& type = param->type();
     offset += type.size();
@@ -206,4 +221,14 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   ctx.program.select(previous);
 
   return true;
+}
+
+std::unordered_set<int> lang::ast::FunctionBaseNode::get_args_to_ignore() const {
+  std::unordered_set<int> indexes;
+  for (int i = 0; i < params_.size(); i++) {
+    if (params_[i]->name().image == "_")
+      indexes.insert(i);
+  }
+
+  return indexes;
 }

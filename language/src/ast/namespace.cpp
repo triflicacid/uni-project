@@ -3,6 +3,7 @@
 #include "context.hpp"
 #include "config.hpp"
 #include "ast/types/namespace.hpp"
+#include "message_helper.hpp"
 
 std::string lang::ast::NamespaceNode::name() const {
   std::stringstream stream;
@@ -42,6 +43,12 @@ bool lang::ast::NamespaceNode::collate_registry(message::List& messages, lang::s
   // all names either don't exist, or if they do, must be a namespace already
   std::string namespace_name; // cumulative name
   for (const lexer::Token& name : names_) {
+    // special discard symbol?
+    if (name.image == "_") {
+      messages.add(util::error_underscore_bad_use(name));
+      return false;
+    }
+
     // add to cumulative name
     if (!namespace_name.empty()) namespace_name += ".";
     namespace_name += name.image;

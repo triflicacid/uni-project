@@ -2,6 +2,7 @@
 #include "node.hpp"
 #include "symbol/registry.hpp"
 #include "symbol_declaration.hpp"
+#include <unordered_set>
 
 namespace lang::ast {
   class FunctionBaseNode : public Node {
@@ -40,6 +41,9 @@ namespace lang::ast {
     symbol::SymbolId id() const { return id_; }
 
     const ast::type::FunctionNode& type() const { return type_; }
+
+    // return set of 0-indexed arguments to ignore, pass to ops::call_function
+    std::unordered_set<int> get_args_to_ignore() const;
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

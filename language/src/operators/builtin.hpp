@@ -5,6 +5,7 @@
 #include "constants.hpp"
 #include "value/value.hpp"
 #include "memory/storage_location.hpp"
+#include <unordered_set>
 
 namespace lang {
   struct Context;
@@ -50,5 +51,5 @@ namespace lang::ops {
   // generate a call to function stored at the given location
   // save stack frame, registers, prepare args, etc.
   // return if success
-  bool call_function(const memory::StorageLocation& function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, Context& ctx);
+  bool call_function(const memory::StorageLocation& function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, const std::unordered_set<int>& args_to_ignore, value::Value& return_value, Context& ctx);
 }

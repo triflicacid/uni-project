@@ -155,6 +155,7 @@ bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
         symbol(),
         *signature_,
         args_,
+        {},
         *value_,
         ctx
       );
@@ -867,6 +868,7 @@ bool lang::ast::FunctionCallOperatorNode::resolve_rvalue(lang::Context& ctx) {
       func_name_,
       *signature_,
       args_,
+      {},
       *value_,
       ctx
     );

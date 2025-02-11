@@ -539,7 +539,7 @@ std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_functio
   }
 
   // parse an optional return type
-  std::optional<std::reference_wrapper<const ast::type::Node>> returns;
+  std::reference_wrapper<const ast::type::Node> returns = ast::type::unit;
   if (expect(lexer::TokenType::arrow)) {
     consume();
     if (!expect_or_error(firstset::type)) return nullptr;

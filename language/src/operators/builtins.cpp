@@ -496,8 +496,9 @@ void lang::ops::cast(lang::assembly::BasicBlock& block, uint8_t reg, constants::
 
 bool lang::ops::call_function(const lang::memory::StorageLocation& function, const std::string& name,
                               const lang::ast::type::FunctionNode& signature,
-                              const std::deque<std::unique_ptr<ast::Node>>& args, lang::value::Value& return_value,
-                              lang::Context& ctx) {
+                              const std::deque<std::unique_ptr<ast::Node>>& args,
+                              const std::unordered_set<int>& args_to_ignore,
+                              lang::value::Value& return_value, lang::Context& ctx) {
   // save registers
   ctx.reg_alloc_manager.save_store(true);
 
@@ -520,8 +521,8 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
       return false;
     }
 
-    // if size==0, skip (as nothing actually there)
-    if (value.type().size() == 0) continue;
+    // if size==0, or ignore, skip (as nothing actually there)
+    if (value.type().size() == 0 || args_to_ignore.contains(i - 1)) continue;
 
     // get location of the argument
     const memory::Ref location = value.rvalue().ref();

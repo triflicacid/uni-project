@@ -14,6 +14,14 @@ std::ostream &lang::ast::SymbolReferenceNode::print_tree(std::ostream &os, unsig
 }
 
 bool lang::ast::SymbolReferenceNode::process(lang::Context& ctx) {
+  // we cannot reference special variable '_'
+  if (symbol_ == "_") {
+    auto msg = generate_message(message::Error);
+    msg->get() << "special discard symbol cannot be referenced";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
   value_ = value::symbol_ref(symbol_); // just reference, you guessed it, symbol reference!
   return true;
 }

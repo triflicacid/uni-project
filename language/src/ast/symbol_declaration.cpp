@@ -66,6 +66,31 @@ bool lang::ast::SymbolDeclarationNode::collate_registry(message::List& messages,
 }
 
 bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
+  // check if we are the special discard symbol
+  if (name_.image == "_") {
+    // we cannot have a type annotation
+    if (type_.has_value()) {
+      auto msg = name_.generate_message(message::Error);
+      msg->get() << "special discard symbol cannot have a type annotation - '" << name_.image << "' has no type";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
+    // we must have an assignment
+    if (!assignment_.has_value()) {
+      auto msg = name_.generate_message(message::Error);
+      msg->get() << "special discard symbol must be assigned";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
+    // generate RHS
+    if (!assignment_->get()->resolve_value(ctx)) return false;
+
+    // just exit now
+    return true;
+  }
+
   // process the assignment body
   if (assignment_.has_value()) {
     if (!assignment_.value()->process(ctx)) return false;
@@ -143,18 +168,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   if (are_shadowing) { // erase symbols? used when shadowing
     ctx.symbols.erase(name_.image);
   }
-
-//  symbol::Registry registry;
-//  symbol::VariableOptions options{
-//    .token = name_,
-//    .type = *type_,
-//    .category = category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary,
-//    .is_constant = category_ == Constant
-//  };
-//  auto maybe_id = symbol::create_variable(registry, options, ctx.messages);
-//  if (!maybe_id.has_value()) return false;
-//  ctx.symbols.insert(registry);
-//  id_ = maybe_id.value();
 
   // define symbol
   auto symbol = std::make_unique<symbol::Symbol>(

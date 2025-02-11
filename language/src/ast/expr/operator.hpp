@@ -4,6 +4,7 @@
 #include "operators/info.hpp"
 #include "optional_ref.hpp"
 #include "memory/storage_location.hpp"
+#include <unordered_set>
 
 namespace lang::ops {
   class Operator;

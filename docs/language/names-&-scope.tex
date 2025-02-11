@@ -127,3 +127,33 @@ namespace std.maths {
     func cos(x: double) -> double;
 }
 \end{lstlisting}
+
+\subsection{The Discard Symbol, `\texttt{\_}'}
+
+The discard symbol, `\texttt{\_}', is a special identifier meant in instances where the result/value is intended to be discarded.
+It cannot be used as a general identifier, with its special uses outlined below.
+For example, it cannot be used as a function or namespace name.
+
+\subsubsection{In Let Statements}
+
+This symbol may be used in a let statement.
+In this case, an assignment is required, and the variable \textbf{cannot} have a type annotation.
+While the right-hand side will be evaluated, no assignment will take place.
+
+\begin{lstlisting}[language=CustomLang]
+let _: int; // error: expected assignment
+let _: int = 1 + 2; // error: cannot have a type annotation
+let _ = 1 + 2;
+\end{lstlisting}
+
+\subsubsection{As a Parameter Name}
+
+Another use is for function parameters.
+Unlike ordinary parameters, this symbol may be re-used for multiple parameters.
+Then, as this symbol cannot be referenced, this is equivalent to ``throwing away'' the parameter.
+
+\begin{lstlisting}[language=CustomLang]
+func middle(_: int, x: int, _: int) -> int {
+    return x;
+}
+\end{lstlisting}

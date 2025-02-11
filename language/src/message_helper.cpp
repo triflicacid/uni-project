@@ -32,3 +32,9 @@ lang::util::error_insufficient_info_to_resolve_symbol(const message::MessageGene
   msg->get() << "insufficient information to resolve overloaded symbol " << name;
   return msg;
 }
+
+std::unique_ptr<message::Message> lang::util::error_underscore_bad_use(const message::MessageGenerator& source) {
+  auto msg = source.generate_message(message::Error);
+  msg->get() << "special discard symbol cannot be used here";
+  return msg;
+}
