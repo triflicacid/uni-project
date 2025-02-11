@@ -520,13 +520,18 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
       return false;
     }
 
+    // if size==0, skip (as nothing actually there)
+    if (value.type().size() == 0) continue;
+
     // get location of the argument
     const memory::Ref location = value.rvalue().ref();
 
     // create necessary space on the stack
     size_t bytes = value.type().size();
     ctx.stack_manager.push(bytes);
-    ctx.program.current().back().comment() << "arg #" << i;
+    auto& comment =  ctx.program.current().back().comment();
+    comment << "arg #" << i << ": ";
+    value.type().print_code(comment);
 
     // store data in register here
     assembly::create_store(

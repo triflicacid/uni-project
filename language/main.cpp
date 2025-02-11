@@ -121,9 +121,8 @@ int main(int argc, char** argv) {
 //      if (token.is_eof()) std::exit(1);
 //    }
 
-// parse the file & check for any errors
+  // parse the file & check for any errors
   auto ast = parser.parse();
-  //if (!parser.is_error()) parser.expect_or_error(lang::lexer::TokenType::eof);
   if (message::print_and_check(*parser.messages(), std::cerr)) {
     return EXIT_FAILURE;
   }
@@ -140,6 +139,7 @@ int main(int argc, char** argv) {
   }
 
   // print program
+  std::cout << std::endl;
   ctx.program.print(std::cout);
 
   // write to output file is provided

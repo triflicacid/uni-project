@@ -2,5 +2,9 @@ operator+(a: int, b: ()) {
     return ();
 }
 
+operator+(a: (), b: int) {
+    return ();
+}
+
 1 + ();
 

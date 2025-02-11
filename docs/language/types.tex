@@ -67,6 +67,21 @@ That is, the below program errors before even trying to find a candidate for \te
 () + 1; // error: expected rvalue, got ()
 \end{lstlisting}
 
+\subsubsection{Zero-Sized Types}
+
+It has been mentioned that \texttt{()} is a zero-sized type, meaning it takes up no physical space.
+These types exist purely for type-checking and compile-time enforcement of constraints but do not contribute to a program's memory footprint.
+
+\begin{lstlisting}[language=CustomLang]
+operator +(a: int, b: ()) {
+    return ();
+}
+let ans = 1 + (); // = ()
+\end{lstlisting}
+
+In the above snippet, as \texttt{a} has type \texttt{()}, it does not occupy any space on the stack.
+However, the assignment expression is still executed, despite knowing the result is \texttt{()} and hence discardable, to ensure any side-effects are captured.
+
 \subsection{Pointer Types}\label{subsec:pointer-types}
 
 The use of pointers is designed to be minimal in Edel, but they are available nonetheless.

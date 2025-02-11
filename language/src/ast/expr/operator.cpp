@@ -426,6 +426,9 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
     return false;
   }
 
+  // if type is zero-sized, skip as nothing happens
+  if (lhs.type().size() == 0) return true;
+
   // coerce into correct type (this is safe as subtyping checked) and update our value
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(rhs.rvalue().ref(), lhs.type());
   value_->rvalue(expr);

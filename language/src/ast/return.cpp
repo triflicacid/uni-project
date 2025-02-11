@@ -69,8 +69,8 @@ bool lang::ast::ReturnNode::process(lang::Context& ctx) {
     return false;
   }
 
-  // if expression
-  if (!expr_.has_value()) {
+  // if no expression, or type has size 0 (i.e., nothing to return), emit empty `ret`
+  if (!expr_.has_value() || type->size() == 0) {
     ctx.program.current().add(assembly::create_return());
     return true;
   }
