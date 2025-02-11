@@ -862,64 +862,14 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
 
 bool lang::ast::FunctionCallOperatorNode::resolve_rvalue(lang::Context& ctx) {
   assert(loc_.has_value());
-
-  if (!ops::call_function(
+  return ops::call_function(
       *loc_,
       func_name_,
       *signature_,
       args_,
       *value_,
       ctx
-    )) return false;
-
-  // save registers
-  ctx.reg_alloc_manager.save_store(true);
-
-  // save $fp
-  ctx.stack_manager.push_frame(true);
-
-  // push arguments
-  for (int i = 0; i < args_.size(); i++) {
-    auto value = get_arg_rvalue(ctx, i);
-    if (!value.has_value()) return false;
-
-    // get location of the argument
-    const memory::Ref location = value->get().rvalue().ref();
-
-    // create necessary space on the stack
-    size_t bytes = value->get().type().size();
-    ctx.stack_manager.push(bytes);
-    ctx.program.current().back().comment() << "arg #" << (i + 1);
-
-    // store data in register here
-    assembly::create_store(
-        location.offset,
-        assembly::Arg::reg_indirect(constants::registers::sp),
-        bytes,
-        ctx.program.current()
     );
-
-    // we are done with this register now
-    ctx.reg_alloc_manager.mark_free(location);
-  }
-
-  // call the function (via jal) and add comment
-  auto arg = ctx.symbols.resolve_location(loc_->get());
-  ctx.program.current().add(assembly::create_jump_and_link(std::move(arg)));
-  auto& comment = ctx.program.current().back().comment();
-  comment << "call " << func_name_;
-  signature_->get().print_code(comment);
-
-  // update value_'s location
-  value_->rvalue(memory::Ref::reg(constants::registers::ret));
-
-  // restore $sp
-  ctx.stack_manager.pop_frame(true);
-
-  // restore registers
-  ctx.reg_alloc_manager.destroy_store(true);
-
-  return true;
 }
 
 std::ostream& lang::ast::FunctionCallOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {

@@ -33,20 +33,6 @@ std::string lang::ast::type::FunctionNode::to_label() const {
   return label.str();
 }
 
-bool lang::ast::type::FunctionNode::is_subtype(const lang::ast::type::FunctionNode& parent) const {
-  // check if functions have the same number of arguments
-  if (parameters_.size() != parent.parameters_.size()) return false;
-
-  // if any parameter is NOT a subtype, the entire signature is not
-  for (int i = 0; i < parameters_.size(); i++) {
-    if (!graph.is_subtype(parameters_[i].get().id(), parent.parameters_[i].get().id())) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 const lang::ast::type::FunctionNode&
 lang::ast::type::FunctionNode::create(const std::deque<std::reference_wrapper<const Node>>& parameters, optional_ref<const Node> returns) {
   // iterate through all registered types, check if already exists

@@ -35,11 +35,6 @@ namespace lang::ast::type {
 
     constants::inst::datatype::dt get_asm_datatype() const override;
 
-    // returns if we are a subtype of the other function, i.e., `this :> other`
-    // same as `TypeGraph::is_subtype(this, other)`
-    // functions are subtypes iff all arguments are subtypes or equal
-    bool is_subtype(const FunctionNode& parent) const;
-
     std::string to_label() const override;
 
     // 'create' a new function type -- if exists, return reference, otherwise create new type and return
