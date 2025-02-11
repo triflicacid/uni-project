@@ -122,6 +122,11 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
     ctx.messages.add(std::move(msg));
 
     msg = std::make_unique<message::BasicMessage>(message::Note);
+    msg->get() << "function signature: ";
+    type_.print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+
+    msg = std::make_unique<message::BasicMessage>(message::Note);
     msg->get() << "function declarations are used to enforce the existence of a function, did you forget to include a library?";
     ctx.messages.add(std::move(msg));
     return false;

@@ -4,9 +4,14 @@
 #include "operator.hpp"
 #include "constants.hpp"
 #include "value/value.hpp"
+#include "memory/storage_location.hpp"
 
 namespace lang {
   struct Context;
+}
+
+namespace lang::ast {
+  class Node;
 }
 
 namespace lang::assembly {
@@ -41,4 +46,9 @@ namespace lang::ops {
 
   // generate code for a Boolean cast, but does not update the register
   void boolean_cast(assembly::BasicBlock& block, uint8_t reg);
+
+  // generate a call to function stored at the given location
+  // save stack frame, registers, prepare args, etc.
+  // return if success
+  bool call_function(const memory::StorageLocation& function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, Context& ctx);
 }

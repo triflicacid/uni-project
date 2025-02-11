@@ -26,7 +26,7 @@ std::ostream& lang::ast::ReturnNode::print_tree(std::ostream& os, unsigned int i
 const lang::value::Value& lang::ast::ReturnNode::value() const {
   return expr_.has_value()
     ? expr_.value()->value()
-    : value::unit_value;
+    : *value::unit_value;
 }
 
 bool lang::ast::ReturnNode::process(lang::Context& ctx) {

@@ -9,5 +9,5 @@ bool lang::ast::UnitNode::process(lang::Context& ctx) {
 }
 
 const lang::value::Value& lang::ast::UnitNode::value() const {
-  return value::unit_value;
+  return *value::unit_value;
 }

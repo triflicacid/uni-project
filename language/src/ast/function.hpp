@@ -9,6 +9,7 @@ namespace lang::ast {
     std::optional<std::unique_ptr<BlockNode>> body_; // body is optional, empty = 'not implemented'
     std::unique_ptr<symbol::Registry> registry_;
 
+  protected:
     bool _process(lang::Context &ctx) override;
 
     std::string block_prefix() const override { return "func " + name().image; }

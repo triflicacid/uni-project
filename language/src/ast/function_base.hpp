@@ -1,22 +1,21 @@
 #pragma once
 #include "node.hpp"
-#include "types/function.hpp"
 #include "symbol/registry.hpp"
+#include "symbol_declaration.hpp"
 
 namespace lang::ast {
-  class SymbolDeclarationNode;
-
   class FunctionBaseNode : public Node {
     lexer::Token name_;
     std::deque<std::unique_ptr<SymbolDeclarationNode>> params_; // note, assume that arg types and param types are equivalent
     symbol::SymbolId id_; // ID of created/referencing function (created in ::collate_registry)
-    bool generate_code_ = true; // `false` tells us to skip code generation
 
     // validate the parameters
     bool validate_params(message::List& messages);
 
   protected:
     const type::FunctionNode& type_;
+    bool generate_code_ = true; // `false` tells us to skip code generation
+    bool define_function_ = true; // define ourself as a `function` symbol? If false, don't define ourself.
 
     // processing once stack frame etc. have been set up but prior to cleanup
     virtual bool _process(lang::Context& ctx) = 0;

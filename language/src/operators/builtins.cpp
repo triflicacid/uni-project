@@ -493,3 +493,68 @@ void lang::ops::cast(lang::assembly::BasicBlock& block, uint8_t reg, constants::
   comment << " -> ";
   ast::type::from_asm_type(target).print_code(comment);
 }
+
+bool lang::ops::call_function(const lang::memory::StorageLocation& function, const std::string& name,
+                              const lang::ast::type::FunctionNode& signature,
+                              const std::deque<std::unique_ptr<ast::Node>>& args, lang::value::Value& return_value,
+                              lang::Context& ctx) {
+  // save registers
+  ctx.reg_alloc_manager.save_store(true);
+
+  // save $fp
+  ctx.stack_manager.push_frame(true);
+
+  // push arguments
+  int i = 0;
+  for (const auto& arg : args) {
+    i++;
+
+    // evaluate rvalue
+    auto& value = arg->value();
+    if (!arg->resolve_rvalue(ctx)) return false;
+    if (!value.is_rvalue()) {
+      auto msg = arg->generate_message(message::Error);
+      msg->get() << "expected rvalue, got ";
+      value.type().print_code(msg->get());
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
+    // get location of the argument
+    const memory::Ref location = value.rvalue().ref();
+
+    // create necessary space on the stack
+    size_t bytes = value.type().size();
+    ctx.stack_manager.push(bytes);
+    ctx.program.current().back().comment() << "arg #" << i;
+
+    // store data in register here
+    assembly::create_store(
+        location.offset,
+        assembly::Arg::reg_indirect(constants::registers::sp),
+        bytes,
+        ctx.program.current()
+    );
+
+    // we are done with this register now
+    ctx.reg_alloc_manager.mark_free(location);
+  }
+
+  // call the function (via jal) and add comment
+  auto arg = ctx.symbols.resolve_location(function);
+  ctx.program.current().add(assembly::create_jump_and_link(std::move(arg)));
+  auto& comment = ctx.program.current().back().comment();
+  comment << "call " << name;
+  signature.print_code(comment);
+
+  // update value_'s location
+  return_value.rvalue(memory::Ref::reg(constants::registers::ret));
+
+  // restore $sp
+  ctx.stack_manager.pop_frame(true);
+
+  // restore registers
+  ctx.reg_alloc_manager.destroy_store(true);
+
+  return true;
+}

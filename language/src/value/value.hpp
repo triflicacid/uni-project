@@ -54,6 +54,7 @@ namespace lang::value {
   // create a Value which is a future rvalue
   std::unique_ptr<Value> rvalue();
   std::unique_ptr<Value> rvalue(const ast::type::Node& type);
+  std::unique_ptr<Value> rvalue(const ast::type::Node& type, const memory::Ref& ref);
 
   // create a Value which is a future lvalue
   std::unique_ptr<Value> lvalue();
@@ -65,5 +66,5 @@ namespace lang::value {
 
   // value with unit type, cannot be anything els
   // used to signify "empty" or "none"
-  extern const Value unit_value;
+  extern const std::unique_ptr<Value> unit_value;
 }

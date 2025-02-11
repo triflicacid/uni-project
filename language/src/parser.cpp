@@ -22,7 +22,7 @@ void lang::parser::Parser::read_tokens(unsigned int n) {
   }
 }
 
-void lang::parser::Parser::add_message(std::unique_ptr<message::Message> m) {
+void lang::parser::Parser::add_message(std::unique_ptr<message::BasicMessage> m) {
   if (m && messages_) messages_->add(std::move(m));
 }
 
@@ -211,7 +211,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
     }
     // otherwise, try to parse an expression
     if (!expect_or_error(firstset::expression)) return nullptr;
-    auto expr = _parse_expression(0);
+    auto expr = parse_expression_internal(0);
     // ensure we have a closing bracket, or propagate error
     if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
     const lexer::Token token_end = consume(); // ')'
@@ -251,7 +251,7 @@ bool lang::parser::Parser::check_semicolon_after_expression(bool generate_messag
 }
 
 std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression(ExprExpectSC expect_sc, int precedence) {
-  auto expr = _parse_expression(precedence);
+  auto expr = parse_expression_internal(precedence);
   if (is_error()) return nullptr;
 
   if (expect_sc == ExprExpectSC::No) {
@@ -271,7 +271,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression(ExprExpe
   return expr;
 }
 
-std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int precedence) {
+std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal(int precedence) {
   std::unique_ptr<ast::Node> expr;
 
   if (expect(lexer::TokenType::op) || expect(lexer::TokenType::registerof_kw)) { // unary operator
@@ -282,13 +282,13 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     auto& info = ops::builtin_unary.contains(op_token.image)
         ? ops::builtin_unary.at(op_token.image)
         : ops::generic_unary;
-    expr = _parse_expression(info.precedence);
+    expr = parse_expression_internal(info.precedence);
     if (is_error()) return nullptr;
 
     // wrap and continue
     expr = ast::OperatorNode::unary(op_token, std::move(expr));
   }
-  else if (expect(lexer::TokenType::lpar) && expect(firstset::type, 1)) { // primitive cast
+  else if (expect(lexer::TokenType::lpar) && expect(numerical_types, 1)) { // primitive cast
     const lexer::Token op_token = consume();
 
     // expect type `)`
@@ -299,7 +299,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     // followed by an expression
     if (!expect_or_error(firstset::expression)) return nullptr;
     auto& info = ops::builtin_unary.at("(type)");
-    expr = _parse_expression(info.precedence);
+    expr = parse_expression_internal(info.precedence);
     if (is_error()) return nullptr;
 
     // wrap and continue
@@ -355,7 +355,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::_parse_expression(int pre
     if (!expect_or_error(firstset::expression)) return nullptr;
     int new_precedence = info->precedence;
     if (info->right_associative) new_precedence--;
-    auto rest = _parse_expression(new_precedence);
+    auto rest = parse_expression_internal(new_precedence);
     if (is_error()) return nullptr;
 
     // wrap both sides in a binary operator and continue
@@ -530,14 +530,7 @@ std::unique_ptr<lang::ast::FunctionCallOperatorNode> lang::parser::Parser::parse
   return node;
 }
 
-std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
-  // 'func'
-  const lexer::Token token_start = consume();
-
-  // name
-  if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
-  const lexer::Token name = consume();
-
+std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_function_tail(lang::lexer::Token token_start, lang::lexer::Token name, const std::function<std::unique_ptr<ast::FunctionBaseNode>(FunctionTailContent)>& create) {
   // parse any supplied arguments
   std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
   if (expect(lexer::TokenType::lpar)) {
@@ -569,9 +562,78 @@ std::unique_ptr<lang::ast::FunctionNode> lang::parser::Parser::parse_func() {
   auto& type = ast::type::FunctionNode::create(param_types, returns);
 
   // construct function type and node
-  auto node = std::make_unique<ast::FunctionNode>(token_start, name, type, std::move(params), std::move(body));
+  FunctionTailContent content{
+    .token = token_start,
+    .name = name,
+    .type = type,
+    .params = std::move(params),
+    .body = std::move(body)
+  };
+  auto node = create(std::move(content));
   node->token_end(previous());
   return node;
+}
+
+std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_func() {
+  // 'func'
+  const lexer::Token token_start = consume();
+
+  // name
+  if (!expect_or_error(lexer::TokenType::ident)) return nullptr;
+  const lexer::Token name = consume();
+
+  // parse tail & create
+  return parse_function_tail(token_start, name, [](FunctionTailContent content) {
+    return std::make_unique<ast::FunctionNode>(
+        content.token,
+        content.name,
+        content.type,
+        std::move(content.params),
+        std::move(content.body)
+      );
+  });
+}
+
+std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_operator_definition() {
+  // tokens we might expect after 'operator'
+  static const lexer::TokenTypeSet valid_names = {
+    lexer::TokenType::op,
+    lexer::TokenType::lpar,
+  };
+
+  // 'operator'
+  const lexer::Token token_start = consume();
+
+  // expect an operator/valid name
+  if (!expect_or_error(valid_names)) return nullptr;
+  lexer::Token name = peek();
+
+  // if '(', expect '()'
+  if (expect(lexer::TokenType::lpar)) {
+    consume();
+    if (!expect_or_error(lexer::TokenType::rpar)) {
+      // generate help message about expecting '()'
+      auto msg = std::make_unique<message::BasicMessage>(message::Note);
+      msg->get() << "expected '()' operator here";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+    consume();
+    name.image = "()"; // lil' hack to ensure image is OK
+  } else {
+    consume();
+  }
+
+  // parse tail & create
+  return parse_function_tail(token_start, name, [](FunctionTailContent content) {
+    return std::make_unique<ast::OperatorDefinitionNode>(
+        content.token,
+        content.name,
+        content.type,
+        std::move(content.params),
+        std::move(content.body)
+    );
+  });
 }
 
 std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
@@ -726,6 +788,7 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
       lexer::BasicToken(lexer::TokenType::func),
       lexer::BasicToken(lexer::TokenType::let),
       lexer::BasicToken(lexer::TokenType::namespace_kw),
+      lexer::BasicToken(lexer::TokenType::operator_kw),
     },
     firstset::expression,
 });
@@ -753,6 +816,11 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
 
   if (expect(lexer::TokenType::namespace_kw)) {
     container.add(parse_namespace());
+    return;
+  }
+
+  if (expect(lexer::TokenType::operator_kw)) {
+    container.add(parse_operator_definition());
     return;
   }
 }

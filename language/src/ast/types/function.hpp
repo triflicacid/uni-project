@@ -34,6 +34,8 @@ namespace lang::ast::type {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
+    std::ostream& print_code(std::ostream &os, bool print_return, unsigned int indent_level = 0) const;
+
     size_t size() const override { return 8; } // size of an address
 
     constants::inst::datatype::dt get_asm_datatype() const override;
@@ -53,17 +55,9 @@ namespace lang::ast::type {
     // same as static ::filter_candidates, but uses this type's parameter list
     std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const FunctionNode>>& options) const;
 
-    // same as static ::select_candidates, but uses this type's parameter list
-    optional_ref<const FunctionNode> select_candidate(const std::deque<std::reference_wrapper<const FunctionNode>>& options, message::List& messages) const;
-
     // given list of parameter types, return list of possible candidates from input list of options
     // if there is a perfect match, return this
     // otherwise, there are selection issues, so return all suitable candidates
     static std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::deque<std::reference_wrapper<const FunctionNode>>& options);
-
-    // runs ::filter_candidates on first two parameters
-    // if |candidates|=1, return it
-    // otherwise, generate error messages
-    static optional_ref<const FunctionNode> select_candidate(const FunctionNode& target, std::deque<std::reference_wrapper<const FunctionNode>> options, message::List& messages);
   };
 }

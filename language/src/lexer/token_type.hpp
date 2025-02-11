@@ -46,6 +46,7 @@ namespace lang::lexer {
     func,
     let,
     namespace_kw,
+    operator_kw,
     registerof_kw,
     return_kw,
     true_kw,

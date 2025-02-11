@@ -73,6 +73,12 @@ std::unique_ptr<lang::value::Value> lang::value::rvalue(const ast::type::Node& t
   return std::make_unique<Value>(type, false, true);
 }
 
+std::unique_ptr<lang::value::Value> lang::value::rvalue(const lang::ast::type::Node& type, const lang::memory::Ref& ref) {
+  auto value = rvalue();
+  value->rvalue(std::make_unique<RValue>(type, ref));
+  return value;
+}
+
 std::unique_ptr<lang::value::Value> lang::value::lvalue() {
   return std::make_unique<Value>(true, false);
 }
@@ -95,4 +101,5 @@ std::unique_ptr<lang::value::SymbolRef> lang::value::symbol_ref(const std::strin
   return std::make_unique<SymbolRef>(name);
 }
 
-const lang::value::Value lang::value::unit_value(ast::type::unit, false, false);
+//const lang::value::Value lang::value::unit_value(ast::type::unit, false, false);
+const std::unique_ptr<lang::value::Value> lang::value::unit_value = rvalue(ast::type::unit, memory::Ref::reg(-1));

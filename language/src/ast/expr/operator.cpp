@@ -14,6 +14,8 @@
 #include "ast/types/int.hpp"
 #include "ast/types/pointer.hpp"
 #include "assembly/create.hpp"
+#include "ast/function.hpp"
+#include "operators/user_defined.hpp"
 
 std::string lang::ast::OperatorNode::node_name() const {
   return args_.size() == 2
@@ -105,6 +107,7 @@ bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
   // generate our signature
   std::deque<std::reference_wrapper<const type::Node>> arg_types;
   for (auto& arg : args_) {
+    if (!arg->resolve_lvalue(ctx)) return false;
     arg_types.push_back(arg->value().type());
   }
   const auto& signature = type::FunctionNode::create(arg_types, std::nullopt);
@@ -127,7 +130,7 @@ std::string lang::ast::OverloadableOperatorNode::to_string() const {
   std::stringstream s;
   s << "operator" << symbol();
   if (signature_.has_value()) {
-    signature_->get().print_code(s);
+    signature_->get().print_code(s, false);
   } else {
     s << "(?)";
   }
@@ -138,16 +141,27 @@ bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // operator must have been set by ::process
   assert(op_.has_value());
 
-  for (int i = 0; i < args_.size(); i++) {
-    if (!get_arg_rvalue(ctx, i)) return false;
-  }
-
   // get the operator we resolved to
   auto& op = op_.value().get();
 
-  // are we built-in?
-  // TODO user-defined operators
-  assert(op.builtin());
+  // if not built-in, make a function call
+  if (!op.builtin()) {
+    auto& user_op = static_cast<const ops::UserDefinedOperator&>(op);
+    auto function_loc = ctx.symbols.locate(user_op.symbol_id());
+    assert(function_loc.has_value());
+
+    ops::call_function(
+        *function_loc,
+        symbol(),
+        *signature_,
+        args_,
+        *value_,
+        ctx
+      );
+    return true;
+  }
+
+  // otherwise, we have a built-in
   auto& builtin = static_cast<const ops::BuiltinOperator&>(op);
 
   // evaluate & accumulate argument values
@@ -830,11 +844,30 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
   signature_ = op->get().type();
   value_ = value::rvalue(op->get().type().returns());
 
+  assert(!op->get().builtin());
+  if (op->get().builtin()) {
+    // TODO what if op is built-in?
+  } else {
+    // get location of the operator
+    auto& builtin = static_cast<const ops::UserDefinedOperator&>(op->get());
+    loc_ = ctx.symbols.locate(builtin.symbol_id());
+    assert(loc_.has_value());
+  }
+
   return true;
 }
 
 bool lang::ast::FunctionCallOperatorNode::resolve_rvalue(lang::Context& ctx) {
   assert(loc_.has_value());
+
+  if (!ops::call_function(
+      *loc_,
+      func_name_,
+      *signature_,
+      args_,
+      *value_,
+      ctx
+    )) return false;
 
   // save registers
   ctx.reg_alloc_manager.save_store(true);

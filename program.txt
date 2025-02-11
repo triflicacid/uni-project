@@ -1,1 +1,4 @@
-({})();
+operator+(a: int, b: int) -> int {
+    return x * x;
+}
+

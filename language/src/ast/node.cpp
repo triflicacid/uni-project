@@ -9,7 +9,7 @@ std::ostream &lang::ast::indent(std::ostream &os, unsigned int level) {
 const lang::value::Value& lang::ast::Node::value() const {
   return value_
     ? *value_
-    : value::unit_value;
+    : *value::unit_value;
 }
 
 std::ostream &lang::ast::Node::print_tree(std::ostream &os, unsigned int indent_level) const {

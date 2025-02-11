@@ -11,6 +11,7 @@
 #include "ast/return.hpp"
 #include "ast/namespace.hpp"
 #include "ast/expr/operator.hpp"
+#include "ast/operator_definition.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -25,10 +26,23 @@ namespace lang::parser {
     // read at most n tokens from the lexer, stop on eof
     void read_tokens(unsigned int n);
 
-    void add_message(std::unique_ptr<message::Message> m);
+    void add_message(std::unique_ptr<message::BasicMessage> m);
 
     // parse an expression recursively
-    std::unique_ptr<ast::Node> _parse_expression(int precedence);
+    std::unique_ptr<ast::Node> parse_expression_internal(int precedence);
+
+    // content from parsing a function tail, used in ::parse_function_tail callback
+    struct FunctionTailContent {
+      lexer::Token token;
+      lexer::Token name;
+      const ast::type::FunctionNode& type;
+      std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
+      std::optional<std::unique_ptr<ast::BlockNode>> body;
+    };
+
+    // given start token and name, parse parameter list, return type, and body
+    // callback is used to create class instance
+    std::unique_ptr<ast::FunctionBaseNode> parse_function_tail(lexer::Token token_start, lexer::Token name, const std::function<std::unique_ptr<ast::FunctionBaseNode>(FunctionTailContent)>& create);
 
   public:
     explicit Parser(lexer::Lexer& lexer) : lexer_(lexer), prev_(lexer::Token::invalid(lexer.stream())) {}
@@ -103,7 +117,10 @@ namespace lang::parser {
     std::unique_ptr<ast::FunctionCallOperatorNode> parse_function_call(std::unique_ptr<ast::Node> subject);
 
     // parse a function statement
-    std::unique_ptr<ast::FunctionNode> parse_func();
+    std::unique_ptr<ast::FunctionBaseNode> parse_func();
+
+    // parse an operator statement
+    std::unique_ptr<ast::FunctionBaseNode> parse_operator_definition();
 
     // parse a return statement
     std::unique_ptr<ast::ReturnNode> parse_return();
