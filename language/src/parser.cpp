@@ -189,6 +189,7 @@ const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
     firstset::literal,
     {
       lexer::BasicToken(lexer::TokenType::ident),
+      lexer::BasicToken(lexer::TokenType::if_kw),
       lexer::BasicToken(lexer::TokenType::lpar),
       lexer::BasicToken(lexer::TokenType::lbrace),
       lexer::BasicToken(lexer::TokenType::registerof_kw),
@@ -198,10 +199,18 @@ const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
 std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
   if (expect(firstset::literal)) {
     return parse_literal();
-  } else if (expect(lexer::TokenType::ident)) { // identifier
+  }
+
+  if (expect(lexer::TokenType::ident)) { // identifier
     const lexer::Token token = consume();
     return std::make_unique<ast::SymbolReferenceNode>(token, token.image);
-  } else if (expect(lexer::TokenType::lpar)) { // bracketed expression
+  }
+
+  if (expect(lexer::TokenType::if_kw)) { // if statement
+    return parse_if_statement();
+  }
+
+  if (expect(lexer::TokenType::lpar)) { // bracketed expression
     const lexer::Token token_start = consume();
     // if there's an immediate ')', then this refers to the unit
     if (expect(lexer::TokenType::rpar)) {
@@ -219,7 +228,9 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
     expr->token_start(token_start);
     expr->token_end(token_end);
     return expr;
-  } else if (expect(lexer::TokenType::lbrace)) { // block
+  }
+
+  if (expect(lexer::TokenType::lbrace)) { // block
     return parse_block();
   }
 
@@ -667,7 +678,7 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
    firstset::expression,
 });
 
-std::unique_ptr<lang::ast::IfElseNode> lang::parser::Parser::parse_if_statement(bool in_top_level) {
+std::unique_ptr<lang::ast::IfElseNode> lang::parser::Parser::parse_if_statement() {
   // 'if'
   const lexer::Token token_start = consume();
 
@@ -676,14 +687,14 @@ std::unique_ptr<lang::ast::IfElseNode> lang::parser::Parser::parse_if_statement(
   auto guard = parse_expression(ExprExpectSC::No);
 
   // expect 'then' body
-  auto then_body = parse_block_or_line(in_top_level);
+  auto then_body = parse_block_or_line(false);
   if (is_error()) return nullptr;
 
   // 'else' ?
   std::optional<std::unique_ptr<ast::Node>> else_body;
   if (expect(lexer::TokenType::else_kw)) {
     consume();
-    else_body = parse_block_or_line(in_top_level);
+    else_body = parse_block_or_line(false);
     if (is_error()) return nullptr;
   }
 
@@ -717,7 +728,7 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
   }
 
   if (expect(lexer::TokenType::if_kw)) {
-    block.add(parse_if_statement(false));
+    block.add(parse_if_statement());
     return;
   }
 
@@ -854,11 +865,6 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
     return;
   }
 
-  if (expect(firstset::expression)) {
-    container.add(parse_expression(ExprExpectSC::Yes));
-    return;
-  }
-
   if (expect(lexer::TokenType::func)) {
     container.add(parse_func());
     return;
@@ -870,7 +876,7 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
   }
 
   if (expect(lexer::TokenType::if_kw)) {
-    container.add(parse_if_statement(true));
+    container.add(parse_if_statement());
     return;
   }
 
@@ -881,6 +887,11 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
 
   if (expect(lexer::TokenType::operator_kw)) {
     container.add(parse_operator_definition());
+    return;
+  }
+
+  if (expect(firstset::expression)) {
+    container.add(parse_expression(ExprExpectSC::Yes));
     return;
   }
 }

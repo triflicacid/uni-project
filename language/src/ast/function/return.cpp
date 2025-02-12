@@ -30,6 +30,14 @@ const lang::value::Value& lang::ast::ReturnNode::value() const {
 }
 
 bool lang::ast::ReturnNode::process(lang::Context& ctx) {
+  // a return statement *mjust* be inside a function
+  if (!ctx.symbols.current_function().has_value()) {
+    auto msg = token_start().generate_message(message::Error);
+    msg->get() << "return statement must be inside a function definition";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
   const type::Node* type; // store our type
 
   if (expr_.has_value()) {
