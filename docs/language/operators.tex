@@ -11,11 +11,15 @@ As operators are generic (rather than a pre-defined set of symbols), certain inf
 Namely, an operator's \textit{arity} is determined by its placement: unary if it is seen preceding a term, binary otherwise.
 
 An operator's \textit{associativity} determines the direction in which a chain of said operators are evaluated.
-For example, given an operator \(\sim\), the expression \(a \sim b \sim c\) is equivalent to \((a \sim b) \sim c\) if \(\sim\) is left-associative (ltr, \(\longrightarrow\)), and \(a \sim (b \sim c)\) is it is right-associative (rtl, \(\longleftarrow\)).
+As an example, let \(\sim\) be a binary operator in the expression \(a \sim b \sim c\).
+\begin{itemize}
+    \item Left-associative (ltr, \(\longrightarrow\)): equivalent to \((a \sim b) \sim c\).
+    \item Right-associative (rtl, \(\longleftarrow\)): equivalent to \(a \sim (b \sim c)\).
+\end{itemize}
 
 Finally, operators have a \textit{precedence}.
 This is how tightly an operator binds, and is useful to avoid having to explicitly include brackets everywhere.
-For example, \(a + b * c \equiv a + (b * c) \not \equiv (a + b) * c\) as \texttt{*} binds tighter than \texttt{+}.
+For example, \(a + b * c \equiv a + (b * c)\) but \textbf{not} \(a + b) * c\) as \texttt{*} binds tighter than \texttt{+}.
 
 The table below displays a list of built-in operators alongside their associativity and precedence.
 The associativity and precedence of a generic (non built-in) operator is also shown.
@@ -76,17 +80,17 @@ The associativity and precedence of a generic (non built-in) operator is also sh
 \subsection{Casting}\label{subsec:op-casting}
 
 The concept of casting is explained in subsection ~\ref{subsec:type-casting}.
-Note that the table above presents two casting operators: \texttt{(T) a} and \texttt{a as T}.
+Edel offers two casting operators: \texttt{(T) a} and \texttt{a as T}.
 
-The former is a \textit{primitive} cast, meaning it only supports casting to primitive, atomic types.
+The former is a primitive cast, meaning it only supports casting to primitive, atomic types.
 This cast is direct and is ignorant of the type of \texttt{a} and whether the cast is meaningful.
 
 The latter, using the \texttt{as} keyword, is a straightforward explicit cast.
-There are no restrictions on \texttt{T} and, as explained in subsection ~\ref{subsec:type-casting}, this cast still must obey some rules.
+There are no restrictions on \texttt{T} but, as explained in subsection ~\ref{subsec:type-casting}, this cast still must obey some rules and will fail otherwise.
 
 \begin{lstlisting}[language=CustomLang]
 let a = (int) 3.14; // ok
-let b = (*int) 0; // error
+let b = (*int) 0; // syntax error
 let c = 0 as *int; // ok
 \end{lstlisting}
 
@@ -120,7 +124,7 @@ Continuing the example from above,
 *p = 10; // a = 10
 \end{lstlisting}
 
-However, \texttt{b} will still be 5 as it was assigned the dereferenced \texttt{p} beforehand.
+However, \texttt{b} will still be 5 as it was assigned to \texttt{*p} previously and is no longer tied to the same address.
 
 \subsection{Register Lookup}
 

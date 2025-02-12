@@ -52,19 +52,12 @@ Unlike in other language, \texttt{bool} is treated as a distinct type with abstr
 
 \subsection{The Unit Type}
 
-Ths unit type, denotes by empty brackets `\texttt{()}', is a special type meaning \textit{empty}.
+Ths unit type, denoted by empty brackets `\texttt{()}', is a special type meaning \textit{empty}.
 Representing an object with no value, it is a zero-width type, meaning a symbol of this type occupies no space.
 For examples of use, a unit is returned from a block which returns no value.
 
 \begin{lstlisting}[language=CustomLang]
 let a = {}; // a: ()
-\end{lstlisting}
-
-Note that a unit is neither an r-- nor an l-value, so it cannot be used in expressions.
-That is, the below program errors before even trying to find a candidate for \texttt{+}.
-
-\begin{lstlisting}[language=CustomLang]
-() + 1; // error: expected rvalue, got ()
 \end{lstlisting}
 
 \subsubsection{Zero-Sized Types}
@@ -80,19 +73,19 @@ let ans = 1 + (); // = ()
 \end{lstlisting}
 
 In the above snippet, as \texttt{a} has type \texttt{()}, it does not occupy any space on the stack.
-However, the assignment expression is still executed, despite knowing the result is \texttt{()} and hence discardable, to ensure any side-effects are captured.
+However, the assignment expression is still executed, despite the result of \texttt{()}, to ensure any side-effects are captured.
 
 \subsection{Pointer Types}\label{subsec:pointer-types}
 
 The use of pointers is designed to be minimal in Edel, but they are available nonetheless.
 Simply put, a pointer stores the \textit{location} (or \textit{address}) of a variable, which can then be used to later reference and access that data.
 A pointer is indicated by a star `\texttt{*}' preceding the type;
-that is, type \texttt{*T} is telling the compiler \textit{hey, see this location? Data of type} \texttt{T} \textit{is stored there}.
+that is, type \texttt{*T} is telling the compiler \textit{this is a location, and data of type } \texttt{T} \textit{is stored there}.
 
 Subsection ~\ref{subsec:address-of-&-dereferencing} explains the use of the \texttt{\&} and \texttt{*} unary operators to manipulate pointers.
 
 Pointers do not fit into the type hierarchy, and cannot be implicitly cast.
-For safety, it is best not to cast pointer types unless one really knows and understands what is going on.
+For safety, it is best not to cast pointer types unless absolutely necessary.
 
 \subsection{Function Types}\label{subsec:function-types}
 
@@ -113,7 +106,7 @@ Implicit casting is done automatically in the following:
 let a: double = 3.14; // float -> double
 \end{lstlisting}
 
-On the other hand, explicit casting violates these rules, and hence the cast may be \textit{explicit}.
+On the other hand, a cast which violates the type hierarchy must be \textit{explicit}.
 Note that not all datatypes may be cast between each-other using explicit casting, but the subtype relationships may be largely violated.
 
 \begin{lstlisting}[language=CustomLang]

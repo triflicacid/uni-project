@@ -10,17 +10,17 @@ func add(a: int, b: int) -> int {
 }
 \end{lstlisting}
 
-That is, a function is defined using the \texttt{func} keyword, followed by a name.
+A function is defined using the \texttt{func} keyword, followed by a name.
 Parameters in the form \texttt{name: type} are listed, comma-separated, between brackets.
 Note that if no arguments are required, the brackets may be omitted altogether.
-The function's return type is listed after an arrow; if no return type is needed, this may be omitted.
+The function's return type is listed after an arrow; if no return type is needed, this may also be omitted.
 For example,
 \begin{lstlisting}[language=CustomLang]
-func foo {
+func foo { // signature food() -> ()
     // ...
 }
 
-func bar(a: float) { // equivalent to `-> ()'
+func bar(a: float) { // signature foo(float) -> ()
     // ...
 }
 \end{lstlisting}
@@ -179,5 +179,5 @@ In this case, it is best to explicitly cast one or more arguments to reach the d
 func add(a: int, b: long) -> long;
 func add(a: long, b: int) -> long;
 
-add(1, 2); // error: unable to resolve
+add(1, 2); // error: unable to resolve symbol `add'
 \end{lstlisting}

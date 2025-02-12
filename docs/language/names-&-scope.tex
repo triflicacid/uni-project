@@ -12,12 +12,12 @@ New scopes are created by using code blocks, for example, in while loops and fun
 
 \subsection{Variables}\label{subsec:variables}
 
-Using the common analogy, a variable is like a labeled box which stored data.
+Using the common analogy, a variable is like a labeled box which stores data.
 Each box has a \textit{type} which tells us what it stores.
 For example, ``int 3''.
 More technically, a variable is a location in memory where data can be stored, with its type determining the size of the variable and how its value can be used.
 
-Variables are defined using the \texttt{let} keyword, with the variables type following a colon.
+Variables are defined using the \texttt{let} keyword, with the variable's type following a colon.
 For example, to define our ``int 3'' from earlier,
 \begin{lstlisting}[language=CustomLang]
 let foo: int = 3;
@@ -37,7 +37,7 @@ let foo = 3, bar = 3.14;
 
 \subsubsection{Shadowing}
 
-Edel allows names to be \textit{shadowed}, meaning a variable may re-use a variable's name.
+Edel allows names to be \textit{shadowed}, meaning a variable may re-use a name.
 
 In non-local shadowing, the previous definition becomes visible again after the current scope is exited.
 \begin{lstlisting}[language=CustomLang]
@@ -62,6 +62,7 @@ let foo = 2;
 
 Constants are values that, once defined, cannot be changed.
 Constants may be defined using the \texttt{const} keyword in place of \texttt{let}.
+As they cannot be re-assigned, a constant definition \textbf{must} be initialised.
 
 \begin{lstlisting}[language=CustomLang]
 const pi = 3.14159;
@@ -83,10 +84,10 @@ namespace maths {
 }
 \end{lstlisting}
 
-To reference a name outside the namespace, its name must be prefixed by the namespace's name.
+To reference a namespace's member outside the namespace, it must be prefixed by the namespace's name.
 
 \begin{lstlisting}[language=CustomLang]
-cos(0); // error: unable to resolve symbol `sin'
+cos(0); // error: name `cos' does not exist
 maths.cos(0); // = 1
 \end{lstlisting}
 
@@ -114,7 +115,7 @@ namespace std {
         func cos(x: double) -> double;
     }
 }
-maths.cos; // error: cannot resolve symbol `maths'
+maths.cos; // error: name `maths' does not exist
 std.maths.cos; // ok
 \end{lstlisting}
 
@@ -130,7 +131,7 @@ namespace std.maths {
 
 \subsection{The Discard Symbol, `\texttt{\_}'}
 
-The discard symbol, `\texttt{\_}', is a special identifier meant in instances where the result/value is intended to be discarded.
+The discard symbol, `\texttt{\_}', is a special identifier meant for instances where the result/value is intended to be discarded.
 It cannot be used as a general identifier, with its special uses outlined below.
 For example, it cannot be used as a function or namespace name.
 
