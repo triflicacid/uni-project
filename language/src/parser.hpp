@@ -6,12 +6,13 @@
 #include "messages/list.hpp"
 #include "ast/expr/literal.hpp"
 #include "ast/symbol_declaration.hpp"
-#include "ast/function.hpp"
+#include "ast/function/function.hpp"
 #include "ast/program.hpp"
-#include "ast/return.hpp"
+#include "ast/function/return.hpp"
 #include "ast/namespace.hpp"
 #include "ast/expr/operator.hpp"
-#include "ast/operator_definition.hpp"
+#include "ast/function/operator_definition.hpp"
+#include "ast/if_else.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -125,8 +126,19 @@ namespace lang::parser {
     // parse a return statement
     std::unique_ptr<ast::ReturnNode> parse_return();
 
+    // parse an if..else.. statement
+    std::unique_ptr<ast::IfElseNode> parse_if_statement(bool in_top_level);
+
+    // parse a block if '{' or a code line
+    std::unique_ptr<ast::BlockNode> parse_block_or_line(bool in_top_level);
+
     // parse a code line
     void parse_line(ast::BlockNode& block);
+
+    // parse a code line - ordinary line or top-level?
+    // this checks the respective firstset, so no need for checking beforehand
+    // return if success
+    bool parse_line(ast::BlockNode& block, bool top_level);
 
     // parse a code block `{...}`
     std::unique_ptr<ast::BlockNode> parse_block();

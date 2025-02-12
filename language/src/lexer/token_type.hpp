@@ -41,8 +41,10 @@ namespace lang::lexer {
     // keywords
     as_kw,
     const_kw,
+    else_kw,
     false_kw,
     func,
+    if_kw,
     let,
     namespace_kw,
     operator_kw,

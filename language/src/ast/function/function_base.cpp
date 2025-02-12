@@ -1,10 +1,9 @@
 #include <cassert>
 #include "function_base.hpp"
-#include "types/function.hpp"
+#include "../types/function.hpp"
 #include "shell.hpp"
 #include "context.hpp"
 #include "assembly/create.hpp"
-#include "symbol_declaration.hpp"
 #include "config.hpp"
 #include "message_helper.hpp"
 

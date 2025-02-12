@@ -14,7 +14,7 @@
 #include "ast/types/int.hpp"
 #include "ast/types/pointer.hpp"
 #include "assembly/create.hpp"
-#include "ast/function.hpp"
+#include "ast/function/function.hpp"
 #include "operators/user_defined.hpp"
 
 std::string lang::ast::OperatorNode::node_name() const {

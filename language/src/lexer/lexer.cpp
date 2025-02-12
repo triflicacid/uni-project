@@ -34,7 +34,9 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
     {
       {"as", TokenType::as_kw},
       {"const", TokenType::const_kw},
+      {"else", TokenType::else_kw},
       {"func", TokenType::func},
+      {"if", TokenType::if_kw},
       {"let", TokenType::let},
       {"namespace", TokenType::namespace_kw},
       {"operator", TokenType::operator_kw},

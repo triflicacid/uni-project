@@ -659,12 +659,46 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
    {
      lexer::BasicToken(lexer::TokenType::const_kw),
      lexer::BasicToken(lexer::TokenType::func),
+     lexer::BasicToken(lexer::TokenType::if_kw),
      lexer::BasicToken(lexer::TokenType::let),
      lexer::BasicToken(lexer::TokenType::namespace_kw),
      lexer::BasicToken(lexer::TokenType::return_kw),
    },
    firstset::expression,
 });
+
+std::unique_ptr<lang::ast::IfElseNode> lang::parser::Parser::parse_if_statement(bool in_top_level) {
+  // 'if'
+  const lexer::Token token_start = consume();
+
+  // expect expression
+  if (!expect_or_error(firstset::expression)) return nullptr;
+  auto guard = parse_expression(ExprExpectSC::No);
+
+  // expect 'then' body
+  auto then_body = parse_block_or_line(in_top_level);
+  if (is_error()) return nullptr;
+
+  // 'else' ?
+  std::optional<std::unique_ptr<ast::Node>> else_body;
+  if (expect(lexer::TokenType::else_kw)) {
+    consume();
+    else_body = parse_block_or_line(in_top_level);
+    if (is_error()) return nullptr;
+  }
+
+  return std::make_unique<ast::IfElseNode>(token_start, std::move(guard), std::move(then_body), std::move(else_body));
+}
+
+std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block_or_line(bool in_top_level) {
+  if (expect(lexer::TokenType::lbrace)) {
+    return parse_block();
+  }
+
+  auto block = std::make_unique<ast::BlockNode>(peek());
+  if (!parse_line(*block, in_top_level) || is_error()) return nullptr;
+  return block;
+}
 
 void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
   if (expect(firstset::expression)) {
@@ -682,6 +716,11 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
     return;
   }
 
+  if (expect(lexer::TokenType::if_kw)) {
+    block.add(parse_if_statement(false));
+    return;
+  }
+
   if (expect(lexer::TokenType::namespace_kw)) {
     block.add(parse_namespace());
     return;
@@ -691,6 +730,18 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
     block.add(parse_return());
     return;
   }
+}
+
+bool lang::parser::Parser::parse_line(ast::BlockNode& block, bool top_level) {
+  if (top_level) {
+    if (!expect_or_error(firstset::top_level_line)) return false;
+    parse_top_level_line(block);
+    return !is_error();
+  }
+
+  if (!expect_or_error(firstset::line)) return false;
+  parse_line(block);
+  return !is_error();
 }
 
 std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block() {
@@ -789,6 +840,7 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
       lexer::BasicToken(lexer::TokenType::lbrace),
       lexer::BasicToken(lexer::TokenType::const_kw),
       lexer::BasicToken(lexer::TokenType::func),
+      lexer::BasicToken(lexer::TokenType::if_kw),
       lexer::BasicToken(lexer::TokenType::let),
       lexer::BasicToken(lexer::TokenType::namespace_kw),
       lexer::BasicToken(lexer::TokenType::operator_kw),
@@ -814,6 +866,11 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
 
   if (expect(lexer::TokenTypeSet{lexer::TokenType::let, lexer::TokenType::const_kw})) {
     parse_var_decl(container);
+    return;
+  }
+
+  if (expect(lexer::TokenType::if_kw)) {
+    container.add(parse_if_statement(true));
     return;
   }
 

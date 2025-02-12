@@ -1,7 +1,7 @@
 #pragma once
-#include "node.hpp"
+#include "../node.hpp"
 #include "symbol/registry.hpp"
-#include "symbol_declaration.hpp"
+#include "../symbol_declaration.hpp"
 #include <unordered_set>
 
 namespace lang::ast {

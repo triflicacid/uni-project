@@ -2,7 +2,7 @@
 #include "table.hpp"
 #include "assembly/directive.hpp"
 #include "registry.hpp"
-#include "ast/function_base.hpp"
+#include "ast/function/function_base.hpp"
 #include "ast/symbol_declaration.hpp"
 #include "assembly/create.hpp"
 

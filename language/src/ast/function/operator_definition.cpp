@@ -1,5 +1,5 @@
 #include "operator_definition.hpp"
-#include "block.hpp"
+#include "../block.hpp"
 #include "context.hpp"
 #include "operators/operator.hpp"
 #include "operators/user_defined.hpp"

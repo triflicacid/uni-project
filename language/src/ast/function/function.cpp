@@ -1,7 +1,5 @@
 #include "function.hpp"
-#include "symbol_declaration.hpp"
-#include "block.hpp"
-#include "types/function.hpp"
+#include "../block.hpp"
 #include "context.hpp"
 #include "assembly/create.hpp"
 #include "message_helper.hpp"
