@@ -89,7 +89,30 @@ For safety, it is best not to cast pointer types unless absolutely necessary.
 
 \subsection{Function Types}\label{subsec:function-types}
 
-% TODO
+Every function has a function type, with its type describing its argument and return types.
+A function t ype consists of a bracket-enclosed, comma-separated list of argument types, followed by an arrow and the return type.
+Unlike in function definitions, an argument type list and return type are necessary.
+For example,
+
+\begin{lstlisting}[language=CustomLang]
+let a: (int) -> int;
+let b: (int) -> ();
+let c: () -> ();
+\end{lstlisting}
+
+A symbol with a functional type can then be called as if it were a function.
+% TODO: initial value
+However, before calling, the symbol \textbf{must} be assigned to.
+Unlike overloading, when assigning to a functional type, the functional type must be an exact match.
+
+\begin{lstlisting}[language=CustomLang]
+func abs(a: int) -> int {
+    return if a > 0 { a } else { -a };
+}
+
+let f: (int) -> int = abs;
+let result = f(-25);
+\end{lstlisting}
 
 \subsection{Casting}\label{subsec:type-casting}
 

@@ -1,0 +1,6 @@
+func abs(a: int) -> int {
+    return if a > 0 { a } else { -a };
+}
+
+let f: (int) -> int = abs;
+let result = f(-25);

@@ -6,4 +6,4 @@ func add(a: float, b: float) -> float {
     return a + b;
 }
 
-add;
+add(1, 2);

@@ -377,7 +377,12 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal
   return expr;
 }
 
+// '*' token
 static const lang::lexer::BasicToken star(lang::lexer::TokenType::op, "*");
+
+// '->' token
+static const lang::lexer::BasicToken arrow(lang::lexer::TokenType::op, "->");
+
 const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
     lexer::convert_set(numerical_types),
     {
@@ -403,12 +408,58 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     return &ast::type::PointerNode::get(*inner);
   }
 
-  // unit type?
+  // unit or function type
   if (expect(lexer::TokenType::lpar)) {
+    const lexer::Token lpar = consume();
+    std::deque<std::reference_wrapper<const ast::type::Node>> arg_types; // store function argument types
+
+    // if close straight away: either no args, or unit
+    if (expect(lexer::TokenType::rpar)) {
+      consume();
+
+      // arrow for function type, if not, return '()'
+      if (!expect(arrow)) {
+        return &ast::type::unit;
+      }
+    } else {
+      // parse type list
+      while (true) {
+        if (!expect_or_error(firstset::type)) return nullptr;
+        auto arg_type = parse_type();
+        if (is_error() || !arg_type) return nullptr;
+        arg_types.push_back(*arg_type);
+
+        // comma to continue, exit otherwise
+        if (!expect(lexer::TokenType::comma)) break;
+        consume();
+      }
+
+      // expect closing bracket now
+      if (!expect_or_error(lexer::TokenType::rpar)) {
+        auto msg = lpar.generate_message(message::Note);
+        msg->get() << "while parsing function type: argument list opened here";
+        add_message(std::move(msg));
+        return nullptr;
+      }
+      consume();
+    }
+
+    // expect arrow '->' - return type must be explicit
+    if (!expect_or_error(arrow)) {
+      auto msg = std::make_unique<message::BasicMessage>(message::Note);
+      msg->get() << "while parsing function type: return type must be explicit";
+      add_message(std::move(msg));
+      return nullptr;
+    }
     consume();
-    if (!expect_or_error(lexer::TokenType::rpar)) return nullptr;
-    consume();
-    return &ast::type::unit;
+
+    // parse return type
+    if (!expect_or_error(firstset::type)) return nullptr;
+    auto return_type = parse_type();
+    if (is_error() || !return_type) return nullptr;
+
+    // return function type
+    return &ast::type::FunctionNode::create(arg_types, *return_type);
   }
 
   return nullptr;
@@ -542,9 +593,6 @@ std::unique_ptr<lang::ast::FunctionCallOperatorNode> lang::parser::Parser::parse
 }
 
 std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_function_tail(lang::lexer::Token token_start, lang::lexer::Token name, const std::function<std::unique_ptr<ast::FunctionBaseNode>(FunctionTailContent)>& create) {
-  // '->'
-  static const lexer::BasicToken arrow(lexer::TokenType::op, "->");
-
   // parse any supplied arguments
   std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
   if (expect(lexer::TokenType::lpar)) {
