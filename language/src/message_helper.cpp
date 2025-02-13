@@ -12,9 +12,9 @@ std::unique_ptr<message::Message> lang::util::error_type_mismatch(const message:
 }
 
 std::unique_ptr<message::Message>
-lang::util::error_unresolved_symbol(const message::MessageGenerator& source, const std::string& name) {
+lang::util::error_symbol_not_found(const message::MessageGenerator& source, const std::string& name) {
   auto msg = source.generate_message(message::Error);
-  msg->get() << "unable to resolve reference to symbol '" << name << "'";
+  msg->get() << "symbol '" << name << "' does not exist";
   return msg;
 }
 
@@ -29,7 +29,7 @@ lang::util::error_no_member(const message::MessageGenerator& source, const lang:
 std::unique_ptr<message::Message>
 lang::util::error_insufficient_info_to_resolve_symbol(const message::MessageGenerator& source, const std::string& name) {
   auto msg = source.generate_message(message::Error);
-  msg->get() << "insufficient information to resolve overloaded symbol " << name;
+  msg->get() << "insufficient information to resolve overloaded symbol '" << name << "'";
   return msg;
 }
 

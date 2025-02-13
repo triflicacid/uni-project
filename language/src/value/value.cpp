@@ -47,13 +47,23 @@ std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(lang::Conte
 
   // if no candidates, this symbol does not exist
   if (candidates.empty()) {
-    if (generate_messages) ctx.messages.add(util::error_unresolved_symbol(source, name_));
+    if (generate_messages) ctx.messages.add(util::error_symbol_not_found(source, name_));
     return nullptr;
   }
 
   // if more than one candidate, we do not have sufficient info to choose
   if (candidates.size() > 1) {
-    if (generate_messages) ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(source, name_));
+    if (generate_messages) {
+      ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(source, name_));
+
+      for (auto& candidate : candidates) {
+        auto msg = candidate.get().token().generate_message(message::Note);
+        msg->get() << "overload ";
+        candidate.get().type().print_code(msg->get());
+        msg->get() << " defined here";
+        ctx.messages.add(std::move(msg));
+      }
+    }
     return nullptr;
   }
 

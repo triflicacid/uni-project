@@ -775,7 +775,7 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
 
     // if no symbols, this is easy
     if (symbols.empty()) {
-      ctx.messages.add(util::error_unresolved_symbol(*subject_, name));
+      ctx.messages.add(util::error_symbol_not_found(*subject_, name));
       return false;
     }
 

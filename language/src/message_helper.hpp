@@ -17,7 +17,7 @@ namespace lang::value {
 
 namespace lang::util {
   // generate message for failing to resolve a symbol
-  std::unique_ptr<message::Message> error_unresolved_symbol(const message::MessageGenerator& source, const std::string& name);
+  std::unique_ptr<message::Message> error_symbol_not_found(const message::MessageGenerator& source, const std::string& name);
 
   // generate message for a type mismatch: "cannot assign/convert <a> to <b>"
   std::unique_ptr<message::Message> error_type_mismatch(const message::MessageGenerator& source, const ast::type::Node& a, const ast::type::Node& b, bool is_assignment);
