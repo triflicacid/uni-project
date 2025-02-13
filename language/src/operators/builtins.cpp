@@ -505,6 +505,14 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
   // save $fp
   ctx.stack_manager.push_frame(true);
 
+  // push $rpc
+  ctx.stack_manager.push(8);
+  ctx.program.current().add(assembly::create_store(
+      constants::registers::rpc,
+      assembly::Arg::reg_indirect(constants::registers::sp)
+  ));
+  ctx.program.current().back().comment() << "save return addr";
+
   // push arguments
   int i = 0;
   for (const auto& arg : args) {
@@ -555,6 +563,13 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
 
   // update value_'s location
   return_value.rvalue(memory::Ref::reg(constants::registers::ret));
+
+  // restore $rpc
+  ctx.program.current().add(assembly::create_load(
+      constants::registers::rpc,
+      assembly::Arg::reg_indirect(constants::registers::fp, -8)
+  ));
+  ctx.program.current().back().comment() << "restore return addr";
 
   // restore $sp
   ctx.stack_manager.pop_frame(true);

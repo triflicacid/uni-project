@@ -1,0 +1,9 @@
+func proc2() {
+
+}
+
+func proc(x: int) {
+    proc2();
+}
+
+proc(1);
