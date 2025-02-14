@@ -12,6 +12,7 @@ namespace lang::memory {
     const ast::type::Node& type_;
     uint64_t data_;
 
+    Literal(const Literal&) = delete;
     Literal(const ast::type::Node& type, uint64_t data) : type_(type), data_(data) {}
 
   public:
@@ -27,5 +28,8 @@ namespace lang::memory {
 
     // get a zero constant of the given type
     static const Literal& zero(const ast::type::Node& type);
+
+    // return a Boolean literal true or false
+    static const Literal& get_boolean(bool b);
   };
 }

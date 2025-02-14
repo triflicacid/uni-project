@@ -4,6 +4,7 @@
 #include "ast/types/int.hpp"
 #include "ast/types/float.hpp"
 #include "config.hpp"
+#include "ast/types/bool.hpp"
 
 std::string lang::memory::Literal::to_string() const {
   if (auto int_ = type_.get_int()) {
@@ -14,10 +15,12 @@ std::string lang::memory::Literal::to_string() const {
     return float_->is_double()
            ? std::to_string(uint64::to_double(data_))
            : std::to_string(uint64::to_float(data_));
-  } else { // must be a Boolean
+  } else if (type_ == ast::type::boolean) { // must be a Boolean
     return data_ == 0
            ? lang::conf::bools::false_string
            : lang::conf::bools::true_string;
+  } else {
+    return std::to_string(data_);
   }
 }
 
@@ -52,4 +55,8 @@ const lang::memory::Literal& lang::memory::Literal::zero(const lang::ast::type::
   }
 
   return get(type, data);
+}
+
+const lang::memory::Literal& lang::memory::Literal::get_boolean(bool b) {
+  return get(ast::type::boolean, b ? 1 : 0);
 }

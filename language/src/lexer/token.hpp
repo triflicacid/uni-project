@@ -44,13 +44,8 @@ namespace lang::lexer {
   struct Token : BasicToken, message::MessageGenerator {
     std::reference_wrapper<IStreamWrapper> origin;
     Location loc; // the location in which we were created
-    uint64_t value = 0; // integer value associated with this token, used for literals
 
     Token(TokenType type, std::string image, IStreamWrapper& origin, Location loc) : BasicToken(type, std::move(image)), origin(origin), loc(loc) {}
-
-    // given numerical type TokenType (i.e., int8), parse image_ as a number of that type
-    // return if parse was successful
-    bool parse_numerical(TokenType type);
 
     // generate a message of the given type about this token
     std::unique_ptr<message::Message> generate_message(message::Level level) const override;

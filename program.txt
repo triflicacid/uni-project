@@ -1,14 +1,1 @@
-func add(a: int, b: int) -> int {
-    return a + b;
-}
-
-func add(a: float, b: float) -> float {
-    return a + b;
-}
-
-func apply(x: int, y: int, f: (int, int) -> int) -> int {
-    return f(x, y);
-}
-
-apply(1, 2, add);
-
+0 as *i32;

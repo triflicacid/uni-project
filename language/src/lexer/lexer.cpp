@@ -193,44 +193,6 @@ Token::generate_detailed_syntax_error(const lexer::TokenSet& expected_tokens) co
   return error;
 }
 
-bool Token::parse_numerical(TokenType num_type) {
-  switch (num_type) {
-    case TokenType::uint8:
-      value = uint64::from(static_cast<uint8_t>(std::stoul(image)));
-      break;
-    case TokenType::int8:
-      value = uint64::from(static_cast<int8_t>(std::stoi(image)));
-      break;
-    case TokenType::uint16:
-      value = uint64::from(static_cast<uint16_t>(std::stoul(image)));
-      break;
-    case TokenType::int16:
-      value = uint64::from(static_cast<int16_t>(std::stoi(image)));
-      break;
-    case TokenType::uint32:
-      value = uint64::from(static_cast<uint32_t>(std::stoul(image)));
-      break;
-    case TokenType::int32:
-      value = uint64::from(static_cast<int32_t>(std::stoi(image)));
-      break;
-    case TokenType::uint64:
-      value = uint64::from(static_cast<uint64_t>(std::stoull(image)));
-      break;
-    case TokenType::int64:
-      value = uint64::from(static_cast<int64_t>(std::stoll(image)));
-      break;
-    case TokenType::float32:
-      value = uint64::from(std::stof(image));
-      break;
-    case TokenType::float64:
-      value = uint64::from(std::stod(image));
-      break;
-    default:
-      return false;
-  }
-  return true;
-}
-
 Token Token::invalid(IStreamWrapper& stream) {
   return Token(TokenType::invalid, "", stream, Location("/dev/null"));
 }

@@ -241,6 +241,7 @@ lang::ast::CStyleCastOperatorNode::CStyleCastOperatorNode(lang::lexer::Token tok
 }
 
 bool lang::ast::CStyleCastOperatorNode::process(lang::Context& ctx) {
+  args_.front()->type_hint(target_);
   if (!OperatorNode::process(ctx)) return false;
   value_ = value::rvalue(target_);
   return true;
@@ -470,13 +471,13 @@ bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
     return false;
   }
 
+  args_.front()->type_hint(target_);
   if (!OperatorNode::process(ctx)) return false;
   value_ = value::rvalue(target_);
   return true;
 }
 
 bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
-  args_.front()->type_hint(target_);
   if (!get_arg_rvalue(ctx, 0)) return false;
 
   // get original value
