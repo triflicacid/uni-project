@@ -31,7 +31,7 @@ bool lang::ast::SymbolReferenceNode::resolve_lvalue(Context& ctx) {
   if (value().is_lvalue()) return true;
 
   // resolve SymbolRef
-  auto symbol = value_->get_symbol_ref()->resolve(ctx, *this, true);
+  auto symbol = value_->get_symbol_ref()->resolve(ctx, *this, true, type_hint());
   if (!symbol) return false;
   value_->lvalue(std::move(symbol));
 

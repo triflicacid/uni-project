@@ -329,7 +329,7 @@ bool lang::ast::DotOperatorNode::process(lang::Context& ctx) {
 bool lang::ast::DotOperatorNode::resolve_lvalue(lang::Context& ctx) {
   // attempt to resolve if SymbolRef
   if (auto ref = value().get_symbol_ref()) {
-    auto symbol = ref->resolve(ctx, *this, true);
+    auto symbol = ref->resolve(ctx, *this, true, type_hint());
     if (!symbol) return false;
     value_->lvalue(std::move(symbol));
     return true;
@@ -476,7 +476,17 @@ bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
 }
 
 bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  args_.front()->type_hint(target_);
   if (!get_arg_rvalue(ctx, 0)) return false;
+
+  // get original value
+  auto& value = args_.front()->value();
+
+  // if type is functional and not equal, cannot cast
+  if ((target_.get_func() || value.type().get_func()) && target_ != value.type()) {
+    ctx.messages.add(util::error_type_mismatch(*this, value.type(), target_, false));
+    return false;
+  }
 
   // fetch reference to arg and convert
   memory::Ref ref = args_.front()->value().rvalue().ref();
@@ -759,6 +769,64 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
   // process our subject and children
   if (!subject_->process(ctx) || !OperatorNode::process(ctx))
     return false;
+
+  // if we have only one possible overload, use that
+  if (auto symbol_ref = subject_->value().get_symbol_ref()) {
+    const std::string& name = symbol_ref->get();
+    auto symbols = ctx.symbols.find(name);
+    // if more then one symbol, check it
+    if (symbols.size() == 1) {
+      symbol::Symbol& symbol = symbols.front();
+      // first, check if of function type, otherwise, continue
+      if (auto func_type = symbol.type().get_func()) {
+        // check if #args matches
+        if (func_type->args() != args_.size()) {
+          auto msg = generate_message(message::Error);
+          msg->get() << "expected " << func_type->args() << " argument";
+          if (func_type->args() != 1) msg->get() << "s";
+          msg->get() << ", got " << args_.size();
+          ctx.messages.add(std::move(msg));
+
+          msg = symbol.token().generate_message(message::Note);
+          msg->get() << "function ";
+          func_type->print_code(msg->get()) << " defined here";
+          ctx.messages.add(std::move(msg));
+
+          return false;
+        }
+
+        // resolve argument types (lvalues, as rvalues are done later)
+        int i = 0;
+        for (auto& arg : args_) {
+          arg->type_hint(func_type->arg(i)); // provide a type hint
+          if (!arg->resolve_lvalue(ctx)) return false;
+
+          // check that types match
+          if (!type::graph.is_subtype(arg->value().type().id(), func_type->arg(i).id())) {
+            ctx.messages.add(util::error_type_mismatch(*arg, arg->value().type(), func_type->arg(i), false));
+
+            auto msg = symbol.token().generate_message(message::Note);
+            msg->get() << "function ";
+            func_type->print_code(msg->get()) << " defined here";
+            ctx.messages.add(std::move(msg));
+            return false;
+          }
+
+          i++;
+        }
+
+        signature_ = *func_type;
+        func_name_ = name;
+
+        // record function's location
+        loc_ = ctx.symbols.locate(symbol.id());
+        assert(loc_.has_value());
+        value_ = value::rvalue(signature_->get().returns());
+
+        return true;
+      }
+    }
+  }
 
   // get type of each argument
   std::deque<std::reference_wrapper<const type::Node>> arg_types;

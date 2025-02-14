@@ -6,9 +6,4 @@ func add(a: float, b: float) -> float {
     return a + b;
 }
 
-func apply(x: int, y: int, f: (int, int) -> int) -> int {
-    return f(x, y);
-}
-
-apply(1, 2, add);
-
+let f: (int, int) -> int = add;

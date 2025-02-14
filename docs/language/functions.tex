@@ -29,7 +29,8 @@ func bar(a: float) { // signature foo(float) -> ()
 
 Functions are called by following the function name with brackets `\texttt{()}' (this is the operator name).
 Any arguments to be supplied to the function are comma-separated inside these brackets, known as an \textit{argument list}.
-A function with a matching signature is then found (see subsection ~\ref{subsec:function-overloading} on function overloading), and its return value produced.
+If the function is non-overloaded (i.e., only one function with this name exists), the number of arguments must match, and each argument's type must also match the respective parameter type.
+Otherwise, if the function is overloaded, a function with a matching signature is then found (see subsection ~\ref{subsec:function-overloading} on function overloading).
 
 \begin{lstlisting}[language=CustomLang]
 func add(a: int, b: int) -> int {

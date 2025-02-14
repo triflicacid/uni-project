@@ -516,10 +516,9 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
   // push arguments
   int i = 0;
   for (const auto& arg : args) {
-    i++;
-
     // evaluate rvalue
     auto& value = arg->value();
+    arg->type_hint(signature.arg(i)); // given arg a type hint
     if (!arg->resolve_rvalue(ctx)) return false;
     if (!value.is_rvalue()) {
       auto msg = arg->generate_message(message::Error);
@@ -530,7 +529,7 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
     }
 
     // if size==0, or ignore, skip (as nothing actually there)
-    if (value.type().size() == 0 || args_to_ignore.contains(i - 1)) continue;
+    if (value.type().size() == 0 || args_to_ignore.contains(i)) continue;
 
     // get location of the argument
     const memory::Ref location = value.rvalue().ref();
@@ -539,7 +538,7 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
     size_t bytes = value.type().size();
     ctx.stack_manager.push(bytes);
     auto& comment =  ctx.program.current().back().comment();
-    comment << "arg #" << i << ": ";
+    comment << "arg #" << (i + 1) << ": ";
     value.type().print_code(comment);
 
     // store data in register here
@@ -552,6 +551,7 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
 
     // we are done with this register now
     ctx.reg_alloc_manager.mark_free(location);
+    i++;
   }
 
   // call the function (via jal) and add comment

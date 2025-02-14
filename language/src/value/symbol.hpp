@@ -19,8 +19,9 @@ namespace lang::value {
     const SymbolRef* get_symbol_ref() const override { return this; }
 
     // attempt to resolve this symbol, return value::Symbol or nullptr if error
-    // argument - generate messages?
-    std::unique_ptr<Symbol> resolve(Context& ctx, const message::MessageGenerator& source, bool generate_messages) const;
+    // argument #1 - generate messages?
+    // argument #2 - type hint to help resolve overloaded symbol?
+    std::unique_ptr<Symbol> resolve(Context& ctx, const message::MessageGenerator& source, bool generate_messages, optional_ref<const ast::type::Node> type_hint = {}) const;
   };
 
   // create a Value which is a symbol reference (future l+rvalue)

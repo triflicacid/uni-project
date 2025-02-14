@@ -42,8 +42,8 @@ void lang::value::Value::lvalue(const lang::memory::Ref& ref) {
   lvalue_ = std::make_unique<value::Reference>(type_, ref);
 }
 
-std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(lang::Context& ctx, const message::MessageGenerator& source, bool generate_messages) const {
-  const auto candidates = ctx.symbols.find(name_);
+std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(lang::Context& ctx, const message::MessageGenerator& source, bool generate_messages, optional_ref<const ast::type::Node> type_hint) const {
+  auto candidates = ctx.symbols.find(name_);
 
   // if no candidates, this symbol does not exist
   if (candidates.empty()) {
@@ -51,18 +51,32 @@ std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(lang::Conte
     return nullptr;
   }
 
+  // if more than one candidate, match against type hint
+  if (type_hint.has_value() && candidates.size() > 1) {
+    // check for matches
+    std::deque<std::reference_wrapper<symbol::Symbol>> matches;
+    for (symbol::Symbol& candidate : candidates) {
+      if (candidate.type() == *type_hint)
+        matches.push_back(candidate);
+    }
+
+    // if no matches, complain
+    if (matches.empty()) {
+      if (generate_messages) {
+        ctx.messages.add(util::error_cannot_match_type_hint(source, name_, type_hint->get()));
+        util::note_candidates(candidates, ctx.messages);
+      }
+      return nullptr;
+    }
+
+    candidates = matches;
+  }
+
   // if more than one candidate, we do not have sufficient info to choose
   if (candidates.size() > 1) {
     if (generate_messages) {
       ctx.messages.add(util::error_insufficient_info_to_resolve_symbol(source, name_));
-
-      for (auto& candidate : candidates) {
-        auto msg = candidate.get().token().generate_message(message::Note);
-        msg->get() << "overload ";
-        candidate.get().type().print_code(msg->get());
-        msg->get() << " defined here";
-        ctx.messages.add(std::move(msg));
-      }
+      util::note_candidates(candidates, ctx.messages);
     }
     return nullptr;
   }

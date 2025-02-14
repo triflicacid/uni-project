@@ -118,6 +118,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     // resolve rvalue
     auto& value = assignment_->get()->value();
     assignment_value = value;
+    assignment_->get()->type_hint(*type_); // give expression a type hint
     if (!assignment_->get()->resolve_rvalue(ctx)) return false;
 
     // if we have declared symbol to be a type, they must match

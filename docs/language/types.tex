@@ -136,3 +136,47 @@ Note that not all datatypes may be cast between each-other using explicit castin
 let a: u8 = 42; // error!
 let a = 42 as u8; // i32 -> u8
 \end{lstlisting}
+
+\subsection{Type ``Hints''}\label{subsec:type-hints}
+
+To explain this concept, consider the following situation: referring to an overloaded function.
+For example,
+
+\begin{lstlisting}[language=CustomLang]
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+
+func add(a: float, b: float) -> float {
+    return a + b;
+}
+
+add; // error: unable to resolve overloaded symbol 'add'
+\end{lstlisting}
+
+This makes sense, as the compiler has no idea which overload of \texttt{add} the programmer wants.
+This is where type hints come in.
+In certain scenarios where the desired type is known, this context can act as a prompt to the compiler on which overload the programmer desires.
+For example, in the following, the programmer is assigning to a variable of type \texttt{(int, int) -> int}, so the compiler deduces which overload they want.
+
+\begin{lstlisting}[language=CustomLang]
+let f: (int, int) -> int = add;
+\end{lstlisting}
+
+This also occurs during casting:
+
+\begin{lstlisting}[language=CustomLang]
+add as (int, int) -> int;
+\end{lstlisting}
+
+And when determining the arguments to a non-overloaded function.
+
+\begin{lstlisting}[language=CustomLang]
+func apply(x: int, y: int, f: (int, int) -> int) -> int {
+    return f(x, y);
+}
+
+apply(1, 2, add);
+\end{lstlisting}
+
+Note, this only works for non-overloaded functions, as otherwise the ``target'' type for each argument is not known.

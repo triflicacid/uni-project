@@ -31,7 +31,8 @@ const lang::value::Value& lang::ast::ReturnNode::value() const {
 
 bool lang::ast::ReturnNode::process(lang::Context& ctx) {
   // a return statement *mjust* be inside a function
-  if (!ctx.symbols.current_function().has_value()) {
+  const auto current_function = ctx.symbols.current_function();
+  if (!current_function.has_value()) {
     auto msg = token_start().generate_message(message::Error);
     msg->get() << "return statement must be inside a function definition";
     ctx.messages.add(std::move(msg));
@@ -45,6 +46,7 @@ bool lang::ast::ReturnNode::process(lang::Context& ctx) {
     if (!expr_.value()->process(ctx)) return false;
 
     // expect rvalue
+    expr_.value()->type_hint(current_function->get().type().returns()); // give return value a type hint
     if (value().is_future_rvalue() && !expr_.value()->resolve_rvalue(ctx)) return false;
     type = &value().type();
     if (!value().is_rvalue()) {

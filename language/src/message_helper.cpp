@@ -1,5 +1,6 @@
 #include "message_helper.hpp"
 #include "ast/types/node.hpp"
+#include "symbol/symbol.hpp"
 #include "config.hpp"
 
 std::unique_ptr<message::Message> lang::util::error_type_mismatch(const message::MessageGenerator& source, const lang::ast::type::Node& a, const lang::ast::type::Node& b, bool is_assignment) {
@@ -36,5 +37,23 @@ lang::util::error_insufficient_info_to_resolve_symbol(const message::MessageGene
 std::unique_ptr<message::Message> lang::util::error_underscore_bad_use(const message::MessageGenerator& source) {
   auto msg = source.generate_message(message::Error);
   msg->get() << "special discard symbol cannot be used here";
+  return msg;
+}
+
+void lang::util::note_candidates(const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates, message::List& messages) {
+  for (auto& candidate : candidates) {
+    auto msg = candidate.get().token().generate_message(message::Note);
+    msg->get() << "overload ";
+    candidate.get().type().print_code(msg->get());
+    msg->get() << " defined here";
+    messages.add(std::move(msg));
+  }
+}
+
+std::unique_ptr<message::Message>
+lang::util::error_cannot_match_type_hint(const message::MessageGenerator& source, const std::string& name, const lang::ast::type::Node& type_hint) {
+  auto msg = source.generate_message(message::Error);
+  msg->get() << "no overloads for '" << name << "' matching type hint ";
+  type_hint.print_code(msg->get());
   return msg;
 }

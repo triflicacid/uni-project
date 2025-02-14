@@ -4,7 +4,7 @@
 #include "lexer/token.hpp"
 
 namespace lang::symbol {
-  class SymbolTable;
+  class Symbol;
 }
 
 namespace lang::ast::type {
@@ -27,6 +27,12 @@ namespace lang::util {
 
   // generate error for failing to resolve an overloaded symbol due to insufficient information NOT because we have no matches
   std::unique_ptr<message::Message> error_insufficient_info_to_resolve_symbol(const message::MessageGenerator& source, const std::string& name);
+
+  // print note messages for each candidate overload
+  void note_candidates(const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates, message::List& messages);
+
+  // generate error for failing to match symbol to type hint
+  std::unique_ptr<message::Message> error_cannot_match_type_hint(const message::MessageGenerator& source, const std::string& name, const ast::type::Node& type_hint);
 
   // generate error for using the special discard operator '_' as a name
   std::unique_ptr<message::Message> error_underscore_bad_use(const message::MessageGenerator& source);

@@ -4,6 +4,7 @@
 #include "messages/list.hpp"
 #include "lexer/token.hpp"
 #include "value/value.hpp"
+#include "optional_ref.hpp"
 
 namespace lang {
   struct Context;
@@ -27,6 +28,7 @@ namespace lang::ast {
 class Node : public NodeBase, public lexer::TokenSpan {
     lexer::Token tstart_;
     std::optional<lexer::Token> tend_;
+    optional_ref<const ast::type::Node> type_hint_; // type hint, used for resolving overload sets etc
 
   protected:
     std::unique_ptr<value::Value> value_; // every node has a value, which is possibly set in ::process
@@ -41,6 +43,11 @@ class Node : public NodeBase, public lexer::TokenSpan {
     void token_start(const lexer::Token& token) { tstart_ = token; }
 
     void token_end(const lexer::Token& token) { tend_ = token; }
+
+    const optional_ref<const ast::type::Node>& type_hint() const { return type_hint_; }
+
+    // set our type hint
+    void type_hint(const ast::type::Node& hint) { type_hint_ = hint; }
 
     // does this node return absolutely from a function?
     // used to check if control reaches the end of a function
