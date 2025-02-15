@@ -1,13 +1,1 @@
-func add(a: int, b: int) -> int {
-    return a + b;
-}
-
-func add(a: float, b: float) -> float {
-    return a + b;
-}
-
-operator$(a: int) -> int {
-    return a * 100;
-}
-
-add($1, 2);
+let p = 12 as! *i32;

@@ -463,8 +463,8 @@ bool lang::ast::AssignmentOperatorNode::resolve_rvalue(lang::Context& ctx) {
   return true;
 }
 
-lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
-: OperatorNode(token, token, {}), target_(target) {
+lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr, bool sudo)
+: OperatorNode(token, token, {}), target_(target), sudo_(sudo) {
   args_.push_back(std::move(expr));
   token_end(args_.back()->token_end());
 }
@@ -495,10 +495,12 @@ bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // cannot cast if:
   // - functional and do not match
   // - pointers to non-pointers
-  if ((target_.get_func() && !(type.get_pointer() || (type.get_func() && target_ == type)))
-     || (target_.get_pointer() && !type.get_pointer())) {
-    ctx.messages.add(util::error_type_mismatch(*this, type, target_, false));
-    return false;
+  if (!sudo_) {
+    if ((target_.get_func() && !(type.get_pointer() || (type.get_func() && target_ == type)))
+        || (target_.get_pointer() && !type.get_pointer())) {
+      ctx.messages.add(util::error_type_mismatch(*this, type, target_, false));
+      return false;
+    }
   }
 
   // fetch reference to arg and convert

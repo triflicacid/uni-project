@@ -158,6 +158,18 @@ This cast is invalid if:
     \item \texttt{T2} is a pointer, but \texttt{T1} is not.
 \end{itemize}
 
+\paragraph*{Circumvention}
+
+These constraints exist to prevent runtime errors and unexpected behaviour.
+However, if the programmer \textit{really} wishes to perform an illegal explicit cast, this may be done by adding an exclamation mark after the \texttt{as} keyword.
+
+\begin{lstlisting}[language=CustomLang]
+let ptr = 12 as *i32; // error
+let ptr = 12 as! *i32; // ok
+\end{lstlisting}
+
+This should be avoided and is often a sign of bad code practice.
+
 \subsection{Type ``Hints''}\label{subsec:type-hints}
 
 To explain this concept, consider the following situation: referring to an overloaded function.

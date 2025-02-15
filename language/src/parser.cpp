@@ -107,6 +107,15 @@ lang::lexer::Token lang::parser::Parser::consume() {
   return prev_;
 }
 
+// '*' token
+static const lang::lexer::BasicToken star(lang::lexer::TokenType::op, "*");
+
+// '->' token
+static const lang::lexer::BasicToken arrow(lang::lexer::TokenType::op, "->");
+
+// '!' token
+static const lang::lexer::BasicToken bang(lang::lexer::TokenType::op, "!");
+
 const lang::lexer::TokenSet lang::parser::firstset::eol{
     lexer::BasicToken{lexer::TokenType::sc}
 };
@@ -339,14 +348,19 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal
       // exit if lower precedence - some things are tighter than a 'as'
       if (precedence >= info->precedence) break;
       consume();
+      // are we sudo or not?
+      bool is_sudo = false;
+      if (expect(bang)) {
+        is_sudo = true;
+        consume();
+      }
       // expect type
       if (!expect_or_error(firstset::type)) return nullptr;
       auto type = parse_type();
       if (is_error() || !type) return nullptr;
       // construct node and continue to next operation
       const lexer::Token token_start = expr->token_start();
-      expr = std::make_unique<ast::CastOperatorNode>(token_start, *type, std::move(expr));
-      expr->token_end(previous());
+      expr = std::make_unique<ast::CastOperatorNode>(token_start, *type, std::move(expr), is_sudo);
       continue;
     } else {
         break;
@@ -366,12 +380,6 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal
 
   return expr;
 }
-
-// '*' token
-static const lang::lexer::BasicToken star(lang::lexer::TokenType::op, "*");
-
-// '->' token
-static const lang::lexer::BasicToken arrow(lang::lexer::TokenType::op, "->");
 
 const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
     lexer::convert_set(numerical_types),

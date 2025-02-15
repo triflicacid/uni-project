@@ -75,9 +75,10 @@ namespace lang::ast {
   // represents `expr as type`
   class CastOperatorNode : public OperatorNode {
     const type::Node& target_;
+    bool sudo_ = false;
 
   public:
-    CastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr);
+    CastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr, bool sudo = false);
 
     bool process(lang::Context &ctx) override;
 
