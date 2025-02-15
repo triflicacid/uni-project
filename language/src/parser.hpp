@@ -162,6 +162,7 @@ namespace lang::parser {
     extern const lexer::TokenSet number;
     extern const lexer::TokenSet boolean;
     extern const lexer::TokenSet term;
+    extern const lexer::TokenSet op;
     extern const lexer::TokenSet expression;
     extern const lexer::TokenSet type;
   }}

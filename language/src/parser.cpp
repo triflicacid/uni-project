@@ -187,7 +187,6 @@ const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
       lexer::BasicToken(lexer::TokenType::lpar),
       lexer::BasicToken(lexer::TokenType::lbrace),
       lexer::BasicToken(lexer::TokenType::null_kw),
-      lexer::BasicToken(lexer::TokenType::registerof_kw),
     }
 });
 
@@ -236,9 +235,15 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
   return nullptr;
 }
 
+const lang::lexer::TokenSet lang::parser::firstset::op = lexer::convert_set({
+    lexer::TokenType::op,
+    lexer::TokenType::registerof_kw,
+    lexer::TokenType::sizeof_kw,
+});
+
 const lang::lexer::TokenSet lang::parser::firstset::expression = lexer::merge_sets({
     firstset::term,
-    {lexer::BasicToken(lexer::TokenType::op)}
+    firstset::op
 });
 
 bool lang::parser::Parser::check_semicolon_after_expression(bool generate_messages) {
@@ -284,19 +289,26 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression(ExprExpe
 std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal(int precedence) {
   std::unique_ptr<ast::Node> expr;
 
-  if (expect(lexer::TokenType::op) || expect(lexer::TokenType::registerof_kw)) { // unary operator
+  if (expect(firstset::op)) { // unary operator
     const lexer::Token op_token = consume();
 
-    // followed by an expression
-    if (!expect_or_error(firstset::expression)) return nullptr;
-    auto& info = ops::builtin_unary.contains(op_token.image)
-        ? ops::builtin_unary.at(op_token.image)
-        : ops::generic_unary;
-    expr = parse_expression_internal(info.precedence);
-    if (is_error()) return nullptr;
+    // if `sizeof`, may be preceded by a type instead
+    if (op_token.type == lexer::TokenType::sizeof_kw && expect(firstset::type)) {
+      auto type = parse_type();
+      if (is_error() || !type) return nullptr;
+      expr = std::make_unique<ast::SizeOfOperatorNode>(op_token, op_token, *type);
+    } else {
+      // must be followed by an expression
+      if (!expect_or_error(firstset::expression)) return nullptr;
+      auto& info = ops::builtin_unary.contains(op_token.image)
+                   ? ops::builtin_unary.at(op_token.image)
+                   : ops::generic_unary;
 
-    // wrap and continue
-    expr = ast::OperatorNode::unary(op_token, std::move(expr));
+      expr = parse_expression_internal(info.precedence);
+      if (is_error()) return nullptr;
+      // wrap and continue
+      expr = ast::OperatorNode::unary(op_token, std::move(expr));
+    }
   }
   else if (expect(lexer::TokenType::lpar) && expect(numerical_types, 1)) { // primitive cast
     const lexer::Token op_token = consume();

@@ -35,10 +35,11 @@ The associativity and precedence of a generic (non built-in) operator is also sh
         \hline
         \texttt{a()} & Function call & \(\longrightarrow\) & Yes \\
         \hline
-        \texttt{(T) a} & Primitive cast & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{No} \\
+        \texttt{(T) a} & Primitive cast & \multirow{5}{*}{\(\longleftarrow\)} & \multirow{5}{*}{No} \\
         \texttt{\&a} & Address-of & & \\
         \texttt{*a} & Dereference & & \\
         \texttt{registerof a} & Register lookup & & \\
+        \texttt{sizeof a} & Get size & & \\
         \hline
         \texttt{-a} & Negation & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{Yes} \\
         \texttt{~a} & Bitwise NOT & & \\
@@ -146,6 +147,18 @@ If the symbol has not been loaded into registers (i.e., it has not been used at 
 let a: int;
 registerof a; // = -1
 \end{lstlisting}
+
+\subsection{Sizeof}
+
+The \texttt{sizeof} operator returns the size, in bytes (as a \texttt{u64}), of its argument.
+Since the argument to \texttt{sizeof} can be either a type or an expression, the returned value corresponds to the size of the provided type or, if given an expression, the size of its type.
+
+\begin{lstlisting}[language=CustomLang]
+sizeof(int); // 4
+sizeof(42); // 4
+\end{lstlisting}
+
+(The brackets are not required as \texttt{sizeof} is an operator and are shown for clarity only.)
 
 \subsection{Operator Overloading}
 

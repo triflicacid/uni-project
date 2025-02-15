@@ -196,6 +196,8 @@ lang::ast::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> expr) {
   // check for *special* operators
   if (token.type == lexer::TokenType::registerof_kw) {
     return std::make_unique<RegisterOfOperatorNode>(token, token, std::move(expr));
+  } else if (token.type == lexer::TokenType::sizeof_kw) {
+    return std::make_unique<SizeOfOperatorNode>(token, token, std::move(expr));
   } else if (token.image == "&") {
     return std::make_unique<AddressOfOperatorNode>(token, token, std::move(expr));
   } else if (token.image == "*") {
@@ -1007,4 +1009,52 @@ std::ostream& lang::ast::FunctionCallOperatorNode::print_tree(std::ostream& os, 
   }
 
   return os;
+}
+
+lang::ast::SizeOfOperatorNode::SizeOfOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
+    : OperatorNode(token, token, {}) {
+  token_end(expr->token_end());
+  args_.push_back(std::move(expr));
+}
+
+lang::ast::SizeOfOperatorNode::SizeOfOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, const type::Node& type)
+    : OperatorNode(token, token, {}), type_(type) {}
+
+bool lang::ast::SizeOfOperatorNode::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
+  value_ = value::rvalue(type::uint64);
+  return true;
+}
+
+bool lang::ast::SizeOfOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  optional_ref<const type::Node> type;
+
+  // if a type is supplied, cool
+  if (type_.has_value()) {
+    type = type_;
+  } else {
+    // get argument rvalue
+    if (!get_arg_rvalue(ctx, 0)) return false;
+    type = args_.front()->value().type();
+  }
+
+  // load the size of the type into a register
+  const memory::Literal& lit = memory::Literal::get(value_->type(), type->get().size());
+  memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(lit);
+  value_->rvalue(std::make_unique<value::Literal>(lit, ref));
+
+  // add comment
+  auto& comment = ctx.program.current().back().comment();
+  comment.str("");
+  comment << "sizeof(";
+  type->get().print_code(comment);
+  comment << ")";
+
+  return true;
+}
+
+std::ostream& lang::ast::SizeOfOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {
+  os << op_symbol_.image << "(";
+  args_.front()->print_code(os);
+  return os << ")";
 }

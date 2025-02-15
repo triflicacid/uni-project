@@ -31,7 +31,7 @@ namespace lang::lexer {
     }
 
     bool operator==(const BasicToken& other) const {
-      return type == other.type && (image.empty() || image == other.image);
+      return type == other.type && (image.empty() || other.image.empty() || image == other.image);
     }
   };
 

@@ -40,6 +40,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
       {"namespace", TokenType::namespace_kw},
       {"null", TokenType::null_kw},
       {"operator", TokenType::operator_kw},
+      {"sizeof", TokenType::sizeof_kw},
       {"registerof", TokenType::registerof_kw},
       {"return", TokenType::return_kw},
     }
