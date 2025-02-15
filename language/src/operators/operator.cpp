@@ -6,10 +6,10 @@
 static lang::ops::OperatorId current_id = 0;
 
 lang::ops::Operator::Operator(std::string symbol, const lang::ast::type::FunctionNode& type)
-  : symbol_(std::move(symbol)), type_(type), id_(current_id++) {}
+  : op_(std::move(symbol)), type_(type), id_(current_id++) {}
 
 std::ostream& lang::ops::Operator::print_code(std::ostream& os) const {
-  os << "operator" << symbol();
+  os << "operator" << op();
   type_.print_code(os);
   return os;
 }
@@ -19,7 +19,7 @@ static std::unordered_map<lang::ops::OperatorId, std::unique_ptr<lang::ops::Oper
 std::deque<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(const std::string& symbol) {
   std::deque<std::reference_wrapper<const Operator>> matches;
   for (auto& [id, op] : operators) {
-    if (op->symbol() == symbol)
+    if (op->op() == symbol)
       matches.push_back(*op);
   }
 
@@ -29,7 +29,7 @@ std::deque<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(con
 std::optional<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(const std::string& symbol, const lang::ast::type::FunctionNode& type) {
   // search to see if a matching operator exists
   for (auto& [id, op] : operators) {
-    if (op->symbol() == symbol && op->type() == type) {
+    if (op->op() == symbol && op->type() == type) {
       return *op;
     }
   }

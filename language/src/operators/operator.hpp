@@ -19,7 +19,7 @@ namespace lang::ops {
 
   class Operator {
     OperatorId id_;
-    std::string symbol_;
+    std::string op_;
     const ast::type::FunctionNode& type_;
 
   public:
@@ -29,7 +29,7 @@ namespace lang::ops {
 
     OperatorId id() const { return id_; }
 
-    const std::string& symbol() const { return symbol_; }
+    const std::string& op() const { return op_; }
 
     const ast::type::FunctionNode& type() const { return type_; }
 

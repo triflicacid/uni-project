@@ -5,14 +5,14 @@
 
 namespace lang::ops {
   class UserDefinedOperator : public Operator {
-    symbol::SymbolId symbol_; // tied symbol ID
+    const symbol::Symbol& symbol_; // tied symbol ID
 
   public:
-    UserDefinedOperator(std::string symbol, const ast::type::FunctionNode& type, symbol::SymbolId symbol_id)
-      : Operator(std::move(symbol), type), symbol_(symbol_id) {}
+    UserDefinedOperator(std::string op, const ast::type::FunctionNode& type, const symbol::Symbol& symbol)
+      : Operator(std::move(op), type), symbol_(symbol) {}
 
     bool builtin() const override { return false; }
 
-    symbol::SymbolId symbol_id() const { return symbol_; }
+    const symbol::Symbol& symbol() const { return symbol_; }
   };
 }

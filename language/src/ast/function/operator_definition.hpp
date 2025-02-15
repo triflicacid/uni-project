@@ -6,8 +6,6 @@ namespace lang::ast {
   class BlockNode;
 
   class OperatorDefinitionNode : public FunctionNode {
-    bool _process(lang::Context &ctx) override;
-
     std::string block_prefix() const override { return "operator" + name().image; }
 
   public:
@@ -17,5 +15,7 @@ namespace lang::ast {
 
     // get operator info
     const ops::OperatorInfo& info() const;
+
+    bool collate_registry(message::List &messages, symbol::Registry &registry) override;
   };
 }

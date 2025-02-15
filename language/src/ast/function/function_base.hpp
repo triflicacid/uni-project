@@ -9,10 +9,10 @@ namespace lang::ast {
     lexer::Token name_;
     std::deque<std::unique_ptr<SymbolDeclarationNode>> params_; // note, assume that arg types and param types are equivalent
     symbol::SymbolId id_; // ID of created/referencing function (created in ::collate_registry)
+    bool defined_ = false; // has this function been created/defined
 
     // validate the parameters
     bool validate_params(message::List& messages);
-
   protected:
     const type::FunctionNode& type_;
     bool generate_code_ = true; // `false` tells us to skip code generation
@@ -52,5 +52,9 @@ namespace lang::ast {
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
     bool process(lang::Context &ctx) override final;
+
+    // define (generate code for) our function
+    // return if success
+    bool define(Context& ctx);
   };
 }

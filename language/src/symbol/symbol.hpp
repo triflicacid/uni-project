@@ -10,7 +10,7 @@ namespace lang::symbol {
   enum class Category {
     Ordinary, // ordinary symbol, stack-based, offset determined by StackManager
     Argument, // argument, point to index
-    Function, // globally-places function (block-bound)
+    Function, // globally-placed function (block-bound)
     Namespace,
   };
 
@@ -28,6 +28,7 @@ namespace lang::symbol {
     bool assigned_ = false; // record if we have been assigned to
 
   public:
+    Symbol(const Symbol&) = delete;
     Symbol(lexer::Token name, const ast::type::Node& type_);
     Symbol(lexer::Token name, Category category, const ast::type::Node& type_);
 

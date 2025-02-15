@@ -5,8 +5,12 @@
 #include "assembly/basic_block.hpp"
 #include "optional_ref.hpp"
 
-namespace lang::ast::type {
-  class Node;
+namespace lang::ast {
+  class FunctionBaseNode;
+
+  namespace type {
+    class Node;
+  }
 }
 
 namespace lang::symbol {
@@ -50,6 +54,7 @@ namespace lang::symbol {
     const ast::type::Node& type;
     Category category;
     bool is_constant = false;
+    optional_ref<ast::FunctionBaseNode> func_origin;
   };
 
   // create and insert a variable into the given registry if permitted

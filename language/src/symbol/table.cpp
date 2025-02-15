@@ -5,6 +5,7 @@
 #include "ast/function/function_base.hpp"
 #include "ast/symbol_declaration.hpp"
 #include "assembly/create.hpp"
+#include "function.hpp"
 
 lang::symbol::SymbolTable::SymbolTable(memory::StackManager& stack) : stack_(stack) {
   scopes_.emplace_front();
@@ -35,7 +36,8 @@ optional_ref<lang::symbol::Symbol> lang::symbol::SymbolTable::find(const std::st
 
 void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool alloc) {
   // look at path_, add parent UNLESS argument
-  if (symbol->category() != Category::Argument) {
+  const Category category = symbol->category();
+  if (category != Category::Argument) {
     if (auto parent = peek_path()) {
       symbol->set_parent(*parent);
     }
@@ -55,7 +57,7 @@ void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool allo
   symbols_.insert({id, std::move(symbol)});
 
   // allocate space for symbol if needs be
-  if (alloc) allocate(id);
+  if (alloc && category != Category::Function) allocate(id);
 }
 
 void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
@@ -155,7 +157,7 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id, lang::memory
   storage_.insert({id, std::move(location)});
 }
 
-std::optional<std::reference_wrapper<const lang::memory::StorageLocation>> lang::symbol::SymbolTable::locate(lang::symbol::SymbolId id) const {
+optional_ref<const lang::memory::StorageLocation> lang::symbol::SymbolTable::locate(lang::symbol::SymbolId id) const {
   if (auto it = storage_.find(id); it != storage_.end())
     return it->second;
   return {};

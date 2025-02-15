@@ -6,6 +6,7 @@
 #include "assembly/create.hpp"
 #include "config.hpp"
 #include "message_helper.hpp"
+#include "symbol/function.hpp"
 
 lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, lexer::Token name, const type::FunctionNode& type,
                                               std::deque<std::unique_ptr<SymbolDeclarationNode>> params)
@@ -36,7 +37,7 @@ bool lang::ast::FunctionBaseNode::validate_params(message::List& messages) {
 
     // cache parameter name & its location (token)
     names.insert(name);
-    tokens.insert({name, param->token_start()});
+    tokens.insert({name, param->name()});
   }
 
   return true;
@@ -95,12 +96,15 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
     }
   }
 
-  // attempt to register the symbol
+  // assembly option object
   symbol::VariableOptions options{
     .token = name_,
     .type = type_,
     .category = symbol::Category::Function,
+    .func_origin = *this,
   };
+
+  // attempt to register the symbol
   auto maybe_id = symbol::create_variable(registry, options, messages);
   // fail if implemented, otherwise, this is fine
   if (!maybe_id.has_value()) return !is_implemented();
@@ -110,14 +114,14 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
 }
 
 bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
-  // if we aren't generating code, exit and assume all is well
+// if we aren't generating code, exit and assume all is well
   if (!generate_code_) return true;
 
-  // if unimplemented and not generating a shell, check that we exist
+  // if declaration and not generating a shell, check that we exist
   if (!is_implemented() && !lang::conf::function_placeholder) {
     // lookup symbol
     const std::string name = ctx.symbols.path_name(name_.image);
-    auto maybe_symbol = ctx.symbols.find(name, type_);
+    auto maybe_symbol = ctx.symbols.find(name, type());
 
     // check the symbol exists
     if (maybe_symbol.has_value()) {
@@ -141,10 +145,34 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
     return false;
   }
 
-  // first: validation
+  // validate function parameters
   if (!validate_params(ctx.messages)) {
     return false;
   }
+
+  // definition is ok, but it is done when needed
+  return true;
+}
+
+std::unordered_set<int> lang::ast::FunctionBaseNode::get_args_to_ignore() const {
+  std::unordered_set<int> indexes;
+  for (int i = 0; i < params_.size(); i++) {
+    if (params_[i]->name().image == "_")
+      indexes.insert(i);
+  }
+
+  return indexes;
+}
+
+bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
+  if (defined_ || !generate_code_) return true;
+  defined_ = true; // only call this function once
+
+  // lookup the function symbol we created
+  auto& symbol = static_cast<const symbol::Function&>(ctx.symbols.get(id_));
+
+  // allocate space for the function, as this is not done on declaration
+  ctx.symbols.allocate(id_);
 
   // symbol has already been inserted, so lookup the associated block
   auto maybe_store = ctx.symbols.locate(id_);
@@ -155,10 +183,10 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   const assembly::BasicBlock& previous = ctx.program.current();
   ctx.program.select(function_block);
 
-  // if not implemented (so generating a shell), we can skip some stuff
+  // if declaration (so generating a shell, or we wouldn't get here), we can skip some stuff
   if (!is_implemented()) {
     // generate `ret` statement and update $ret contents in alloc manager
-    const type::Node& return_type = type_.returns();
+    auto& return_type = type_.returns();
     std::unique_ptr<value::Value> value;
     if (return_type.size() == 0) {
       value = value::rvalue(return_type, memory::Ref::reg(constants::registers::ret));
@@ -194,11 +222,11 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
     offset += type.size();
 
     // create argument symbol with this location
-    auto symbol = std::make_unique<symbol::Symbol>(param->name(), symbol::Category::Argument, type);
-    const symbol::SymbolId id = symbol->id();
+    auto arg = std::make_unique<symbol::Symbol>(param->name(), symbol::Category::Argument, type);
+    const symbol::SymbolId id = arg->id();
 
     // insert into scope, DO NOT allocate
-    ctx.symbols.insert(std::move(symbol), false);
+    ctx.symbols.insert(std::move(arg), false);
 
     // tell symbol table its stack location
     ctx.symbols.allocate(id, memory::StorageLocation::stack(offset));
@@ -235,7 +263,7 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
     auto value = value::rvalue(
         type::unit,
         memory::Ref::reg(constants::registers::ret)
-      );
+    );
     ctx.reg_alloc_manager.update_ret(memory::Object(std::move(value)));
   }
 
@@ -243,14 +271,4 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   ctx.program.select(previous);
 
   return true;
-}
-
-std::unordered_set<int> lang::ast::FunctionBaseNode::get_args_to_ignore() const {
-  std::unordered_set<int> indexes;
-  for (int i = 0; i < params_.size(); i++) {
-    if (params_[i]->name().image == "_")
-      indexes.insert(i);
-  }
-
-  return indexes;
 }

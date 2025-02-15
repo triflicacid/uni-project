@@ -16,6 +16,7 @@
 #include "assembly/create.hpp"
 #include "ast/function/function.hpp"
 #include "operators/user_defined.hpp"
+#include "symbol/function.hpp"
 
 std::string lang::ast::OperatorNode::node_name() const {
   return args_.size() == 2
@@ -121,6 +122,13 @@ bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
   // make sure to replace with the correct signature (esp. for the return type)
   signature_ = op_->get().type();
 
+  // if op is user-defined, ensure the function is defined
+  if (!op_->get().builtin()) {
+    // ensure function is defined
+    auto& user_op = static_cast<const ops::UserDefinedOperator&>(op_->get());
+    static_cast<const symbol::Function&>(user_op.symbol()).origin().define(ctx);
+  }
+
   // update rvalue return
   value_ = value::rvalue(op_->get().type().returns());
   return true;
@@ -147,7 +155,7 @@ bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
   // if not built-in, make a function call
   if (!op.builtin()) {
     auto& user_op = static_cast<const ops::UserDefinedOperator&>(op);
-    auto function_loc = ctx.symbols.locate(user_op.symbol_id());
+    auto function_loc = ctx.symbols.locate(user_op.symbol().id());
     assert(function_loc.has_value());
 
     ops::call_function(
@@ -826,6 +834,9 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
         signature_ = *func_type;
         func_name_ = name;
 
+        // ensure function is defined
+        static_cast<const symbol::Function&>(symbol).origin().define(ctx);
+
         // record function's location
         f_loc_ = ctx.symbols.locate(symbol.id());
         assert(f_loc_.has_value());
@@ -873,6 +884,9 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
         symbol::Symbol& symbol = ctx.symbols.find(name, candidates.front()).value();
         signature_ = candidates.front();
         func_name_ = name;
+
+        // ensure function is defined
+        static_cast<const symbol::Function&>(symbol).origin().define(ctx);
 
         // record function's location
         f_loc_ = ctx.symbols.locate(symbol.id());
@@ -933,9 +947,13 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
   if (op->get().builtin()) {
     // TODO what if op is built-in?
   } else {
+    auto& user_op = static_cast<const ops::UserDefinedOperator&>(op->get());
+
+    // ensure function is defined
+    static_cast<const symbol::Function&>(user_op.symbol()).origin().define(ctx);
+
     // get location of the operator
-    auto& builtin = static_cast<const ops::UserDefinedOperator&>(op->get());
-    f_loc_ = ctx.symbols.locate(builtin.symbol_id());
+    f_loc_ = ctx.symbols.locate(user_op.symbol().id());
     assert(f_loc_.has_value());
   }
 

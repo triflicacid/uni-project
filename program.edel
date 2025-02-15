@@ -6,4 +6,8 @@ func add(a: float, b: float) -> float {
     return a + b;
 }
 
-let f = &add as *(int, int) -> int;
+operator$(a: int) -> int {
+    return a * 100;
+}
+
+add($1, 2);

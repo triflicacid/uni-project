@@ -44,7 +44,8 @@ namespace lang::symbol {
     const Symbol& get(SymbolId id) const;
 
     // insert symbol into the local scope
-    // note, if `alloc=false`, call ::allocate() to physically allocate space for the symbol
+    // note, if `alloc=true`, call ::allocate() to physically allocate space for the symbol
+    // *unless* symbol is a function
     void insert(std::unique_ptr<Symbol> symbol, bool alloc = true);
 
     // insert contents of a registry - calls ::insert() on all symbols in registry
@@ -60,7 +61,7 @@ namespace lang::symbol {
 
     // get the storage location of the given symbol
     // may be optional if the symbol (1) has not been allocated, or (2) has no physical width (e.g., a namespace)
-    std::optional<std::reference_wrapper<const memory::StorageLocation>> locate(SymbolId symbol) const;
+    optional_ref<const memory::StorageLocation> locate(SymbolId symbol) const;
 
     // given a memory location, return asm argument referencing this location
     std::unique_ptr<assembly::BaseArg> resolve_location(const memory::StorageLocation& location) const;
