@@ -87,6 +87,24 @@ Subsection ~\ref{subsec:address-of-&-dereferencing} explains the use of the \tex
 Pointers do not fit into the type hierarchy, and cannot be implicitly cast.
 For safety, it is best not to cast pointer types unless absolutely necessary.
 
+\subsubsection{Pointer Arithmetic}
+
+Pointer arithmetic refers to the addition or subtraction of a pointer and an integer.
+In such cases, the integer is ``scaled'' by the size of the data pointer to by the pointer.
+That is, let \texttt{ptr} be a pointer of type \texttt{*T}, then
+
+\begin{lstlisting}[language=CustomLang]
+ptr + 2
+// turns into
+ptr + 2 * sizeof(T)
+\end{lstlisting}
+
+This is natural when considering \texttt{ptr} as a buffer of type \texttt{T}'s;
+\texttt{+1} would refer to the next item, which would be \texttt{sizeof T} bytes away.
+
+Note that this only works for \texttt{pointer + scalar} and not vice versa.
+Furthermore, the integer must be, or be a subtype of, \texttt{u64}.
+
 \subsection{Function Types}\label{subsec:function-types}
 
 Every function has a function type, with its type describing its argument and return types.

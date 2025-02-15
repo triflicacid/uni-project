@@ -1,4 +1,2 @@
-sizeof int;
-
-let p = 12;
-sizeof p;
+let p = null as *i32;
+p + 1;

@@ -123,9 +123,11 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(c
 
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
-    if (auto obj_symbol = object.value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
-      object.required = true;
-      return Ref(Ref::Memory, address);
+    if (object.value->is_lvalue()) {
+      if (auto obj_symbol = object.value->lvalue().get_symbol(); obj_symbol && obj_symbol->get().id() == symbol.id()) {
+        object.required = true;
+        return Ref(Ref::Memory, address);
+      }
     }
   }
 
@@ -152,7 +154,7 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(c
   // check if Object is inside a register
   int offset = initial_register;
   for (auto& object : instances_.front().regs) {
-    if (object && object->value->is_lvalue()) {
+    if (object && object->value->is_rvalue()) {
       if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
         object->required = true;
         return Ref(Ref::Register, offset);
@@ -164,9 +166,11 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(c
 
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
-    if (auto obj_lit = object.value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
-      object.required = true;
-      return Ref(Ref::Memory, address);
+    if (object.value->is_rvalue()) {
+      if (auto obj_lit = object.value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
+        object.required = true;
+        return Ref(Ref::Memory, address);
+      }
     }
   }
 

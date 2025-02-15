@@ -103,7 +103,17 @@ optional_ref<const lang::value::Value> lang::ast::OperatorNode::get_arg_lvalue(C
 }
 
 bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
-  if (!OperatorNode::process(ctx)) return false;
+  // special case: +/- on a pointer
+  if (op_symbol_.image == "+" || op_symbol_.image == "-" && args_.size() == 2) {
+    if (!args_.front()->process(ctx) || !args_.front()->resolve_lvalue(ctx)) return false;
+    if (args_.front()->value().type().get_pointer()) {
+      args_[1]->type_hint(type::uint64); // type hint as u64  for better arithmetic
+      if (!args_[1]->process(ctx)) return false;
+      special_pointer_op_ = true;
+    }
+  }
+
+  if (!special_pointer_op_ && !OperatorNode::process(ctx)) return false;
 
   // generate our signature
   std::deque<std::reference_wrapper<const type::Node>> arg_types;
@@ -113,6 +123,17 @@ bool lang::ast::OverloadableOperatorNode::process(lang::Context& ctx) {
   }
   const auto& signature = type::FunctionNode::create(arg_types, std::nullopt);
   signature_ = signature;
+
+  // if special_pointer_op_, second arg must be an integer
+  if (special_pointer_op_) {
+    if (!type::graph.is_subtype(arg_types[1].get().id(), type::uint64.id())) {
+      ctx.messages.add(util::error_type_mismatch(*this, arg_types[1].get(), type::uint64, false));
+      return false;
+    }
+
+    value_ = value::rvalue(arg_types.front().get());
+    return true;
+  }
 
   // try to find candidate
   auto maybe_op = ops::select_candidate(symbol(), signature, *this, ctx.messages);
@@ -146,6 +167,41 @@ std::string lang::ast::OverloadableOperatorNode::to_string() const {
 }
 
 bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
+  if (special_pointer_op_) {
+    if (!get_arg_rvalue(ctx, 0) || !get_arg_rvalue(ctx, 1)) return false;
+    const auto& ptr = args_.front()->value();
+    const auto ref_ptr = ctx.reg_alloc_manager.guarantee_register(ptr.rvalue().ref());
+    const auto& offset = args_.back()->value();
+    const auto ref_offset = ctx.reg_alloc_manager.guarantee_register(offset.rvalue().ref());
+    int idx = ctx.program.current().size();
+
+    int to_spoil = ops::pointer_arithmetic(
+        ctx.program.current(),
+        ref_ptr.offset,
+        ref_offset.offset,
+        ptr.type().get_pointer()->unwrap().size(),
+        op_symbol_.image == "-"
+    );
+
+    // add comment
+    auto& comment = ctx.program.current()[idx].comment();
+    comment << "operator+(";
+    ptr.type().print_code(comment) << ", ";
+    offset.type().print_code(comment) << ")";
+
+    // spoil `ptr` register
+    auto& object_ptr = ctx.reg_alloc_manager.find(ref_ptr);
+    object_ptr.value->rvalue(std::make_unique<value::RValue>(value_->type(), ref_ptr));
+
+    if (to_spoil == 2) {
+      // spoil `offset` register
+      auto& object_offset = ctx.reg_alloc_manager.find(ref_offset);
+      object_offset.value->rvalue(std::make_unique<value::RValue>(type::uint64, ref_offset));
+    }
+
+    return true;
+  }
+
   // operator must have been set by ::process
   assert(op_.has_value());
 
@@ -185,8 +241,13 @@ bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
   // generate code, attach rvalue reference
   uint8_t reg = builtin.generator()(ctx, args);
-  value_->rvalue(memory::Ref::reg(reg));
+  const auto ref = memory::Ref::reg(reg);
+  value_->rvalue(ref);
   ctx.program.current().back().comment() << to_string();
+
+  // "spoil" the current register
+  auto& object = ctx.reg_alloc_manager.find(ref);
+  object.value->rvalue(std::make_unique<value::RValue>(value_->type(), ref));
 
   return true;
 }

@@ -578,3 +578,37 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
 
   return true;
 }
+
+int lang::ops::pointer_arithmetic(assembly::BasicBlock& block, uint8_t reg_a, uint8_t reg_b, uint32_t imm_c, bool is_subtraction) {
+  const auto& create_arith = is_subtraction
+      ? assembly::create_sub
+      : assembly::create_add;
+
+  if (imm_c > 2) { // if this big, we need to scale first
+    // b := b * c
+    block.add(assembly::create_mul(
+        constants::inst::datatype::u64,
+        reg_b,
+        reg_b,
+        assembly::Arg::imm(imm_c)
+    ));
+  } else if (imm_c == 2) { // just hardcode a double addition
+    // a := a + b
+    block.add(create_arith(
+        constants::inst::datatype::u64,
+        reg_a,
+        reg_a,
+        assembly::Arg::reg(reg_b)
+    ));
+  }
+
+  // a := a + b
+  block.add(create_arith(
+      constants::inst::datatype::u64,
+      reg_a,
+      reg_a,
+      assembly::Arg::reg(reg_b)
+  ));
+
+  return imm_c > 2 ? 2 : 1;
+}

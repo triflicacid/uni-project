@@ -53,4 +53,10 @@ namespace lang::ops {
   // save stack frame, registers, prepare args, etc.
   // return if success
   bool call_function(std::unique_ptr<assembly::BaseArg> function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, const std::unordered_set<int>& args_to_ignore, value::Value& return_value, Context& ctx);
+
+  // pointer addition: r = a <op> b * c where `a` is ptr, `b` is offset, `c` is size
+  // <op> is either `add` or `sub` depending on flag
+  // registers are u64
+  // return registers to soil: 1 if just reg_a, 2 is both registers
+  int pointer_arithmetic(assembly::BasicBlock& block, uint8_t reg_a, uint8_t reg_b, uint32_t imm_c, bool is_subtraction);
 }

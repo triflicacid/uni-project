@@ -60,6 +60,7 @@ namespace lang::ast {
   class OverloadableOperatorNode : public OperatorNode {
     std::optional<std::reference_wrapper<const type::FunctionNode>> signature_; // signature, set in ::process
     std::optional<std::reference_wrapper<const ops::Operator>> op_; // resolves operator, set in ::process
+    bool special_pointer_op_ = false; // track if +/- on a pointer as we need to do something special
 
   public:
     using OperatorNode::OperatorNode;
