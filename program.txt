@@ -1,2 +1,0 @@
-let ptr = null as *i32;
-let fn = null as (int) -> int;

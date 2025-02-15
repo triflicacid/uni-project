@@ -201,5 +201,9 @@ apply(1, 2, add);
 \end{lstlisting}
 
 Note, this only works for non-overloaded functions, as otherwise the ``target'' type for each argument is not known.
+This is also useful when obtaining a pointer to an overloaded function, as \texttt{\&} expects a symbol.
 
-
+\begin{lstlisting}[language=CustomLang]
+let ptr = &(add as (int, int) -> int); // error
+let ptr = &add as *(int, int) -> int; // ok
+\end{lstlisting}

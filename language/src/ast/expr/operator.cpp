@@ -580,6 +580,9 @@ bool lang::ast::AddressOfOperatorNode::process(lang::Context& ctx) {
 
   // get argument value, expect symbol
   Node& arg = *args_.front();
+  if (type_hint().has_value())  // pass type hint forward if we have one
+    if (auto ptr = type_hint()->get().get_pointer())
+      arg.type_hint(ptr->unwrap());
   const value::Value& value = arg.value();
   if (!arg.resolve_lvalue(ctx)) return {};
   // must be computable to a value (i.e., possible rvalue)

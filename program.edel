@@ -1,0 +1,9 @@
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+
+func add(a: float, b: float) -> float {
+    return a + b;
+}
+
+let f = &add as *(int, int) -> int;
