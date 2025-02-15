@@ -134,8 +134,29 @@ Note that not all datatypes may be cast between each-other using explicit castin
 
 \begin{lstlisting}[language=CustomLang]
 let a: u8 = 42; // error!
-let a = 42 as u8; // i32 -> u8
+let a = 42 as u8; // ok
 \end{lstlisting}
+
+\subsubsection{Casting Constraints}
+
+Implicit casting is constrained by subtyping as dictated in the subtype graph.
+Explicit casting allows the programmer to circumvent many of these rules, but it is not a completely unconstrained process.
+
+The constraints are as follows: say we have the following cast:
+\begin{lstlisting}[language=CustomLang]
+let a: T1;
+a as T2;
+\end{lstlisting}
+
+This cast is invalid if:
+\begin{itemize}
+    \item \texttt{T2} is a function type and neither of the following are true:
+    \begin{itemize}
+        \item \texttt{T1} is a pointer; or
+        \item \texttt{T1} is also a functional type, and \texttt{T1 == T2}.
+    \end{itemize}
+    \item \texttt{T2} is a pointer, but \texttt{T1} is not.
+\end{itemize}
 
 \subsection{Type ``Hints''}\label{subsec:type-hints}
 
@@ -180,3 +201,5 @@ apply(1, 2, add);
 \end{lstlisting}
 
 Note, this only works for non-overloaded functions, as otherwise the ``target'' type for each argument is not known.
+
+

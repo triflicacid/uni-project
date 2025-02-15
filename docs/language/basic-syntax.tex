@@ -56,3 +56,63 @@ A block is introduced by braces \texttt{\{\}} and contains a section of code.
 As previously mentioned, a block may be an expression or a statement, hence is permitted anywhere they would be expected.
 
 Blocks in Edel introduce a new lexical scope (see section ~\ref{sec:names-&-scope} for scope resolution).
+
+\subsection{Literals}
+
+A literal is an rvalue represented directly in the code, such as integers and Booleans.
+As an rvalue, each literal has a type (see section ~\ref{sec:types}).
+
+\subsubsection{Booleans}
+
+A Boolean is a binary value, with each Boolean being \texttt{true} or \texttt{false}.
+
+\begin{lstlisting}[language=CustomLang]
+true;
+false;
+\end{lstlisting}
+
+\subsubsection{Numbers}
+
+Numbers can be divided into two categories: integers, or whole numbers, and floating-point numbers.
+Both consists of a sequence of digits, with the latter containing a decimal point.
+
+\begin{lstlisting}[language=CustomLang]
+12;
+3.14159;
+\end{lstlisting}
+
+The default type of each category is \texttt{int} and \texttt{float}, respectively.
+If a specific type is required, this may appear as a suffix.
+For example,
+
+\begin{lstlisting}[language=CustomLang]
+12u8;
+3.1415f64;
+\end{lstlisting}
+
+Note that the type of a literal is determined lazily.
+That is, the type is only determined when the literal is required.
+For example, the following integer is parsed as a \texttt{u8} rather than as an \texttt{int} before being cast to a \texttt{u8}.
+
+\begin{lstlisting}[language=CustomLang]
+12 as u8;
+\end{lstlisting}
+
+\subsubsection{Null}
+
+The \texttt{null} keyword is used to denote an empty pointer/function value.
+\texttt{null} can be through of as the following.
+
+\begin{lstlisting}[language=CustomLang]
+let null: *u8 = 0;
+\end{lstlisting}
+
+(Note this is not well-formed code, as the cast would fail, and \texttt{null} is a keyword.)
+
+As with numeric literals, \texttt{null}'s type is also determined in-context.
+\texttt{null} may be used as any pointer type, as well as a functional type.
+
+\begin{lstlisting}[language=CustomLang]
+let ptr = null as *i32;
+let fn = null as (int) -> int;
+\end{lstlisting}
