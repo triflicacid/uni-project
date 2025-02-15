@@ -151,7 +151,7 @@ bool lang::ast::OverloadableOperatorNode::resolve_rvalue(lang::Context& ctx) {
     assert(function_loc.has_value());
 
     ops::call_function(
-        *function_loc,
+        ctx.symbols.resolve_location(function_loc->get()),
         symbol(),
         *signature_,
         args_,
@@ -482,10 +482,14 @@ bool lang::ast::CastOperatorNode::resolve_rvalue(lang::Context& ctx) {
 
   // get original value
   auto& value = args_.front()->value();
+  auto& type = value.type();
 
-  // if type is functional and not equal, cannot cast
-  if ((target_.get_func() || value.type().get_func()) && target_ != value.type()) {
-    ctx.messages.add(util::error_type_mismatch(*this, value.type(), target_, false));
+  // cannot cast if:
+  // - functional and do not match
+  // - pointers to non-pointers
+  if ((target_.get_func() && !(type.get_pointer() || (type.get_func() && target_ == type)))
+     || (target_.get_pointer() && !type.get_pointer())) {
+    ctx.messages.add(util::error_type_mismatch(*this, type, target_, false));
     return false;
   }
 
@@ -820,8 +824,8 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
         func_name_ = name;
 
         // record function's location
-        loc_ = ctx.symbols.locate(symbol.id());
-        assert(loc_.has_value());
+        f_loc_ = ctx.symbols.locate(symbol.id());
+        assert(f_loc_.has_value());
         value_ = value::rvalue(signature_->get().returns());
 
         return true;
@@ -868,8 +872,8 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
         func_name_ = name;
 
         // record function's location
-        loc_ = ctx.symbols.locate(symbol.id());
-        assert(loc_.has_value());
+        f_loc_ = ctx.symbols.locate(symbol.id());
+        assert(f_loc_.has_value());
 
         value_ = value::rvalue(signature_->get().returns());
         return true;
@@ -898,11 +902,16 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
     }
   }
 
-  // TODO what if value has function type?
-
   // otherwise, we need to hunt for an overload
   // first, evaluate our subject
   if (!subject_->resolve_rvalue(ctx)) return false;
+
+  // what if the subject has a functional type signature?
+  if (auto func_type = subject_->value().type().get_func()) {
+    signature_ = *func_type;
+    value_ = value::rvalue(func_type->returns());
+    return true;
+  }
 
   // add the subject's type to the signature
   arg_types.push_front(subject_->value().type());
@@ -923,24 +932,32 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
   } else {
     // get location of the operator
     auto& builtin = static_cast<const ops::UserDefinedOperator&>(op->get());
-    loc_ = ctx.symbols.locate(builtin.symbol_id());
-    assert(loc_.has_value());
+    f_loc_ = ctx.symbols.locate(builtin.symbol_id());
+    assert(f_loc_.has_value());
   }
 
   return true;
 }
 
 bool lang::ast::FunctionCallOperatorNode::resolve_rvalue(lang::Context& ctx) {
-  assert(loc_.has_value());
+  std::unique_ptr<assembly::BaseArg> arg;
+
+  if (f_loc_.has_value()) {
+    arg = ctx.symbols.resolve_location(f_loc_->get());
+  } else {
+    const memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(subject_->value().rvalue().ref());
+    arg = assembly::Arg::reg(ref.offset);
+  }
+
   return ops::call_function(
-      *loc_,
+      std::move(arg),
       func_name_,
       *signature_,
       args_,
       {},
       *value_,
       ctx
-    );
+  );
 }
 
 std::ostream& lang::ast::FunctionCallOperatorNode::print_code(std::ostream& os, unsigned int indent_level) const {

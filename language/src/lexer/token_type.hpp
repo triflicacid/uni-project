@@ -47,6 +47,7 @@ namespace lang::lexer {
     if_kw,
     let,
     namespace_kw,
+    null_kw,
     operator_kw,
     registerof_kw,
     return_kw,

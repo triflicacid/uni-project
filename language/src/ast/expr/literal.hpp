@@ -10,7 +10,7 @@ namespace lang::ast {
     optional_ref<const memory::Literal> lit_;
 
     // get numeric type to cast to
-    const ast::type::Node& get_target_type() const;
+    const ast::type::Node& get_target_numeric_type() const;
 
   public:
     LiteralNode(lexer::Token token) : Node(std::move(token)) {}

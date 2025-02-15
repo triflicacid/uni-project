@@ -494,7 +494,7 @@ void lang::ops::cast(lang::assembly::BasicBlock& block, uint8_t reg, constants::
   ast::type::from_asm_type(target).print_code(comment);
 }
 
-bool lang::ops::call_function(const lang::memory::StorageLocation& function, const std::string& name,
+bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const std::string& name,
                               const lang::ast::type::FunctionNode& signature,
                               const std::deque<std::unique_ptr<ast::Node>>& args,
                               const std::unordered_set<int>& args_to_ignore,
@@ -555,8 +555,7 @@ bool lang::ops::call_function(const lang::memory::StorageLocation& function, con
   }
 
   // call the function (via jal) and add comment
-  auto arg = ctx.symbols.resolve_location(function);
-  ctx.program.current().add(assembly::create_jump_and_link(std::move(arg)));
+  ctx.program.current().add(assembly::create_jump_and_link(std::move(function)));
   auto& comment = ctx.program.current().back().comment();
   comment << "call " << name;
   signature.print_code(comment);

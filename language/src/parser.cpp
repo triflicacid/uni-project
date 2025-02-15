@@ -177,6 +177,7 @@ const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
       lexer::BasicToken(lexer::TokenType::if_kw),
       lexer::BasicToken(lexer::TokenType::lpar),
       lexer::BasicToken(lexer::TokenType::lbrace),
+      lexer::BasicToken(lexer::TokenType::null_kw),
       lexer::BasicToken(lexer::TokenType::registerof_kw),
     }
 });
@@ -217,6 +218,10 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
 
   if (expect(lexer::TokenType::lbrace)) { // block
     return parse_block();
+  }
+
+  if (expect(lexer::TokenType::null_kw)) { // null literal
+    return std::make_unique<ast::LiteralNode>(consume());
   }
 
   return nullptr;

@@ -5,6 +5,7 @@
 #include "constants.hpp"
 #include "value/value.hpp"
 #include "memory/storage_location.hpp"
+#include "assembly/arg.hpp"
 #include <unordered_set>
 
 namespace lang {
@@ -48,8 +49,8 @@ namespace lang::ops {
   // generate code for a Boolean cast, but does not update the register
   void boolean_cast(assembly::BasicBlock& block, uint8_t reg);
 
-  // generate a call to function stored at the given location
+  // generate a call to function pointed to by argument
   // save stack frame, registers, prepare args, etc.
   // return if success
-  bool call_function(const memory::StorageLocation& function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, const std::unordered_set<int>& args_to_ignore, value::Value& return_value, Context& ctx);
+  bool call_function(std::unique_ptr<assembly::BaseArg> function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, const std::unordered_set<int>& args_to_ignore, value::Value& return_value, Context& ctx);
 }

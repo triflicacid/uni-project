@@ -173,7 +173,7 @@ namespace lang::ast {
     std::unique_ptr<Node> subject_; // note, args_ only contains things in (...)
     optional_ref<const type::FunctionNode> signature_;
     std::string func_name_; // function name, printed in asm comment
-    optional_ref<const memory::StorageLocation> loc_; // location of function
+    optional_ref<const memory::StorageLocation> f_loc_; // location of function
 
   public:
     FunctionCallOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> subject, std::deque<std::unique_ptr<Node>> args);
