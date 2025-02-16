@@ -105,6 +105,18 @@ This is natural when considering \texttt{ptr} as a buffer of type \texttt{T}'s;
 Note that this only works for \texttt{pointer + scalar} and not vice versa.
 Furthermore, the integer must be, or be a subtype of, \texttt{u64}.
 
+\subsubsection{Pointer Subscripting}
+
+The subscript operator `\texttt{[]}' can be used on pointer types, in which case the subscript acts as a shorthand for pointer arithmetic.
+As \texttt{[]} notation is often used with arrays, this extends the behaviour of pointer arithmetic in regard to referring to the ``next'' item in a buffer.
+The following expressions are identical in behaviour.
+
+\begin{lstlisting}[language=CustomLang]
+ptr[i]
+// is equivalent to
+*(ptr + i)
+\end{lstlisting}
+
 \subsection{Function Types}\label{subsec:function-types}
 
 Every function has a function type, with its type describing its argument and return types.
