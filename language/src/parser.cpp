@@ -355,6 +355,30 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal
       expr = parse_function_call(std::move(expr));
       if (is_error()) return nullptr;
       continue; // continue to next operator
+    } else if (expect(lexer::TokenType::lsquare)) { // '[' --> subscript
+      info = &ops::builtin_binary.at("[]");
+      const lexer::Token lsquare = consume();
+      // exit if lower precedence - some things are tighter than a call
+      if (precedence >= info->precedence) break;
+      // parse inner expression
+      if (!expect_or_error(firstset::expression)) return nullptr;
+      auto inner = parse_expression_internal(0);
+      if (is_error()) return nullptr;
+      // expect ']'
+      if (!expect_or_error(lexer::TokenType::rsquare)) {
+        auto msg = lsquare.generate_message(message::Note);
+        msg->get() << "subscript opened here";
+        add_message(std::move(msg));
+        return nullptr;
+      }
+      consume();
+      // construct node and continue
+      lexer::Token token_start = expr->token_start();
+      lexer::Token symbol = op_token;
+      symbol.image = "[]";
+      expr = ast::OperatorNode::binary(token_start, symbol, std::move(expr), std::move(inner));
+      expr->token_end(previous());
+      continue; // continue to next operator
     } else if (expect(lexer::TokenType::as_kw)) { // 'as' --> cast
       info = &ops::builtin_binary.at("as");
       // exit if lower precedence - some things are tighter than a 'as'
@@ -671,6 +695,7 @@ std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_operato
   static const lexer::TokenTypeSet valid_names = {
     lexer::TokenType::op,
     lexer::TokenType::lpar,
+    lexer::TokenType::lsquare,
   };
 
   // 'operator'
@@ -680,8 +705,7 @@ std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_operato
   if (!expect_or_error(valid_names)) return nullptr;
   lexer::Token name = peek();
 
-  // if '(', expect '()'
-  if (expect(lexer::TokenType::lpar)) {
+  if (expect(lexer::TokenType::lpar)) {  // if '(', expect '()'
     consume();
     if (!expect_or_error(lexer::TokenType::rpar)) {
       // generate help message about expecting '()'
@@ -692,7 +716,18 @@ std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_operato
     }
     consume();
     name.image = "()"; // lil' hack to ensure image is OK
-  } else {
+  } else if (expect(lexer::TokenType::lsquare)) {  // if '[', expect '[]'
+      consume();
+      if (!expect_or_error(lexer::TokenType::rsquare)) {
+        // generate help message about expecting '()'
+        auto msg = std::make_unique<message::BasicMessage>(message::Note);
+        msg->get() << "expected '[]' operator here";
+        add_message(std::move(msg));
+        return nullptr;
+      }
+      consume();
+      name.image = "[]"; // hack to ensure image is OK
+    } else {
     consume();
   }
 

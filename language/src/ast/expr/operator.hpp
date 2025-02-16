@@ -207,4 +207,19 @@ namespace lang::ast {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
   };
+
+  // represents lhs[rhs]
+  class SubscriptOperatorNode : public OperatorNode {
+    optional_ref<const type::FunctionNode> signature_;
+    optional_ref<const ops::Operator> op_; // overloaded operator, in case of non-pointer behaviour
+
+  public:
+    SubscriptOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
+
+    bool process(lang::Context &ctx) override;
+
+    bool resolve_rvalue(lang::Context &ctx) override;
+
+    bool resolve_lvalue(lang::Context &ctx) override;
+  };
 }

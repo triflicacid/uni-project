@@ -57,3 +57,10 @@ lang::util::error_cannot_match_type_hint(const message::MessageGenerator& source
   type_hint.print_code(msg->get());
   return msg;
 }
+
+std::unique_ptr<message::Message> lang::util::error_expected_lrvalue(const message::MessageGenerator& source, const ast::type::Node& type, bool expected_lvalue) {
+  auto msg = source.generate_message(message::Error);
+  msg->get() << "expected " << (expected_lvalue ? 'l' : 'r') << "value, got ";
+  type.print_code(msg->get());
+  return msg;
+}

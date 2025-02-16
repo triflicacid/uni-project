@@ -36,4 +36,7 @@ namespace lang::util {
 
   // generate error for using the special discard operator '_' as a name
   std::unique_ptr<message::Message> error_underscore_bad_use(const message::MessageGenerator& source);
+
+  // error for expected l-- or r-value
+  std::unique_ptr<message::Message> error_expected_lrvalue(const message::MessageGenerator& source, const ast::type::Node& type, bool expected_lvalue);
 }

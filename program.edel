@@ -1,2 +1,2 @@
 let p = null as *i32;
-p + 1;
+p[1] = 42;

@@ -3,11 +3,16 @@
 #include "builtin.hpp"
 #include "context.hpp"
 #include "assembly/basic_block.hpp"
+#include "ast/function/function_base.hpp"
 #include "ast/types/function.hpp"
 #include "ast/types/int.hpp"
-#include "assembly/create.hpp"
 #include "ast/types/float.hpp"
 #include "ast/types/bool.hpp"
+#include "ast/types/pointer.hpp"
+#include "assembly/create.hpp"
+#include "user_defined.hpp"
+#include "message_helper.hpp"
+#include "symbol/function.hpp"
 
 using Args = const std::deque<std::reference_wrapper<const lang::value::Value>>&;
 
@@ -93,6 +98,7 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"/", {15, false}},  // division
     {"%", {15, false}},  // modulus
     {"as", {17, false, false}},  // cast
+    {"[]", {19, false}},  // subscript
     {"()", {19, false}},  // function call
     {".", {20, false, false}},  // member access
 };
@@ -611,4 +617,138 @@ int lang::ops::pointer_arithmetic(assembly::BasicBlock& block, uint8_t reg_a, ui
   ));
 
   return imm_c > 2 ? 2 : 1;
+}
+
+lang::memory::Ref lang::ops::pointer_arithmetic(Context& ctx, const value::Value& pointer, const value::Value& offset, bool is_subtraction) {
+  assert(pointer.type().get_pointer());
+  assert(pointer.is_rvalue() && offset.is_rvalue());
+
+  const auto ref_ptr = ctx.reg_alloc_manager.guarantee_register(pointer.rvalue().ref());
+  const auto ref_offset = ctx.reg_alloc_manager.guarantee_register(offset.rvalue().ref());
+  int idx = ctx.program.current().size();
+
+  // generate instructions, return number of registers to 'spoil'
+  int to_spoil = ops::pointer_arithmetic(
+      ctx.program.current(),
+      ref_ptr.offset,
+      ref_offset.offset,
+      pointer.type().get_pointer()->unwrap().size(),
+      is_subtraction
+  );
+
+  // add comment
+  auto& comment = ctx.program.current()[idx].comment();
+  comment << "operator" << (is_subtraction ? "-" : "+") << "(";
+  pointer.type().print_code(comment) << ", ";
+  offset.type().print_code(comment) << ")";
+
+  // spoil `ptr` register
+  auto& object_ptr = ctx.reg_alloc_manager.find(ref_ptr);
+  object_ptr.value->rvalue(std::make_unique<value::RValue>(pointer.type(), ref_ptr));
+
+  if (to_spoil == 2) {
+    // spoil `offset` register
+    auto& object_offset = ctx.reg_alloc_manager.find(ref_offset);
+    object_offset.value->rvalue(std::make_unique<value::RValue>(ast::type::uint64, ref_offset));
+  }
+
+  return ref_ptr;
+}
+
+void lang::ops::dereference(Context& ctx, const value::Value& pointer, value::Value& result, bool add_comment) {
+  assert(pointer.is_rvalue());
+  assert(pointer.type().get_pointer());
+
+  // get the source (pointer location)
+  memory::Ref src = pointer.rvalue().ref();
+  src = ctx.reg_alloc_manager.guarantee_register(src);
+
+  // update result to point to the original
+  result.lvalue(src);
+
+  // reserve a register to place the dereferenced result
+  memory::Ref dest = ctx.reg_alloc_manager.insert({nullptr});
+  dest = ctx.reg_alloc_manager.guarantee_register(dest);
+
+  // load into register
+  ctx.program.current().add(assembly::create_load(
+      dest.offset,
+      assembly::Arg::reg_indirect(src.offset)
+  ));
+
+  // add comment
+  if (add_comment) {
+    auto& comment = ctx.program.current().back().comment();
+    comment << "deref ";
+    pointer.type().print_code(comment);
+  }
+
+  // update register allocation
+  const auto& deref_type = pointer.type().get_pointer()->unwrap();
+  memory::Object& object = ctx.reg_alloc_manager.find(dest);
+  object.value = value::rvalue(deref_type);
+  object.value->rvalue(dest);
+
+  // update resulting value's rvalue
+  result.rvalue(std::make_unique<value::RValue>(deref_type, dest));
+}
+
+bool lang::ops::call_operator(lang::Context& ctx, const std::string& name, const lang::ops::Operator& op, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value) {
+  // if not built-in, make a function call
+  if (!op.builtin()) {
+    auto& user_op = static_cast<const ops::UserDefinedOperator&>(op);
+
+    // ensure the function is defined
+    if (!static_cast<const symbol::Function&>(user_op.symbol()).origin().define(ctx))
+      return false;
+
+    // get function's location
+    auto function_loc = ctx.symbols.locate(user_op.symbol().id());
+    assert(function_loc.has_value());
+
+    ops::call_function(
+        ctx.symbols.resolve_location(function_loc->get()),
+        name,
+        op.type(),
+        args,
+        {},
+        return_value,
+        ctx
+    );
+    return true;
+  }
+
+  // otherwise, we have a built-in
+  auto& builtin = static_cast<const ops::BuiltinOperator&>(op);
+
+  // evaluate & accumulate argument values
+  std::deque<std::reference_wrapper<const value::Value>> arg_values;
+  for (auto& arg : args) {
+    if (!arg->resolve_rvalue(ctx)) return false;
+    if (!arg->value().is_rvalue()) {
+      ctx.messages.add(util::error_expected_lrvalue(*arg, arg->value().type(), false));
+      return false;
+    }
+    arg_values.push_back(arg->value());
+  }
+
+  // generate code, attach rvalue reference
+  uint8_t reg = builtin.generator()(ctx, arg_values);
+  const auto ref = memory::Ref::reg(reg);
+  return_value.rvalue(ref);
+
+  // add comment
+  auto& comment = ctx.program.current().back().comment();
+  comment << "operator" << name << "(";
+  for (auto& value : arg_values) {
+    value.get().type().print_code(comment);
+    if (&value != &arg_values.back()) comment << ", ";
+  }
+  comment << ")";
+
+  // "spoil" the current register
+  auto& object = ctx.reg_alloc_manager.find(ref);
+  object.value->rvalue(std::make_unique<value::RValue>(return_value.type(), ref));
+
+  return true;
 }

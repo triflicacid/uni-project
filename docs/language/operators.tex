@@ -33,7 +33,8 @@ The associativity and precedence of a generic (non built-in) operator is also sh
         \hline
         \texttt{a.b} & Member access & \(\longrightarrow\) & No \\
         \hline
-        \texttt{a()} & Function call & \(\longrightarrow\) & Yes \\
+        \texttt{a()} & Function call & \multirow{2}{*}{\(\longrightarrow\)} & \multirow{2}{*}{Yes} \\
+        \texttt{a[]} & Subscript & & \\
         \hline
         \texttt{(T) a} & Primitive cast & \multirow{5}{*}{\(\longleftarrow\)} & \multirow{5}{*}{No} \\
         \texttt{\&a} & Address-of & & \\

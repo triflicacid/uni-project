@@ -14,6 +14,8 @@ namespace lang::lexer {
     rbrace, // }
     lpar, // (
     rpar, // )
+    lsquare, // [
+    rsquare, // ]
     sc, // ;
     colon, // :
     comma, // ,

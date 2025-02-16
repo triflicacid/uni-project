@@ -54,9 +54,22 @@ namespace lang::ops {
   // return if success
   bool call_function(std::unique_ptr<assembly::BaseArg> function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, const std::unordered_set<int>& args_to_ignore, value::Value& return_value, Context& ctx);
 
+  // generate a call to an operator, return if success
+  // note, does not assign type to return_value
+  bool call_operator(Context& ctx, const std::string& name, const ops::Operator& op, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value);
+
   // pointer addition: r = a <op> b * c where `a` is ptr, `b` is offset, `c` is size
   // <op> is either `add` or `sub` depending on flag
-  // registers are u64
+  // registers are u64, result is placed in reg_a
   // return registers to soil: 1 if just reg_a, 2 is both registers
   int pointer_arithmetic(assembly::BasicBlock& block, uint8_t reg_a, uint8_t reg_b, uint32_t imm_c, bool is_subtraction);
+
+  // higher-level ops::pointer_arithmetic using Values
+  // assume first value is a pointer, second is a u64 subtype
+  // return a reference to the result
+  memory::Ref pointer_arithmetic(Context& ctx, const value::Value& pointer, const value::Value& offset, bool is_subtraction);
+
+  // de-reference a pointer value into the second
+  // should we add a 'deref ...' comment?
+  void dereference(Context& ctx, const value::Value& pointer, value::Value& result, bool add_comment);
 }

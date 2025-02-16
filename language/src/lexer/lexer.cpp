@@ -50,6 +50,8 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
         {"}", TokenType::rbrace},
         {")", TokenType::rpar},
         {"(", TokenType::lpar},
+        {"]", TokenType::rsquare},
+        {"[", TokenType::lsquare},
         {";", TokenType::sc},
         {":", TokenType::colon},
         {",", TokenType::comma},
