@@ -10,7 +10,9 @@ namespace lang::ast {
     std::unique_ptr<symbol::Registry> registry_;
 
   protected:
-    bool _process(lang::Context &ctx) override;
+    bool _process(Context &ctx) override;
+
+    bool _generate_code(Context &ctx) override;
 
     std::string block_prefix() const override { return "func " + name().image; }
 
@@ -19,14 +21,14 @@ namespace lang::ast {
 
     std::string node_name() const override { return "function"; }
 
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+
     // return if we are implemented, i.e., have a body
     bool is_implemented() const override { return body_.has_value(); }
 
     bool always_returns() const override;
-
-    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
-
-    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
   };

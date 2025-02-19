@@ -116,10 +116,22 @@ bool lang::ast::NamespaceNode::process(lang::Context& ctx) {
 
   // process children
   for (auto& line : lines_) {
-    if (!line->process(ctx)) return false;
+    if (!line->process(ctx) || !line->resolve(ctx)) return false;
   }
 
   ctx.symbols.pop_path();
+
+  // set value_ to symbol (resolve immediately, because we can)
+  value_ = value::value(type::name_space);
+  value_->lvalue(ctx.symbols.get(*id_));
+
+  return true;
+}
+
+bool lang::ast::NamespaceNode::generate_code(lang::Context& ctx) const {
+  for (auto& line : lines_) {
+    if (!line->generate_code(ctx)) return false;
+  }
   return true;
 }
 

@@ -34,7 +34,7 @@ optional_ref<lang::symbol::Symbol> lang::symbol::SymbolTable::find(const std::st
   return {};
 }
 
-void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool alloc) {
+void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol) {
   // look at path_, add parent UNLESS argument
   const Category category = symbol->category();
   if (category != Category::Argument) {
@@ -48,21 +48,25 @@ void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol, bool allo
 
   // insert into scope data structure
   if (auto it = scopes_.front().find(name); it != scopes_.front().end()) {
-    it->second.insert(id);
+    // shadow if symbol's type is non-functional
+    // assume checks have been done beforehand to check this is OK
+    if (symbol->type().get_func()) {
+      it->second.insert(id);
+    } else {
+      it->second = {id};
+    }
   } else {
     scopes_.front().insert({name, {id}});
   }
 
   // insert into cache
   symbols_.insert({id, std::move(symbol)});
-
-  // allocate space for symbol if needs be
-  if (alloc && category != Category::Function) allocate(id);
 }
 
 void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
-  // do not allocate twice!
+  assert(symbols_.contains(id));
   assert(!storage_.contains(id));
+  // do not allocate twice!
 
   const symbol::Symbol& symbol = *symbols_.at(id);
   switch (symbol.category()) {
@@ -83,8 +87,9 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
           storage_.insert({id, memory::StorageLocation::global(*block)});
 
           // insert block into the program
-          stack_.program().insert(assembly::Position::After, std::move(block));
-          stack_.program().select(assembly::Position::Previous);
+          const auto& cursor = stack_.program().current();
+          stack_.program().insert(assembly::Position::End, std::move(block));
+          stack_.program().select(cursor);
         } else {
           // add symbol to stack iff size>0
           stack_.push(size);
@@ -97,38 +102,6 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       break;
     case symbol::Category::Argument: { // point to location in stack
       throw std::runtime_error("allocate: cannot allocate an argument");
-//      // find which function this is an argument of
-//      const ast::FunctionBaseNode* function = nullptr;
-//      int trace_idx;
-//      size_t offset; // offset from first arg in function
-//      for (trace_idx = trace_.size() - 1; trace_idx >= 0; trace_idx--) {
-//        offset = 0;
-//        bool is_match = false;
-//        // check if we are a parameter of this function
-//        for (int j = 0; j < trace_[trace_idx].get().params(); j++) {
-//          auto& param = trace_[trace_idx].get().param(j);
-//          if (param.id() == id) {
-//            is_match = true;
-//            break;
-//          }
-//          offset += param.type().size();
-//        }
-//
-//        if (is_match) {
-//          function = &trace_[trace_idx].get();
-//          break;
-//        }
-//      }
-//
-//      // if no match, then this is bad
-//      if (!function) throw std::runtime_error("error when allocating argument - parent function cannot be found in trace");
-//
-//      // variable offset is from frame base + arg offset
-//      offset += stack_.peek_frame(trace_idx);
-//
-//      // register stored location
-//      storage_.insert({id, {offset - stack_.offset()}});
-      break;
     }
     case symbol::Category::Function: { // bound to a block, function should already exist
       // create a new block for the function
@@ -141,8 +114,9 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       storage_.insert({id, memory::StorageLocation::global(*block)});
 
       // insert block into the program
-      stack_.program().insert(assembly::Position::After, std::move(block));
-      stack_.program().select(assembly::Position::Previous);
+      const auto& cursor = stack_.program().current();
+      stack_.program().insert(assembly::Position::End, std::move(block));
+      stack_.program().select(cursor);
       break;
     }
     case symbol::Category::Namespace:
@@ -173,9 +147,9 @@ lang::symbol::SymbolTable::resolve_location(const lang::memory::StorageLocation&
   }
 }
 
-void lang::symbol::SymbolTable::insert(Registry& registry, bool alloc) {
+void lang::symbol::SymbolTable::insert(Registry& registry) {
   for (auto& [symbolId, symbol] : registry.symbols_) {
-    insert(std::move(symbol), alloc);
+    insert(std::move(symbol));
   }
 
   // clear registry to minimise possibility of misuse
@@ -189,14 +163,8 @@ void lang::symbol::SymbolTable::push() {
 
 void lang::symbol::SymbolTable::pop() {
   if (!scopes_.empty()) {
-    // make sure to remove all symbols from storage_ and symbols_!
-    for (auto& [name, symbols] : scopes_.front()) {
-      for (SymbolId id: symbols) {
-        symbols_.erase(id);
-        storage_.erase(id);
-      }
-    }
-
+    // note, DO NOT remove symbols from storage nor dictionary - they may be referenced in the future
+    // push/pop/insert are used during ::process, but may be referenced in ::resolve and ::generate_code
     scopes_.pop_front();
   }
   if (scopes_.empty()) push();

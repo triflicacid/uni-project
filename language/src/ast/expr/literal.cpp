@@ -94,11 +94,11 @@ bool lang::ast::LiteralNode::process(lang::Context& ctx) {
     }
   }
 
-  value_ = value::rvalue(get().type());
+  value_ = value::value(get().type());
   return true;
 }
 
-bool lang::ast::LiteralNode::resolve_rvalue(Context& ctx) {
+bool lang::ast::LiteralNode::generate_code(lang::Context& ctx) const {
   const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(get());
   value_->rvalue(std::make_unique<value::Literal>(get(), ref));
   return true;

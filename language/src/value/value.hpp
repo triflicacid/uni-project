@@ -4,6 +4,7 @@
 #include <cassert>
 #include "lvalue.hpp"
 #include "rvalue.hpp"
+#include "optional_ref.hpp"
 
 namespace lang::ast::type {
   class Node;
@@ -14,21 +15,17 @@ namespace lang::value {
 
   class Value {
     std::unique_ptr<LValue> lvalue_; // store lvalue, if applicable
-    bool future_lvalue_; // indicates that we have the ability to become an lvalue (after computation)
-
-    std::unique_ptr<RValue> rvalue_;
-    bool future_rvalue_;
-
+    std::unique_ptr<RValue> rvalue_; // store rvalue, if applicable
     std::reference_wrapper<const ast::type::Node> type_;
 
   public:
-    explicit Value();
-    Value(bool future_lvalue, bool future_rvalue);
-    Value(const ast::type::Node& type, bool future_lvalue, bool future_rvalue);
+    Value();
+    Value(const ast::type::Node& type);
+
+    // copy ourself deeply (copies l/rvalue components)
+    std::unique_ptr<Value> copy() const;
 
     const ast::type::Node& type() const { return type_; }
-
-    bool is_future_lvalue() const { return future_lvalue_; }
 
     bool is_lvalue() const { return lvalue_ != nullptr; }
 
@@ -36,9 +33,9 @@ namespace lang::value {
 
     void lvalue(std::unique_ptr<LValue> v);
 
-    void lvalue(const memory::Ref& ref);
+    void lvalue(const symbol::Symbol& symbol);
 
-    bool is_future_rvalue() const { return future_rvalue_; }
+    void lvalue(const memory::Ref& ref);
 
     bool is_rvalue() const { return rvalue_ != nullptr; }
 
@@ -51,20 +48,15 @@ namespace lang::value {
     virtual const SymbolRef* get_symbol_ref() const { return nullptr; }
   };
 
-  // create a Value which is a future rvalue
-  std::unique_ptr<Value> rvalue();
-  std::unique_ptr<Value> rvalue(const ast::type::Node& type);
+  // create a generic value
+  std::unique_ptr<Value> value(optional_ref<const ast::type::Node> type = std::nullopt);
+
+  // create an rvalue
   std::unique_ptr<Value> rvalue(const ast::type::Node& type, const memory::Ref& ref);
 
-  // create a Value which is a future lvalue
-  std::unique_ptr<Value> lvalue();
-  std::unique_ptr<Value> lvalue(const ast::type::Node& type);
+  // create a unit value
+  std::unique_ptr<Value> unit_value();
 
-  // create a Value which is a future l-value & rvalue
-  std::unique_ptr<Value> rlvalue();
-  std::unique_ptr<Value> rlvalue(const ast::type::Node& type);
-
-  // value with unit type, cannot be anything els
-  // used to signify "empty" or "none"
-  extern const std::unique_ptr<Value> unit_value;
+  // value with unit type, used to signify "empty" or "none"
+  extern const std::unique_ptr<Value> unit_value_instance;
 }

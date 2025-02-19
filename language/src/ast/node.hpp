@@ -5,6 +5,7 @@
 #include "lexer/token.hpp"
 #include "value/value.hpp"
 #include "optional_ref.hpp"
+#include "conditional_context.hpp"
 
 namespace lang {
   struct Context;
@@ -25,10 +26,11 @@ namespace lang::ast {
     virtual std::ostream& print_code(std::ostream& os, unsigned int indent_level = 0) const = 0;
   };
 
-class Node : public NodeBase, public lexer::TokenSpan {
+  class Node : public NodeBase, public lexer::TokenSpan {
     lexer::Token tstart_;
     std::optional<lexer::Token> tend_;
     optional_ref<const ast::type::Node> type_hint_; // type hint, used for resolving overload sets etc
+    optional_ref<ConditionalContext> cond_ctx_; // set when evaluating a conditional, means operator should support this and contribute
 
   protected:
     std::unique_ptr<value::Value> value_; // every node has a value, which is possibly set in ::process
@@ -48,6 +50,11 @@ class Node : public NodeBase, public lexer::TokenSpan {
 
     // set our type hint
     void type_hint(const ast::type::Node& hint) { type_hint_ = hint; }
+    void type_hint(optional_ref<const ast::type::Node> hint) { type_hint_ = std::move(hint); }
+
+    const optional_ref<ConditionalContext>& conditional_context() const { return cond_ctx_; }
+
+    void conditional_context(ConditionalContext& ctx) { cond_ctx_ = std::ref(ctx); }
 
     // does this node return absolutely from a function?
     // used to check if control reaches the end of a function
@@ -55,18 +62,6 @@ class Node : public NodeBase, public lexer::TokenSpan {
 
     // refer to the value represents the result of this node
     virtual const value::Value& value() const;
-
-    // populate/resolve the lvalue component of our value, if possible
-    // returns `false` if error occurred
-    virtual bool resolve_lvalue(Context& ctx) { return true; }
-
-    // populate/resolve the rvalue component of our value, if possible
-    // returns `false` if error occurred
-    virtual bool resolve_rvalue(Context& ctx) { return true; }
-
-    // fully resolve our value, if possible (both l and rvalue)
-    // returns `false` if error occurred
-    bool resolve_value(Context& ctx);
 
     // print in tree form, default only print name
     virtual std::ostream& print_tree(std::ostream& os, unsigned int indent_level = 0) const;
@@ -76,17 +71,34 @@ class Node : public NodeBase, public lexer::TokenSpan {
     // these will be inserted into the SymbolTable prior to processing
     // note that `let ...` should *not* be added here, as variables cannot be used prior to assignment
     // return if success
-    virtual bool collate_registry(message::List& messages, symbol::Registry& registry) { return true; }
+    virtual bool collate_registry(message::List& messages, symbol::Registry& registry);
 
     // Phase 2:
     // validate/process this Node, populating the message queue if necessary
-    // return if successful
-    // MUST be overridden
-    virtual bool process(Context& ctx);
+    // does not generate any code
+    // may ONLY call ::process and ::resolve on another node (no other phases permitted)
+    // must be overridden
+    // return if success
+    virtual bool process(Context& ctx) = 0;
+
+    // Phase 3:
+    // function used to resolve ambiguities, specifically in symbol references
+    // guaranteed not to generate any code
+    // return if success
+    virtual bool resolve(Context& ctx) { return true; }
+
+    // Phase 4:
+    // actually generates assembly code
+    // by this point, there should be no errors, and node should have all the information it needs
+    // return if success
+    virtual bool generate_code(Context& ctx) const;
   };
 
   // utility: write a certain indent to the output stream
   std::ostream& indent(std::ostream& os, unsigned int level);
+
+  // process & resolve given node, expect l-- or r-value, return Value produced (or nothing)
+  optional_ref<const value::Value> process_node_and_expect(Node& node, Context& ctx, bool expect_lvalue);
 
   // utility: node which contains other nodes
   struct ContainerNode {

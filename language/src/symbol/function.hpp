@@ -14,5 +14,7 @@ namespace lang::symbol {
     Function(lexer::Token name, ast::FunctionBaseNode& node);
 
     ast::FunctionBaseNode& origin() const { return node_; }
+
+    bool define(lang::Context &ctx) const override;
   };
 }

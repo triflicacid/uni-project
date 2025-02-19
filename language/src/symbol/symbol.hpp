@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 
 #include <string>
 #include "ast/types/node.hpp"
@@ -54,6 +54,10 @@ namespace lang::symbol {
     uint32_t id() const { return id_; }
 
     const ast::type::Node& type() const { return type_; }
+
+    // ensure that this symbol is defined
+    // return success
+    virtual bool define(Context& ctx) const;
   };
 
   // create a new namespace

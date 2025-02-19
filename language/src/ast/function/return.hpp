@@ -20,6 +20,10 @@ namespace lang::ast {
 
     const value::Value& value() const override;
 
+    bool collate_registry(message::List &messages, symbol::Registry &registry) override;
+
     bool process(lang::Context &ctx) override;
+
+    bool generate_code(lang::Context &ctx) const override;
   };
 }

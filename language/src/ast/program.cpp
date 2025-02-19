@@ -34,6 +34,7 @@ std::ostream& lang::ast::ProgramNode::print_tree(std::ostream& os, unsigned int 
 }
 
 bool lang::ast::ProgramNode::process(lang::Context& ctx) {
+  // phase 1:
   // collate registries of children - this allows forward use of symbols
   symbol::Registry registry;
   for (auto& line : lines_) {
@@ -44,9 +45,20 @@ bool lang::ast::ProgramNode::process(lang::Context& ctx) {
   // add registry to our symbol table
   ctx.symbols.insert(registry);
 
-  // finally, process each of our children
+  // phase 2 & 3:
+  // process each of our children
   for (auto& line : lines_) {
-    if (!line->process(ctx) || !line->resolve_value(ctx)) return false;
+    if (!line->process(ctx) || !line->resolve(ctx)) return false;
+  }
+
+  return true;
+}
+
+bool lang::ast::ProgramNode::generate_code(lang::Context& ctx) const {
+  // phase 4:
+  // generate code for each child
+  for (auto& line : lines_) {
+    if (!line->generate_code(ctx)) return false;
   }
 
   // add 'exit' to ensure program exits OK

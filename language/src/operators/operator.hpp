@@ -4,14 +4,27 @@
 #include <memory>
 #include <deque>
 #include "optional_ref.hpp"
+#include "ast/conditional_context.hpp"
 
 namespace message {
   class MessageGenerator;
   class List;
 }
 
-namespace lang::ast::type {
-  class FunctionNode;
+namespace lang {
+  struct Context;
+
+  namespace ast {
+    class Node;
+
+    namespace type {
+      class FunctionNode;
+    }
+  }
+
+  namespace value {
+    class Value;
+  }
 }
 
 namespace lang::ops {
@@ -34,6 +47,9 @@ namespace lang::ops {
     const ast::type::FunctionNode& type() const { return type_; }
 
     std::ostream& print_code(std::ostream& os) const;
+
+    // invoke the given operator
+    virtual bool invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<ast::ConditionalContext> conditional = std::nullopt) const = 0;
 
     // are we built-in or overloaded
     virtual bool builtin() const = 0;

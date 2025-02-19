@@ -1,6 +1,7 @@
 #include <deque>
 #include "symbol.hpp"
 #include "ast/types/namespace.hpp"
+#include "context.hpp"
 
 static lang::symbol::SymbolId current_id = 0;
 
@@ -33,6 +34,19 @@ std::string lang::symbol::Symbol::full_name() const {
   return full_name.str();
 }
 
+bool lang::symbol::Symbol::define(Context& ctx) const {
+  // check if we're defined already
+  auto maybe_loc = ctx.symbols.locate(id_);
+
+  if (!maybe_loc.has_value()) {
+    // TODO move SymbolDeclarationNode here, only define when needed rather than in ::generate_code
+    // if not, allocate
+    ctx.symbols.allocate(id_);
+  }
+
+  return true;
+}
+
 std::string lang::symbol::category_to_string(lang::symbol::Category category) {
   switch (category) {
     case Category::Ordinary:
@@ -47,5 +61,7 @@ std::string lang::symbol::category_to_string(lang::symbol::Category category) {
 }
 
 std::unique_ptr<lang::symbol::Symbol> lang::symbol::create_namespace(const lexer::Token& name) {
-  return std::make_unique<Symbol>(name, Category::Namespace, ast::type::name_space);
+  auto ns = std::make_unique<Symbol>(name, Category::Namespace, ast::type::name_space);
+  ns->make_constant();
+  return ns;
 }

@@ -62,7 +62,7 @@ std::ostream &lang::ast::SymbolDeclarationNode::print_tree(std::ostream &os, uns
 }
 
 bool lang::ast::SymbolDeclarationNode::collate_registry(message::List& messages, symbol::Registry& registry) {
-  return !assignment_.has_value() || assignment_->get()->collate_registry(messages, registry);
+  return !assignment_.has_value() || assignment_.value()->collate_registry(messages, registry);
 }
 
 bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
@@ -84,11 +84,8 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
       return false;
     }
 
-    // generate RHS
-    if (!assignment_->get()->resolve_value(ctx)) return false;
-
-    // just exit now
-    return true;
+    // process RHS & exit
+    return assignment_.value()->process(ctx);
   }
 
   // process the assignment body
@@ -113,13 +110,11 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   }
 
   // if need be, get value to be assigned
-  optional_ref<const value::Value> assignment_value;
   if (assignment_.has_value()) {
-    // resolve rvalue
-    auto& value = assignment_->get()->value();
-    assignment_value = value;
-    assignment_->get()->type_hint(*type_); // give expression a type hint
-    if (!assignment_->get()->resolve_rvalue(ctx)) return false;
+    // ensure the types match
+    auto& value = assignment_.value()->value();
+    assignment_.value()->type_hint(type_); // give expression a type hint
+    if (!assignment_.value()->resolve(ctx)) return false;
 
     // if we have declared symbol to be a type, they must match
     const auto& type = value.type();
@@ -164,10 +159,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
     // otherwise, we are shadowing it
     are_shadowing = true;
-  }
-
-  if (are_shadowing) { // erase symbols? used when shadowing
-    ctx.symbols.erase(name_.image);
+    break;
   }
 
   // define symbol
@@ -180,12 +172,22 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   if (category_ == Constant) symbol->make_constant();
   ctx.symbols.insert(std::move(symbol));
 
+  return true;
+}
+
+bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) const {
+  // allocate this symbol
+  ctx.symbols.allocate(id_);
+
   // if no assignment, we're done
   if (!assignment_.has_value()) return true;
 
   // if zero-sized type, we're also done
   auto& value = assignment_->get()->value();
   if (value.type().size() == 0) return true;
+
+  // generate assignment's code
+  if (!assignment_.value()->generate_code(ctx)) return false;
 
   // must have a ref, i.e., rvalue
   if (!value.is_rvalue()) {
@@ -203,7 +205,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   ctx.symbols.assign_symbol(id_, expr.offset);
 
   // update register to contain this symbol to avoid double-loading
-  auto obj_value = value::rlvalue();
+  auto obj_value = value::value(type_);
   obj_value->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
   obj_value->rvalue(expr);
   ctx.reg_alloc_manager.update(expr, memory::Object(std::move(obj_value)));

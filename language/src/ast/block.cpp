@@ -36,6 +36,11 @@ std::ostream& lang::ast::BlockNode::print_tree(std::ostream& os, unsigned int in
   return os;
 }
 
+const lang::value::Value& lang::ast::BlockNode::value() const {
+  if (returns_ && !lines_.empty()) return lines_.back()->value();
+  return Node::value();
+}
+
 bool lang::ast::BlockNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
   symbol::Registry* local_registry = &registry;
 
@@ -54,9 +59,10 @@ bool lang::ast::BlockNode::collate_registry(message::List& messages, lang::symbo
   return true;
 }
 
-bool lang::ast::BlockNode::process(lang::Context& ctx) {
+bool lang::ast::BlockNode::process(Context& ctx) {
   // if new scope, add new scope to symbol table & add local registry
   if (scope_) {
+    assert(registry_ != nullptr);
     ctx.symbols.push();
     ctx.symbols.insert(*registry_);
     registry_ = nullptr;
@@ -75,7 +81,7 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
     }
 
     // else, process this line
-    if (!line.process(ctx) || !line.resolve_value(ctx)) return false;
+    if (!line.process(ctx)) return false;
   }
 
   // remove local scope if necessary
@@ -86,9 +92,31 @@ bool lang::ast::BlockNode::process(lang::Context& ctx) {
   return true;
 }
 
-const lang::value::Value& lang::ast::BlockNode::value() const {
-  if (returns_ && !lines_.empty()) return lines_.back()->value();
-  return Node::value();
+bool lang::ast::BlockNode::resolve(lang::Context& ctx) {
+  for (int i = 0; i < lines_.size(); i++) {
+    Node& line = *lines_[i];
+    if (i > 0 && lines_[i - 1]->always_returns()) {
+      break;
+    }
+
+    if (!line.resolve(ctx)) return false;
+  }
+
+  return true;
+}
+
+bool lang::ast::BlockNode::generate_code(lang::Context& ctx) const {
+  // generate code of our children
+  for (int i = 0; i < lines_.size(); i++) {
+    Node& line = *lines_[i];
+    if (i > 0 && lines_[i - 1]->always_returns()) {
+      break;
+    }
+
+    if (!line.generate_code(ctx)) return false;
+  }
+
+  return true;
 }
 
 bool lang::ast::BlockNode::always_returns() const {

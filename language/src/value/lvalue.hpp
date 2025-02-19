@@ -23,6 +23,8 @@ namespace lang::value {
 
     const ast::type::Node& type() const { return type_; }
 
+    virtual std::unique_ptr<LValue> copy() const;
+
     virtual const Symbol* get_symbol() const { return nullptr; }
 
     virtual const Reference* get_ref() const { return nullptr; }
@@ -38,6 +40,8 @@ namespace lang::value {
     const Symbol* get_symbol() const override { return this; }
 
     const symbol::Symbol& get() const { return symbol_; }
+
+    std::unique_ptr<LValue> copy() const override;
   };
 
   // this lvalue refers to a location
@@ -50,5 +54,7 @@ namespace lang::value {
     const Reference* get_ref() const override { return this; }
 
     const memory::Ref& get() const { return ref_; }
+
+    std::unique_ptr<LValue> copy() const override;
   };
 }

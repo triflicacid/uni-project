@@ -558,7 +558,9 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
     consume();
   }
 
-  if (!check_semicolon_after_expression()) return;
+  if (expect_or_error(lexer::TokenType::sc)) {
+    consume();
+  }
 }
 
 std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Parser::parse_param_list() {
@@ -771,7 +773,7 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
    firstset::expression,
 });
 
-std::unique_ptr<lang::ast::IfElseNode> lang::parser::Parser::parse_if_statement() {
+std::unique_ptr<lang::ast::IfStatementNode> lang::parser::Parser::parse_if_statement() {
   // 'if'
   const lexer::Token token_start = consume();
 
@@ -791,7 +793,7 @@ std::unique_ptr<lang::ast::IfElseNode> lang::parser::Parser::parse_if_statement(
     if (is_error()) return nullptr;
   }
 
-  return std::make_unique<ast::IfElseNode>(token_start, std::move(guard), std::move(then_body), std::move(else_body));
+  return std::make_unique<ast::IfStatementNode>(token_start, std::move(guard), std::move(then_body), std::move(else_body));
 }
 
 std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block_or_line(bool in_top_level) {

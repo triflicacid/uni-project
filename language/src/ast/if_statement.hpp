@@ -4,14 +4,14 @@
 #include "optional_ref.hpp"
 
 namespace lang::ast {
-  class IfElseNode : public Node {
+  class IfStatementNode : public Node {
+    int id_; // used for generation of if-else blocks
     std::unique_ptr<Node> guard_;
     std::unique_ptr<Node> then_;
     std::optional<std::unique_ptr<Node>> else_;
-    optional_ref<value::Value> result_; // cache resulting value of statement
 
   public:
-    IfElseNode(lexer::Token token, std::unique_ptr<Node> guard, std::unique_ptr<Node> then_body, std::optional<std::unique_ptr<Node>> else_body);
+    IfStatementNode(lexer::Token token, std::unique_ptr<Node> guard, std::unique_ptr<Node> then_body, std::optional<std::unique_ptr<Node>> else_body);
 
     std::string node_name() const override { return "if statement"; }
 
@@ -21,8 +21,10 @@ namespace lang::ast {
 
     bool always_returns() const override;
 
-    const value::Value& value() const override;
-
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
+
+    bool process(lang::Context &ctx) override;
+
+    bool generate_code(lang::Context &ctx) const override;
   };
 }

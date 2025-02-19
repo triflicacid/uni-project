@@ -5,6 +5,7 @@
 #include "value/symbol.hpp"
 #include "ast/types/bool.hpp"
 #include "operators/builtin.hpp"
+#include "operators/builtins.hpp"
 
 lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program)
   : symbols_(symbols), program_(program) {
@@ -142,7 +143,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
   }
 
   // otherwise, insert
-  auto value_ptr = value::rlvalue();
+  auto value_ptr = value::value();
   value::Value& value = *value_ptr;
   value.lvalue(std::make_unique<value::Symbol>(symbol));
   Ref ref = insert(Object(std::move(value_ptr)));
@@ -155,7 +156,7 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(c
   int offset = initial_register;
   for (auto& object : instances_.front().regs) {
     if (object && object->value->is_rvalue()) {
-      if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
+      if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->type() == literal.type() && obj_lit->get().data() == literal.data()) {
         object->required = true;
         return Ref(Ref::Register, offset);
       }
@@ -185,7 +186,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
   }
 
   // otherwise, insert
-  auto value_ptr = value::rvalue();
+  auto value_ptr = value::value();
   value::Value& value = *value_ptr;
   value.rvalue(std::make_unique<value::Literal>(literal, Ref::reg(0)));
   Ref ref = insert(Object(std::move(value_ptr)));
@@ -402,8 +403,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
       auto& type = symbol.type();
       asm_original = symbol.type().get_asm_datatype();
       // remove lvalue, we are only an rvalue now
-      object = Object(value::rvalue());
-      object.value->rvalue(std::make_unique<value::RValue>(target, ref));
+      object = Object(value::rvalue(target, ref));
     } else if (object.value->is_rvalue() && object.value->rvalue().get_literal()) {
       const Literal& literal = object.value->rvalue().get_literal()->get();
       // get original datatype

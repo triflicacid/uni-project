@@ -5,6 +5,7 @@
 #include "optional_ref.hpp"
 #include "memory/storage_location.hpp"
 #include <unordered_set>
+#include "ast/conditional_context.hpp"
 
 namespace lang::ops {
   class Operator;
@@ -21,15 +22,16 @@ namespace lang::ast::type {
 namespace lang::ast {
   // define an operator
   class OperatorNode : public Node {
+    std::optional<ConditionalContext> cond_ctx_; // set when evaluating a conditional, means operator should support this and contribute
+
   protected:
     lexer::Token op_symbol_; // token of our actual symbol
     std::deque<std::unique_ptr<Node>> args_;
 
-    Node& lhs_() const;
-    Node& rhs_() const;
-    
-    optional_ref<const value::Value> get_arg_rvalue(Context& ctx, int i) const;
-    optional_ref<const value::Value> get_arg_lvalue(Context& ctx, int i) const;
+    Node& arg(int i) const;
+
+    // expect node to be an r/lvalue, return if error
+    bool expect_arg_lrvalue(int i, message::List& messages, bool expect_lvalue) const;
 
   public:
     OperatorNode(lexer::Token token, lexer::Token symbol, std::deque<std::unique_ptr<Node>> args)
@@ -70,7 +72,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(Context& ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents `expr as type`
@@ -81,13 +83,13 @@ namespace lang::ast {
   public:
     CastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr, bool sudo = false);
 
-    bool process(lang::Context &ctx) override;
-
-    bool resolve_rvalue(lang::Context &ctx) override;
-
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    bool process(lang::Context &ctx) override;
+
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents (type) expr
@@ -103,21 +105,19 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents lhs.rhs
   class DotOperatorNode : public OperatorNode {
-    std::string attr_; // resolved attribute name
-
   public:
     DotOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_lvalue(lang::Context &ctx) override;
+    bool resolve(Context& ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents lhs = rhs
@@ -127,7 +127,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents registerof expr
@@ -138,7 +138,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
   };
@@ -153,7 +153,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents *expr
@@ -164,9 +164,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
-
-    bool resolve_lvalue(lang::Context &ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents expr(<args>)
@@ -174,23 +172,22 @@ namespace lang::ast {
   class FunctionCallOperatorNode : public OperatorNode {
     std::unique_ptr<Node> subject_; // note, args_ only contains things in (...)
     optional_ref<const type::FunctionNode> signature_;
-    std::string func_name_; // function name, printed in asm comment
-    optional_ref<const memory::StorageLocation> f_loc_; // location of function
+    optional_ref<const symbol::Symbol> symbol_; // populated if calling a symbol
 
   public:
     FunctionCallOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> subject, std::deque<std::unique_ptr<Node>> args);
 
     std::string node_name() const override { return "function call"; }
 
+    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
-
-    std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
-
-    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents sizeof expr
@@ -201,11 +198,11 @@ namespace lang::ast {
     SizeOfOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
     SizeOfOperatorNode(lexer::Token token, lexer::Token symbol, const type::Node& type);
 
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
-
-    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 
   // represents lhs[rhs]
@@ -216,10 +213,10 @@ namespace lang::ast {
   public:
     SubscriptOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
+    std::ostream & print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
     bool process(lang::Context &ctx) override;
 
-    bool resolve_rvalue(lang::Context &ctx) override;
-
-    bool resolve_lvalue(lang::Context &ctx) override;
+    bool generate_code(lang::Context &ctx) const override;
   };
 }

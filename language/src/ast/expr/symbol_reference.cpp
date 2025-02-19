@@ -22,29 +22,30 @@ bool lang::ast::SymbolReferenceNode::process(lang::Context& ctx) {
     return false;
   }
 
-  value_ = value::symbol_ref(symbol_); // just reference, you guessed it, symbol reference!
+  value_ = value::symbol_ref(symbol_, ctx.symbols); // just reference, you guessed it, symbol reference!
   return true;
 }
 
-bool lang::ast::SymbolReferenceNode::resolve_lvalue(Context& ctx) {
+bool lang::ast::SymbolReferenceNode::resolve(Context& ctx) {
   // check if already done
   if (value().is_lvalue()) return true;
 
   // resolve SymbolRef
-  auto symbol = value_->get_symbol_ref()->resolve(ctx, *this, true, type_hint());
+  auto symbol = value_->get_symbol_ref()->resolve(*this, ctx.messages, type_hint());
   if (!symbol) return false;
   value_->lvalue(std::move(symbol));
 
   return true;
 }
 
-bool lang::ast::SymbolReferenceNode::resolve_rvalue(Context& ctx) {
-  // ensure symbol is resolved
-  if (!resolve_lvalue(ctx)) return false;
-
+bool lang::ast::SymbolReferenceNode::generate_code(lang::Context& ctx) const {
   // get attached symbol
+  assert(value_->is_lvalue());
   const value::Symbol* symbol = value().lvalue().get_symbol();
   assert(symbol != nullptr);
+
+  // ensure the symbol is defined
+  if (!symbol->get().define(ctx)) return false;
 
   // load into registers
   if (symbol->type().size() == 0) return true;

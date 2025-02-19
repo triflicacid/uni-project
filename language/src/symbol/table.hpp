@@ -44,13 +44,13 @@ namespace lang::symbol {
     const Symbol& get(SymbolId id) const;
 
     // insert symbol into the local scope
-    // note, if `alloc=true`, call ::allocate() to physically allocate space for the symbol
-    // *unless* symbol is a function
-    void insert(std::unique_ptr<Symbol> symbol, bool alloc = true);
+    // note that this does not allocate space for ths symbol (doesn't emit any code)
+    // also note that non-functional symbols are automatically shadowed
+    void insert(std::unique_ptr<Symbol> symbol);
 
     // insert contents of a registry - calls ::insert() on all symbols in registry
     // note, this moves symbols out of the registry, hence invalidates it
-    void insert(Registry& registry, bool alloc = true);
+    void insert(Registry& registry);
 
     // allocate space for this symbol (e.g., push to stack, ...)
     // note, be careful not to allocate scope's in a different order

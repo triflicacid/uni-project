@@ -48,7 +48,11 @@ bool lang::ast::FunctionNode::collate_registry(message::List& messages, lang::sy
   return true;
 }
 
-bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
+bool lang::ast::FunctionNode::always_returns() const {
+  return body_.has_value() && body_.value()->always_returns();
+}
+
+bool lang::ast::FunctionNode::_process(Context& ctx) {
   // if no body, we are fine
   if (!body_.has_value()) return true;
 
@@ -57,9 +61,10 @@ bool lang::ast::FunctionNode::_process(lang::Context& ctx) {
   registry_ = nullptr;
 
   // finally, process our body
-  return body_->get()->process(ctx);
+  return body_.value()->process(ctx) && body_.value()->resolve(ctx);
 }
 
-bool lang::ast::FunctionNode::always_returns() const {
-  return body_.has_value() && body_.value()->always_returns();
+bool lang::ast::FunctionNode::_generate_code(Context& ctx) {
+  // generate body's code
+  return !body_.has_value() || body_.value()->generate_code(ctx);
 }

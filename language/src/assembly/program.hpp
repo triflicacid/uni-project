@@ -16,6 +16,7 @@ namespace lang::assembly {
 
   // a program is a navigable sequence of basic blocks
   class Program {
+    std::string start_label;
     std::deque<std::unique_ptr<BasicBlock>> blocks_;
     std::map<std::string, std::reference_wrapper<BasicBlock>> labels_; // map labels to the index of the BasicBlock
     int current_; // 'pointer' to current BasicBlock

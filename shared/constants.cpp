@@ -131,6 +131,29 @@ std::optional<cmp::flag> cmp::from_string(const std::string &s, int &i) {
     return {};
 }
 
+cmp::flag constants::cmp::inverse_of(cmp::flag input) {
+  switch (input) {
+    case ne:
+      return eq;
+    case eq:
+      return ne;
+    case lt:
+      return ge;
+    case le:
+      return gt;
+    case nz:
+      return z;
+    case gt:
+      return le;
+    case ge:
+      return lt;
+    case z:
+      return nz;
+    default:
+      return na;
+  }
+}
+
 std::unordered_map<std::string, inst::datatype::dt> inst::datatype::map = {
         {"hu", u32},
         {"u",  u64},

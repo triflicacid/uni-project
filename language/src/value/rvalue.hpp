@@ -18,6 +18,8 @@ namespace lang::value {
   public:
     RValue(const ast::type::Node& type, const memory::Ref& ref) : type_(type), ref_(ref) {}
 
+    virtual std::unique_ptr<RValue> copy() const;
+
     const ast::type::Node& type() const { return type_; }
 
     const memory::Ref& ref() const { return ref_; }
@@ -33,6 +35,8 @@ namespace lang::value {
 
   public:
     explicit Literal(const memory::Literal& lit, const memory::Ref& ref) : RValue(lit.type(), ref), lit_(lit) {}
+
+    std::unique_ptr<RValue> copy() const override;
 
     const memory::Literal& get() const { return lit_; }
 

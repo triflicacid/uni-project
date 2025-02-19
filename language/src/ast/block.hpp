@@ -9,7 +9,7 @@ namespace lang::ast {
     std::deque<std::unique_ptr<Node>> lines_;
     bool scope_ = true; // add a new scope
     std::unique_ptr<symbol::Registry> registry_; // local registry, NULL if !scope_
-    bool returns_; // does this block return a value?
+    bool returns_ = false; // does this block return a value?
 
   public:
     using Node::Node;
@@ -36,6 +36,10 @@ namespace lang::ast {
 
     bool collate_registry(message::List& messages, symbol::Registry &registry) override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
+
+    bool resolve(lang::Context &ctx) override;
+
+    bool generate_code(Context &ctx) const override;
   };
 }

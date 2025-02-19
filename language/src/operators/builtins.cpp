@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "info.hpp"
+#include "builtins.hpp"
 #include "builtin.hpp"
 #include "context.hpp"
 #include "assembly/basic_block.hpp"
@@ -393,30 +394,36 @@ namespace init_builtin {
     for (const auto& [op, cmp] : ops) {
       for (const auto& type : numerical) {
         // operatorX(T, T)
-        store_operator(std::make_unique<BuiltinOperator>(
+        store_operator(std::make_unique<RelationalBuiltinOperator>(
             op,
             FunctionNode::create({type, type}, boolean),
-            [cmp, type](Context& ctx, Args args) { return generators::generate_cmp_bool(ctx, args, type, cmp); }
+            [cmp, type](Context& ctx, Args args) { return generators::generate_cmp_bool(ctx, args, type, cmp); },
+            cmp,
+            type
         ));
       }
     }
 
     // operator!=(bool, bool)
-    store_operator(std::make_unique<BuiltinOperator>(
+    store_operator(std::make_unique<RelationalBuiltinOperator>(
         "!=",
         FunctionNode::create({boolean, boolean}, boolean),
-        [](Context& ctx, Args args) { return generators::generate_xor(ctx, args); }
+        [](Context& ctx, Args args) { return generators::generate_xor(ctx, args); },
+        constants::cmp::ne,
+        boolean
     ));
 
     // operator==(bool, bool)
-    store_operator(std::make_unique<BuiltinOperator>(
+    store_operator(std::make_unique<RelationalBuiltinOperator>(
         "==",
         FunctionNode::create({boolean, boolean}, boolean),
         [](Context& ctx, Args args) {
           uint8_t reg = generators::generate_xor(ctx, args);
           ctx.program.current().add(assembly::create_not(reg, reg));
           return reg;
-        }
+        },
+        constants::cmp::eq,
+        boolean
     ));
   }
 
@@ -438,7 +445,7 @@ namespace init_builtin {
 
   static void boolean_not() {
     // operator!(bool)
-    store_operator(std::make_unique<BuiltinOperator>(
+    store_operator(std::make_unique<BooleanNotBuiltinOperator>(
         "!",
         FunctionNode::create({boolean}, boolean),
         [](Context& ctx, Args args) { return generators::generate_boolean_not(ctx, args); }
@@ -513,11 +520,11 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
 
   // push $rpc
   ctx.stack_manager.push(8);
+  ctx.program.current().back().comment() << "save return addr";
   ctx.program.current().add(assembly::create_store(
       constants::registers::rpc,
       assembly::Arg::reg_indirect(constants::registers::sp)
   ));
-  ctx.program.current().back().comment() << "save return addr";
 
   // push arguments
   int i = 0;
@@ -525,12 +532,9 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
     // evaluate rvalue
     auto& value = arg->value();
     arg->type_hint(signature.arg(i)); // given arg a type hint
-    if (!arg->resolve_rvalue(ctx)) return false;
+    if (!arg->generate_code(ctx)) return false;
     if (!value.is_rvalue()) {
-      auto msg = arg->generate_message(message::Error);
-      msg->get() << "expected rvalue, got ";
-      value.type().print_code(msg->get());
-      ctx.messages.add(std::move(msg));
+      ctx.messages.add(util::error_expected_lrvalue(*arg, value.type(), false));
       return false;
     }
 
@@ -581,6 +585,12 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
 
   // restore registers
   ctx.reg_alloc_manager.destroy_store(true);
+
+  // populate $ret in alloc manager
+  ctx.reg_alloc_manager.update_ret(memory::Object(value::rvalue(
+      signature.returns(),
+      memory::Ref::reg(constants::registers::ret)
+    )));
 
   return true;
 }
@@ -686,69 +696,8 @@ void lang::ops::dereference(Context& ctx, const value::Value& pointer, value::Va
   // update register allocation
   const auto& deref_type = pointer.type().get_pointer()->unwrap();
   memory::Object& object = ctx.reg_alloc_manager.find(dest);
-  object.value = value::rvalue(deref_type);
-  object.value->rvalue(dest);
+  object.value = value::rvalue(deref_type, dest);
 
   // update resulting value's rvalue
   result.rvalue(std::make_unique<value::RValue>(deref_type, dest));
-}
-
-bool lang::ops::call_operator(lang::Context& ctx, const std::string& name, const lang::ops::Operator& op, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value) {
-  // if not built-in, make a function call
-  if (!op.builtin()) {
-    auto& user_op = static_cast<const ops::UserDefinedOperator&>(op);
-
-    // ensure the function is defined
-    if (!static_cast<const symbol::Function&>(user_op.symbol()).origin().define(ctx))
-      return false;
-
-    // get function's location
-    auto function_loc = ctx.symbols.locate(user_op.symbol().id());
-    assert(function_loc.has_value());
-
-    ops::call_function(
-        ctx.symbols.resolve_location(function_loc->get()),
-        name,
-        op.type(),
-        args,
-        {},
-        return_value,
-        ctx
-    );
-    return true;
-  }
-
-  // otherwise, we have a built-in
-  auto& builtin = static_cast<const ops::BuiltinOperator&>(op);
-
-  // evaluate & accumulate argument values
-  std::deque<std::reference_wrapper<const value::Value>> arg_values;
-  for (auto& arg : args) {
-    if (!arg->resolve_rvalue(ctx)) return false;
-    if (!arg->value().is_rvalue()) {
-      ctx.messages.add(util::error_expected_lrvalue(*arg, arg->value().type(), false));
-      return false;
-    }
-    arg_values.push_back(arg->value());
-  }
-
-  // generate code, attach rvalue reference
-  uint8_t reg = builtin.generator()(ctx, arg_values);
-  const auto ref = memory::Ref::reg(reg);
-  return_value.rvalue(ref);
-
-  // add comment
-  auto& comment = ctx.program.current().back().comment();
-  comment << "operator" << name << "(";
-  for (auto& value : arg_values) {
-    value.get().type().print_code(comment);
-    if (&value != &arg_values.back()) comment << ", ";
-  }
-  comment << ")";
-
-  // "spoil" the current register
-  auto& object = ctx.reg_alloc_manager.find(ref);
-  object.value->rvalue(std::make_unique<value::RValue>(return_value.type(), ref));
-
-  return true;
 }

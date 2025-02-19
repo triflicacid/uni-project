@@ -12,7 +12,7 @@
 #include "context.hpp"
 #include "ast/types/graph.hpp"
 #include "ast/types/float.hpp"
-#include "operators/builtin.hpp"
+#include "operators/builtins.hpp"
 
 struct Options {
   std::unique_ptr<named_fstream> input; // input file
@@ -132,8 +132,14 @@ int main(int argc, char** argv) {
     ast->print_tree(std::cout) << std::endl;
   }
 
-  // process into assembly
+  // process tree, ensure everything is OK
   ast->process(ctx);
+  if (message::print_and_check(messages, std::cerr)) {
+    return EXIT_FAILURE;
+  }
+
+  // generate assembly code
+  ast->generate_code(ctx);
   if (message::print_and_check(messages, std::cerr)) {
     return EXIT_FAILURE;
   }

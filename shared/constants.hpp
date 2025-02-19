@@ -71,6 +71,9 @@ namespace constants {
 
         std::optional<flag> from_string(const std::string &s);
         std::optional<flag> from_string(const std::string &s, int &i);
+
+        // get the inverse of the cmp flag
+        flag inverse_of(flag input);
     }
 
     namespace error {

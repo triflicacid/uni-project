@@ -12,7 +12,7 @@
 #include "ast/namespace.hpp"
 #include "ast/expr/operator.hpp"
 #include "ast/function/operator_definition.hpp"
-#include "ast/if_else.hpp"
+#include "ast/if_statement.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -127,7 +127,7 @@ namespace lang::parser {
     std::unique_ptr<ast::ReturnNode> parse_return();
 
     // parse an if..else.. statement
-    std::unique_ptr<ast::IfElseNode> parse_if_statement();
+    std::unique_ptr<ast::IfStatementNode> parse_if_statement();
 
     // parse a block if '{' or a code line
     std::unique_ptr<ast::BlockNode> parse_block_or_line(bool in_top_level);

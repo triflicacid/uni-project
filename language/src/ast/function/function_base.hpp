@@ -13,13 +13,18 @@ namespace lang::ast {
 
     // validate the parameters
     bool validate_params(message::List& messages);
+
   protected:
     const type::FunctionNode& type_;
     bool generate_code_ = true; // `false` tells us to skip code generation
     bool define_function_ = true; // define ourself as a `function` symbol? If false, don't define ourself.
 
-    // processing once stack frame etc. have been set up but prior to cleanup
-    virtual bool _process(lang::Context& ctx) = 0;
+    // process child, new function as it is between function frame push/pop
+    virtual bool _process(Context& ctx) = 0;
+
+    // code generation once stack frame etc. have been set up but prior to cleanup
+    // called by this::define
+    virtual bool _generate_code(Context& ctx) = 0;
 
     // contents which precede argument list in print_code
     // e.g., `func <name>`
@@ -52,6 +57,9 @@ namespace lang::ast {
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
     bool process(lang::Context &ctx) override final;
+
+    bool generate_code(lang::Context &ctx) const override final
+    { return true; }
 
     // define (generate code for) our function
     // return if success
