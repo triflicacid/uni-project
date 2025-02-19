@@ -1,0 +1,65 @@
+\section{Control Flow}\label{sec:control-flow}
+
+Control flow refers to code which may alter the otherwise-linear flow of code.
+Without control flow, all programs would be deterministic and extremely limiting.
+
+\subsection{If Statements}
+
+An if statement is a basic conditional: if the condition, or \textit{guard}, is true, it executes one section of code, otherwise executed another.
+The syntax of an if statement is as follows.
+
+\begin{lstlisting}[language=CustomLang]
+if condition {
+    // truthy code
+} else {
+    // falsy code
+}
+\end{lstlisting}
+
+With \texttt{condition} being a Boolean value.
+Note that the \texttt{else} branch is optional and may be omitted if not required.
+
+\subsubsection{If Expressions}
+
+Much like blocks, if statements may also be used as an expression by omitting the last semicolon in the branches.
+When used this way, both branches must return values of the \textit{exact} same type.
+As a result, an if expression must always include an \texttt{else} branch.
+
+\begin{lstlisting}[language=CustomLang]
+let x = if a > 0 { 1 } else { -1 };
+\end{lstlisting}
+
+Here, both branches return an \texttt{int}, so the expression is valid.
+
+However, if a branch always returns, its evaluated type is ignored since execution will never reach the rest of the expression.
+
+\begin{lstlisting}[language=CustomLang]
+let x = if a > 0 {
+    1
+} else {
+    return false;
+}
+\end{lstlisting}
+
+In this case, the \texttt{else} branch does not produce a value -- it causes the function to return instead.
+Since the \texttt{else} branch never completes normally, its return type does not affect the type-checking of the if expression, and the code remains valid.
+
+\subsubsection{Multiple Branches}
+
+The effect of multiple conditional branches may be emulated by stacking if-else statements and removing the braces around all but the final \texttt{else} branch.
+
+\begin{lstlisting}[language=CustomLang]
+if C1 {
+    // ...
+} else if C2 {
+    // ...
+} else {
+    // ...
+}
+\end{lstlisting}
+
+Note that if both \texttt{C1} and \texttt{C2} are true, as the former is tested first, only its block will be executed before the statement is exited;
+\texttt{C2} and its block will never be evaluated.
+
+\subsection{While Loops}
+
