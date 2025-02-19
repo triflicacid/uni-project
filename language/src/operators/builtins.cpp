@@ -111,7 +111,6 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"&", {18, true, false}}, // address-of
     {"*", {18, true, false}}, // dereference
     {"(type)", {18, true, false}}, // primitive cast
-    {"registerof", {18, true, false}}, // register lookup
     {"sizeof", {18, true, false}}, // size of type
 };
 

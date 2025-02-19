@@ -130,19 +130,6 @@ namespace lang::ast {
     bool generate_code(lang::Context &ctx) const override;
   };
 
-  // represents registerof expr
-  // returns the register offset of the given symbol
-  class RegisterOfOperatorNode : public OperatorNode {
-  public:
-    RegisterOfOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
-
-    bool process(lang::Context &ctx) override;
-
-    bool generate_code(lang::Context &ctx) const override;
-
-    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
-  };
-
   // represents &expr
   // returns/computes the address of the given lvalue
   class AddressOfOperatorNode : public OperatorNode {

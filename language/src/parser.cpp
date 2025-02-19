@@ -237,7 +237,6 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
 
 const lang::lexer::TokenSet lang::parser::firstset::op = lexer::convert_set({
     lexer::TokenType::op,
-    lexer::TokenType::registerof_kw,
     lexer::TokenType::sizeof_kw,
 });
 

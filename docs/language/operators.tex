@@ -36,10 +36,9 @@ The associativity and precedence of a generic (non built-in) operator is also sh
         \texttt{a()} & Function call & \multirow{2}{*}{\(\longrightarrow\)} & \multirow{2}{*}{Yes} \\
         \texttt{a[]} & Subscript & & \\
         \hline
-        \texttt{(T) a} & Primitive cast & \multirow{5}{*}{\(\longleftarrow\)} & \multirow{5}{*}{No} \\
+        \texttt{(T) a} & Primitive cast & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{No} \\
         \texttt{\&a} & Address-of & & \\
         \texttt{*a} & Dereference & & \\
-        \texttt{registerof a} & Register lookup & & \\
         \texttt{sizeof a} & Get size & & \\
         \hline
         \texttt{-a} & Negation & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{Yes} \\
@@ -127,27 +126,6 @@ Continuing the example from above,
 \end{lstlisting}
 
 However, \texttt{b} will still be 5 as it was assigned to \texttt{*p} previously and is no longer tied to the same address.
-
-\subsection{Register Lookup}
-
-This is a lower-level operator meant for exploration of the processor's registers.
-
-Expecting a symbol argument, the \texttt{registerof} operator returns the index (offset) of where the given symbol is located.
-This allows one to gain insight into the register allocation algorithm.
-
-For example, given the basic program below, one would expect the following.
-
-\begin{lstlisting}[language=CustomLang]
-let a = 5;
-registerof a; // = 11, corresponding to $r1
-\end{lstlisting}
-
-If the symbol has not been loaded into registers (i.e., it has not been used at all/recently), the operator returns \(-1\).
-
-\begin{lstlisting}[language=CustomLang]
-let a: int;
-registerof a; // = -1
-\end{lstlisting}
 
 \subsection{Sizeof}
 
