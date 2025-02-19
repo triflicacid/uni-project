@@ -7,7 +7,6 @@
 #include "ast/types/graph.hpp"
 #include "ast/types/wrapper.hpp"
 #include "message_helper.hpp"
-#include "assembly/create.hpp"
 #include "optional_ref.hpp"
 #include "ast/types/namespace.hpp"
 
@@ -54,7 +53,7 @@ std::ostream &lang::ast::SymbolDeclarationNode::print_tree(std::ostream &os, uns
   os << SHELL_RESET;
 
   if (assignment_.has_value()) {
-    os << std::endl;
+    os << std::endl << "CHILD";
     assignment_.value()->print_tree(os, indent_level + 1);
   }
 
@@ -182,12 +181,12 @@ bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) const {
   // if no assignment, we're done
   if (!assignment_.has_value()) return true;
 
+  // generate assignment's code
+  if (!assignment_.value()->generate_code(ctx)) return false;
+
   // if zero-sized type, we're also done
   auto& value = assignment_->get()->value();
   if (value.type().size() == 0) return true;
-
-  // generate assignment's code
-  if (!assignment_.value()->generate_code(ctx)) return false;
 
   // must have a ref, i.e., rvalue
   if (!value.is_rvalue()) {
