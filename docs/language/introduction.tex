@@ -28,6 +28,13 @@ Where \texttt{[flags]} are as follows:
     \item \texttt{--ast} - prints the parsed program's AST.
     \item \texttt{--[no-]function-placeholder} - changes behaviour of a function declaration; see subsection ~\ref{subsec:function-declaration}.
     \item \texttt{--[no-]indentation} - adds/removes indentation from generated assembly.
+    \item \texttt{--[no-]lint} - enables/disables linting messages.
+    \item \texttt{--lint-level \(n\)} - sets the linting error reporting level.
+    \begin{enumerate} \setcounter{enumi}{-1}
+        \item Note.
+        \item Warning.
+        \item Error.
+    \end{enumerate}
 \end{itemize}
 Note that the output file is optional.
 
@@ -40,3 +47,8 @@ func main() {
     print("Hello, world\n");
 }
 \end{lstlisting}
+
+\subsection{Linting}
+
+As this compiler focuses on ease-of-use, it does not contain many linting options or messages.
+However, some messages such as empty blocks/namespaces have been included in hopes to alert programmers of unintentional happenings.

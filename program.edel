@@ -1,7 +1,1 @@
-// pass
-let a: bool, b: bool;
-
-let x = if a {
-
-};
-x;
+namespace maths {}

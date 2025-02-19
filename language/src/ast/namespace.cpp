@@ -105,6 +105,13 @@ bool lang::ast::NamespaceNode::collate_registry(message::List& messages, lang::s
 }
 
 bool lang::ast::NamespaceNode::process(lang::Context& ctx) {
+  if (lines_.empty() && lang::conf::lint) {
+    auto msg = generate_message(lang::conf::lint_level);
+    msg->get() << "empty namespace";
+    ctx.messages.add(std::move(msg));
+    if (lang::conf::lint_level == message::Error) return false;
+  }
+
   assert(registry_ != nullptr);
   assert(id_.has_value());
 

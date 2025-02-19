@@ -68,6 +68,14 @@ bool lang::ast::BlockNode::process(Context& ctx) {
     registry_ = nullptr;
   }
 
+  // warn users about empty code blocks
+  if (lines_.empty() && lang::conf::lint) {
+    auto msg = generate_message(lang::conf::lint_level);
+    msg->get() << "empty code block";
+    ctx.messages.add(std::move(msg));
+    if (lang::conf::lint_level == message::Error) return false;
+  }
+
   // process our children
   for (int i = 0; i < lines_.size(); i++) {
     Node& line = *lines_[i];

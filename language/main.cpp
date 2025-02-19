@@ -35,6 +35,18 @@ int parse_arguments(int argc, char** argv, Options& options) {
         lang::conf::indent_asm_code = true;
       } else if (!strcmp(argv[i], "--no-indentation")) { // conf::indent_asm_code = false
         lang::conf::indent_asm_code = false;
+      } else if (!strcmp(argv[i], "--lint")) { // enable linting
+        lang::conf::lint = true;
+      } else if (!strcmp(argv[i], "--no-lint")) { // disable linting
+        lang::conf::lint = false;
+      } else if (!strcmp(argv[i], "--lint-level")) { // set linting level
+        if (++i >= argc) {
+          std::cerr << argv[i - 1] << ": expected an integer reporting level" << std::endl;
+          return EXIT_FAILURE;
+        }
+
+        lang::conf::lint_level = message::level_from_int(std::stoi(argv[i]));
+        i++;
       } else if (argv[i][1] == 'o') { // output file
         if (options.output) {
           std::cerr << argv[i] << ": an output file was already provided" << std::endl;
