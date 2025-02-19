@@ -1,0 +1,3 @@
+// fail - symbol of type namespace does not have an address
+namespace maths {}
+&maths;

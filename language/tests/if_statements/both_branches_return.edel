@@ -1,0 +1,9 @@
+// pass
+func f() -> int {
+    if true {
+        return 1;
+    } else {
+        return 123;
+    };
+    x;
+}

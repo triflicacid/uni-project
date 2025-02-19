@@ -1,0 +1,4 @@
+// fail - expected 1 argument, got 0
+func id(x: int) -> int { return x; }
+
+id();

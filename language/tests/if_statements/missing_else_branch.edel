@@ -1,0 +1,2 @@
+// fail - missing 'else' branch in an 'if' expression
+let x = if true { 1 };

@@ -1,0 +1,3 @@
+// fail - cannot assign float to int
+let a: int;
+a = 4.2;

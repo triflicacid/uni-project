@@ -1,0 +1,10 @@
+// pass
+func f -> int {
+    return if true {
+        return 1;
+    } else {
+        -1
+    };
+}
+
+f();

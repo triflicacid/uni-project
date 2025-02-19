@@ -1,0 +1,4 @@
+// pass
+namespace maths {
+    const pi = 3.14159;
+}

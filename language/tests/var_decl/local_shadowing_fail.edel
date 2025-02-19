@@ -1,0 +1,6 @@
+// fail - cannot assign int to bool
+let a: int;
+let a: bool;
+
+a = 0;
+

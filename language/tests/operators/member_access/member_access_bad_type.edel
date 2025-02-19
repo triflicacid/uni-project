@@ -1,0 +1,3 @@
+// fail - cannot access member on i32
+let maths = 0;
+maths.a;

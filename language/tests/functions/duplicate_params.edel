@@ -1,0 +1,2 @@
+// fail - duplicate parameter names
+func f(a: int, a: int) {}

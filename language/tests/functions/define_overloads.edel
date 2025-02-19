@@ -1,0 +1,4 @@
+// pass
+func id(x: int) -> int { return x; }
+
+func id(x: float) -> float { return x; }

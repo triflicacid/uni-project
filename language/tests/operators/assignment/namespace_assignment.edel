@@ -1,0 +1,5 @@
+// fail - unable to assign to constant / expected lvalue, got namespace
+namespace io {}
+namespace maths {}
+
+maths = io;

@@ -1,0 +1,4 @@
+// fail - cannot convert bool to int
+func abs(x: int) -> int {
+    return true;
+}

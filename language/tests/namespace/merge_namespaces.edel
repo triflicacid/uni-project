@@ -1,0 +1,8 @@
+// pass
+namespace maths {
+    func sin(x: float) -> float { return x; }
+}
+
+namespace maths {
+    func sin(x: double) -> double { return x; }
+}

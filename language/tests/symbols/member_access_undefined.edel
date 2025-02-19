@@ -1,0 +1,3 @@
+// fail - undefined symbol 'maths.a'
+let maths = 0;
+maths.a;

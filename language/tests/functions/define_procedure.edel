@@ -1,0 +1,4 @@
+// pass
+func proc {}
+
+proc;

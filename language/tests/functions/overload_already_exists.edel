@@ -1,0 +1,4 @@
+// fail - overload already exists
+func id(x: int) -> int { return x; }
+
+func id(x: int) -> int { return x; }

@@ -1,0 +1,2 @@
+// fail - '_' cannot be used here
+func _() {}

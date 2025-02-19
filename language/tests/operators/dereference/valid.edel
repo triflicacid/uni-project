@@ -1,0 +1,3 @@
+// pass
+let a = null;
+let b = *a;

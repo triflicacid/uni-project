@@ -1,0 +1,5 @@
+// pass
+func id(x: int) -> int { return x; }
+func id(x: double) -> double { return x; }
+
+let f = &id as *(int) -> int;

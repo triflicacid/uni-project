@@ -1,0 +1,2 @@
+// fail - expected explicit type or initialiser
+let a;

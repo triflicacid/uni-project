@@ -1,0 +1,2 @@
+// fail - expected lvalue, got int
+1 = 2;

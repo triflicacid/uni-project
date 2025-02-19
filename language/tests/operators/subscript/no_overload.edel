@@ -1,0 +1,3 @@
+// fail - no candidate for operator[](*u8, *u8)
+let p = 5;
+p[p] = 13 as u8;

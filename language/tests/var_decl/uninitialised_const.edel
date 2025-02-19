@@ -1,0 +1,2 @@
+// fail - constant must be initialised
+const pi;

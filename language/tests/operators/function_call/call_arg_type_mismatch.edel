@@ -1,0 +1,4 @@
+// fail - cannot convert f32 to i32
+func id(x: int) -> int { return x; }
+
+id(5.0);

@@ -1,0 +1,4 @@
+// fail - missing return statement
+func abs(x: int) -> int {
+
+}

@@ -1,0 +1,2 @@
+// fail - no candidate for operator()(int, int)
+1(2);

@@ -1,0 +1,7 @@
+// pass
+let a: int;
+{
+    let a: bool;
+    a = true;
+}
+a = 42;

@@ -1,0 +1,8 @@
+// pass
+namespace std {
+    namespace maths {
+        const pi = 3.14159;
+    }
+
+    const version = 1;
+}
