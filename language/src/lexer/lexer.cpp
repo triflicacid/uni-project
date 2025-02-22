@@ -42,6 +42,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
       {"operator", TokenType::operator_kw},
       {"sizeof", TokenType::sizeof_kw},
       {"return", TokenType::return_kw},
+      {"while", TokenType::while_kw},
     }
   },
   literal_map = {{

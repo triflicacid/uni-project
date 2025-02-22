@@ -54,6 +54,7 @@ namespace lang::lexer {
     return_kw,
     sizeof_kw,
     true_kw,
+    while_kw,
 
     invalid
   };

@@ -13,6 +13,7 @@
 #include "ast/expr/operator.hpp"
 #include "ast/function/operator_definition.hpp"
 #include "ast/if_statement.hpp"
+#include "ast/while_statement.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -128,6 +129,9 @@ namespace lang::parser {
 
     // parse an if..else.. statement
     std::unique_ptr<ast::IfStatementNode> parse_if_statement();
+
+    // parse a while statement
+    std::unique_ptr<ast::WhileStatementNode> parse_while_statement();
 
     // parse a block if '{' or a code line
     std::unique_ptr<ast::BlockNode> parse_block_or_line(bool in_top_level);

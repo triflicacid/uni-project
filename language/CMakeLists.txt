@@ -9,11 +9,11 @@ add_executable(language ../shared/constants.cpp ../shared/util.cpp ../shared/mes
         src/lexer/lexer.cpp
         src/memory/literal.cpp src/memory/reg_alloc.cpp src/memory/stack.cpp
         src/assembly/arg.cpp src/assembly/basic_block.cpp src/assembly/create.cpp src/assembly/directive.cpp src/assembly/instruction.cpp src/assembly/program.cpp
-        src/ast/block.cpp src/ast/if_statement.cpp src/ast/namespace.cpp src/ast/node.cpp src/ast/program.cpp src/ast/symbol_declaration.cpp
+        src/ast/block.cpp src/ast/if_statement.cpp src/ast/namespace.cpp src/ast/node.cpp src/ast/program.cpp src/ast/symbol_declaration.cpp src/ast/while_statement.cpp
         src/ast/function/function_base.cpp src/ast/function/function.cpp src/ast/function/operator_definition.cpp src/ast/function/return.cpp
         src/ast/types/bool.cpp src/ast/types/node.cpp src/ast/types/pointer.cpp src/ast/types/unit.cpp src/ast/types/graph.cpp src/ast/types/int.cpp src/ast/types/namespace.cpp src/ast/types/float.cpp src/ast/types/function.cpp src/ast/types/wrapper.cpp
         src/ast/expr/operator.cpp src/ast/expr/literal.cpp src/ast/expr/symbol_reference.cpp src/ast/expr/unit.cpp
-        src/control-flow/conditional_context.cpp
+        src/control-flow/conditional_context.cpp src/control-flow/loop_context.cpp
         src/symbol/function.cpp src/symbol/registry.cpp src/symbol/symbol.cpp src/symbol/table.cpp
         src/operators/builtins.cpp src/operators/operator.cpp
         src/value/value.cpp

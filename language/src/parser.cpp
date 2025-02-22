@@ -768,6 +768,7 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
      lexer::BasicToken(lexer::TokenType::let),
      lexer::BasicToken(lexer::TokenType::namespace_kw),
      lexer::BasicToken(lexer::TokenType::return_kw),
+     lexer::BasicToken(lexer::TokenType::if_kw),
    },
    firstset::expression,
 });
@@ -793,6 +794,22 @@ std::unique_ptr<lang::ast::IfStatementNode> lang::parser::Parser::parse_if_state
   }
 
   return std::make_unique<ast::IfStatementNode>(token_start, std::move(guard), std::move(then_body), std::move(else_body));
+}
+
+std::unique_ptr<lang::ast::WhileStatementNode> lang::parser::Parser::parse_while_statement() {
+  // 'while'
+  const lexer::Token token_start = consume();
+
+  // expect expression
+  if (!expect_or_error(firstset::expression)) return nullptr;
+  auto guard = parse_expression(ExprExpectSC::No);
+
+  // expect body
+  auto body = parse_block_or_line(false);
+  if (is_error()) return nullptr;
+
+  // assemble & return the node
+  return std::make_unique<ast::WhileStatementNode>(token_start, std::move(guard), std::move(body));
 }
 
 std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block_or_line(bool in_top_level) {
@@ -833,6 +850,11 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
 
   if (expect(lexer::TokenType::return_kw)) {
     block.add(parse_return());
+    return;
+  }
+
+  if (expect(lexer::TokenType::while_kw)) {
+    block.add(parse_while_statement());
     return;
   }
 }
@@ -949,6 +971,7 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
       lexer::BasicToken(lexer::TokenType::let),
       lexer::BasicToken(lexer::TokenType::namespace_kw),
       lexer::BasicToken(lexer::TokenType::operator_kw),
+      lexer::BasicToken(lexer::TokenType::while_kw),
     },
     firstset::expression,
 });
@@ -981,6 +1004,11 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
 
   if (expect(lexer::TokenType::operator_kw)) {
     container.add(parse_operator_definition());
+    return;
+  }
+
+  if (expect(lexer::TokenType::while_kw)) {
+    container.add(parse_while_statement());
     return;
   }
 

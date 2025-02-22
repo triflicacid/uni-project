@@ -4,8 +4,6 @@
 #include "control-flow/conditional_context.hpp"
 #include "assembly/create.hpp"
 #include "message_helper.hpp"
-#include "ast/types/graph.hpp"
-#include "ast/types/bool.hpp"
 #include "ast/types/unit.hpp"
 
 // id used for `if` and `else` blocks
@@ -45,7 +43,8 @@ std::ostream& lang::ast::IfStatementNode::print_tree(std::ostream& os, unsigned 
 }
 
 bool lang::ast::IfStatementNode::always_returns() const {
-  return then_->always_returns() && (!else_.has_value() || else_.value()->always_returns());
+  return guard_->always_returns()
+    || (then_->always_returns() && (!else_.has_value() || else_.value()->always_returns()));
 }
 
 bool lang::ast::IfStatementNode::collate_registry(message::List& messages, lang::symbol::Registry& registry) {
@@ -111,7 +110,7 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) const {
   auto else_block = else_.has_value()
                     ? assembly::BasicBlock::labelled("else_" + std::to_string(id_))
                     : nullptr;
-  auto after_block = assembly::BasicBlock::labelled("after_" + std::to_string(id_));
+  auto after_block = assembly::BasicBlock::labelled("endif_" + std::to_string(id_));
 
   // create the conditional context instance and attach to our guard
   control_flow::ConditionalContext cond_ctx{
