@@ -61,4 +61,74 @@ if C1 {
 Note that if both \texttt{C1} and \texttt{C2} are true, as the former is tested first, only its block will be executed before the statement is exited;
 \texttt{C2} and its block will never be evaluated.
 
-\subsection{While Loops}
+\subsection{Unconditional Loops}
+
+A loop is a section of code which is executed repeatedly.
+In unconditional loops, the only way to exit the loop is using the \texttt{break} keyword, which is covered in section ~\ref{subsubsec:loop-control}.
+
+An unconditional loop is introduced using the \texttt{loop} keyword, followed by a \textit{loop body}, which may be a single line or a block.
+
+\begin{lstlisting}[language=CustomLang]
+loop {
+    i = i + 1;
+}
+\end{lstlisting}
+
+Note that a loop \textbf{cannot} be an expression, and hence must evaluate to `\texttt{()}'.
+
+\begin{lstlisting}[language=CustomLang]
+loop {
+    1
+} // error: a loop should evaluate to unit `()', got int
+\end{lstlisting}
+
+\subsubsection{Break \& Continue}\label{subsubsec:loop-control}
+
+These two keywords are used to control the behaviour of a loop.
+Note that these only affect the immediate outer loop, and cannot be used to, for example, break out of a nested loop.
+
+\paragraph*{Break}
+
+The \texttt{break} keyword allows the programmer to break/exit out of the loop.
+Technically, control is transferred to the end of the loop body.
+
+\begin{lstlisting}[language=CustomLang]
+let i = 0;
+loop {
+    i = i + 1;
+    print(i);
+    if (i == 5) break;
+}
+// output = 1, 2, 3, 4, 5
+\end{lstlisting}
+
+\paragraph*{Continue}
+
+On the other hand, \texttt{continue} transfers control to the start of the loop, skipping the rest of the loop body.
+
+\begin{lstlisting}[language=CustomLang]
+let i = 0;
+loop {
+    i = i + 1;
+    if (i == 3) continue;
+    print(i);
+}
+// output = 1, 2, 4, 5, ...
+\end{lstlisting}
+
+\subsection{Conditional Loops}
+
+A conditional loop is a loop which only iterates as long as a condition is met.
+This is commonly known as a while loop.
+
+\begin{lstlisting}[language=CustomLang]
+let i = 0;
+while i < 5 {
+    i = i + 1;
+    print(i);
+}
+// output = 1, 2, 3, 4, 5
+\end{lstlisting}
+
+Observe that this is equivalent to a \texttt{loop} with a conditional \texttt{break} at the beginning.
+
