@@ -15,6 +15,7 @@
 #include "language/src/ast/control-flow/if_statement.hpp"
 #include "language/src/ast/control-flow/while_statement.hpp"
 #include "ast/control-flow/loop_control.hpp"
+#include "ast/control-flow/loop_statement.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -133,6 +134,9 @@ namespace lang::parser {
 
     // parse a while statement
     std::unique_ptr<ast::WhileStatementNode> parse_while_statement();
+
+    // parse a loop statement
+    std::unique_ptr<ast::LoopStatementNode> parse_loop_statement();
 
     // parse a break or continue statement
     std::unique_ptr<ast::LoopControlNode> parse_loop_control_statement();

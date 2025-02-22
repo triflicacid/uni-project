@@ -768,6 +768,7 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
      lexer::BasicToken(lexer::TokenType::func),
      lexer::BasicToken(lexer::TokenType::if_kw),
      lexer::BasicToken(lexer::TokenType::let),
+     lexer::BasicToken(lexer::TokenType::loop_kw),
      lexer::BasicToken(lexer::TokenType::namespace_kw),
      lexer::BasicToken(lexer::TokenType::return_kw),
      lexer::BasicToken(lexer::TokenType::while_kw),
@@ -814,6 +815,18 @@ std::unique_ptr<lang::ast::WhileStatementNode> lang::parser::Parser::parse_while
   return std::make_unique<ast::WhileStatementNode>(token_start, std::move(guard), std::move(body));
 }
 
+std::unique_ptr<lang::ast::LoopStatementNode> lang::parser::Parser::parse_loop_statement() {
+  // 'loop'
+  const lexer::Token token_start = consume();
+
+  // expect body
+  auto body = parse_block_or_line(false);
+  if (is_error()) return nullptr;
+
+  // assemble & return the node
+  return std::make_unique<ast::LoopStatementNode>(token_start, std::move(body));
+}
+
 std::unique_ptr<lang::ast::LoopControlNode> lang::parser::Parser::parse_loop_control_statement() {
   return std::make_unique<ast::LoopControlNode>(consume());
 }
@@ -841,6 +854,11 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
 
   if (expect(lexer::TokenTypeSet{lexer::TokenType::let, lexer::TokenType::const_kw})) {
     parse_var_decl(block);
+    return;
+  }
+
+  if (expect(lexer::TokenType::loop_kw)) {
+    block.add(parse_loop_statement());
     return;
   }
 
@@ -980,6 +998,7 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
       lexer::BasicToken(lexer::TokenType::func),
       lexer::BasicToken(lexer::TokenType::if_kw),
       lexer::BasicToken(lexer::TokenType::let),
+      lexer::BasicToken(lexer::TokenType::loop_kw),
       lexer::BasicToken(lexer::TokenType::namespace_kw),
       lexer::BasicToken(lexer::TokenType::operator_kw),
       lexer::BasicToken(lexer::TokenType::while_kw),
@@ -1000,6 +1019,11 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
 
   if (expect(lexer::TokenTypeSet{lexer::TokenType::let, lexer::TokenType::const_kw})) {
     parse_var_decl(container);
+    return;
+  }
+
+  if (expect(lexer::TokenType::loop_kw)) {
+    container.add(parse_loop_statement());
     return;
   }
 

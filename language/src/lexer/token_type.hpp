@@ -50,6 +50,7 @@ namespace lang::lexer {
     func,
     if_kw,
     let,
+    loop_kw,
     namespace_kw,
     null_kw,
     operator_kw,
