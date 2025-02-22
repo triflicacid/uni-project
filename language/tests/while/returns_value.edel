@@ -1,0 +1,2 @@
+// fail - while loop should evaluate to '()'
+while true { 1 }

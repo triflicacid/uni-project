@@ -6,7 +6,6 @@
 #include "value/value.hpp"
 #include "optional_ref.hpp"
 #include "control-flow/conditional_context.hpp"
-#include "control-flow/loop_context.hpp"
 
 namespace lang {
   struct Context;
@@ -32,7 +31,6 @@ namespace lang::ast {
     std::optional<lexer::Token> tend_;
     optional_ref<const ast::type::Node> type_hint_; // type hint, used for resolving overload sets etc
     optional_ref<control_flow::ConditionalContext> cond_ctx_; // set when evaluating a conditional, means operator should support this and contribute
-    optional_ref<control_flow::LoopContext> loop_ctx_; // set when inside a loop, used for `break` and `continue`
 
   protected:
     std::unique_ptr<value::Value> value_; // every node has a value, which is possibly set in ::process
@@ -56,9 +54,6 @@ namespace lang::ast {
 
     const optional_ref<control_flow::ConditionalContext>& conditional_context() const { return cond_ctx_; }
     void conditional_context(control_flow::ConditionalContext& ctx) { cond_ctx_ = std::ref(ctx); }
-
-    const optional_ref<control_flow::LoopContext>& loop_context() const { return loop_ctx_; }
-    void loop_context(control_flow::LoopContext& ctx) { loop_ctx_ = std::ref(ctx); }
 
     // does this node return absolutely from a function?
     // used to check if control reaches the end of a function

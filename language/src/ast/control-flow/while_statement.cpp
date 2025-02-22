@@ -4,6 +4,8 @@
 #include "message_helper.hpp"
 #include "context.hpp"
 #include "assembly/create.hpp"
+#include "control-flow/loop_context.hpp"
+#include "ast/types/unit.hpp"
 
 static unsigned int current_id = 0;
 
@@ -39,7 +41,7 @@ bool lang::ast::WhileStatementNode::collate_registry(message::List& messages, la
 
 bool lang::ast::WhileStatementNode::process(lang::Context& ctx) {
   // process guard
-  if (!guard_->process(ctx) || !body_->process(ctx)) return false;
+  if (!guard_->process(ctx)) return false;
 
   // check that the guard is a Boolean
   if (!guard_->resolve(ctx)) return false;
@@ -49,23 +51,43 @@ bool lang::ast::WhileStatementNode::process(lang::Context& ctx) {
     return false;
   }
 
+  // push a new loop context
+  ctx.loops.emplace(guard_label(), end_label());
+
+  // process our body
+  if (!body_->process(ctx)) return false;
+
+  // remove loop context
+  ctx.loops.pop();
+
+  // our body should not return anything (i.e., `()`)
+  if (!body_->resolve(ctx)) return false;
+  auto& value = body_->value();
+  if (value.type() != type::unit) {
+    std::unique_ptr<message::BasicMessage> msg = token_start().generate_message(message::Error);
+    msg->get() << "type mismatch: a while loop should evaluate to unit '()', but got ";
+    value.type().print_code(msg->get());
+    ctx.messages.add(std::move(msg));
+
+    msg = std::make_unique<message::BasicMessage>(message::Note);
+    msg->get() << "did you forget a semicolon at the end of an expression?";
+    ctx.messages.add(std::move(msg));
+    return false;
+  }
+
   return true;
 }
 
 bool lang::ast::WhileStatementNode::generate_code(lang::Context& ctx) const {
-  // resolve our body
-  if (!body_->resolve(ctx)) return false;
-
   // create the loop's blocks
-  auto guard_block = assembly::BasicBlock::labelled("whileguard_" + std::to_string(id_));
+  auto guard_block = assembly::BasicBlock::labelled(guard_label());
   auto& guard_ref = *guard_block;
-  auto body_block = assembly::BasicBlock::labelled("whilebody_" + std::to_string(id_));
-  auto& body_ref = *body_block;
-  auto after_block = assembly::BasicBlock::labelled("endwhile_" + std::to_string(id_));
+  guard_ref.comment() << "while#" << id_;
+  auto body_block = assembly::BasicBlock::labelled(body_label());
+  auto after_block = assembly::BasicBlock::labelled(end_label());
 
-  // create contexts - one for the guard (if), one for the loop body
+  // create conditional context for the guard
   control_flow::ConditionalContext cond_ctx{*body_block, *after_block};
-  control_flow::LoopContext loop_ctx{*guard_block, *after_block};
 
   // generate the conditional guard
   ctx.program.insert(assembly::Position::Next, std::move(guard_block));
@@ -75,14 +97,26 @@ bool lang::ast::WhileStatementNode::generate_code(lang::Context& ctx) const {
 
   // generate the body
   ctx.program.insert(assembly::Position::Next, std::move(body_block));
-  body_->loop_context(loop_ctx);
   if (!body_->generate_code(ctx)) return false;
 
   // add branch back to the guard (form a loop)
-  body_ref.add(assembly::create_branch(assembly::Arg::label(guard_ref)));
+  ctx.program.current().add(assembly::create_branch(assembly::Arg::label(guard_ref)));
+  ctx.program.current().back().comment() << "loop while#" << id_;
 
   // create the `after` block for when the loop exits
   ctx.program.insert(assembly::Position::Next, std::move(after_block));
 
   return true;
+}
+
+std::string lang::ast::WhileStatementNode::guard_label() const {
+  return "whileguard_" + std::to_string(id_);
+}
+
+std::string lang::ast::WhileStatementNode::body_label() const {
+  return "whilebody_" + std::to_string(id_);
+}
+
+std::string lang::ast::WhileStatementNode::end_label() const {
+  return "endwhile_" + std::to_string(id_);
 }

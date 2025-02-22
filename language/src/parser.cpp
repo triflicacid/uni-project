@@ -762,13 +762,15 @@ std::unique_ptr<lang::ast::ReturnNode> lang::parser::Parser::parse_return() {
 
 const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
    {
+     lexer::BasicToken(lexer::TokenType::break_kw),
      lexer::BasicToken(lexer::TokenType::const_kw),
+     lexer::BasicToken(lexer::TokenType::continue_kw),
      lexer::BasicToken(lexer::TokenType::func),
      lexer::BasicToken(lexer::TokenType::if_kw),
      lexer::BasicToken(lexer::TokenType::let),
      lexer::BasicToken(lexer::TokenType::namespace_kw),
      lexer::BasicToken(lexer::TokenType::return_kw),
-     lexer::BasicToken(lexer::TokenType::if_kw),
+     lexer::BasicToken(lexer::TokenType::while_kw),
    },
    firstset::expression,
 });
@@ -812,6 +814,10 @@ std::unique_ptr<lang::ast::WhileStatementNode> lang::parser::Parser::parse_while
   return std::make_unique<ast::WhileStatementNode>(token_start, std::move(guard), std::move(body));
 }
 
+std::unique_ptr<lang::ast::LoopControlNode> lang::parser::Parser::parse_loop_control_statement() {
+  return std::make_unique<ast::LoopControlNode>(consume());
+}
+
 std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block_or_line(bool in_top_level) {
   if (expect(lexer::TokenType::lbrace)) {
     return parse_block();
@@ -823,8 +829,8 @@ std::unique_ptr<lang::ast::BlockNode> lang::parser::Parser::parse_block_or_line(
 }
 
 void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
-  if (expect(firstset::expression)) {
-    block.add(parse_expression(ExprExpectSC::Maybe));
+  if (expect(lexer::TokenTypeSet{lexer::TokenType::break_kw, lexer::TokenType::continue_kw})) {
+    block.add(parse_loop_control_statement());
     return;
   }
 
@@ -855,6 +861,11 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
 
   if (expect(lexer::TokenType::while_kw)) {
     block.add(parse_while_statement());
+    return;
+  }
+
+  if (expect(firstset::expression)) {
+    block.add(parse_expression(ExprExpectSC::Maybe));
     return;
   }
 }

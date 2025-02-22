@@ -1,0 +1,4 @@
+// fail - 'break' must be inside a loop
+{
+    break;
+}

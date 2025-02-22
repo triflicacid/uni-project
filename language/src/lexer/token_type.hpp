@@ -42,7 +42,9 @@ namespace lang::lexer {
 
     // keywords
     as_kw,
+    break_kw,
     const_kw,
+    continue_kw,
     else_kw,
     false_kw,
     func,

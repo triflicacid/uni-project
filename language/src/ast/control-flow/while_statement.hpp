@@ -1,6 +1,6 @@
 #pragma once
 
-#include "node.hpp"
+#include "language/src/ast/node.hpp"
 #include "optional_ref.hpp"
 
 namespace lang::ast {
@@ -25,5 +25,14 @@ namespace lang::ast {
     bool process(lang::Context &ctx) override;
 
     bool generate_code(lang::Context &ctx) const override;
+
+    // return label for the guard/conditional block
+    std::string guard_label() const;
+
+    // return label for the while loop's body
+    std::string body_label() const;
+
+    // return label for the end of the while loop
+    std::string end_label() const;
   };
 }
