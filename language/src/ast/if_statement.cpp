@@ -1,7 +1,7 @@
 #include "if_statement.hpp"
 #include "types/node.hpp"
 #include "context.hpp"
-#include "conditional_context.hpp"
+#include "control-flow/conditional_context.hpp"
 #include "assembly/create.hpp"
 #include "message_helper.hpp"
 #include "ast/types/graph.hpp"
@@ -114,8 +114,8 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) const {
   auto after_block = assembly::BasicBlock::labelled("after_" + std::to_string(id_));
 
   // create the conditional context instance and attach to our guard
-  ConditionalContext cond_ctx{
-      //*then_block, // let this fall through
+  control_flow::ConditionalContext cond_ctx{
+      .if_true = *then_block,
       .if_false = else_block ? *else_block : *after_block
   };
   guard_->conditional_context(cond_ctx);
@@ -124,32 +124,7 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) const {
   if (!guard_->generate_code(ctx)) return false;
 
   // if branching has not been handled, do it ourselves
-  if (!cond_ctx.handled) {
-    // expect guard's result to be an rvalue
-    auto& guard_value = guard_->value();
-    if (!guard_value.is_rvalue()) {
-      ctx.messages.add(util::error_expected_lrvalue(*guard_, guard_value.type(), false));
-      return false;
-    }
-
-    // the result must be a Boolean
-    if (!type::graph.is_subtype(guard_value.type().id(), type::boolean.id())) {
-      ctx.messages.add(util::error_type_mismatch(*guard_, guard_value.type(), type::boolean, false));
-      return false;
-    }
-
-    // get reference to result, ensuring we are a Boolean
-    memory::Ref result = guard_value.rvalue().ref();
-    result = ctx.reg_alloc_manager.guarantee_datatype(result, type::boolean);
-
-    // perform zero-comparison
-    ctx.program.current().add(assembly::create_comparison(
-        result.offset,
-        assembly::Arg::imm(0)
-      ));
-
-    cond_ctx.generate_branches(ctx.program.current(), constants::cmp::eq);
-  }
+  if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, *guard_, guard_->value())) return false;
 
   // generate then branch
   ctx.program.insert(assembly::Position::Next, std::move(then_block));

@@ -24,7 +24,7 @@ namespace lang::ops {
 
     bool builtin() const override { return true; }
 
-    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<ast::ConditionalContext> conditional = std::nullopt) const override;
+    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional = std::nullopt) const override;
   };
 
   // define a built-in relational operator which is capable of conditional branching
@@ -36,7 +36,7 @@ namespace lang::ops {
     RelationalBuiltinOperator(std::string symbol, const ast::type::FunctionNode& type, const BuiltinOperator::GeneratorFn& generator, constants::cmp::flag relation, const ast::type::Node& datatype)
       : BuiltinOperator(std::move(symbol), type, generator), flag_(relation), datatype_(datatype) {}
 
-    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<ast::ConditionalContext> conditional = std::nullopt) const override;
+    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional = std::nullopt) const override;
   };
 
   // special case for handling the inverse '!' operator
@@ -44,6 +44,16 @@ namespace lang::ops {
   public:
     using BuiltinOperator::BuiltinOperator;
 
-    bool invoke(Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<ast::ConditionalContext> conditional = std::nullopt) const override;
+    bool invoke(Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional = std::nullopt) const override;
+  };
+
+  // lazy logical && or || operator
+  class LazyLogicalOperator : public BuiltinOperator {
+    bool and_; // && or || ?
+
+  public:
+    LazyLogicalOperator(std::string symbol, const ast::type::FunctionNode& type, bool is_and);
+
+    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional = std::nullopt) const override;
   };
 }

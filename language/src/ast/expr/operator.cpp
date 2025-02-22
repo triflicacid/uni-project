@@ -18,6 +18,7 @@
 #include "operators/user_defined.hpp"
 #include "symbol/function.hpp"
 #include "operators/builtins.hpp"
+#include "ast/types/bool.hpp"
 
 std::string lang::ast::OperatorNode::node_name() const {
   return args_.size() == 2
@@ -193,6 +194,8 @@ lang::ast::OperatorNode::binary(lexer::Token token, lexer::Token symbol, std::un
     return std::make_unique<AssignmentOperatorNode>(std::move(token), std::move(symbol), std::move(lhs), std::move(rhs));
   } else if (symbol.image == "[]") {
     return std::make_unique<SubscriptOperatorNode>(std::move(token), std::move(symbol), std::move(lhs), std::move(rhs));
+  } else if (symbol.image == "&&" || symbol.image == "||") {
+    return std::make_unique<LazyLogicalOperator>(std::move(token), std::move(symbol), std::move(lhs), std::move(rhs));
   }
 
   // otherwise, generic binary op
@@ -988,4 +991,37 @@ bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) const {
       *value_,
       conditional_context()
   );
+}
+
+lang::ast::LazyLogicalOperator::LazyLogicalOperator(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
+    : OperatorNode(token, std::move(symbol), {}), and_(token.image == "&&") {
+  token_start(lhs->token_start());
+  token_end(rhs->token_end());
+
+  args_.push_back(std::move(lhs));
+  args_.push_back(std::move(rhs));
+}
+
+bool lang::ast::LazyLogicalOperator::process(lang::Context& ctx) {
+  if (!OperatorNode::process(ctx)) return false;
+
+  // both sides must be Booleans, but not necessarily rvalues
+  for (int i = 0; i < 2; i++) {
+    auto& arg = this->arg(i);
+    if (!arg.resolve(ctx)) return false;
+    if (!ast::type::graph.is_subtype(arg.value().type().id(), ast::type::boolean.id())) {
+      ctx.messages.add(util::error_type_mismatch(arg, arg.value().type(), ast::type::boolean, false));
+      return false;
+    }
+  }
+
+  // set our value
+  value_ = value::value(ast::type::boolean);
+
+  return true;
+}
+
+bool lang::ast::LazyLogicalOperator::generate_code(lang::Context& ctx) const {
+  const ops::Operator& op = ops::get(op_symbol_.image).front();
+  return op.invoke(ctx, args_, *value_, conditional_context());
 }

@@ -4,7 +4,7 @@
 #include <memory>
 #include <deque>
 #include "optional_ref.hpp"
-#include "ast/conditional_context.hpp"
+#include "control-flow/conditional_context.hpp"
 
 namespace message {
   class MessageGenerator;
@@ -49,7 +49,7 @@ namespace lang::ops {
     std::ostream& print_code(std::ostream& os) const;
 
     // invoke the given operator
-    virtual bool invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<ast::ConditionalContext> conditional = std::nullopt) const = 0;
+    virtual bool invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional = std::nullopt) const = 0;
 
     // are we built-in or overloaded
     virtual bool builtin() const = 0;

@@ -11,9 +11,7 @@
 #include "ast/types/bool.hpp"
 #include "ast/types/pointer.hpp"
 #include "assembly/create.hpp"
-#include "user_defined.hpp"
 #include "message_helper.hpp"
-#include "symbol/function.hpp"
 
 using Args = const std::deque<std::reference_wrapper<const lang::value::Value>>&;
 
@@ -79,9 +77,9 @@ static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_p
 
 std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builtin_binary{
     {"=", {1, true, false}},    // assignment
+    {"||", {2, false, false}},  // logical OR
+    {"&&", {3, false, false}},  // logical AND
 
-    {"||", {7, false, false}},  // logical OR
-    {"&&", {8, false, false}},  // logical AND
     {"|", {9, false}},   // bitwise OR
     {"^", {10, false}},  // bitwise XOR
     {"&", {11, false}},  // bitwise AND
@@ -114,7 +112,7 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"sizeof", {18, true, false}}, // size of type
 };
 
-const lang::ops::OperatorInfo lang::ops::generic_binary{2, false};
+const lang::ops::OperatorInfo lang::ops::generic_binary{5, false};
 const lang::ops::OperatorInfo lang::ops::generic_unary{18, true};
 
 namespace generators {
@@ -462,6 +460,23 @@ namespace init_builtin {
       ));
     }
   }
+
+  // create logical && and ||
+  static void logical_ops() {
+    // operator&&(bool, bool)
+    store_operator(std::make_unique<LazyLogicalOperator>(
+        "&&",
+        FunctionNode::create({boolean, boolean}, boolean),
+        true
+      ));
+
+    // operator||(bool, bool)
+    store_operator(std::make_unique<LazyLogicalOperator>(
+        "||",
+        FunctionNode::create({boolean, boolean}, boolean),
+        false
+    ));
+  }
 }
 
 void lang::ops::init_builtins() {
@@ -479,6 +494,7 @@ void lang::ops::init_builtins() {
   boolean_not();
   relational();
   negation();
+  logical_ops();
 }
 
 void lang::ops::boolean_cast(assembly::BasicBlock& block, uint8_t reg) {

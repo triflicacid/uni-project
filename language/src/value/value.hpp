@@ -54,6 +54,9 @@ namespace lang::value {
   // create an rvalue
   std::unique_ptr<Value> rvalue(const ast::type::Node& type, const memory::Ref& ref);
 
+  // create a literal rvalue
+  std::unique_ptr<Value> literal(const memory::Literal& lit, const memory::Ref& ref);
+
   // create a unit value
   std::unique_ptr<Value> unit_value();
 

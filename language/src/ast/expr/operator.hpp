@@ -5,7 +5,6 @@
 #include "optional_ref.hpp"
 #include "memory/storage_location.hpp"
 #include <unordered_set>
-#include "ast/conditional_context.hpp"
 
 namespace lang::ops {
   class Operator;
@@ -22,8 +21,6 @@ namespace lang::ast::type {
 namespace lang::ast {
   // define an operator
   class OperatorNode : public Node {
-    std::optional<ConditionalContext> cond_ctx_; // set when evaluating a conditional, means operator should support this and contribute
-
   protected:
     lexer::Token op_symbol_; // token of our actual symbol
     std::deque<std::unique_ptr<Node>> args_;
@@ -200,7 +197,19 @@ namespace lang::ast {
   public:
     SubscriptOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
-    std::ostream & print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+    std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
+
+    bool process(lang::Context &ctx) override;
+
+    bool generate_code(lang::Context &ctx) const override;
+  };
+
+  // represents a binary logical operator || and &&
+  class LazyLogicalOperator : public OperatorNode {
+    bool and_; // && or ||
+
+  public:
+    LazyLogicalOperator(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
     bool process(lang::Context &ctx) override;
 

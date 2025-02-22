@@ -5,7 +5,7 @@
 
 namespace lang::ast {
   class IfStatementNode : public Node {
-    int id_; // used for generation of if-else blocks
+    unsigned int id_; // id for creating if-else blocks
     std::unique_ptr<Node> guard_;
     std::unique_ptr<Node> then_;
     std::optional<std::unique_ptr<Node>> else_;

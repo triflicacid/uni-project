@@ -73,6 +73,10 @@ The associativity and precedence of a generic (non built-in) operator is also sh
         \hline
         \texttt{a \(\langle op \rangle\) b} & \textit{Generic} & \multirow{1}{*}{\(\longrightarrow\)} & Yes \\
         \hline
+        \texttt{a \&\& b} & Logical AND & \multirow{1}{*}{\(\longrightarrow\)} & No \\
+        \hline
+        \texttt{a || b} & Logical OR & \multirow{1}{*}{\(\longrightarrow\)} & No \\
+        \hline
         \texttt{a = b} & Assignment & \multirow{1}{*}{\(\longleftarrow\)} & No \\
         \hline
     \end{tabular}\label{tab:builtin-operators}
@@ -138,6 +142,21 @@ sizeof(42); // 4
 \end{lstlisting}
 
 (The brackets are not required as \texttt{sizeof} is an operator and are shown for clarity only.)
+
+\subsection{Logical Operators}
+
+Operators `\texttt{\&\&}' and `\texttt{||}' act as logical AND and OR, respectively.
+That is, the former is true if and only if both arguments are true, and the latter if any of its arguments are true.
+
+Both operators have the notable property of being \textit{lazy}.
+This means that the second argument is only evaluated if necessary.
+If the first argument is sufficient to calculate the operator's result, i.e., \texttt{true} for \texttt{||} and \texttt{false} for \texttt{\&\&}, theen the operator is \textit{short-circuited} and the second argument is skipped.
+For example, in neither of the below expressions, function \texttt{f} is never called.
+
+\begin{lstlisting}[language=CustomLang]
+true || f(); // == true
+false && f(); // == false
+\end{lstlisting}
 
 \subsection{Operator Overloading}
 

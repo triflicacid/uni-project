@@ -126,6 +126,12 @@ std::unique_ptr<lang::value::Value> lang::value::unit_value() {
 
 const std::unique_ptr<lang::value::Value> lang::value::unit_value_instance = unit_value();
 
+std::unique_ptr<lang::value::Value> lang::value::literal(const lang::memory::Literal& lit, const lang::memory::Ref& ref) {
+  auto value = value::value();
+  value->rvalue(std::make_unique<Literal>(lit, ref));
+  return value;
+}
+
 std::unique_ptr<lang::value::LValue> lang::value::LValue::copy() const {
   return std::make_unique<LValue>(type_);
 }

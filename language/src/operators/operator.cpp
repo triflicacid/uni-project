@@ -10,6 +10,7 @@
 #include "builtins.hpp"
 #include "message_helper.hpp"
 #include "assembly/create.hpp"
+#include "ast/types/bool.hpp"
 
 static lang::ops::OperatorId current_id = 0;
 
@@ -97,7 +98,7 @@ lang::ops::select_candidate(const std::string& symbol, const ast::type::Function
   return {};
 }
 
-bool lang::ops::UserDefinedOperator::invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<ast::ConditionalContext> conditional) const {
+bool lang::ops::UserDefinedOperator::invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
   // ensure the function is defined
   if (!symbol().define(ctx))
     return false;
@@ -117,7 +118,7 @@ bool lang::ops::UserDefinedOperator::invoke(lang::Context &ctx, const std::deque
   );
 }
 
-bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<ast::ConditionalContext> conditional) const {
+bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
   // generate & accumulate argument values
   std::deque<std::reference_wrapper<const value::Value>> arg_values;
   for (auto& arg : args) {
@@ -150,7 +151,7 @@ bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::uniq
   return true;
 }
 
-bool lang::ops::RelationalBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<ast::ConditionalContext> conditional) const {
+bool lang::ops::RelationalBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
   // if no condition, proceed as normal
   if (!conditional.has_value()) {
     return BuiltinOperator::invoke(ctx, args, return_value, conditional);
@@ -188,7 +189,7 @@ bool lang::ops::RelationalBuiltinOperator::invoke(Context& ctx, const std::deque
   return true;
 }
 
-bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<ast::ConditionalContext> conditional) const {
+bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
   // if no condition, proceed as normal
   if (!conditional.has_value()) {
     return BuiltinOperator::invoke(ctx, args, return_value, conditional);
@@ -198,37 +199,117 @@ bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque
   assert(args.size() == 1);
 
   // propagate the inverse conditional to child
-  ast::ConditionalContext inverse = conditional->get().inverse();
+  control_flow::ConditionalContext inverse = conditional->get().inverse();
   args.front()->conditional_context(inverse);
 
   // generate child's code
   if (!args.front()->generate_code(ctx)) return false;
 
-  // has this been handled?
+  // was the inverse handled?
+  conditional->get().handled = true;
   if (inverse.handled) {
-    conditional->get().handled = true;
     return true;
   }
 
   // otherwise, we have a Boolean
   // do not call BuiltinOperator::invoke as this will re-generate argument's code
+  return inverse.generate_branches(ctx, *args.front(), args.front()->value());
+}
 
-  // get the result (which will be a Boolean as '!' is defined on Booleans)
-  auto& result_value = args.front()->value();
-  if (!result_value.is_rvalue()) {
-    ctx.messages.add(util::error_expected_lrvalue(*args.front(), result_value.type(), false));
-    return false;
+static unsigned int lazy_op_current_id = 0;
+
+lang::ops::LazyLogicalOperator::LazyLogicalOperator(std::string symbol, const lang::ast::type::FunctionNode& type, bool is_and)
+    : BuiltinOperator(std::move(symbol), type, nullptr), and_(is_and) {}
+
+bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
+  const unsigned int id = lazy_op_current_id++;
+
+  // represent the RHS of the binary op
+  auto rhs_block = assembly::BasicBlock::labelled("rhs_" + std::to_string(id));
+  rhs_block->comment() << "rhs of " << op();
+
+  if (conditional.has_value()) {
+    // handle LHS - do we need both, or just one?
+    control_flow::ConditionalContext cond_ctx;
+    if (and_) {
+      cond_ctx.if_true = *rhs_block;
+      cond_ctx.if_false = conditional->get().if_false;
+    } else {
+      cond_ctx.if_true = conditional->get().if_true;
+      cond_ctx.if_false = *rhs_block;
+    }
+
+    auto& lhs = *args.front();
+    lhs.conditional_context(cond_ctx);
+    if (!lhs.generate_code(ctx)) return false;
+    if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, lhs, lhs.value())) return false;
+
+    // handle RHS, use original conditional
+    ctx.program.insert(assembly::Position::Next, std::move(rhs_block));
+    auto& rhs = *args.back();
+    rhs.conditional_context(conditional->get());
+    if (!rhs.generate_code(ctx)) return false;
+    if (!conditional->get().handled && !conditional->get().generate_branches(ctx, rhs, rhs.value())) return false;
+
+    return true;
   }
-  memory::Ref result = ctx.reg_alloc_manager.guarantee_register(result_value.rvalue().ref());
 
-  // compare to zero
-  ctx.program.current().add(assembly::create_comparison(
-      result.offset,
-      assembly::Arg::imm(0)
+  // blocks for `true` and `false` results, as well as an `after` block
+  auto true_block = assembly::BasicBlock::labelled("true_" + std::to_string(id));
+  auto false_block = assembly::BasicBlock::labelled("false_" + std::to_string(id));
+  auto after_block = assembly::BasicBlock::labelled("end_" + std::to_string(id));
+
+  // populate above blocks
+  true_block->add(assembly::create_load(
+      constants::registers::ret,
+      assembly::Arg::imm(1)
     ));
+  true_block->add(assembly::create_branch(assembly::Arg::label(*after_block)));
 
-  // as we are the inverse, the default is to compare != 0
-  conditional->get().generate_branches(ctx.program.current(), constants::cmp::ne);
+  false_block->add(assembly::create_zero(
+      constants::registers::ret
+  ));
+  false_block->add(assembly::create_branch(assembly::Arg::label(*after_block)));
+
+  // LHS portion
+  control_flow::ConditionalContext cond_ctx;
+  if (and_) {
+    cond_ctx.if_false = *false_block;
+    cond_ctx.if_true = *rhs_block;
+  } else {
+    cond_ctx.if_false = *rhs_block;
+    cond_ctx.if_true = *true_block;
+  }
+
+  auto& lhs = *args.front();
+  lhs.conditional_context(cond_ctx);
+  if (!lhs.generate_code(ctx)) return false;
+  if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, lhs, lhs.value())) return false;
+
+  // RHS portion
+  ctx.program.insert(assembly::Position::Next, std::move(rhs_block));
+  cond_ctx = {
+      .if_true = *true_block,
+      .if_false = *false_block,
+  };
+  auto& rhs = *args.back();
+  rhs.conditional_context(cond_ctx);
+  if (!rhs.generate_code(ctx)) return false;
+  if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, rhs, rhs.value())) return false;
+
+  // insert remaining blocks
+  ctx.program.insert(assembly::Position::Next, std::move(true_block));
+  ctx.program.insert(assembly::Position::Next, std::move(false_block));
+  ctx.program.insert(assembly::Position::Next, std::move(after_block));
+
+  // set $ret to a Boolean
+  ctx.reg_alloc_manager.update_ret(memory::Object(value::rvalue(
+      ast::type::boolean,
+      memory::Ref::reg(constants::registers::ret)
+    )));
+
+  // update return value
+  return_value.rvalue(std::make_unique<value::RValue>(ast::type::boolean, memory::Ref::reg(constants::registers::ret)));
 
   return true;
 }

@@ -2,7 +2,7 @@
 
 #include "operator.hpp"
 #include "symbol/symbol.hpp"
-#include "ast/conditional_context.hpp"
+#include "control-flow/conditional_context.hpp"
 
 namespace lang::ops {
   class UserDefinedOperator : public Operator {
@@ -16,6 +16,6 @@ namespace lang::ops {
 
     const symbol::Symbol& symbol() const { return symbol_; }
 
-    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<ast::ConditionalContext> conditional= std::nullopt) const override;
+    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional= std::nullopt) const override;
   };
 }
