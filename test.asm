@@ -1,5 +1,7 @@
-load $r1, data
-load $r1, ($r1)
+nop
 
-data:
-.byte 1 2 3
+array:
+    .space 20
+
+pointer:
+    .data array

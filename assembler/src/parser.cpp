@@ -486,10 +486,25 @@ namespace assembler::parser {
       } else if (parse_number(line.second, col, value, is_decimal)) {
         // numeric literal
       } else {
-        auto msg = std::make_unique<message::Message>(message::Error, loc);
-        msg->get() << "unexpected character '" << line.second[col] << "' in data list";
-        msgs.add(std::move(msg));
-        return false;
+        // extract context until space or comma
+        int start = col;
+        skip_to_break(line.second, col);
+        const std::string extracted = line.second.substr(start, col - start);
+
+        // check if a label
+        if (auto it = data.labels.find(extracted); it != data.labels.end()) {
+          value = it->second.addr;
+        } else {
+          col = start;
+          std::unique_ptr<message::BasicMessage> msg = std::make_unique<message::Message>(message::Error, loc);
+          msg->get() << "unexpected character '" << line.second[col] << "' in data list";
+          msgs.add(std::move(msg));
+
+          msg = std::make_unique<message::BasicMessage>(message::Note);
+          msg->get() << "labels cannot be used prior to declaration in this context";
+          msgs.add(std::move(msg));
+          return false;
+        }
       }
 
       // if decimal: convert to appropriate size

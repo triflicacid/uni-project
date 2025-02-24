@@ -222,14 +222,14 @@ Pseudo-instructions are marked as such in the processor specification.
 As a RISC processor, the instruction set is limited and compact.
 Pseudo-instructions are compromises for common operations, written as an intrinsic instruction but expanded into its equivalent intrinsic form by the assembler.
 
-\subsection{Arguments}
+\subsection{Arguments}\label{subsec:arguments}
 
 The argument types are detailed in the process documentation document, but syntax will be detailed here.
 \begin{itemize}
     \item Immediate: a numeric value, e.g., \texttt{42}.
     \item Memory Address: a parenthesised numeric value, e.g., \texttt{(42)}.
     \item Register: a register name suffixed by a dollar `\$', e.g., \texttt{\$r1}.
-    \item Register Indirect: a parenthesised register, optionally prefixed by a numeric value, e.g., \texttt{2(\$sp))}.
+    \item Register Indirect: a parenthesised register, optionally prefixed by a numeric value, e.g., \texttt{2(\$sp)}.
 \end{itemize}
 
 The following list the possible forms of a numeric literal.
@@ -283,7 +283,21 @@ A directive is prefixed with a dot, and must be at the start of a line.
 \end{longtable}
 \medskip
 
-\textbf{Note} if no data is provided afterwards, a single immediate of zero will be assumed.
+\subsubsection{Data Directives}
+
+\texttt{.byte}, \texttt{.data}, and \texttt{.word} are used to load data in-place into a binary.
+Their argument are space-- or comma-separated units of data.
+\begin{itemize}
+    \item A numeric literal as described in section ~\ref{subsec:arguments}, e.g., \texttt{42}.
+    \item A character literal, enclosed in single quotes, e.g., \texttt{'b'}.
+    \item A string literal, enclosed in double quotes, e.g., \texttt{"Hello"}.
+    Note, the string will be null-terminated.
+    \item A declared label (meaning labels cannot be used prior to declaration here).
+\end{itemize}
+Each unit will be inserted as dictated by the expected size of the directive, i.e., \texttt{.data} will load each character in a string as an integer.
+Labels will always be unsigned words.
+
+If no data is provided, a single immediate of zero will be assumed.
 I.e., \texttt{.data} is the same as \texttt{.data 0}.
 
 \section{Assembly Reconstruction}
