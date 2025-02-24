@@ -380,15 +380,15 @@
     instead, it is up to compilers or other softwares to decide upon and implement such a convention.
     However, some basic instructions are provided.
 
-    The \textt{jal} ``jump-and-link'' instruction is used to call a procedure.
+    The \texttt{jal} ``jump-and-link'' instruction is used to call a procedure.
     Given the location in memory of the subroutine, it first caches the old instruction pointer, then loads in the subroutine's address.
-    Note that this return address is not preserved on multiple calls, and hence must be cached by the programmer if multiple nested calls are required to avoid \$rpc from being overwritten.
+    Be aware that this return address is not preserved on multiple calls, and hence must be cached by the programmer if multiple nested calls are required to avoid \$rpc from being overwritten.
     Note, this instruction is atomic; while it may be implemented as a separate \texttt{load} and \texttt{jmp}, an interrupt could theoretically disrupt this.
 
     To return from a subroutine is simple: load the contents of this cache into the instruction pointer register.
     This service is offered as a pseudo-instruction \texttt{ret}.
 
-    \section{System Call}\label{sec:system-call}
+    \section{System Calls}\label{sec:system-call}
 
     System calls are core functionality abstracted inside the processor.
     Actions are assigned operation codes and invoked via \texttt{syscall <opcode>}.
@@ -424,13 +424,20 @@
         read\_char & 9 & \textit{None} & Read an ASCII character. & \texttt{\$ret} = character \\
         \hline
         read\_string & 10 & \makecell[l]{\texttt{\$r1} = string address\\%
-        \texttt{\$r2} = max length} & \makecell[l]{Read a null-terminated string into given address.\\%
-        String is truncated to maximum length.} & \textit{None} \\
+        \texttt{\$r2} = max length} & \makecell[l]{Read a null-terminated string into \texttt{\$r1}.\\%
+        String is truncated to maximum length, \texttt{\$r2}.} & \textit{None} \\
         \hline \hline
         \multicolumn{5}{|c|}{\textbf{Program Flow}} \\
         \hline
         exit & 11 & \textit{None} & \makecell[l]{Exit program.\\%
-        \textbf{Note} process exit code is located in \$ret.} & \textit{None} \\
+        \textbf{Note} process exit code is located in \texttt{\$ret}.} & \textit{None} \\
+        \hline \hline
+        \multicolumn{5}{|c|}{\textbf{Other}} \\
+        \hline
+        mem\_copy & 12 & \makecell[l]{\texttt{\$r1} = source address\\%
+        \texttt{\$r2} = destination address\\%
+        \texttt{\$r3} = length in bytes} & \makecell[l]{Copy \(n\) bytes from one region to another.\\%
+        Take care if the memory regions overlap.} & \textit{None} \\
         \hline \hline
         \multicolumn{5}{|c|}{\textbf{Debug}} \\
         \hline
@@ -477,7 +484,7 @@ $ ./processor <source_file> [flags]
     \subsection{Binary Layout}
 
     A binary consists of a header, followed by program bytes.
-    The header is used to configure the processor; the program is loaded directly into memory at \texttt{0x00}.
+    The program bytes are loaded into memory at address \texttt{0x00}.
     \begin{enumerate}
         \item Program entry point (i.e., initial \$pc).
         \item Address of interrupt handler.

@@ -56,6 +56,11 @@ void processor::Core::mem_store(uint64_t addr, uint8_t size, uint64_t data) {
   m_bus.store(addr, size, data);
 }
 
+void processor::Core::mem_copy(uint64_t source_addr, uint64_t dest_addr, uint32_t length) {
+  char *mem_addr = (char *) m_bus.mem.data();
+  memcpy(mem_addr + dest_addr, mem_addr + source_addr, length);
+}
+
 void processor::Core::read(std::fstream &stream, size_t bytes) {
   stream.read((char *) m_bus.mem.data(), bytes);
 }

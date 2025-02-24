@@ -104,6 +104,7 @@ namespace constants {
         read_char,
         read_string,
         exit,
+        copy_mem,
         print_regs = 100,
         print_mem,
         print_stack

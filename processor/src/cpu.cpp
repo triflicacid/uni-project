@@ -531,6 +531,14 @@ void processor::CPU::exec_syscall(uint64_t inst) {
       if (debug::cpu) *ds << "exit)";
       halt();
       break;
+    case syscall::copy_mem: {
+      if (debug::cpu) *ds << "copy_mem)";
+      uint64_t src = reg(registers::r1),
+        dst = reg(static_cast<registers::reg>(registers::r1 + 1)),
+        length = reg(static_cast<registers::reg>(registers::r1 + 2));
+      mem_copy(src, dst, length);
+      break;
+    }
     case syscall::print_regs:
       if (debug::cpu) *ds << "print_regs)";
       print_registers();

@@ -62,6 +62,9 @@ namespace processor {
 
     void mem_store(uint64_t addr, uint8_t size, uint64_t data);
 
+    // copy n bytes from source to destination regions
+    void mem_copy(uint64_t source_addr, uint64_t dest_addr, uint32_t length);
+
     // read a string of size `length` from the input stream and write into memory at `addr`
     void read_string(uint64_t addr, uint32_t length);
 
