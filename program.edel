@@ -1,4 +1,5 @@
 // pass
 let a: [int; 3];
 let p = &a;
-let b = *p;
+
+*p[0] = 0;

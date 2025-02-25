@@ -144,6 +144,22 @@ let f: (int) -> int = abs;
 let result = f(-25);
 \end{lstlisting}
 
+\subsection{Array Types}\label{subsec:array-types}
+
+An array is a collection of \(n\) instances of a single type located contiguously in memory.
+Array types are enclosed in square brackets, containing the type, a semi-colon, then the array's size.
+
+\begin{lstlisting}[language=CustomLang]
+let a: [int; 5];
+\end{lstlisting}
+
+In the above snippet, a region of \(5 \times 4 = 20\) bytes will be reserved.
+
+Items in an array may be accessed using the subscript operator, `\texttt{[]}'.
+The dereference operator, `\texttt{*}', may be used to get the first element in an array.
+
+Arrays may be nested by placing another array type in the square brackets of an array type.
+
 \subsection{Casting}\label{subsec:type-casting}
 
 Casting refers to the changing of a type, and can be split into two categories: implicit, and explicit.

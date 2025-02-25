@@ -49,6 +49,35 @@ namespace maths {}
 maths + 1; // error: expected rvalue, got namespace
 \end{lstlisting}
 
+\subsubsection{Values are Copied}
+
+An important thing to note is that, when values are passed around, such as function arguments and during assignment, they are \textbf{copied}.
+Therefore, care should be taken to avoid accidental copying when it is neither desired nor required.
+
+For example, note the following where the original array is not mutated as the argument is copied.
+
+\begin{lstlisting}[language=CustomLang]
+func useless(arr: [int; 5]) {
+    arr[0] = 1;
+}
+
+let a: [int; 5]; // a[0] = 0
+useless(a);
+// a[0] = 0 still
+\end{lstlisting}
+
+If this mutation behaviour was desired, pointers should be used.
+
+\begin{lstlisting}[language=CustomLang]
+func useful(arr: *[int; 5]) {
+    (*arr)[0] = 1;
+}
+
+let a: [int; 5]; // a[0] = 0
+useful(a);
+// a[0] = 1
+\end{lstlisting}
+
 \subsection{Code Blocks}\label{subsec:code-blocks}
 
 As a whitespace-ignorant language, Edel uses blocks to denote structure and scope.
