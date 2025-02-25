@@ -132,8 +132,6 @@ namespace lang::ast {
   // represents &expr
   // returns/computes the address of the given lvalue
   class AddressOfOperatorNode : public OperatorNode {
-    optional_ref<const symbol::Symbol> symbol_;
-
   public:
     AddressOfOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
 

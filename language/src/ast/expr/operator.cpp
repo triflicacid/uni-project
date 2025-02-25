@@ -528,60 +528,70 @@ bool lang::ast::AddressOfOperatorNode::process(lang::Context& ctx) {
   const value::Value& value = arg.value();
   if (!arg.resolve(ctx)) return false;
 
-  // expect a symbol
-  if (!value.is_lvalue() || !value.lvalue().get_symbol()) {
-    auto msg = arg.generate_message(message::Error);
-    msg->get() << "expected symbol, got ";
-    value.type().print_code(msg->get());
-    ctx.messages.add(std::move(msg));
-
-    msg = op_symbol_.generate_message(message::Note);
-    msg->get() << "while evaluating " << node_name();
-    ctx.messages.add(std::move(msg));
-    return false;
+  // if lvalue/reference-like
+  if ((value.is_lvalue() && value.lvalue().get_ref()) || value.type().reference_as_ptr()) {
+    // set our type to the wrapped input type
+    auto& ptr_type = type::PointerNode::get(value.type());
+    value_ = value::value(ptr_type);
+    return true;
   }
 
-  // get the symbol
-  const symbol::Symbol& symbol = arg.value().lvalue().get_symbol()->get();
-  symbol_ = symbol;
+  // error otherwise
+  auto msg = arg.generate_message(message::Error);
+  msg->get() << "expected lvalue, got ";
+  value.type().print_code(msg->get());
+  ctx.messages.add(std::move(msg));
 
-  // set our type to the wrapped input type
-  auto& ptr_type = type::PointerNode::get(symbol.type());
-  value_ = value::value(ptr_type);
-  return true;
+  msg = op_symbol_.generate_message(message::Note);
+  msg->get() << "while evaluating " << node_name();
+  ctx.messages.add(std::move(msg));
+  return false;
 }
 
 bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) {
-  assert(symbol_.has_value());
-
   // generate symbol's code
   if (!arg(0).generate_code(ctx)) return false;
 
-  // get our symbol
-  const symbol::Symbol& symbol = symbol_->get();
+  // get the argument's value
+  auto& value = arg(0).value();
 
-  // attempt to get the address of
-  bool success = ops::address_of(ctx, symbol, *value_);
+  // if we are a symbol...
+  if (value.is_lvalue() && value.lvalue().get_symbol()) {
+    // get our symbol
+    const symbol::Symbol& symbol = value.lvalue().get_symbol()->get();
 
-  // if error, this means no location
-  if (!success) {
-    auto msg = args_.front()->generate_message(message::Error);
-    msg->get() << "symbol of type ";
-    symbol.type().print_code(msg->get());
-    msg->get() << " does not have an address";
-    ctx.messages.add(std::move(msg));
+    // attempt to get the address of
+    bool success = ops::address_of(ctx, symbol, *value_);
 
-    msg = symbol.token().generate_message(message::Note);
-    msg->get() << "symbol defined here";
-    ctx.messages.add(std::move(msg));
-    return false;
+    // if error, this means no location
+    if (!success) {
+      auto msg = args_.front()->generate_message(message::Error);
+      msg->get() << "symbol of type ";
+      symbol.type().print_code(msg->get());
+      msg->get() << " does not have an address";
+      ctx.messages.add(std::move(msg));
+
+      msg = symbol.token().generate_message(message::Note);
+      msg->get() << "symbol defined here";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
+    // add comment
+    auto& comment = ctx.program.current().back().comment();
+    comment << op_symbol_.image << symbol.full_name() << ": ";
+    value_->type().print_code(comment);
   }
 
-  // add comment
-  auto& ptr_type = value_->type();
-  auto& comment = ctx.program.current().back().comment();
-  comment << op_symbol_.image << symbol.full_name() << ": ";
-  ptr_type.print_code(comment);
+  // otherwise, we will use a reference
+  const memory::Ref& ref = value.type().reference_as_ptr()
+      ? value.rvalue().ref()
+      : value.lvalue().get_ref()->get();
+
+  // update value_ & object
+  memory::Object& object = ctx.reg_alloc_manager.find(ref);
+  object.value = value::rvalue(value_->type(), ref);
+  value_->rvalue(ref);
 
   return true;
 }

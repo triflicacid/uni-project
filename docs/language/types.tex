@@ -158,7 +158,21 @@ In the above snippet, a region of \(5 \times 4 = 20\) bytes will be reserved.
 Items in an array may be accessed using the subscript operator, `\texttt{[]}'.
 The dereference operator, `\texttt{*}', may be used to get the first element in an array.
 
+\subsubsection{Nested Arrays}
+
 Arrays may be nested by placing another array type in the square brackets of an array type.
+
+\begin{lstlisting}[language=CustomLang]
+let a: [[int; 2]; 5];
+\end{lstlisting}
+
+Due to copy semantics, be aware of the following:
+
+\begin{lstlisting}[language=CustomLang]
+let b = a[1]; // b: [int; 2]
+\end{lstlisting}
+
+The array \texttt{a[1]} is copied into \texttt{b}, as opposed to \texttt{b} holding a reference to it.
 
 \subsection{Casting}\label{subsec:type-casting}
 
