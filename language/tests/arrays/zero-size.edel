@@ -1,0 +1,2 @@
+// fail - expected non-zero size
+let array: [int; 0];

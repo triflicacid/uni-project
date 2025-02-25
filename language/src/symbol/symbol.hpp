@@ -8,7 +8,8 @@ namespace lang::symbol {
 
   // represent the category of a symbol
   enum class Category {
-    Ordinary, // ordinary symbol, stack-based, offset determined by StackManager
+    StackBased, // ordinary symbol, stack-based, offset determined by StackManager
+    Global, // global symbol
     Argument, // argument, point to index
     Function, // globally-placed function (block-bound)
     Namespace,

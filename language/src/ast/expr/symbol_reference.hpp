@@ -21,6 +21,6 @@ namespace lang::ast {
 
     bool resolve(Context & ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 }

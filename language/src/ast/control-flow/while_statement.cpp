@@ -78,7 +78,7 @@ bool lang::ast::WhileStatementNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::WhileStatementNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::WhileStatementNode::generate_code(lang::Context& ctx) {
   // create the loop's blocks
   auto guard_block = assembly::BasicBlock::labelled(guard_label());
   auto& guard_ref = *guard_block;

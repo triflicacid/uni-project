@@ -3,6 +3,8 @@
 #include "context.hpp"
 #include "value/symbol.hpp"
 #include "message_helper.hpp"
+#include "operators/builtins.hpp"
+#include "ast/types/array.hpp"
 
 std::ostream &lang::ast::SymbolReferenceNode::print_code(std::ostream &os, unsigned int indent_level) const {
   return os << symbol_;
@@ -38,7 +40,7 @@ bool lang::ast::SymbolReferenceNode::resolve(Context& ctx) {
   return true;
 }
 
-bool lang::ast::SymbolReferenceNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::SymbolReferenceNode::generate_code(lang::Context& ctx) {
   // get attached symbol
   assert(value_->is_lvalue());
   const value::Symbol* symbol = value().lvalue().get_symbol();
@@ -47,9 +49,22 @@ bool lang::ast::SymbolReferenceNode::generate_code(lang::Context& ctx) const {
   // ensure the symbol is defined
   if (!symbol->get().define(ctx)) return false;
 
+  // get the symbol's type
+  auto& type = symbol->type();
+
+  // special case: if symbol is an array (non-zero), don't load its value, but its address
+//  if (auto array_type = type.get_array()) {
+//    if (array_type->size() > 0) {
+//      // implicitly get the address of
+//      bool success = ops::address_of(ctx, symbol->get(), *value_);
+//      assert(success); // should always be able to get the address of
+//      return true;
+//    }
+//  }
+
   // load into registers
-  if (symbol->type().size() == 0) return true;
+  if (type.size() == 0) return true;
   const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(symbol->get());
-  value_->rvalue(std::make_unique<value::RValue>(symbol->type(), ref));
+  value_->rvalue(std::make_unique<value::RValue>(type, ref));
   return true;
 }

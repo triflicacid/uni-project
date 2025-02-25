@@ -9,6 +9,9 @@
 #include "message_helper.hpp"
 #include "optional_ref.hpp"
 #include "ast/types/namespace.hpp"
+#include "ast/types/array.hpp"
+#include "ast/types/pointer.hpp"
+#include "operators/builtins.hpp"
 
 std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
@@ -27,7 +30,8 @@ const lang::ast::type::Node& lang::ast::SymbolDeclarationNode::type() const {
 }
 
 std::ostream &lang::ast::SymbolDeclarationNode::print_code(std::ostream &os, unsigned int indent_level) const {
-  os << "let " << name_.image << ": ";
+  os << "let " << name_.image;
+  os << ": ";
   if (type_.has_value()) {
     type_.value().get().print_code(os);
   } else {
@@ -53,7 +57,7 @@ std::ostream &lang::ast::SymbolDeclarationNode::print_tree(std::ostream &os, uns
   os << SHELL_RESET;
 
   if (assignment_.has_value()) {
-    os << std::endl << "CHILD";
+    os << std::endl;
     assignment_.value()->print_tree(os, indent_level + 1);
   }
 
@@ -127,7 +131,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
   // check if name already exists, and if it can be shadowed
   auto& others = ctx.symbols.find(name_.image);
-  bool are_shadowing = false;
   for (const symbol::Symbol& other : others) {
     // if other is a namespace, error
     if (other.type() == type::name_space) {
@@ -156,16 +159,29 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
       return false;
     }
 
-    // otherwise, we are shadowing it
-    are_shadowing = true;
     break;
   }
+
+  // note, if array with size 0, actually allocate a pointer
+  // this is so some space is allocated
+  auto alloc_type = *type_;
+  if (auto array_type = alloc_type.get().get_array()) {
+    if (array_type->size() == 0) {
+      alloc_type = array_type->decay_into_pointer();
+    }
+  }
+
+  // select appropriate symbol category
+  symbol::Category symbol_category;
+  if (category_ == Argument) symbol_category = symbol::Category::Argument;
+  else if (ctx.symbols.in_global_scope()) symbol_category = symbol::Category::Global;
+  else symbol_category = symbol::Category::StackBased;
 
   // define symbol
   auto symbol = std::make_unique<symbol::Symbol>(
       name_,
-      category_ == Argument ? symbol::Category::Argument : symbol::Category::Ordinary,
-      *type_
+      symbol_category,
+      alloc_type
     );
   id_ = symbol->id();
   if (category_ == Constant) symbol->make_constant();
@@ -174,7 +190,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
   // allocate this symbol
   ctx.symbols.allocate(id_);
 
@@ -200,8 +216,19 @@ bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) const {
   // coerce into correct type (this is safe as subtyping checked)
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(value.rvalue().ref(), type_.value());
 
-  // load expr value into symbol
-  ctx.symbols.assign_symbol(id_, expr.offset);
+  // if reference_as_ptr, copy them across
+  if (type_->get().reference_as_ptr()) {
+    assert(value.type().reference_as_ptr()); // both should be ptr-like, should be handled by subtyping to ensure this
+    assert(type_->get().size() == value.type().size());
+
+    // copy memory between the two
+    auto symbol = value::value();
+    symbol->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
+    ops::mem_copy(ctx, expr, *symbol, nullptr);
+  } else {
+    // load expr value into symbol
+    ctx.symbols.assign_symbol(id_, expr.offset);
+  }
 
   // update register to contain this symbol to avoid double-loading
   auto obj_value = value::value(type_);

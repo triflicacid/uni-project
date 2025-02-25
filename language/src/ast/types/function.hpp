@@ -35,6 +35,9 @@ namespace lang::ast::type {
 
     constants::inst::datatype::dt get_asm_datatype() const override;
 
+    // this is false, except at the global level (label), but we treat that elsewhere as an edge case
+    bool reference_as_ptr() const override { return false; }
+
     std::string to_label() const override;
 
     // 'create' a new function type -- if exists, return reference, otherwise create new type and return

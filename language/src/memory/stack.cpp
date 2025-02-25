@@ -39,15 +39,6 @@ void lang::memory::StackManager::pop_frame(bool generate_code) {
       assembly::Arg::reg(constants::registers::fp)
   ));
   program_.current().back().comment() << "restore frame";
-  // set $fp to old offset if necessary
-  if (offset_ > 0) {
-    program_.current().add(assembly::create_add(
-        constants::inst::datatype::u64,
-        constants::registers::fp,
-        constants::registers::fp,
-        assembly::Arg::imm(offset_)
-    ));
-  }
 }
 
 uint64_t lang::memory::StackManager::peek_frame(unsigned int n) const {

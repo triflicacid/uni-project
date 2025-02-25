@@ -113,7 +113,7 @@ bool lang::ast::BlockNode::resolve(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::BlockNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::BlockNode::generate_code(lang::Context& ctx) {
   // generate code of our children
   for (int i = 0; i < lines_.size(); i++) {
     Node& line = *lines_[i];

@@ -5,6 +5,7 @@
 #include "shell.hpp"
 #include "context.hpp"
 #include "uint64.hpp"
+#include "message_helper.hpp"
 
 const lang::memory::Literal& lang::ast::LiteralNode::get() const {
   assert(lit_.has_value());
@@ -82,10 +83,7 @@ bool lang::ast::LiteralNode::process(lang::Context& ctx) {
 
       // check if there was an error
       if (is_error) {
-        auto msg = generate_message(message::Error);
-        msg->get() << "literal '" << image << "' is unable to be stored in type ";
-        target.print_code(msg->get());
-        ctx.messages.add(std::move(msg));
+        ctx.messages.add(util::error_literal_bad_type(*this, image, target));
         return false;
       }
 
@@ -98,7 +96,7 @@ bool lang::ast::LiteralNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::LiteralNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::LiteralNode::generate_code(lang::Context& ctx) {
   const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(get());
   value_->rvalue(std::make_unique<value::Literal>(get(), ref));
   return true;

@@ -65,41 +65,44 @@ void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol) {
 
 void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
   assert(symbols_.contains(id));
-  assert(!storage_.contains(id));
-  // do not allocate twice!
+  assert(!storage_.contains(id)); // do not allocate twice!
 
+  // get the symbol
   const symbol::Symbol& symbol = *symbols_.at(id);
+
+  // if size==0, do nothing
+  if (symbol.type().size() == 0) return;
+
   switch (symbol.category()) {
-    case symbol::Category::Ordinary: // if size=0, immaterial
-      if (size_t size = symbol.type().size()) {
-        // are we global or no?
-        if (in_global_scope()) {
-          // create block for the variable to reside in
-          auto block = assembly::BasicBlock::labelled("globl_" + std::to_string(id));
-          block->comment() << "alloc " << symbol.full_name() << ": ";
-          symbol.type().print_code(block->comment());
+    case Category::Global: { // if size=0, immaterial
+      // create block for the variable to reside in
+      auto block = assembly::BasicBlock::labelled("globl_" + std::to_string(id));
+      block->comment() << "alloc " << symbol.full_name() << ": ";
+      symbol.type().print_code(block->comment());
 
-          // reserve space inside the block
-          // TODO directly load data if possible
-          block->add(assembly::Directive::space(symbol.type().size()));
+      // reserve space inside the block
+      // TODO directly load data if possible
+      block->add(assembly::Directive::space(symbol.type().size()));
 
-          // register stored location
-          storage_.insert({id, memory::StorageLocation::global(*block)});
+      // register stored location
+      storage_.insert({id, memory::StorageLocation::global(*block)});
 
-          // insert block into the program
-          const auto& cursor = stack_.program().current();
-          stack_.program().insert(assembly::Position::End, std::move(block));
-          stack_.program().select(cursor);
-        } else {
-          // add symbol to stack iff size>0
-          stack_.push(size);
-          storage_.insert({id, memory::StorageLocation::stack(stack_.offset())});
-          auto& comment = stack_.program().current().back().comment();
-          comment << "alloc " << symbol.full_name() << ": ";
-          symbol.type().print_code(comment);
-        }
-      }
+      // insert block into the program
+      const auto& cursor = stack_.program().current();
+      stack_.program().insert(assembly::Position::End, std::move(block));
+      stack_.program().select(cursor);
+
       break;
+    }
+    case symbol::Category::StackBased: {
+      // add symbol to stack, adjust fp
+      stack_.push(symbol.type().size());
+      storage_.insert({id, memory::StorageLocation::stack(stack_.offset())});
+      auto& comment = stack_.program().current().back().comment();
+      comment << "alloc " << symbol.full_name() << ": ";
+      symbol.type().print_code(comment);
+      break;
+    }
     case symbol::Category::Argument: { // point to location in stack
       throw std::runtime_error("allocate: cannot allocate an argument");
     }

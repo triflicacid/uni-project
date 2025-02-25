@@ -35,6 +35,8 @@ int parse_arguments(int argc, char** argv, Options& options) {
         lang::conf::indent_asm_code = true;
       } else if (!strcmp(argv[i], "--no-indentation")) { // conf::indent_asm_code = false
         lang::conf::indent_asm_code = false;
+      } else if (!strcmp(argv[i], "--always-define-symbols")) { // conf::always_define_symbols = true
+        lang::conf::always_define_symbols = true;
       } else if (!strcmp(argv[i], "--lint")) { // enable linting
         lang::conf::lint = true;
       } else if (!strcmp(argv[i], "--no-lint")) { // disable linting

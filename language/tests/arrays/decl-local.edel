@@ -1,0 +1,4 @@
+// pass
+func p {
+    let a: [int; 4];
+}

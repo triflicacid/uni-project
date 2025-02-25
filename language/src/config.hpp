@@ -14,6 +14,9 @@ namespace lang::conf {
   // function declaration behaviour - enforce existence or define as empty (placeholder)
   extern bool function_placeholder;
 
+  // should symbols always be defined, no matter if unused
+  extern bool always_define_symbols;
+
   // indent code inside basic blocks?
   extern bool indent_asm_code;
 

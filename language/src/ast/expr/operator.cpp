@@ -142,7 +142,7 @@ std::string lang::ast::OverloadableOperatorNode::to_string() const {
   return s.str();
 }
 
-bool lang::ast::OverloadableOperatorNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::OverloadableOperatorNode::generate_code(lang::Context& ctx) {
   if (special_pointer_op_) {
     // generate code for arguments and check if rvalues
     for (int i = 0; i < 2; i++) {
@@ -150,7 +150,7 @@ bool lang::ast::OverloadableOperatorNode::generate_code(lang::Context& ctx) cons
     }
 
     // generate code for pointer arithmetic operation
-    memory::Ref result = ops::pointer_arithmetic(ctx, arg(0).value(), arg(1).value(), op_symbol_.image == "-");
+    memory::Ref result = ops::pointer_arithmetic(ctx, arg(0).value(), arg(1).value(), op_symbol_.image == "-", true);
 
     // update value_
     value_->rvalue(result);
@@ -226,7 +226,7 @@ bool lang::ast::CStyleCastOperatorNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::CStyleCastOperatorNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::CStyleCastOperatorNode::generate_code(lang::Context& ctx) {
   // argument must be an rvalue
   if (!arg(0).resolve(ctx) || !expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
@@ -252,31 +252,37 @@ bool lang::ast::DotOperatorNode::process(lang::Context& ctx) {
   // process children, resolve LHS
   if (!OperatorNode::process(ctx) || !arg(0).resolve(ctx)) return false;
 
-  // if LHS is a namespace, we are symbol resolution
-  auto &lhs_value = arg(0).value();
-  if (lhs_value.type() == type::name_space) {
-    auto &rhs_value = arg(1).value();
-
-    // RHS must also be a symbol
-    if (auto symbol_ref = rhs_value.get_symbol_ref()) {
-      // form combined attribute name
-      const std::string new_name = lhs_value.lvalue().get_symbol()->get().full_name() + "." + symbol_ref->get();
-      value_ = value::symbol_ref(new_name, ctx.symbols);
-      return true;
-    }
-
-    // otherwise, error
+  // expect RHS to be a symbol
+  auto &rhs_value = arg(1).value();
+  if (!rhs_value.get_symbol_ref()) {
     auto msg = op_symbol_.generate_message(message::Error);
-    msg->get() << "expected symbol on member access of namespace, got value ";
+    msg->get() << "expected symbol on RHS of member access, got ";
     rhs_value.type().print_code(msg->get());
     ctx.messages.add(std::move(msg));
     return false;
   }
+  property_ = rhs_value.get_symbol_ref()->get();
+
+  // if LHS is a namespace, we are symbol resolution
+  auto &lhs_value = arg(0).value();
+  if (lhs_value.type() == type::name_space) {
+    // form combined attribute name
+    const std::string new_name = lhs_value.lvalue().get_symbol()->get().full_name() + "." + property_;
+    value_ = value::symbol_ref(new_name, ctx.symbols);
+    return true;
+  }
+
+  // otherwise, check if the type has the given property
+  if (auto prop_type = lhs_value.type().get_property_type(property_)) {
+    value_ = value::value(prop_type);
+    return true;
+  }
 
   // otherwise, error
   auto msg = op_symbol_.generate_message(message::Error);
-  msg->get() << "cannot access member of type ";
+  msg->get() << "type ";
   lhs_value.type().print_code(msg->get());
+  msg->get() << " has no property '" << property_ << "'";
   ctx.messages.add(std::move(msg));
 
   msg = arg(0).generate_message(message::Note);
@@ -297,20 +303,38 @@ bool lang::ast::DotOperatorNode::resolve(Context& ctx) {
   return true;
 }
 
-bool lang::ast::DotOperatorNode::generate_code(lang::Context& ctx) const {
-  // get attached symbol (we have been resolved by this point)
-  const value::Symbol* symbol = value().lvalue().get_symbol();
-  assert(symbol != nullptr);
+bool lang::ast::DotOperatorNode::generate_code(lang::Context& ctx) {
+  // if value_ was a symbol reference, we have been resolved to a symbol
+  if (value_->get_symbol_ref()) {
+    // get attached symbol (we have been resolved by this point)
+    const value::Symbol* symbol = value().lvalue().get_symbol();
+    assert(symbol != nullptr);
 
-  // if size is 0, do nothing
-  if (symbol->type().size() == 0) return true;
+    // if size is 0, do nothing
+    if (symbol->type().size() == 0) return true;
 
-  // ensure the symbol is defined
-  if (!symbol->get().define(ctx)) return false;
+    // ensure the symbol is defined
+    if (!symbol->get().define(ctx)) return false;
 
-  // load into registers
-  const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(symbol->get());
-  value_->rvalue(std::make_unique<value::RValue>(symbol->type(), ref));
+    // load into registers
+    const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(symbol->get());
+    value_->rvalue(std::make_unique<value::RValue>(symbol->type(), ref));
+    return true;
+  }
+
+  // otherwise, get the property
+  assert(!property_.empty());
+  if (!arg(0).value().type().get_property(ctx, *value_, property_)) {
+    return false;
+  }
+
+  // add comment
+  auto& comment = ctx.program.current().back().comment();
+  const auto copy = comment.str();
+  comment.str("");
+  comment << "." << property_;
+  if (!copy.empty()) comment << " = " << copy;
+
   return true;
 }
 
@@ -371,14 +395,14 @@ bool lang::ast::AssignmentOperatorNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) const {
-  // generate LHS, assert it is an lvalue
-  if (!arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, true)) return false;
-  const auto& lhs_value = arg(0).value();
-
+bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) {
   // generate RHS, assert it is an rvalue
   if (!arg(1).generate_code(ctx) || !expect_arg_lrvalue(1, ctx.messages, false)) return false;
   const auto& rhs_value = arg(1).value();
+
+  // generate LHS, assert it is an lvalue
+  if (!arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, true)) return false;
+  const auto& lhs_value = arg(0).value();
 
   // update value_ to point to LHS
   value_->lvalue(lhs_value.lvalue().copy());
@@ -389,6 +413,16 @@ bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) const 
   // coerce into correct type (this is safe as subtyping checked) and update our value
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(rhs_value.rvalue().ref(), lhs_value.type());
   value_->rvalue(expr);
+
+  // if reference_as_ptr, copy them across
+  if (rhs_value.type().reference_as_ptr()) {
+    assert(lhs_value.type().reference_as_ptr()); // both should be ptr-like, should be handled by subtyping to ensure this
+    assert(lhs_value.type().size() == rhs_value.type().size());
+
+    // copy memory between the two
+    ops::mem_copy(ctx, expr, lhs_value, nullptr);
+    return true;
+  }
 
   // if symbol, assign symbol to register
   if (auto symbol = lhs_value.lvalue().get_symbol()) {
@@ -449,9 +483,9 @@ bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::CastOperatorNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::CastOperatorNode::generate_code(lang::Context& ctx) {
   // generate argument code & assure rvalue
-  if (!arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, false)) return false;
+  if (!arg(0).resolve(ctx) || !arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
   // get argument's original value
   auto& value = arg(0).value();
@@ -462,7 +496,7 @@ bool lang::ast::CastOperatorNode::generate_code(lang::Context& ctx) const {
   // - pointers to non-pointers
   if (!sudo_) {
     if ((target_.get_func() && !(type.get_pointer() || (type.get_func() && target_ == type)))
-        || (target_.get_pointer() && !type.get_pointer())) {
+        || (target_.get_pointer() && !type.get_pointer() && !type.get_array())) {
       ctx.messages.add(util::error_type_mismatch(*this, type, target_, false));
       return false;
     }
@@ -517,17 +551,20 @@ bool lang::ast::AddressOfOperatorNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) {
   assert(symbol_.has_value());
 
   // generate symbol's code
   if (!arg(0).generate_code(ctx)) return false;
 
-  // get location of the symbol (must have size then)
+  // get our symbol
   const symbol::Symbol& symbol = symbol_->get();
-  auto maybe_location = ctx.symbols.locate(symbol.id());
 
-  if (!maybe_location) {
+  // attempt to get the address of
+  bool success = ops::address_of(ctx, symbol, *value_);
+
+  // if error, this means no location
+  if (!success) {
     auto msg = args_.front()->generate_message(message::Error);
     msg->get() << "symbol of type ";
     symbol.type().print_code(msg->get());
@@ -540,53 +577,12 @@ bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) const {
     return false;
   }
 
-  // find destination register
-  memory::Ref ref = ctx.reg_alloc_manager.insert({nullptr});
-  ref = ctx.reg_alloc_manager.guarantee_register(ref);
-
-  // get address and store in register
-  const memory::StorageLocation& location = maybe_location->get();
-
-  if (location.type == memory::StorageLocation::Stack) { // calculate offset from $sp
-    const uint64_t stack_offset = ctx.stack_manager.offset();
-
-    if (location.offset == stack_offset) {
-      ctx.program.current().add(assembly::create_load(
-          ref.offset,
-          assembly::Arg::reg(constants::registers::sp)
-      ));
-    } else if (location.offset < stack_offset) {
-      ctx.program.current().add(assembly::create_sub(
-          constants::inst::datatype::u64,
-          ref.offset,
-          constants::registers::sp,
-          assembly::Arg::imm(stack_offset - location.offset)
-      ));
-    } else {
-      ctx.program.current().add(assembly::create_add(
-          constants::inst::datatype::u64,
-          ref.offset,
-          constants::registers::sp,
-          assembly::Arg::imm(location.offset - location.offset)
-      ));
-    }
-  } else {
-    ctx.program.current().add(assembly::create_load(
-        ref.offset,
-        assembly::Arg::label(location.block)
-    ));
-  }
-
   // add comment
   auto& ptr_type = value_->type();
   auto& comment = ctx.program.current().back().comment();
   comment << op_symbol_.image << symbol.full_name() << ": ";
   ptr_type.print_code(comment);
 
-  // update value_ & object
-  memory::Object& object = ctx.reg_alloc_manager.find(ref);
-  object.value = value::rvalue(ptr_type, ref);
-  value_->rvalue(ref);
   return true;
 }
 
@@ -601,25 +597,26 @@ bool lang::ast::DereferenceOperatorNode::process(lang::Context& ctx) {
 
   // must have a pointer type
   Node& arg = *args_.front();
-  const auto ptr_type = arg.value().type().get_pointer();
-  if (!ptr_type) {
-    auto msg = arg.generate_message(message::Error);
-    msg->get() << "expected pointer type, got ";
-    arg.value().type().print_code(msg->get());
-    ctx.messages.add(std::move(msg));
 
-    msg = op_symbol_.generate_message(message::Note);
-    msg->get() << "cannot dereference a non-pointer value";
-    ctx.messages.add(std::move(msg));
-    return false;
+  // expect array or pointer type
+  const auto wrapper_type = arg.value().type().get_wrapper();
+  if (wrapper_type && (wrapper_type->get_pointer() || wrapper_type->get_array())) {
+    value_ = value::value(wrapper_type->unwrap());
+    return true;
   }
 
-  // get the inner type (pointer minus star)
-  value_ = value::value(ptr_type->unwrap());
-  return true;
+  auto msg = arg.generate_message(message::Error);
+  msg->get() << "expected pointer or array type, got ";
+  arg.value().type().print_code(msg->get());
+  ctx.messages.add(std::move(msg));
+
+  msg = op_symbol_.generate_message(message::Note);
+  msg->get() << "cannot dereference a non-pointer value";
+  ctx.messages.add(std::move(msg));
+  return false;
 }
 
-bool lang::ast::DereferenceOperatorNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::DereferenceOperatorNode::generate_code(lang::Context& ctx) {
   // generate argument, expect rvalue
   if (!arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
@@ -697,8 +694,7 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
         ctx.messages.add(std::move(msg));
 
         msg = symbol.token().generate_message(message::Note);
-        msg->get() << "function ";
-        func_type->print_code(msg->get()) << " defined here";
+        msg->get() << "function '" << symbol.full_name() << "' defined here";
         ctx.messages.add(std::move(msg));
 
         return false;
@@ -833,7 +829,7 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
   std::unique_ptr<assembly::BaseArg> arg;
 
   if (symbol_.has_value()) {
@@ -884,7 +880,7 @@ bool lang::ast::SizeOfOperatorNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::SizeOfOperatorNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::SizeOfOperatorNode::generate_code(lang::Context& ctx) {
   optional_ref<const type::Node> type;
 
   // if a type is supplied, cool
@@ -931,20 +927,21 @@ bool lang::ast::SubscriptOperatorNode::process(lang::Context& ctx) {
   auto& lhs = arg(0);
   if (!lhs.process(ctx) || !lhs.resolve(ctx)) return false;
 
-  // check if pointer
+  // check if pointer/array
   // if so, we can provide a type hint to the rhs
   auto& rhs = arg(1);
-  const auto lhs_pointer = lhs.value().type().get_pointer();
-  if (lhs_pointer) {
+  const auto lhs_wrapper = lhs.value().type().get_wrapper();
+  const bool is_ptr_or_arr = lhs_wrapper->get_pointer() || lhs_wrapper->get_array();
+  if (is_ptr_or_arr) {
     rhs.type_hint(type::uint64);
   }
 
   // process RHS finally
   if (!rhs.process(ctx) || !rhs.resolve(ctx)) return false;
 
-  // if pointer, this is a built-in
-  if (lhs_pointer && rhs.value().type().get_int()) {
-    value_ = value::value(lhs_pointer->unwrap());
+  // if pointer/array, this is a built-in
+  if (is_ptr_or_arr && rhs.value().type().get_int()) {
+    value_ = value::value(lhs_wrapper->unwrap());
     return true;
   }
 
@@ -963,23 +960,32 @@ bool lang::ast::SubscriptOperatorNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) const {
-  // check if we have a pointer LHS
-  if (auto& lhs = arg(0).value(); lhs.type().get_pointer()) {
+bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) {
+  // check if we have a pointer/array LHS
+  if (auto& lhs = arg(0).value(); lhs.type().get_pointer() || lhs.type().get_array()) {
     // generate both arguments, check if rvalues
     for (int i = 0; i < 2; i++) {
       if (!arg(i).generate_code(ctx) || !expect_arg_lrvalue(i, ctx.messages, false)) return false;
     }
 
+    int index = ctx.program.current().size();
+
     // perform pointer addition to get the source
-    memory::Ref src = ops::pointer_arithmetic(ctx, lhs, arg(1).value(), false);
+    memory::Ref src = ops::pointer_arithmetic(ctx, lhs, arg(1).value(), false, false);
     src = ctx.reg_alloc_manager.guarantee_register(src);
 
     // update value to point to the original
     value_->lvalue(src);
 
     // dereference the result
-    ops::dereference(ctx, lhs, *value_, true);
+    ops::dereference(ctx, lhs, *value_, false);
+
+    // add comment
+    auto& comment = ctx.program.current()[index].comment();
+    comment << "operator" << op_symbol_.image << "(";
+    arg(0).value().type().print_code(comment) << ", ";
+    arg(1).value().type().print_code(comment) << ")";
+
     return true;
   }
 
@@ -1021,7 +1027,7 @@ bool lang::ast::LazyLogicalOperator::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::LazyLogicalOperator::generate_code(lang::Context& ctx) const {
+bool lang::ast::LazyLogicalOperator::generate_code(lang::Context& ctx) {
   const ops::Operator& op = ops::get(op_symbol_.image).front();
   return op.invoke(ctx, args_, *value_, conditional_context());
 }

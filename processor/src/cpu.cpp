@@ -455,6 +455,9 @@ void processor::CPU::exec_mod(uint64_t inst) {
 void processor::CPU::exec_syscall(uint64_t inst) {
   using namespace constants;
 
+  // register syscall starts reading from
+  static const auto reg_start = registers::syscall_start;
+
   // fetch and resolve value, check if OK
   uint64_t value = get_arg_value(inst, inst::header_size, false);
   if (!is_running()) return;
@@ -467,27 +470,27 @@ void processor::CPU::exec_syscall(uint64_t inst) {
   switch (static_cast<constants::syscall>(value)) {
     case syscall::print_hex:
       if (debug::cpu) *ds << "print_hex)";
-      *os << "0x" << std::hex << reg(registers::r1) << std::dec;
+      *os << "0x" << std::hex << reg(reg_start) << std::dec;
       break;
     case syscall::print_int:
       if (debug::cpu) *ds << "print_int)";
-      *os << reg<int>(registers::r1);
+      *os << reg<int>(reg_start);
       break;
     case syscall::print_float:
       if (debug::cpu) *ds << "print_float)";
-      *os << reg<float>(registers::r1);
+      *os << reg<float>(reg_start);
       break;
     case syscall::print_double:
       if (debug::cpu) *ds << "print_double)";
-      *os << reg<double>(registers::r1);
+      *os << reg<double>(reg_start);
       break;
     case syscall::print_char:
       if (debug::cpu) *ds << "print_char)";
-      *os << reg<char>(registers::r1);
+      *os << reg<char>(reg_start);
       break;
     case syscall::print_string: {
       if (debug::cpu) *ds << "print_string)";
-      uint32_t addr = reg(registers::r1);
+      uint32_t addr = reg(reg_start);
       if (!check_memory(addr)) return raise_error(error::segfault, addr);
       write_string(addr);
       break;
@@ -522,7 +525,7 @@ void processor::CPU::exec_syscall(uint64_t inst) {
     }
     case syscall::read_string: {
       if (debug::cpu) *ds << "read_string)";
-      uint64_t addr = reg(registers::r1), length = reg(static_cast<registers::reg>(registers::r1 + 1));
+      uint64_t addr = reg(reg_start), length = reg(static_cast<registers::reg>(reg_start + 1));
       if (!check_memory(addr)) return raise_error(error::segfault, addr);
       read_string(addr, length);
       break;
@@ -533,9 +536,9 @@ void processor::CPU::exec_syscall(uint64_t inst) {
       break;
     case syscall::copy_mem: {
       if (debug::cpu) *ds << "copy_mem)";
-      uint64_t src = reg(registers::r1),
-        dst = reg(static_cast<registers::reg>(registers::r1 + 1)),
-        length = reg(static_cast<registers::reg>(registers::r1 + 2));
+      uint64_t src = reg(reg_start),
+        dst = reg(static_cast<registers::reg>(reg_start + 1)),
+        length = reg(static_cast<registers::reg>(reg_start + 2));
       mem_copy(src, dst, length);
       break;
     }
@@ -545,7 +548,7 @@ void processor::CPU::exec_syscall(uint64_t inst) {
       break;
     case syscall::print_mem: {
       if (debug::cpu) *ds << "print_mem)";
-      uint64_t addr = reg(registers::r1), size = reg(static_cast<registers::reg>(registers::r1 + 1));
+      uint64_t addr = reg(reg_start), size = reg(static_cast<registers::reg>(reg_start + 1));
       if (!check_memory(addr)) return raise_error(error::segfault, addr);
       if (!check_memory(addr + size - 1)) return raise_error(error::segfault, addr + size - 1);
       print_memory(addr, size);

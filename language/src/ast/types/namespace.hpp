@@ -14,6 +14,8 @@ namespace lang::ast::type {
     std::string to_label() const override { return "ns"; }
 
     constants::inst::datatype::dt get_asm_datatype() const override;
+
+    bool reference_as_ptr() const override { return false; }
   };
 
   extern NamespaceNode name_space;

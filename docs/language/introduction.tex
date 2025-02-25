@@ -25,6 +25,7 @@ $ ./compiler <input_file> [-o <output_file>] [flags]
 
 Where \texttt{[flags]} are as follows:
 \begin{itemize}
+    \item \texttt{--always-define-symbols} - always define symbols even if they are unused (e.g., all functions).
     \item \texttt{--ast} - prints the parsed program's AST.
     \item \texttt{--[no-]function-placeholder} - changes behaviour of a function declaration; see subsection ~\ref{subsec:function-declaration}.
     \item \texttt{--[no-]indentation} - adds/removes indentation from generated assembly.

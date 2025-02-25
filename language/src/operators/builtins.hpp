@@ -25,6 +25,10 @@ namespace lang {
     class Operator;
   }
 
+  namespace symbol {
+    class Symbol;
+  }
+
   namespace value {
     class Value;
   }
@@ -53,11 +57,21 @@ namespace lang::ops {
   int pointer_arithmetic(assembly::BasicBlock& block, uint8_t reg_a, uint8_t reg_b, uint32_t imm_c, bool is_subtraction);
 
   // higher-level ops::pointer_arithmetic using Values
-  // assume first value is a pointer, second is a u64 subtype
+  // assume first value is a pointer or array, second is a u64 subtype
   // return a reference to the result
-  memory::Ref pointer_arithmetic(Context& ctx, const value::Value& pointer, const value::Value& offset, bool is_subtraction);
+  memory::Ref pointer_arithmetic(Context& ctx, const value::Value& pointer, const value::Value& offset, bool is_subtraction, bool add_comment);
 
   // de-reference a pointer value into the second
   // should we add a 'deref ...' comment?
   void dereference(Context& ctx, const value::Value& pointer, value::Value& result, bool add_comment);
+
+  // get the address of the given symbol and place it in the value
+  // returns if success, as this can error (e.g., if the symbol cannot be found)
+  // note that no message is generated on error
+  bool address_of(Context& ctx, const symbol::Symbol& symbol, value::Value& result);
+
+  // mem copy a reference into a value
+  // assume `src` is a register
+  // if provided, use `dest_arg`, otherwise expect `dest` to be an lvalue and copy into there
+  void mem_copy(Context& ctx, const memory::Ref& src, const value::Value& dest, std::unique_ptr<assembly::BaseArg> dest_arg);
 }

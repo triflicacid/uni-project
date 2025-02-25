@@ -69,7 +69,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents `expr as type`
@@ -86,7 +86,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents (type) expr
@@ -102,11 +102,13 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents lhs.rhs
   class DotOperatorNode : public OperatorNode {
+    std::string property_;
+
   public:
     DotOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
@@ -114,7 +116,7 @@ namespace lang::ast {
 
     bool resolve(Context& ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents lhs = rhs
@@ -124,7 +126,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents &expr
@@ -137,7 +139,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents *expr
@@ -148,7 +150,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents expr(<args>)
@@ -171,7 +173,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents sizeof expr
@@ -186,7 +188,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents lhs[rhs]
@@ -201,7 +203,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 
   // represents a binary logical operator || and &&
@@ -213,6 +215,6 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 }

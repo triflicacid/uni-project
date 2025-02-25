@@ -108,7 +108,8 @@ namespace lang::parser {
     std::unique_ptr<ast::Node> parse_expression(ExprExpectSC expect_sc, int precedence = 0);
 
     // parse a `name: type` pair as a symbol declaration
-    std::unique_ptr<ast::SymbolDeclarationNode> parse_name_type_pair();
+    // argument - do we require a type? a type is still parsed if present
+    std::unique_ptr<ast::SymbolDeclarationNode> parse_name_type_pair(bool expect_type);
 
     // parse a `let ...` or `const ...` statement
     // assignments in definitions are allows, in which case a SymbolDeclarationNode will be followed by an ExprNode

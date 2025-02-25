@@ -12,8 +12,10 @@
 #include "operators/info.hpp"
 #include "ast/types/bool.hpp"
 #include "ast/types/pointer.hpp"
+#include "ast/types/array.hpp"
 #include "config.hpp"
 #include "ast/expr/unit.hpp"
+#include "message_helper.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
   for (unsigned int i = 0; i < n; i++) {
@@ -420,7 +422,8 @@ const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
     lexer::convert_set(numerical_types),
     {
       lexer::BasicToken(lexer::TokenType::boolean),
-      lexer::BasicToken(lexer::TokenType::lpar),
+      lexer::BasicToken(lexer::TokenType::lpar), // for unit/function
+      lexer::BasicToken(lexer::TokenType::lsquare), // for array
       star
     }
 });
@@ -495,23 +498,86 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     return &ast::type::FunctionNode::create(arg_types, *return_type);
   }
 
+  if (expect(lexer::TokenType::lsquare)) { // array
+    const lexer::Token lsquare = consume();
+
+    // expect type
+    if (!expect_or_error(firstset::type)) {
+      auto msg = std::make_unique<message::BasicMessage>(message::Note);
+      msg->get() << "while parsing array type: expected inner type";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+    auto type = parse_type();
+    if (is_error() || !type) return nullptr;
+
+    // parse size
+    size_t size = 0;
+    if (!expect_or_error(lexer::TokenType::sc)) {
+      auto msg = std::make_unique<message::BasicMessage>(message::Note);
+      msg->get() << "while parsing array type: expected array size. Did you mean to create a pointer '*";
+      type->print_code(msg->get()) << "'?";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+    consume();
+
+    // int
+    if (!expect_or_error(lexer::TokenType::int_lit)) return nullptr;
+    const lexer::Token size_token = consume();
+
+    // read token as uint64
+    try {
+      size = std::stoull(size_token.image);
+    } catch (std::exception e) {
+      add_message(util::error_literal_bad_type(size_token, size_token.image, ast::type::uint64));
+      return nullptr;
+    }
+
+    // size must be != 0
+    if (size == 0) {
+      auto msg = size_token.generate_message(message::Error);
+      msg->get() << "array size must be non-zero";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+
+    // ']'
+    if (!expect_or_error(lexer::TokenType::rsquare)) {
+      auto msg = lsquare.generate_message(message::Note);
+      msg->get() << "bracket opened here";
+      add_message(std::move(msg));
+      return nullptr;
+    }
+    consume();
+
+    // get (or construct) and return
+    return &ast::type::ArrayNode::get(*type, size);
+  }
+
   return nullptr;
 }
 
-std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_name_type_pair() {
+std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_name_type_pair(bool expect_type) {
   // name
   const lexer::Token name = consume();
 
-  // ':'
-  if (!expect_or_error(lexer::TokenType::colon)) return nullptr;
-  consume();
+  // parse type if ':' or expect_type is true
+  optional_ref<const ast::type::Node> type;
+  if (expect_type || expect(lexer::TokenType::colon)) {
+    // ':'
+    if (!expect_or_error(lexer::TokenType::colon)) return nullptr;
+    consume();
 
-  // type
-  if (!expect_or_error(firstset::type)) return nullptr;
-  const ast::type::Node* type = parse_type();
-  if (is_error() || !type) return nullptr;
+    // type
+    if (!expect_or_error(firstset::type)) return nullptr;
+    const ast::type::Node* type_ptr = parse_type();
+    if (is_error() || !type_ptr) return nullptr;
+    type = *type_ptr;
+  }
 
-  auto node = std::make_unique<ast::SymbolDeclarationNode>(name, name, *type);
+  // create node and return
+  auto node = std::make_unique<ast::SymbolDeclarationNode>(name, name, type);
   node->token_end(previous());
   return node;
 }
@@ -524,30 +590,20 @@ void lang::parser::Parser::parse_var_decl(ast::ContainerNode& container) {
       : ast::SymbolDeclarationNode::Variable;
 
   while (true) {
-    // name
+    // name-type pair
     if (!expect_or_error(lexer::TokenType::ident)) return;
-    const lexer::Token& name = consume();
-
-    // are we attaching a type? if not, attempt to deduce it
-    std::optional<std::reference_wrapper<const lang::ast::type::Node>> type;
-    if (expect(lexer::TokenType::colon)) {
-      consume();
-      if (!expect_or_error(firstset::type)) return;
-      auto type_ptr = parse_type();
-      if (is_error() || !type_ptr) return;
-      type = *type_ptr;
-    }
+    auto decl = parse_name_type_pair(false);
+    if (is_error()) return;
 
     // if assignment, expect expression
-    std::optional<std::unique_ptr<ast::Node>> expr;
     if (expect(lexer::BasicToken(lexer::TokenType::op, "="))) {
       consume();
-      expr = parse_expression(ExprExpectSC::No);
+      auto expr = parse_expression(ExprExpectSC::No);
       if (is_error()) return;
+      decl->assign_to(std::move(expr));
     }
 
-    // create and add declaration node
-    auto decl = std::make_unique<ast::SymbolDeclarationNode>(name, name, type, std::move(expr));
+    // update metadata and add to container
     decl->set_category(category);
     decl->token_end(previous());
     container.add(std::move(decl));
@@ -571,7 +627,7 @@ std::deque<std::unique_ptr<lang::ast::SymbolDeclarationNode>> lang::parser::Pars
     while (true) {
       // parse `name: type` pair
       if (!expect_or_error(lexer::TokenType::ident)) return {};
-      args.push_back(parse_name_type_pair());
+      args.push_back(parse_name_type_pair(true));
       args.back()->set_category(ast::SymbolDeclarationNode::Argument);
       if (is_error()) return {};
 

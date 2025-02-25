@@ -49,7 +49,9 @@ bool lang::symbol::Symbol::define(Context& ctx) const {
 
 std::string lang::symbol::category_to_string(lang::symbol::Category category) {
   switch (category) {
-    case Category::Ordinary:
+    case Category::Global:
+      return "global";
+    case Category::StackBased:
       return "symbol";
     case Category::Argument:
       return "argument";

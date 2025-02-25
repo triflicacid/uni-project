@@ -33,7 +33,7 @@ bool lang::ast::LoopControlNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::LoopControlNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::LoopControlNode::generate_code(lang::Context& ctx) {
   assert(loop_.has_value());
 
   // jump to start or end depending on variant

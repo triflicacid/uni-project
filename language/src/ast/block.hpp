@@ -40,6 +40,6 @@ namespace lang::ast {
 
     bool resolve(lang::Context &ctx) override;
 
-    bool generate_code(Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 }

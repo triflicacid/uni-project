@@ -1,0 +1,7 @@
+// pass
+func sum(a: [int; 3]) -> int {
+    return a[0] + a[1] + a[2];
+}
+
+let a: [int; 3];
+let s = sum(a);

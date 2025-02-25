@@ -10,6 +10,14 @@ bool lang::ast::type::Node::operator==(const lang::ast::type::Node& other) const
   return id() == other.id();
 }
 
+optional_ref<const lang::ast::type::Node> lang::ast::type::Node::get_property_type(const std::string& property) const {
+  return std::nullopt;
+}
+
+bool lang::ast::type::Node::get_property(lang::Context& ctx, lang::value::Value& result, const std::string& property) const {
+  return false;
+}
+
 const lang::ast::type::Node& lang::ast::type::from_asm_type(constants::inst::datatype::dt type) {
   switch (type) {
     case constants::inst::datatype::u32:

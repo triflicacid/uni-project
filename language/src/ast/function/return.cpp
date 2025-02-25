@@ -79,7 +79,7 @@ bool lang::ast::ReturnNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::ReturnNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::ReturnNode::generate_code(lang::Context& ctx) {
   // if we have an expression, generate its code first
   if (expr_.has_value() && !expr_.value()->generate_code(ctx)) return false;
 

@@ -104,7 +104,7 @@ bool lang::ast::IfStatementNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
   // create branch destination blocks
   auto then_block = assembly::BasicBlock::labelled("then_" + std::to_string(id_));
   auto else_block = else_.has_value()

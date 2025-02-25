@@ -58,8 +58,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override final;
 
-    bool generate_code(lang::Context &ctx) const override final
-    { return true; }
+    bool generate_code(lang::Context &ctx) override final;
 
     // define (generate code for) our function
     // return if success

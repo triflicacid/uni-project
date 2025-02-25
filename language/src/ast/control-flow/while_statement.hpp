@@ -24,7 +24,7 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
 
     // return label for the guard/conditional block
     std::string guard_label() const;

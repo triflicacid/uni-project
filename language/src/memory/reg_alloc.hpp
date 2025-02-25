@@ -62,6 +62,14 @@ namespace lang::memory {
     // remove the latest store
     void destroy_store(bool restore_registers);
 
+    // save the given register on the stack, return object
+    // return nothing if register is empty
+    std::optional<Object> save_register(uint8_t reg) const;
+
+    // restore the given register from the stack
+    // note, must be at the top of the stack
+    void restore_register(uint8_t reg, const Object& object);
+
     // return reference to an item if present
     std::optional<Ref> find(const symbol::Symbol& symbol);
 

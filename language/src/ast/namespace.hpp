@@ -31,6 +31,6 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(Context &ctx) override;
   };
 }

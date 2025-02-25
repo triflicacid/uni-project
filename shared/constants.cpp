@@ -28,6 +28,8 @@ std::map<std::string, registers::reg> registers::map = {
         {"k2",   registers::k2},
 };
 
+registers::reg registers::syscall_start = static_cast<registers::reg>(registers::r1 + 14); // $r15
+
 std::string registers::to_string(reg r) {
     if (r >= count)
         return "?";

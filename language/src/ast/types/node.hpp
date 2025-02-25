@@ -9,6 +9,7 @@ namespace lang::ast::type {
   class FunctionNode;
   class WrapperNode;
   class PointerNode;
+  class ArrayNode;
 
   using TypeId = unsigned int;
 
@@ -20,6 +21,17 @@ namespace lang::ast::type {
     Node(const Node&) = delete;
 
     TypeId id() const { return id_; }
+
+    // get this property's return type, or none if property does not exist
+    virtual optional_ref<const Node> get_property_type(const std::string& property) const;
+
+    // get the given property, assume property exists by calling `::get_property_type`, return success
+    virtual bool get_property(Context& ctx, value::Value& result, const std::string& property) const;
+
+    // do we act as a pointer: point to first element of structure, but treated as ptr
+    // the difference is a pointer is an actual stored address, whereas something with this as `true` is just the data
+    // when assigned, such values are copied
+    virtual bool reference_as_ptr() const = 0;
 
     // return this as int if we are an int, else return nullptr
     virtual const IntNode* get_int() const { return nullptr; }
@@ -35,6 +47,9 @@ namespace lang::ast::type {
 
     // are we a pointer type?
     virtual const PointerNode* get_pointer() const { return nullptr; }
+
+    // are we an array type?
+    virtual const ArrayNode* get_array() const { return nullptr; }
 
     // return size, in bytes, an instance of this type occupies
     virtual size_t size() const = 0;

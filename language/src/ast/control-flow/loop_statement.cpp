@@ -62,7 +62,7 @@ bool lang::ast::LoopStatementNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::LoopStatementNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::LoopStatementNode::generate_code(lang::Context& ctx) {
   // create the loop's blocks
   auto body_block = assembly::BasicBlock::labelled(body_label());
   auto& body_ref = *body_block;

@@ -527,8 +527,30 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
                               const std::deque<std::unique_ptr<ast::Node>>& args,
                               const std::unordered_set<int>& args_to_ignore,
                               lang::value::Value& return_value, lang::Context& ctx) {
+  // before entering the function: if reference to value, create buffer space to load value
+  auto& return_type = signature.returns();
+  bool has_return_buffer = false;
+  if ((has_return_buffer = return_type.reference_as_ptr() && return_type.size() > 8)) {
+    // reserve sufficient space
+    ctx.stack_manager.push(return_type.size());
+    auto& comment = ctx.program.current().back().comment();
+    comment << "return buffer: ";
+    return_type.print_code(comment);
+  }
+
+  // record offset at start of the whole process
+  const uint64_t start_offset = ctx.stack_manager.offset();
+
   // save registers
   ctx.reg_alloc_manager.save_store(true);
+
+  // push $fp
+  ctx.stack_manager.push(8);
+  ctx.program.current().back().comment() << "save $fp";
+  ctx.program.current().add(assembly::create_store(
+      constants::registers::fp,
+      assembly::Arg::reg_indirect(constants::registers::sp)
+  ));
 
   // save $fp
   ctx.stack_manager.push_frame(true);
@@ -566,13 +588,18 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
     comment << "arg #" << (i + 1) << ": ";
     value.type().print_code(comment);
 
-    // store data in register here
-    assembly::create_store(
-        location.offset,
-        assembly::Arg::reg_indirect(constants::registers::sp),
-        bytes,
-        ctx.program.current()
-    );
+    // if reference-like, we must copy
+    if (value.type().reference_as_ptr()) {
+      mem_copy(ctx, location, value, assembly::Arg::reg(constants::registers::sp));
+    } else {
+      // store data in register here
+      assembly::create_store(
+          location.offset,
+          assembly::Arg::reg_indirect(constants::registers::sp),
+          bytes,
+          ctx.program.current()
+      );
+    }
 
     // we are done with this register now
     ctx.reg_alloc_manager.mark_free(location);
@@ -601,11 +628,44 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
   // restore registers
   ctx.reg_alloc_manager.destroy_store(true);
 
+  // restore $fp
+  ctx.program.current().add(assembly::create_load(
+      constants::registers::fp,
+      assembly::Arg::reg_indirect(constants::registers::fp)
+  ));
+  ctx.program.current().back().comment() << "restore $fp";
+
   // populate $ret in alloc manager
   ctx.reg_alloc_manager.update_ret(memory::Object(value::rvalue(
       signature.returns(),
       memory::Ref::reg(constants::registers::ret)
     )));
+
+  // restore $sp to starting position
+  if (auto current_offset = ctx.stack_manager.offset(); current_offset != start_offset) {
+    ctx.program.current().add(assembly::create_sub(
+        constants::inst::datatype::u64,
+        constants::registers::sp,
+        constants::registers::sp,
+        assembly::Arg::imm(current_offset - start_offset)
+    ));
+    ctx.program.current().back().comment() << "stack clean-up ";
+  }
+
+  // copy return value into the return buffer?
+  if (has_return_buffer) {
+    // mem copy
+    const int index = ctx.program.current().size();
+    ops::mem_copy(
+        ctx,
+        memory::Ref::reg(constants::registers::ret),
+        return_value,
+        assembly::Arg::reg(constants::registers::sp)
+      );
+
+    auto& comment = ctx.program.current()[index].comment();
+    comment << "copy return value into buffer";
+  }
 
   return true;
 }
@@ -644,8 +704,8 @@ int lang::ops::pointer_arithmetic(assembly::BasicBlock& block, uint8_t reg_a, ui
   return imm_c > 2 ? 2 : 1;
 }
 
-lang::memory::Ref lang::ops::pointer_arithmetic(Context& ctx, const value::Value& pointer, const value::Value& offset, bool is_subtraction) {
-  assert(pointer.type().get_pointer());
+lang::memory::Ref lang::ops::pointer_arithmetic(Context& ctx, const value::Value& pointer, const value::Value& offset, bool is_subtraction, bool add_comment) {
+  assert(pointer.type().get_pointer() || pointer.type().get_array());
   assert(pointer.is_rvalue() && offset.is_rvalue());
 
   const auto ref_ptr = ctx.reg_alloc_manager.guarantee_register(pointer.rvalue().ref());
@@ -657,15 +717,17 @@ lang::memory::Ref lang::ops::pointer_arithmetic(Context& ctx, const value::Value
       ctx.program.current(),
       ref_ptr.offset,
       ref_offset.offset,
-      pointer.type().get_pointer()->unwrap().size(),
+      pointer.type().get_wrapper()->unwrap().size(),
       is_subtraction
   );
 
   // add comment
-  auto& comment = ctx.program.current()[idx].comment();
-  comment << "operator" << (is_subtraction ? "-" : "+") << "(";
-  pointer.type().print_code(comment) << ", ";
-  offset.type().print_code(comment) << ")";
+  if (add_comment) {
+    auto& comment = ctx.program.current()[idx].comment();
+    comment << "operator" << (is_subtraction ? "-" : "+") << "(";
+    pointer.type().print_code(comment) << ", ";
+    offset.type().print_code(comment) << ")";
+  }
 
   // spoil `ptr` register
   auto& object_ptr = ctx.reg_alloc_manager.find(ref_ptr);
@@ -682,7 +744,7 @@ lang::memory::Ref lang::ops::pointer_arithmetic(Context& ctx, const value::Value
 
 void lang::ops::dereference(Context& ctx, const value::Value& pointer, value::Value& result, bool add_comment) {
   assert(pointer.is_rvalue());
-  assert(pointer.type().get_pointer());
+  assert(pointer.type().get_pointer() || pointer.type().get_array());
 
   // get the source (pointer location)
   memory::Ref src = pointer.rvalue().ref();
@@ -691,28 +753,177 @@ void lang::ops::dereference(Context& ctx, const value::Value& pointer, value::Va
   // update result to point to the original
   result.lvalue(src);
 
-  // reserve a register to place the dereferenced result
-  memory::Ref dest = ctx.reg_alloc_manager.insert({nullptr});
-  dest = ctx.reg_alloc_manager.guarantee_register(dest);
+  // special case: if pointer to pointer-like, do not dereference
+  memory::Ref dest;
+  if (auto pointer_type = pointer.type().get_pointer(); pointer_type && pointer_type->unwrap().reference_as_ptr()) {
+    dest = src;
+  } else {
+    // reserve a register to place the dereferenced result
+    dest = ctx.reg_alloc_manager.insert({nullptr});
+    dest = ctx.reg_alloc_manager.guarantee_register(dest);
 
-  // load into register
-  ctx.program.current().add(assembly::create_load(
-      dest.offset,
-      assembly::Arg::reg_indirect(src.offset)
-  ));
+    // load into register
+    ctx.program.current().add(assembly::create_load(
+        dest.offset,
+        assembly::Arg::reg_indirect(src.offset)
+    ));
 
-  // add comment
-  if (add_comment) {
-    auto& comment = ctx.program.current().back().comment();
-    comment << "deref ";
-    pointer.type().print_code(comment);
+    // add comment
+    if (add_comment) {
+      auto& comment = ctx.program.current().back().comment();
+      comment << "deref ";
+      pointer.type().print_code(comment);
+    }
   }
 
   // update register allocation
-  const auto& deref_type = pointer.type().get_pointer()->unwrap();
+  const auto& deref_type = pointer.type().get_wrapper()->unwrap();
   memory::Object& object = ctx.reg_alloc_manager.find(dest);
   object.value = value::rvalue(deref_type, dest);
 
   // update resulting value's rvalue
   result.rvalue(std::make_unique<value::RValue>(deref_type, dest));
+}
+
+bool lang::ops::address_of(lang::Context& ctx, const lang::symbol::Symbol& symbol, lang::value::Value& result) {
+  // get location of the symbol (must have size then)
+  auto maybe_location = ctx.symbols.locate(symbol.id());
+
+  if (!maybe_location) {
+    return false;
+  }
+
+  // find destination register
+  memory::Ref ref = ctx.reg_alloc_manager.insert({nullptr});
+  ref = ctx.reg_alloc_manager.guarantee_register(ref);
+
+  // get address and store in register
+  const memory::StorageLocation& location = maybe_location->get();
+
+  if (location.type == memory::StorageLocation::Stack) { // calculate offset from $sp
+    const uint64_t stack_offset = ctx.stack_manager.offset();
+
+    if (location.offset == stack_offset) {
+      ctx.program.current().add(assembly::create_load(
+          ref.offset,
+          assembly::Arg::reg(constants::registers::sp)
+      ));
+    } else if (location.offset < stack_offset) {
+      ctx.program.current().add(assembly::create_sub(
+          constants::inst::datatype::u64,
+          ref.offset,
+          constants::registers::sp,
+          assembly::Arg::imm(stack_offset - location.offset)
+      ));
+    } else {
+      ctx.program.current().add(assembly::create_add(
+          constants::inst::datatype::u64,
+          ref.offset,
+          constants::registers::sp,
+          assembly::Arg::imm(location.offset - location.offset)
+      ));
+    }
+  } else {
+    ctx.program.current().add(assembly::create_load(
+        ref.offset,
+        assembly::Arg::label(location.block)
+    ));
+  }
+
+  // update value_ & object
+  memory::Object& object = ctx.reg_alloc_manager.find(ref);
+  object.value = value::rvalue(result.type(), ref);
+  result.rvalue(ref);
+  return true;
+}
+
+void lang::ops::mem_copy(Context& ctx, const memory::Ref& src, const value::Value& dest, std::unique_ptr<assembly::BaseArg> dest_arg) {
+  assert(src.type == memory::Ref::Register);
+  assert(dest.is_lvalue() || dest_arg != nullptr);
+
+  auto& block = ctx.program.current();
+  std::string into_comment;
+
+  // source address (RHS)
+  uint8_t reg = constants::registers::syscall_start;
+  std::optional<memory::Object> old_r1;
+  if (src.offset != reg) {
+    old_r1 = ctx.reg_alloc_manager.save_register(reg);
+    block.add(assembly::create_load(
+        reg,
+        assembly::Arg::reg(src.offset)
+    ));
+  }
+
+  // next, load the designation address (LHS)
+  // if LHS a symbol?
+  reg++;
+  std::optional<memory::Object> old_r2;
+  if (dest_arg) {
+    // use provided argument in `load`
+    old_r2 = ctx.reg_alloc_manager.save_register(reg);
+    block.add(assembly::create_load(
+        reg,
+        std::move(dest_arg)
+    ));
+  } else if (auto symbol = dest.lvalue().get_symbol()) {
+    // get symbol and its location
+    auto location = ctx.symbols.locate(symbol->get().id());
+    assert(location.has_value());
+
+    // comment symbol's name
+    into_comment = symbol->get().full_name();
+
+    // source address
+    if (auto maybe = ctx.reg_alloc_manager.find(symbol->get()); !maybe.has_value() ||
+                                                                *maybe != memory::Ref::reg(reg)) {
+      old_r2 = ctx.reg_alloc_manager.save_register(reg);
+      block.add(assembly::create_load(
+          reg,
+          ctx.symbols.resolve_location(location->get())
+      ));
+    }
+  } else {
+    // get LHS' reference
+    auto lvalue_ref = dest.lvalue().get_ref();
+    assert(lvalue_ref);
+    uint64_t offset = lvalue_ref->get().offset;
+
+    // comment an intermediate
+    into_comment = "$" + constants::registers::to_string($reg(offset));
+
+    if (offset != reg) {
+      old_r2 = ctx.reg_alloc_manager.save_register(reg);
+      block.add(assembly::create_load(
+          reg,
+          assembly::Arg::reg(offset)
+      ));
+    }
+  }
+
+  // length
+  reg++;
+  auto old_r3 = ctx.reg_alloc_manager.save_register(reg);
+  block.add(assembly::create_load(
+      reg,
+      assembly::Arg::imm(dest.type().size())
+  ));
+
+  // invoke syscall
+  block.add(assembly::create_system_call(
+      assembly::Arg::imm(static_cast<uint32_t>(constants::syscall::copy_mem))
+  ));
+
+  // add comment
+  auto& comment = block.back().comment();
+  comment << "mem_copy";
+  if (!into_comment.empty()) comment << " into " << into_comment;
+  comment << ": ";
+  dest.type().print_code(comment);
+
+  // restore registers?
+  reg = constants::registers::syscall_start;
+  if (old_r3.has_value()) ctx.reg_alloc_manager.restore_register(reg + 2, old_r3.value());
+  if (old_r2.has_value()) ctx.reg_alloc_manager.restore_register(reg + 1, old_r2.value());
+  if (old_r1.has_value()) ctx.reg_alloc_manager.restore_register(reg, old_r1.value());
 }

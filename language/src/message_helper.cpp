@@ -104,3 +104,10 @@ void lang::util::error_if_statement_mismatch(message::List& messages, const mess
   }
   messages.add(std::move(msg));
 }
+
+std::unique_ptr<message::Message> lang::util::error_literal_bad_type(const message::MessageGenerator& source, const std::string& literal, const ast::type::Node& type) {
+  auto msg = source.generate_message(message::Error);
+  msg->get() << "literal '" << literal << "' is unable to be stored in type ";
+  type.print_code(msg->get());
+  return msg;
+}

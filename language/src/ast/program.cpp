@@ -54,7 +54,7 @@ bool lang::ast::ProgramNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::ProgramNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::ProgramNode::generate_code(lang::Context& ctx) {
   // phase 4:
   // generate code for each child
   for (auto& line : lines_) {

@@ -90,7 +90,7 @@ namespace lang::ast {
     // actually generates assembly code
     // by this point, there should be no errors, and node should have all the information it needs
     // return if success
-    virtual bool generate_code(Context& ctx) const;
+    virtual bool generate_code(Context& ctx);
   };
 
   // utility: write a certain indent to the output stream

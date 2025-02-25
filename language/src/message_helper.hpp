@@ -47,4 +47,7 @@ namespace lang::util {
 
   // add `while evaluating...` note. with options to add extra messages
   std::unique_ptr<message::Message> note_while_evaluating(const message::MessageGenerator& source, std::optional<std::string> addendum);
+
+  // error that a literal cannot be stored in the given type
+  std::unique_ptr<message::Message> error_literal_bad_type(const message::MessageGenerator& source, const std::string& literal, const ast::type::Node& type);
 }

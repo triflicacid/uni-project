@@ -295,8 +295,8 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
               assembly::Arg::label(storage.block)
           ));
           // read register as an address (indirectly)
-          // do not deference (essential) if pointer/function type
-          if (auto& type = symbol.type(); !type.get_pointer() && !type.get_func()) {
+          // do not deference (essential) if pointer/function/pointer-like type
+          if (auto& type = symbol.type(); !type.get_pointer() && !type.get_func() && !type.reference_as_ptr()) {
             program_.current().add(assembly::create_load(
                 location.offset,
                 assembly::Arg::reg_indirect(location.offset)
@@ -304,10 +304,20 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
           }
           break;
         case StorageLocation::Stack:
-          program_.current().add(assembly::create_load(
-              location.offset,
-              assembly::Arg::reg_indirect(constants::registers::fp, -storage.offset)
-          ));
+          // if treating as a pointer, return address, otherwise get value at symbol
+          if (auto& type = symbol.type(); type.reference_as_ptr()) {
+            program_.current().add(assembly::create_sub(
+                constants::inst::datatype::u64,
+                location.offset,
+                constants::registers::fp,
+                assembly::Arg::imm(storage.offset)
+            ));
+          } else {
+            program_.current().add(assembly::create_load(
+                location.offset,
+                assembly::Arg::reg_indirect(constants::registers::fp, -storage.offset)
+            ));
+          }
           break;
       }
 
@@ -389,9 +399,13 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
     return ref;
   }
 
+  const ast::type::Node& original = object.value->type();
+
   // if Boolean, do something special
   if (target == ast::type::boolean) {
     ops::boolean_cast(program_.current(), ref.offset);
+  } else if (target.get_pointer() && original.get_array()) { // array -> pointer?
+
   } else {
     // otherwise, analyse what Object contains and update the type accordingly
     // also track if we need to actually emit any instructions
@@ -471,4 +485,53 @@ void lang::memory::RegisterAllocationManager::evict(const lang::symbol::Symbol& 
       evict(Ref(Ref::Memory, address));
     }
   }
+}
+
+std::optional<lang::memory::Object> lang::memory::RegisterAllocationManager::save_register(uint8_t reg) const {
+  auto& maybe = reg == constants::registers::ret
+                ? instances_.front().ret
+                : instances_.front().regs[reg - initial_register];
+  if (!maybe.has_value()) return {};
+
+  // get value saved inside the register
+  const value::Value& value = *maybe->value;
+
+  // if size is 0, do nothing
+  if (value.type().size() == 0) return {};
+
+  // emit save instructions
+  symbols_.stack().push(value.type().size());
+  program_.current().back().comment() << "save $" << constants::registers::to_string($reg(reg));
+  program_.current().add(assembly::create_store(
+      reg,
+      assembly::Arg::reg_indirect(constants::registers::sp)
+    ));
+
+  return maybe;
+}
+
+void lang::memory::RegisterAllocationManager::restore_register(uint8_t reg, const lang::memory::Object& object) {
+  auto& maybe = reg == constants::registers::ret
+                ? instances_.front().ret
+                : instances_.front().regs[reg - initial_register];
+
+  // evict old content if necessary
+  if (maybe.has_value()) {
+    memory::Ref ref = memory::Ref::reg(reg);
+    evict(ref);
+  }
+
+  // get the old stored value
+  const value::Value& value = *object.value;
+
+  // get value from stack
+  program_.current().add(assembly::create_load(
+      reg,
+      assembly::Arg::reg_indirect(constants::registers::sp)
+  ));
+  program_.current().back().comment() << "restore $" << constants::registers::to_string($reg(reg));
+  symbols_.stack().pop(value.type().size());
+
+  // set new content
+  maybe = object;
 }

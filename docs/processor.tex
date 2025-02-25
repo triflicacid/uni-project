@@ -401,17 +401,17 @@
         \hline
         \multicolumn{5}{|c|}{\textbf{Output}} \\
         \hline
-        print\_hex & 0 & \texttt{\$r1} = integer & Print register as hexadecimal. & \textit{None} \\
+        print\_hex & 0 & \texttt{\$r15} = integer & Print register as hexadecimal. & \textit{None} \\
         \hline
-        print\_int & 1 & \texttt{\$r1} = integer & Print 64-bit integer. & \textit{None} \\
+        print\_int & 1 & \texttt{\$r15} = integer & Print 64-bit integer. & \textit{None} \\
         \hline
-        print\_float & 2 & \texttt{\$r1} = float & Print 32-bit float. & \textit{None} \\
+        print\_float & 2 & \texttt{\$r15} = float & Print 32-bit float. & \textit{None} \\
         \hline
-        print\_double & 3 & \texttt{\$r1} = double & Print 64-bit double. & \textit{None} \\
+        print\_double & 3 & \texttt{\$r15} = double & Print 64-bit double. & \textit{None} \\
         \hline
-        print\_char & 4 & \texttt{\$r1} = byte & Print byte as ASCII character. & \textit{None} \\
+        print\_char & 4 & \texttt{\$r15} = byte & Print byte as ASCII character. & \textit{None} \\
         \hline
-        print\_string & 5 & \texttt{\$r1} = string address & Print null-terminated string at the address. & \textit{None} \\
+        print\_string & 5 & \texttt{\$r15} = string address & Print null-terminated string at the address. & \textit{None} \\
         \hline \hline
         \multicolumn{5}{|c|}{\textbf{Input}} \\
         \hline
@@ -423,9 +423,9 @@
         \hline
         read\_char & 9 & \textit{None} & Read an ASCII character. & \texttt{\$ret} = character \\
         \hline
-        read\_string & 10 & \makecell[l]{\texttt{\$r1} = string address\\%
-        \texttt{\$r2} = max length} & \makecell[l]{Read a null-terminated string into \texttt{\$r1}.\\%
-        String is truncated to maximum length, \texttt{\$r2}.} & \textit{None} \\
+        read\_string & 10 & \makecell[l]{\texttt{\$r15} = string address\\%
+        \texttt{\$r16} = max length} & \makecell[l]{Read a null-terminated string into \texttt{\$r15}.\\%
+        String is truncated to maximum length, \texttt{\$r16}.} & \textit{None} \\
         \hline \hline
         \multicolumn{5}{|c|}{\textbf{Program Flow}} \\
         \hline
@@ -434,17 +434,17 @@
         \hline \hline
         \multicolumn{5}{|c|}{\textbf{Other}} \\
         \hline
-        mem\_copy & 12 & \makecell[l]{\texttt{\$r1} = source address\\%
-        \texttt{\$r2} = destination address\\%
-        \texttt{\$r3} = length in bytes} & \makecell[l]{Copy \(n\) bytes from one region to another.\\%
+        mem\_copy & 12 & \makecell[l]{\texttt{\$r15} = source address\\%
+        \texttt{\$r16} = destination address\\%
+        \texttt{\$r17} = length in bytes} & \makecell[l]{Copy \(n\) bytes from one region to another.\\%
         Take care if the memory regions overlap.} & \textit{None} \\
         \hline \hline
         \multicolumn{5}{|c|}{\textbf{Debug}} \\
         \hline
         print\_regs & 100 & \textit{None} & Print hexadecimal value of each register. & \textit{None} \\
         \hline
-        print\_mem & 101 & \makecell[l]{\texttt{\$r1} = start address\\%
-        \texttt{\$r2} = segment length} & Print hexadecimal bytes of memory segment. & \textit{None} \\
+        print\_mem & 101 & \makecell[l]{\texttt{\$r15} = start address\\%
+        \texttt{\$r16} = segment length} & Print hexadecimal bytes of memory segment. & \textit{None} \\
         \hline
         print\_stack & 102 & \textit{None} & Print bytes of the stack. & \textit{None} \\
         \hline

@@ -31,6 +31,9 @@ namespace lang::ast {
 
     const lexer::Token& name() const { return name_; }
 
+    // set assignment content
+    void assign_to(std::unique_ptr<Node> expr) { assignment_ = std::move(expr); }
+
     Category category() const { return category_; }
 
     void set_category(Category c) { category_ = c; }
@@ -48,6 +51,6 @@ namespace lang::ast {
 
     bool process(lang::Context &ctx) override;
 
-    bool generate_code(lang::Context &ctx) const override;
+    bool generate_code(lang::Context &ctx) override;
   };
 }

@@ -178,10 +178,11 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   ctx.symbols.exit_function();
 
   // check that the function returns if the return type is not ()
-  if (!always_returns() && type_.returns() != type::unit) {
+  auto& return_type = type_.returns();
+  if (!always_returns() && return_type != type::unit) {
     auto msg = token_end().generate_message(message::Error);
     msg->get() << "missing return statement in function returning type ";
-    type_.returns().print_code(msg->get());
+    return_type.print_code(msg->get());
     ctx.messages.add(std::move(msg));
 
     msg = name_.generate_message(message::Note);
@@ -202,6 +203,12 @@ std::unordered_set<int> lang::ast::FunctionBaseNode::get_args_to_ignore() const 
   }
 
   return indexes;
+}
+
+bool lang::ast::FunctionBaseNode::generate_code(lang::Context& ctx) {
+  // do not define now, it will be defined when used
+  if (!lang::conf::always_define_symbols) return true;
+  return define(ctx);
 }
 
 bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
@@ -243,9 +250,12 @@ bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
   }
 
   ctx.reg_alloc_manager.save_store(false); // registers only need to be saved in asm on call
+  ctx.stack_manager.push_frame(false); // ensure our offset stays the same
 
   // process as child directs
   if (!_generate_code(ctx)) return false;
+
+  ctx.stack_manager.pop_frame(false);
 
   // exit function (propagate $ret)
   ctx.reg_alloc_manager.propagate_ret();

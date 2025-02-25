@@ -1,0 +1,7 @@
+// pass
+func make() -> [int; 5] {
+    let a: [int; 5];
+    return a;
+}
+
+let x = make();

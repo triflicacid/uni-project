@@ -135,7 +135,7 @@ bool lang::ast::NamespaceNode::process(lang::Context& ctx) {
   return true;
 }
 
-bool lang::ast::NamespaceNode::generate_code(lang::Context& ctx) const {
+bool lang::ast::NamespaceNode::generate_code(lang::Context& ctx) {
   for (auto& line : lines_) {
     if (!line->generate_code(ctx)) return false;
   }

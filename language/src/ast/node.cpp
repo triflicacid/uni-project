@@ -37,6 +37,6 @@ bool lang::ast::Node::collate_registry(message::List& messages, lang::symbol::Re
   return true;
 }
 
-bool lang::ast::Node::generate_code(lang::Context& ctx) const {
+bool lang::ast::Node::generate_code(lang::Context& ctx) {
   return true;
 }

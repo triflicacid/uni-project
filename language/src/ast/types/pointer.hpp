@@ -13,6 +13,8 @@ namespace lang::ast::type {
 
     size_t size() const override { return 8; }
 
+    bool reference_as_ptr() const override { return false; }
+
     constants::inst::datatype::dt get_asm_datatype() const override
     { return constants::inst::datatype::u64; }
 

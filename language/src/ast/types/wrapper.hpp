@@ -24,10 +24,10 @@ namespace lang::ast::type {
 
     // get reference to a wrapper type, or create it
     template <class T> requires std::is_base_of_v<WrapperNode, T>
-    static const T& get(const std::string& wrapper_name, const Node& inner_type, const std::function<std::unique_ptr<T>()>& create_type) {
+    static const T& get(const std::string& wrapper_name, const Node& inner_type, const std::function<std::unique_ptr<T>()>& create_type, std::optional<std::function<bool(const T&)>> is_equal = std::nullopt) {
       for (auto& [id, type] : graph) {
         if (auto wrapper_type = type.get().get_wrapper()) {
-          if (wrapper_type->node_name() == wrapper_name && wrapper_type->unwrap() == inner_type) {
+          if (wrapper_type->node_name() == wrapper_name && wrapper_type->unwrap() == inner_type && (!is_equal || is_equal.value()(*static_cast<const T*>(wrapper_type)))) {
             return *static_cast<const T*>(wrapper_type);
           }
         }

@@ -33,6 +33,8 @@ namespace lang::ast::type {
     std::string to_label() const override;
 
     constants::inst::datatype::dt get_asm_datatype() const override;
+
+    bool reference_as_ptr() const override { return false; }
   };
 
   extern IntNode uint8, int8;
