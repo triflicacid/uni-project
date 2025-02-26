@@ -8,19 +8,7 @@ namespace assembler {
     for (const auto &chunk: buffer) {
       if (!chunk->is_data()) {
         const auto &inst = chunk->get_instruction();
-
-        for (uint8_t i = 0; i < inst->args.size(); i++) {
-          auto &arg = inst->args[i];
-
-          if (arg.is_label() && *arg.get_label() == label) {
-            if (cli_args.debug)
-              std::cout << "Replace label " << label << " with address 0x" << std::hex << address
-                        << std::dec << std::endl;
-            arg.update(inst->signature->arguments[inst->overload][i] == instruction::ArgumentType::Address
-                       ? instruction::ArgumentType::Address
-                       : instruction::ArgumentType::Immediate, address);
-          }
-        }
+        chunk->get_instruction()->replace_label(label, address, cli_args.debug);
       }
     }
   }

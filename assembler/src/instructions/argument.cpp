@@ -46,9 +46,12 @@ namespace assembler::instruction {
         out << "register indirect " << get_reg_indirect()->offset << "($" << constants::registers::to_string(
             static_cast<constants::registers::reg>(get_reg_indirect()->reg)) << ")";
         break;
-      case ArgumentType::Label:
-        out << "label \"" << *get_label() << "\"";
+      case ArgumentType::Label: {
+        auto* label = get_label();
+        out << "label \"" << label->label << "\"";
+        if (label->offset != 0) out << " + " << label->offset;
         break;
+      }
       default:;
     }
   }
@@ -72,9 +75,12 @@ namespace assembler::instruction {
         os << get_reg_indirect()->offset << "($" << constants::registers::to_string(
             static_cast<constants::registers::reg>(get_reg_indirect()->reg)) << ")";
         break;
-      case ArgumentType::Label:
-        os << *get_label();
+      case ArgumentType::Label: {
+        auto *label = get_label();
+        os << label->label;
+        if (label->offset != 0) os << "+" << label->offset;
         break;
+      }
       default:;
     }
   }
@@ -151,10 +157,10 @@ namespace assembler::instruction {
     m_data = data;
   }
 
-  void Argument::set_label(const std::string &label) {
+  void Argument::set_label(const std::string &label, int offset) {
     destroy();
     m_type = ArgumentType::Label;
-    auto ptr = new std::string(label);
+    auto ptr = new ArgumentLabel(label, offset);
     m_data = (uint64_t) ptr;
   }
 }

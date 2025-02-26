@@ -195,8 +195,18 @@ namespace assembler::parser {
         return;
       }
 
-      // insert each instruction into a Chunk
+      // go through each instruction
       for (auto &instruction: instructions) {
+        // resolve labels
+        auto labels = instruction->get_referenced_labels();
+        for (const std::string& label : labels) {
+          // replace the label if possible
+          if (auto it = data.labels.find(label); it != data.labels.end()) {
+            instruction->replace_label(label, it->second.addr, data.cli_args.debug);
+          }
+        }
+
+        // create a Chunk and insert
         auto chunk = std::make_unique<Chunk>(line.first, data.offset);
         chunk->set(std::move(instruction));
         data.add_chunk(std::move(chunk));
@@ -209,7 +219,7 @@ namespace assembler::parser {
         for (const auto &instruction = chunk->get_instruction(); auto &arg: instruction->args) {
           if (arg.is_label()) {
             auto msg = std::make_unique<message::Message>(message::Error, chunk->location());
-            msg->get() << "unresolved reference to label " << *arg.get_label();
+            msg->get() << "unresolved reference to label " << arg.get_label()->label;
             msgs.add(std::move(msg));
             return;
           }
@@ -602,12 +612,33 @@ namespace assembler::parser {
       auto label = line.second.substr(start, col - start);
       col++;
 
-      // if already exists, substitute immediately
-      if (auto entry = data.labels.find(label); entry == data.labels.end()) {
-        argument.set_label(label);
-      } else {
-        argument.update(instruction::ArgumentType::Immediate, entry->second.addr);
+      // do we have an offset
+      skip_whitespace(line.second, col);
+      int offset = 0;
+      if (line.second[col] == '+' || line.second[col] == '-') {
+        bool negate = line.second[col] == '-';
+        col++;
+        skip_whitespace(line.second, col);
+        start = col;
+
+        // parse number
+        if (parse_number(line.second, col, value, number_decimal)) {
+          offset = value;
+          if (negate) offset *= -1;
+        } else {
+          auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
+          msg->get() << "expected number as label offset";
+          msgs.add(std::move(msg));
+          return;
+        }
       }
+
+      // if already exists, substitute immediately
+      //if (auto entry = data.labels.find(label); entry == data.labels.end()) {
+        argument.set_label(label, offset);
+      //} else {
+      //  argument.update(instruction::ArgumentType::Immediate, entry->second.addr + offset);
+      //}
 
       return;
     }

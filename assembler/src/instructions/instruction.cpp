@@ -136,6 +136,31 @@ namespace assembler::instruction {
     return builder.get();
   }
 
+  std::set<std::string> Instruction::get_referenced_labels() const {
+    std::set<std::string> labels;
+    for (auto& arg : args) {
+      if (arg.is_label()) {
+        labels.insert(arg.get_label()->label);
+      }
+    }
+    return labels;
+  }
+
+  void Instruction::replace_label(const std::string& label, uint32_t address, bool debug) {
+    for (uint8_t i = 0; i < args.size(); i++) {
+      auto &arg = args[i];
+
+      if (arg.is_label() && arg.get_label()->label == label) {
+        if (debug)
+          std::cout << "Replace label " << label << " with address 0x" << std::hex << address
+                    << std::dec << std::endl;
+        arg.update(signature->arguments[overload][i] == instruction::ArgumentType::Address
+                   ? instruction::ArgumentType::Address
+                   : instruction::ArgumentType::Immediate, address + arg.get_label()->offset);
+      }
+    }
+  }
+
   void InstructionBuilder::opcode(uint8_t opcode) {
     write(constants::inst::op_size, opcode & constants::inst::op_mask);
   }

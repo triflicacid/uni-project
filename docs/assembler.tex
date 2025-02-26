@@ -253,6 +253,11 @@ The following list the possible forms of a numeric literal.
     E.g., \texttt{`a'}, \texttt{`\symbol{92}0'}, \texttt{`\symbol{92}n'}.
 \end{itemize}
 
+A label may be used as an argument.
+Labels are replaced by their address as soon as it becomes known, and becomes either an immediate or an address, depending on the context and what the instruction signature expects.
+A label argument may be followed (after a space) by either \texttt{+} or \texttt{-}, then an integer.
+In this case, this acts as an offset which will be used to adjust the argument's value.
+
 \subsection{Directives}
 
 Similar to pre-processor directives, these give commands to the compiler and do not relate to actual instructions.

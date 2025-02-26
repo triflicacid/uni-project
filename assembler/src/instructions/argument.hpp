@@ -23,6 +23,12 @@ namespace assembler::instruction {
     int32_t offset;
   };
 
+  /** Data structure used for representing a label. */
+  struct ArgumentLabel {
+    std::string label;
+    int offset;
+  };
+
   class Argument {
   private:
     ArgumentType m_type;
@@ -50,7 +56,7 @@ namespace assembler::instruction {
       m_data = data;
     }
 
-    [[nodiscard]] std::string *get_label() const { return (std::string *) m_data; };
+    [[nodiscard]] ArgumentLabel *get_label() const { return (ArgumentLabel *) m_data; };
 
     [[nodiscard]] ArgumentRegisterIndirect *
     get_reg_indirect() const { return (ArgumentRegisterIndirect *) m_data; };
@@ -61,7 +67,7 @@ namespace assembler::instruction {
     [[nodiscard]] bool is_label() const { return m_type == ArgumentType::Label; }
 
     /** Set value to a label. */
-    void set_label(const std::string &label);
+    void set_label(const std::string &label, int offset = 0);
 
     void debug_print(std::ostream &out = std::cout);
 

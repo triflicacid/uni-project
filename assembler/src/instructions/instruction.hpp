@@ -6,6 +6,7 @@
 #include <vector>
 #include <deque>
 #include <unordered_map>
+#include <set>
 #include <messages/message.hpp>
 #include "constants.hpp"
 
@@ -39,6 +40,12 @@ namespace assembler::instruction {
 
     /** Offset addresses by the given amount. */
     void offset_addresses(uint16_t offset);
+
+    /** Return set of all labels referenced in arguments. */
+    std::set<std::string> get_referenced_labels() const;
+
+    /** Replace given label with its address */
+    void replace_label(const std::string& label, uint32_t address, bool debug = false);
 
     [[nodiscard]] uint64_t compile() const;
 
