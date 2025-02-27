@@ -120,6 +120,14 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     auto& value = assignment_.value()->value();
     if (!assignment_.value()->resolve(ctx)) return false;
 
+    // ensure that we are not assigning a namespace
+    if (value.type() == type::name_space) {
+      auto msg = assignment_.value()->generate_message(message::Error);
+      msg->get() << "a namespace is not assignable";
+      ctx.messages.add(std::move(msg));
+      return false;
+    }
+
     // if we have declared symbol to be a type, they must match
     const auto& type = value.type();
     if (type_.has_value() && !type::graph.is_subtype(type.id(), type_->get().id())) {
