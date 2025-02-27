@@ -1,11 +1,13 @@
 #pragma once
 
 #include <deque>
+#include <variant>
 #include "messages/list.hpp"
 #include "lexer/token.hpp"
 #include "value/value.hpp"
 #include "optional_ref.hpp"
 #include "control-flow/conditional_context.hpp"
+#include "memory/storage_location.hpp"
 
 namespace lang {
   struct Context;
@@ -31,6 +33,7 @@ namespace lang::ast {
     std::optional<lexer::Token> tend_;
     optional_ref<const ast::type::Node> type_hint_; // type hint, used for resolving overload sets etc
     optional_ref<control_flow::ConditionalContext> cond_ctx_; // set when evaluating a conditional, means operator should support this and contribute
+    optional_ref<const memory::StorageLocation> target_; // store result at this target?
 
   protected:
     std::unique_ptr<value::Value> value_; // every node has a value, which is possibly set in ::process
@@ -55,12 +58,15 @@ namespace lang::ast {
     const optional_ref<control_flow::ConditionalContext>& conditional_context() const { return cond_ctx_; }
     void conditional_context(control_flow::ConditionalContext& ctx) { cond_ctx_ = std::ref(ctx); }
 
+    const optional_ref<const memory::StorageLocation>& target() const { return target_; }
+    void target(const memory::StorageLocation& t) { target_ = std::cref(t); }
+
     // does this node return absolutely from a function?
     // used to check if control reaches the end of a function
     virtual bool always_returns() const { return false; }
 
     // refer to the value represents the result of this node
-    virtual const value::Value& value() const;
+    virtual value::Value& value() const;
 
     // print in tree form, default only print name
     virtual std::ostream& print_tree(std::ostream& os, unsigned int indent_level = 0) const;

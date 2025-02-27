@@ -5,8 +5,8 @@
 #include "ast/block.hpp"
 #include "ast/types/float.hpp"
 #include "ast/types/int.hpp"
-#include "ast/expr/operator.hpp"
-#include "ast/expr/symbol_reference.hpp"
+#include "language/src/ast/operator.hpp"
+#include "language/src/ast/leaves/symbol_reference.hpp"
 #include "util.hpp"
 #include "ast/program.hpp"
 #include "operators/info.hpp"
@@ -14,7 +14,7 @@
 #include "ast/types/pointer.hpp"
 #include "ast/types/array.hpp"
 #include "config.hpp"
-#include "ast/expr/unit.hpp"
+#include "language/src/ast/leaves/unit.hpp"
 #include "message_helper.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {
@@ -181,6 +181,42 @@ std::unique_ptr<lang::ast::LiteralNode> lang::parser::Parser::parse_literal() {
   return node;
 }
 
+std::unique_ptr<lang::ast::ArrayLiteralNode> lang::parser::Parser::parse_array_literal() {
+  // '['
+  const lexer::Token lsquare = consume();
+
+  // create array node
+  auto node = std::make_unique<ast::ArrayLiteralNode>(lsquare);
+
+  // parse expression elements
+  if (!expect(lexer::TokenType::rsquare)) {
+    while (true) {
+      // expression
+      if (!expect_or_error(firstset::expression)) return nullptr;
+      auto expr = parse_expression(ExprExpectSC::No);
+      if (is_error() || !expr) return nullptr;
+
+      // add child
+      node->add(std::move(expr));
+
+      // comma for more, else break
+      if (!expect(lexer::TokenType::comma)) break;
+      consume();
+    }
+  }
+
+  // ']'
+  if (!expect_or_error(lexer::TokenType::rsquare)) {
+    auto msg = lsquare.generate_message(message::Error);
+    msg->get() << "bracket opened here";
+    add_message(std::move(msg));
+    return nullptr;
+  }
+
+  node->token_end(consume());
+  return node;
+}
+
 const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
     firstset::literal,
     {
@@ -188,11 +224,16 @@ const lang::lexer::TokenSet lang::parser::firstset::term = lexer::merge_sets({
       lexer::BasicToken(lexer::TokenType::if_kw),
       lexer::BasicToken(lexer::TokenType::lpar),
       lexer::BasicToken(lexer::TokenType::lbrace),
+      lexer::BasicToken(lexer::TokenType::lsquare),
       lexer::BasicToken(lexer::TokenType::null_kw),
     }
 });
 
 std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_term() {
+  if (expect(lexer::TokenType::lsquare)) {
+    return parse_array_literal();
+  }
+
   if (expect(firstset::literal)) {
     return parse_literal();
   }

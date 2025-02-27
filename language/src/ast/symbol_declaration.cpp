@@ -12,6 +12,7 @@
 #include "ast/types/array.hpp"
 #include "ast/types/pointer.hpp"
 #include "operators/builtins.hpp"
+#include "assembly/create.hpp"
 
 std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
@@ -93,6 +94,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
   // process the assignment body
   if (assignment_.has_value()) {
+    assignment_.value()->type_hint(type_);
     if (!assignment_.value()->process(ctx)) return false;
   }
 
@@ -116,7 +118,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   if (assignment_.has_value()) {
     // ensure the types match
     auto& value = assignment_.value()->value();
-    assignment_.value()->type_hint(type_); // give expression a type hint
     if (!assignment_.value()->resolve(ctx)) return false;
 
     // if we have declared symbol to be a type, they must match
@@ -126,7 +127,8 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
       return false;
     }
 
-    type_ = type;
+    // ensure type_ is set, but don't overwrite explicit type annotation
+    if (!type_) type_ = type;
   }
 
   // check if name already exists, and if it can be shadowed
@@ -162,15 +164,6 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
     break;
   }
 
-  // note, if array with size 0, actually allocate a pointer
-  // this is so some space is allocated
-  auto alloc_type = *type_;
-  if (auto array_type = alloc_type.get().get_array()) {
-    if (array_type->size() == 0) {
-      alloc_type = array_type->decay_into_pointer();
-    }
-  }
-
   // select appropriate symbol category
   symbol::Category symbol_category;
   if (category_ == Argument) symbol_category = symbol::Category::Argument;
@@ -181,7 +174,7 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
   auto symbol = std::make_unique<symbol::Symbol>(
       name_,
       symbol_category,
-      alloc_type
+      *type_
     );
   id_ = symbol->id();
   if (category_ == Constant) symbol->make_constant();
@@ -193,20 +186,41 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
   // allocate this symbol
   ctx.symbols.allocate(id_);
+  const auto& symbol_location = ctx.symbols.locate(id_); // may be nothing if zero sized
 
   // if no assignment, we're done
   if (!assignment_.has_value()) return true;
+  auto& rhs = *assignment_->get();
+
+  // let RHS know of our target location
+  if (symbol_location) rhs.target(symbol_location->get());
 
   // generate assignment's code
-  if (!assignment_.value()->generate_code(ctx)) return false;
+  if (!rhs.generate_code(ctx)) return false;
 
   // if zero-sized type, we're also done
-  auto& value = assignment_->get()->value();
+  auto& value = rhs.value();
   if (value.type().size() == 0) return true;
+
+  // materialise the RHS' value
+  bool materialisation_did_store = value.materialise(ctx, {symbol_location});
+
+  // if not an rvalue but we have a storage_location, point to that
+  if (!value.is_rvalue() && symbol_location) {
+    // reserve a register - this will be our rvalue reference
+    memory::Ref ref = ctx.reg_alloc_manager.insert({value::value(type_)});
+    ref = ctx.reg_alloc_manager.guarantee_register(ref);
+    value.rvalue(ref);
+
+    ctx.program.current().add(assembly::create_load(
+        ref.offset,
+        symbol_location->get().resolve()
+      ));
+  }
 
   // must have a ref, i.e., rvalue
   if (!value.is_rvalue()) {
-    auto msg = assignment_->get()->generate_message(message::Error);
+    auto msg = rhs.generate_message(message::Error);
     msg->get() << "expected rvalue, got ";
     value.type().print_code(msg->get());
     ctx.messages.add(std::move(msg));
@@ -216,18 +230,21 @@ bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
   // coerce into correct type (this is safe as subtyping checked)
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(value.rvalue().ref(), type_.value());
 
-  // if reference_as_ptr, copy them across
-  if (type_->get().reference_as_ptr()) {
-    assert(value.type().reference_as_ptr()); // both should be ptr-like, should be handled by subtyping to ensure this
-    assert(type_->get().size() == value.type().size());
+  // if .materialise did not store anything, we need to store the result into the symbol
+  if (!materialisation_did_store) {
+    // if reference_as_ptr, copy them across, but only if StorageTarget was not listened to
+    if (type_->get().reference_as_ptr()) {
+      assert(value.type().reference_as_ptr()); // both should be ptr-like, should be handled by subtyping to ensure this
+      assert(type_->get().size() == value.type().size());
 
-    // copy memory between the two
-    auto symbol = value::value();
-    symbol->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
-    ops::mem_copy(ctx, expr, *symbol, nullptr);
-  } else {
-    // load expr value into symbol
-    ctx.symbols.assign_symbol(id_, expr.offset);
+      // copy memory between the two
+      auto symbol = value::value();
+      symbol->lvalue(std::make_unique<value::Symbol>(ctx.symbols.get(id_)));
+      ops::mem_copy(ctx, expr, *symbol, nullptr);
+    } else {
+      // load expr value into symbol
+      ctx.symbols.assign_symbol(id_, expr.offset);
+    }
   }
 
   // update register to contain this symbol to avoid double-loading

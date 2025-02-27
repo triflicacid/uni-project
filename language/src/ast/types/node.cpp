@@ -14,8 +14,8 @@ optional_ref<const lang::ast::type::Node> lang::ast::type::Node::get_property_ty
   return std::nullopt;
 }
 
-bool lang::ast::type::Node::get_property(lang::Context& ctx, lang::value::Value& result, const std::string& property) const {
-  return false;
+std::unique_ptr<lang::value::Value> lang::ast::type::Node::get_property(Context& ctx, const std::string& property) const {
+  return nullptr;
 }
 
 const lang::ast::type::Node& lang::ast::type::from_asm_type(constants::inst::datatype::dt type) {

@@ -28,7 +28,7 @@ namespace lang::ast {
 
     bool always_returns() const override;
 
-    const value::Value& value() const override;
+    value::Value& value() const override;
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 

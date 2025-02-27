@@ -2,7 +2,7 @@
 #include "reg_alloc.hpp"
 #include "assembly/create.hpp"
 #include "ast/types/int.hpp"
-#include "value/symbol.hpp"
+#include "value/future.hpp"
 #include "ast/types/bool.hpp"
 #include "operators/builtin.hpp"
 #include "operators/builtins.hpp"
@@ -143,20 +143,17 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
   }
 
   // otherwise, insert
-  auto value_ptr = value::value();
-  value::Value& value = *value_ptr;
-  value.lvalue(std::make_unique<value::Symbol>(symbol));
-  Ref ref = insert(Object(std::move(value_ptr)));
-  value.rvalue(ref);
-  return ref;
+  auto value = value::value();
+  value->lvalue(std::make_unique<value::Symbol>(symbol));
+  return insert(Object(std::move(value)));
 }
 
 std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(const Literal& literal) {
   // check if Object is inside a register
   int offset = initial_register;
   for (auto& object : instances_.front().regs) {
-    if (object && object->value->is_rvalue()) {
-      if (auto obj_lit = object->value->rvalue().get_literal(); obj_lit && obj_lit->type() == literal.type() && obj_lit->get().data() == literal.data()) {
+    if (object) {
+      if (auto obj_lit = object->value->get_literal(); obj_lit && obj_lit->get() == literal) {
         object->required = true;
         return Ref(Ref::Register, offset);
       }
@@ -167,11 +164,9 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(c
 
   // check if Object is stored in spilled memory
   for (auto& [address, object] : memory_) {
-    if (object.value->is_rvalue()) {
-      if (auto obj_lit = object.value->rvalue().get_literal(); obj_lit && obj_lit->get().data() == literal.data()) {
-        object.required = true;
-        return Ref(Ref::Memory, address);
-      }
+    if (auto obj_lit = object.value->get_literal(); obj_lit && obj_lit->get() == literal) {
+      object.required = true;
+      return Ref(Ref::Memory, address);
     }
   }
 
@@ -186,12 +181,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
   }
 
   // otherwise, insert
-  auto value_ptr = value::value();
-  value::Value& value = *value_ptr;
-  value.rvalue(std::make_unique<value::Literal>(literal, Ref::reg(0)));
-  Ref ref = insert(Object(std::move(value_ptr)));
-  value.rvalue().ref(ref);
-  return ref;
+  return insert(Object(value::literal(literal)));
 }
 
  lang::memory::Object& lang::memory::RegisterAllocationManager::find(const lang::memory::Ref& location) {
@@ -267,11 +257,14 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
   evict(location);
   instances_.front().history.push_front(location);
 
+  // update rvalue
+  if (object.value) object.value->rvalue(location);
+
   if (location.type == Ref::Register) {
     // if object is empty, do nothing
     if (!object.value);
-    else if (object.value->is_rvalue() && object.value->rvalue().get_literal()) { // load the immediate into the register
-      const auto& literal = object.value->rvalue().get_literal()->get();
+    else if (object.value->get_literal()) { // load the immediate into the register
+      const auto& literal = object.value->get_literal()->get();
       if (auto size = literal.type().size(); size == 8) {
         program_.current().add(assembly::create_load_long(location.offset, literal.data()));
       } else {
@@ -310,12 +303,12 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
                 constants::inst::datatype::u64,
                 location.offset,
                 constants::registers::fp,
-                assembly::Arg::imm(storage.offset)
+                assembly::Arg::imm(storage.base_offset)
             ));
           } else {
             program_.current().add(assembly::create_load(
                 location.offset,
-                assembly::Arg::reg_indirect(constants::registers::fp, -storage.offset)
+                assembly::Arg::reg_indirect(constants::registers::fp, -storage.base_offset)
             ));
           }
           break;
@@ -405,7 +398,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
   if (target == ast::type::boolean) {
     ops::boolean_cast(program_.current(), ref.offset);
   } else if (target.get_pointer() && original.get_array()) { // array -> pointer?
-
+    // TODO array -> pointer conversion
   } else {
     // otherwise, analyse what Object contains and update the type accordingly
     // also track if we need to actually emit any instructions
@@ -418,12 +411,13 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
       asm_original = symbol.type().get_asm_datatype();
       // remove lvalue, we are only an rvalue now
       object = Object(value::rvalue(target, ref));
-    } else if (object.value->is_rvalue() && object.value->rvalue().get_literal()) {
-      const Literal& literal = object.value->rvalue().get_literal()->get();
+    } else if (object.value->get_literal()) {
+      const Literal& literal = object.value->get_literal()->get();
       // get original datatype
       asm_original = literal.type().get_asm_datatype();
       // update Object's contents
-      object.value->rvalue(std::make_unique<value::Literal>(Literal::get(target, literal.data()), ref));
+      object.value = value::literal(Literal::get(target, literal.data()));
+      object.value->rvalue(ref);
     } else {
       // can't do anything, we have no further information
       return ref;

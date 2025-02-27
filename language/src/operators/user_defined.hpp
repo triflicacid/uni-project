@@ -16,6 +16,6 @@ namespace lang::ops {
 
     const symbol::Symbol& symbol() const { return symbol_; }
 
-    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional= std::nullopt) const override;
+    bool invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, const lang::ops::InvocationOptions &options) const override;
   };
 }

@@ -56,7 +56,7 @@ namespace lang::ast {
 
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
-    bool process(lang::Context &ctx) override final;
+    bool process(Context &ctx) override final;
 
     bool generate_code(lang::Context &ctx) override final;
 

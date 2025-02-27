@@ -25,8 +25,8 @@ namespace lang::ast::type {
     // get this property's return type, or none if property does not exist
     virtual optional_ref<const Node> get_property_type(const std::string& property) const;
 
-    // get the given property, assume property exists by calling `::get_property_type`, return success
-    virtual bool get_property(Context& ctx, value::Value& result, const std::string& property) const;
+    // get the given property, assume property exists by calling `::get_property_type`, return nullptr if error
+    virtual std::unique_ptr<value::Value> get_property(Context& ctx, const std::string& property) const;
 
     // do we act as a pointer: point to first element of structure, but treated as ptr
     // the difference is a pointer is an actual stored address, whereas something with this as `true` is just the data

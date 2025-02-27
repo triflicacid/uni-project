@@ -23,7 +23,7 @@ namespace lang::ast {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };

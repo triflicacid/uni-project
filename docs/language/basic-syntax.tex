@@ -145,3 +145,15 @@ As with numeric literals, \texttt{null}'s type is also determined in-context.
 let ptr = null as *i32;
 let fn = null as (int) -> int;
 \end{lstlisting}
+
+\subsubsection{Arrays}
+
+Array literals represent static array types, such as \texttt{[int; 5]}.
+An array literal is a comma-seperated list of expressions enclosed in square brackets.
+The type of an array literal, if not explicitly provided, is taken from the type of the first element.
+
+\begin{lstlisting}[language=CustomLang]
+let a = [1]; // ok, [int; 1]
+let b = [1, 3.4]; // error: cannot convert float to int
+let c: [float; 2] = [1, 3.4]; // ok
+\end{lstlisting}

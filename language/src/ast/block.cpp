@@ -3,7 +3,7 @@
 #include "symbol/registry.hpp"
 #include "config.hpp"
 #include "message_helper.hpp"
-#include "value/symbol.hpp"
+#include "value/future.hpp"
 #include "optional_ref.hpp"
 
 void lang::ast::BlockNode::add(std::unique_ptr<Node> ast_node) {
@@ -36,7 +36,7 @@ std::ostream& lang::ast::BlockNode::print_tree(std::ostream& os, unsigned int in
   return os;
 }
 
-const lang::value::Value& lang::ast::BlockNode::value() const {
+lang::value::Value& lang::ast::BlockNode::value() const {
   if (returns_ && !lines_.empty()) return lines_.back()->value();
   return Node::value();
 }
@@ -114,6 +114,11 @@ bool lang::ast::BlockNode::resolve(lang::Context& ctx) {
 }
 
 bool lang::ast::BlockNode::generate_code(lang::Context& ctx) {
+  // forwards our target to our last child
+  if (!lines_.empty() && target()) {
+    lines_.back()->target(target()->get());
+  }
+
   // generate code of our children
   for (int i = 0; i < lines_.size(); i++) {
     Node& line = *lines_[i];

@@ -13,6 +13,6 @@ namespace lang {
     memory::StackManager& stack_manager;
     memory::RegisterAllocationManager& reg_alloc_manager;
     symbol::SymbolTable& symbols;
-    std::stack<control_flow::LoopContext> loops;
+    std::stack<control_flow::LoopContext> loops; // track which loops we are in
   };
 }

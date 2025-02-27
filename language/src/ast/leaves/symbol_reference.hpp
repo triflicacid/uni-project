@@ -20,7 +20,5 @@ namespace lang::ast {
     bool process(Context &ctx) override;
 
     bool resolve(Context & ctx) override;
-
-    bool generate_code(Context &ctx) override;
   };
 }

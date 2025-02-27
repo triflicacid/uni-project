@@ -41,4 +41,5 @@ namespace lang::ast::type {
   extern IntNode uint16, int16;
   extern IntNode uint32, int32;
   extern IntNode uint64, int64;
+  extern IntNode uint64, int64;
 }

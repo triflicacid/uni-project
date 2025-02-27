@@ -4,18 +4,19 @@
 #include "lexer/lexer.hpp"
 #include "messages/MessageWithSource.hpp"
 #include "messages/list.hpp"
-#include "ast/expr/literal.hpp"
+#include "language/src/ast/leaves/literal.hpp"
 #include "ast/symbol_declaration.hpp"
 #include "ast/function/function.hpp"
 #include "ast/program.hpp"
 #include "ast/function/return.hpp"
 #include "ast/namespace.hpp"
-#include "ast/expr/operator.hpp"
+#include "language/src/ast/operator.hpp"
 #include "ast/function/operator_definition.hpp"
 #include "language/src/ast/control-flow/if_statement.hpp"
 #include "language/src/ast/control-flow/while_statement.hpp"
 #include "ast/control-flow/loop_control.hpp"
 #include "ast/control-flow/loop_statement.hpp"
+#include "language/src/ast/leaves/array_literal.hpp"
 
 namespace lang::parser {
   class Parser {
@@ -85,6 +86,9 @@ namespace lang::parser {
 
     // parse a numeric/boolean literal
     std::unique_ptr<ast::LiteralNode> parse_literal();
+
+    // parse an array literal
+    std::unique_ptr<ast::ArrayLiteralNode> parse_array_literal();
 
     // parse a term - a number, symbol reference, bracketed expression etc.
     std::unique_ptr<ast::Node> parse_term();

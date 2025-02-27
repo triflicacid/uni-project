@@ -29,7 +29,7 @@ std::deque<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(con
   std::deque<std::reference_wrapper<const Operator>> matches;
   for (auto& [id, op] : operators) {
     if (op->op() == symbol)
-      matches.push_back(*op);
+      matches.push_back(std::cref(*op));
   }
 
   return matches;
@@ -98,7 +98,7 @@ lang::ops::select_candidate(const std::string& symbol, const ast::type::Function
   return {};
 }
 
-bool lang::ops::UserDefinedOperator::invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
+bool lang::ops::UserDefinedOperator::invoke(lang::Context &ctx, const std::deque<std::unique_ptr<ast::Node>> &args, value::Value &return_value, const InvocationOptions& options) const {
   // ensure the function is defined
   if (!symbol().define(ctx))
     return false;
@@ -108,26 +108,32 @@ bool lang::ops::UserDefinedOperator::invoke(lang::Context &ctx, const std::deque
   assert(function_loc.has_value());
 
   return ops::call_function(
-      ctx.symbols.resolve_location(function_loc->get()),
+      function_loc->get().resolve(),
       symbol().full_name(),
       type(),
       args,
       {},
       return_value,
+      {},
       ctx
   );
 }
 
-bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
+bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, const InvocationOptions& options) const {
   // generate & accumulate argument values
   std::deque<std::reference_wrapper<const value::Value>> arg_values;
-  for (auto& arg : args) {
+  for (int i = 0; i < args.size(); i++) {
+    auto& arg = args[i];
     if (!arg->generate_code(ctx)) return false;
-    if (!arg->value().is_rvalue()) {
-      ctx.messages.add(util::error_expected_lrvalue(*arg, arg->value().type(), false));
+
+    // materialise value, check if rvalue
+    auto& value = arg->value();
+    value.materialise(ctx);
+    if (!value.is_rvalue()) {
+      ctx.messages.add(util::error_expected_lrvalue(*arg, value.type(), false));
       return false;
     }
-    arg_values.push_back(arg->value());
+    arg_values.push_back(value);
   }
 
   // generate code, attach rvalue reference
@@ -151,10 +157,10 @@ bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::uniq
   return true;
 }
 
-bool lang::ops::RelationalBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
+bool lang::ops::RelationalBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, const InvocationOptions& options) const {
   // if no condition, proceed as normal
-  if (!conditional.has_value()) {
-    return BuiltinOperator::invoke(ctx, args, return_value, conditional);
+  if (!options.conditional) {
+    return BuiltinOperator::invoke(ctx, args, return_value, options);
   }
 
   // relational operators *must* be binary
@@ -184,29 +190,29 @@ bool lang::ops::RelationalBuiltinOperator::invoke(Context& ctx, const std::deque
   print_code(ctx.program.current().back().comment());
 
   // conditional jump(s) to true and false destination blocks
-  conditional->get().generate_branches(ctx.program.current(), flag_);
+  options.conditional->get().generate_branches(ctx.program.current(), flag_);
 
   return true;
 }
 
-bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
+bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, const InvocationOptions& options) const {
   // if no condition, proceed as normal
-  if (!conditional.has_value()) {
-    return BuiltinOperator::invoke(ctx, args, return_value, conditional);
+  if (!options.conditional) {
+    return BuiltinOperator::invoke(ctx, args, return_value, options);
   }
 
   // we must be unary
   assert(args.size() == 1);
 
   // propagate the inverse conditional to child
-  control_flow::ConditionalContext inverse = conditional->get().inverse();
+  control_flow::ConditionalContext inverse = options.conditional->get().inverse();
   args.front()->conditional_context(inverse);
 
   // generate child's code
   if (!args.front()->generate_code(ctx)) return false;
 
   // was the inverse handled?
-  conditional->get().handled = true;
+  options.conditional->get().handled = true;
   if (inverse.handled) {
     return true;
   }
@@ -221,21 +227,21 @@ static unsigned int lazy_op_current_id = 0;
 lang::ops::LazyLogicalOperator::LazyLogicalOperator(std::string symbol, const lang::ast::type::FunctionNode& type, bool is_and)
     : BuiltinOperator(std::move(symbol), type, nullptr), and_(is_and) {}
 
-bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional) const {
+bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, const InvocationOptions& options) const {
   const unsigned int id = lazy_op_current_id++;
 
   // represent the RHS of the binary op
   auto rhs_block = assembly::BasicBlock::labelled("rhs_" + std::to_string(id));
   rhs_block->comment() << "rhs of " << op();
 
-  if (conditional.has_value()) {
+  if (options.conditional) {
     // handle LHS - do we need both, or just one?
     control_flow::ConditionalContext cond_ctx;
     if (and_) {
       cond_ctx.if_true = *rhs_block;
-      cond_ctx.if_false = conditional->get().if_false;
+      cond_ctx.if_false = options.conditional->get().if_false;
     } else {
-      cond_ctx.if_true = conditional->get().if_true;
+      cond_ctx.if_true = options.conditional->get().if_true;
       cond_ctx.if_false = *rhs_block;
     }
 
@@ -247,9 +253,9 @@ bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::
     // handle RHS, use original conditional
     ctx.program.insert(assembly::Position::Next, std::move(rhs_block));
     auto& rhs = *args.back();
-    rhs.conditional_context(conditional->get());
+    rhs.conditional_context(options.conditional->get());
     if (!rhs.generate_code(ctx)) return false;
-    if (!conditional->get().handled && !conditional->get().generate_branches(ctx, rhs, rhs.value())) return false;
+    if (!options.conditional->get().handled && !options.conditional->get().generate_branches(ctx, rhs, rhs.value())) return false;
 
     return true;
   }

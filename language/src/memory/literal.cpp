@@ -5,6 +5,7 @@
 #include "ast/types/float.hpp"
 #include "config.hpp"
 #include "ast/types/bool.hpp"
+#include "ast/types/array.hpp"
 
 std::string lang::memory::Literal::to_string() const {
   if (auto int_ = type_.get_int()) {
@@ -59,4 +60,9 @@ const lang::memory::Literal& lang::memory::Literal::zero(const lang::ast::type::
 
 const lang::memory::Literal& lang::memory::Literal::get_boolean(bool b) {
   return get(ast::type::boolean, b ? 1 : 0);
+}
+
+bool lang::memory::Literal::operator==(const lang::memory::Literal& other) const {
+  if (type_.get_array() || other.type_.get_array()) return false; // arrays are never equal
+  return type_ == other.type_ && data_ == other.data_;
 }

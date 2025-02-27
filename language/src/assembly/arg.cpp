@@ -38,18 +38,22 @@ std::unique_ptr<lang::assembly::Arg> lang::assembly::Arg::reg_indirect(uint8_t r
   return std::make_unique<Arg>(constants::inst::reg_indirect, shifted | reg);
 }
 
-std::unique_ptr<lang::assembly::LabelArg> lang::assembly::Arg::label(const std::string& label) {
-  return std::make_unique<LabelArg>(label);
+std::unique_ptr<lang::assembly::LabelArg> lang::assembly::Arg::label(const std::string& label, int offset) {
+  return std::make_unique<LabelArg>(label, offset);
 }
 
-std::unique_ptr<lang::assembly::BlockReferenceArg> lang::assembly::Arg::label(const lang::assembly::BasicBlock& block) {
-  return std::make_unique<BlockReferenceArg>(block);
+std::unique_ptr<lang::assembly::BlockReferenceArg> lang::assembly::Arg::label(const lang::assembly::BasicBlock& block, int offset) {
+  return std::make_unique<BlockReferenceArg>(block, offset);
 }
 
 std::ostream& lang::assembly::LabelArg::print(std::ostream& os) const {
-  return os << label_;
+  os << label_;
+  if (offset_ != 0) os << " + " << offset_;
+  return os;
 }
 
 std::ostream& lang::assembly::BlockReferenceArg::print(std::ostream& os) const {
-  return os << block_.label();
+  os << block_.label();
+  if (offset_ != 0) os << " + " << offset_;
+  return os;
 }

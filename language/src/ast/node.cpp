@@ -20,7 +20,7 @@ optional_ref<const lang::value::Value> lang::ast::process_node_and_expect(Node& 
   return value;
 }
 
-const lang::value::Value& lang::ast::Node::value() const {
+lang::value::Value& lang::ast::Node::value() const {
   return value_
     ? *value_
     : *value::unit_value_instance;

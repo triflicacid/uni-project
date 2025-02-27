@@ -14,9 +14,10 @@ namespace lang::assembly {
   // an argument which references a label
   class LabelArg : public BaseArg {
     const std::string label_;
+    int offset_;
 
   public:
-    LabelArg(const std::string& label) : label_(label) {}
+    LabelArg(const std::string& label, int offset) : label_(label), offset_(offset) {}
 
     std::ostream& print(std::ostream &os) const override;
   };
@@ -27,9 +28,10 @@ namespace lang::assembly {
   // error is BasicBlock does not have a label
   class BlockReferenceArg : public BaseArg {
     const BasicBlock& block_;
+    int offset_;
 
   public:
-    BlockReferenceArg(const BasicBlock& block) : block_(block) {}
+    BlockReferenceArg(const BasicBlock& block, int offset) : block_(block), offset_(offset) {}
 
     std::ostream& print(std::ostream &os) const override;
   };
@@ -57,9 +59,9 @@ namespace lang::assembly {
     static std::unique_ptr<Arg> reg_indirect(uint8_t reg, int32_t offset = 0);
 
     // create an argument to a label
-    static std::unique_ptr<LabelArg> label(const std::string& label);
+    static std::unique_ptr<LabelArg> label(const std::string& label, int offset = 0);
 
     // create an argument referencing a BasicBlock
-    static std::unique_ptr<BlockReferenceArg> label(const lang::assembly::BasicBlock& block);
+    static std::unique_ptr<BlockReferenceArg> label(const assembly::BasicBlock& block, int offset = 0);
   };
 }

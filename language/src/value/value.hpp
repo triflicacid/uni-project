@@ -5,6 +5,12 @@
 #include "lvalue.hpp"
 #include "rvalue.hpp"
 #include "optional_ref.hpp"
+#include "messages/list.hpp"
+#include "materialisation_options.hpp"
+
+namespace lang {
+  struct Context;
+}
 
 namespace lang::ast::type {
   class Node;
@@ -12,6 +18,7 @@ namespace lang::ast::type {
 
 namespace lang::value {
   class SymbolRef;
+  class Literal;
 
   class Value {
     std::unique_ptr<LValue> lvalue_; // store lvalue, if applicable
@@ -23,7 +30,7 @@ namespace lang::value {
     Value(const ast::type::Node& type);
 
     // copy ourself deeply (copies l/rvalue components)
-    std::unique_ptr<Value> copy() const;
+    virtual std::unique_ptr<Value> copy() const;
 
     const ast::type::Node& type() const { return type_; }
 
@@ -45,7 +52,13 @@ namespace lang::value {
 
     void rvalue(const memory::Ref& ref);
 
+    // attempt to materialise into an rvalue, return if any value was actually stored
+    virtual bool materialise(Context& ctx, const MaterialisationOptions& options = {})
+    { return false; }
+
     virtual const SymbolRef* get_symbol_ref() const { return nullptr; }
+
+    virtual const Literal* get_literal() const { return nullptr; }
   };
 
   // create a generic value
@@ -53,9 +66,6 @@ namespace lang::value {
 
   // create an rvalue
   std::unique_ptr<Value> rvalue(const ast::type::Node& type, const memory::Ref& ref);
-
-  // create a literal rvalue
-  std::unique_ptr<Value> literal(const memory::Literal& lit, const memory::Ref& ref);
 
   // create a unit value
   std::unique_ptr<Value> unit_value();

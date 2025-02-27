@@ -5,6 +5,7 @@
 #include <deque>
 #include "optional_ref.hpp"
 #include "control-flow/conditional_context.hpp"
+#include "memory/storage_location.hpp"
 
 namespace message {
   class MessageGenerator;
@@ -30,6 +31,10 @@ namespace lang {
 namespace lang::ops {
   using OperatorId = unsigned int;
 
+  struct InvocationOptions {
+    optional_ref<control_flow::ConditionalContext> conditional;
+  };
+
   class Operator {
     OperatorId id_;
     std::string op_;
@@ -49,7 +54,7 @@ namespace lang::ops {
     std::ostream& print_code(std::ostream& os) const;
 
     // invoke the given operator
-    virtual bool invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, optional_ref<control_flow::ConditionalContext> conditional = std::nullopt) const = 0;
+    virtual bool invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, const InvocationOptions& options) const = 0;
 
     // are we built-in or overloaded
     virtual bool builtin() const = 0;

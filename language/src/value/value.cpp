@@ -1,11 +1,13 @@
-#include "symbol.hpp"
+#include "future.hpp"
 #include "context.hpp"
 #include "message_helper.hpp"
 #include "value.hpp"
 #include "ast/types/unit.hpp"
 #include "lvalue.hpp"
 #include "rvalue.hpp"
-
+#include "ast/types/int.hpp"
+#include "operators/builtins.hpp"
+#include "assembly/create.hpp"
 
 lang::value::Value::Value() : type_(ast::type::unit) {}
 
@@ -44,19 +46,27 @@ void lang::value::Value::lvalue(const lang::symbol::Symbol& symbol) {
 }
 
 std::unique_ptr<lang::value::Value> lang::value::Value::copy() const {
-  auto copy = std::unique_ptr<Value>();
+  auto copy = std::make_unique<Value>();
+  copy->type_ = type_;
   if (rvalue_) copy->rvalue(rvalue_->copy());
   if (lvalue_) copy->lvalue(lvalue_->copy());
   return copy;
 }
 
-std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(const message::MessageGenerator& source, optional_ref<message::List> messages, optional_ref<const ast::type::Node> type_hint) const {
+std::unique_ptr<lang::value::Value> lang::value::SymbolRef::copy() const {
+  auto copy = std::make_unique<SymbolRef>(name_, overload_set_);
+  if (is_rvalue()) copy->rvalue(rvalue().copy());
+  if (is_lvalue()) copy->lvalue(lvalue().copy());
+  return copy;
+}
+
+bool lang::value::SymbolRef::resolve(const message::MessageGenerator& source, optional_ref<message::List> messages, optional_ref<const ast::type::Node> type_hint) {
   auto candidates = overload_set_;
 
   // if no candidates, this symbol does not exist
   if (candidates.empty()) {
     if (messages.has_value()) messages->get().add(util::error_symbol_not_found(source, name_));
-    return nullptr;
+    return false;
   }
 
   // if more than one candidate, match against type hint
@@ -74,7 +84,7 @@ std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(const messa
         messages->get().add(util::error_cannot_match_type_hint(source, name_, type_hint->get()));
         util::note_candidates(candidates, messages->get());
       }
-      return nullptr;
+      return false;
     }
 
     candidates = matches;
@@ -86,14 +96,42 @@ std::unique_ptr<lang::value::Symbol> lang::value::SymbolRef::resolve(const messa
       messages->get().add(util::error_ambiguous_reference(source, name_));
       util::note_candidates(candidates, messages->get());
     }
-    return nullptr;
+    return false;
   }
 
   // fetch symbol
   symbol::Symbol& symbol = candidates.front().get();
 
-  // create Value instance
-  return std::make_unique<value::Symbol>(symbol);
+  // create and set lvalue
+  lvalue(std::make_unique<value::Symbol>(symbol));
+  return true;
+}
+
+bool lang::value::SymbolRef::materialise(Context& ctx, const MaterialisationOptions& options) {
+  // assume we have been resolved
+  assert(is_lvalue() && lvalue().get_symbol());
+
+  // get the symbol and its location
+  const symbol::Symbol& symbol = lvalue().get_symbol()->get();
+  auto location = ctx.symbols.locate(symbol.id());
+
+  // if symbol has no location, that's tough
+  if (!location) return true;
+
+  // load location into a register, this is our rvalue
+  memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(symbol);
+  ref = ctx.reg_alloc_manager.guarantee_register(ref);
+  rvalue(ref);
+
+  // if location is already in target, or we have no target, return
+  if (!options.target || options.target->get() == location->get()) return true;
+
+  // otherwise, copy is needs be
+  if (options.copy_or_move && symbol.type().reference_as_ptr()) {
+    ops::mem_copy(ctx, ref, *this, options.target->get().resolve());
+  }
+
+  return true;
 }
 
 lang::value::Symbol::Symbol(const symbol::Symbol& symbol) : LValue(symbol.type()), symbol_(symbol) {}
@@ -126,9 +164,17 @@ std::unique_ptr<lang::value::Value> lang::value::unit_value() {
 
 const std::unique_ptr<lang::value::Value> lang::value::unit_value_instance = unit_value();
 
+std::unique_ptr<lang::value::Value> lang::value::literal(const lang::memory::Literal& lit) {
+  return std::make_unique<Literal>(lit);
+}
+
+std::unique_ptr<lang::value::Value> lang::value::contiguous_literal(const lang::ast::type::Node& type, ContiguousLiteral::Elements elements, bool is_global) {
+  return std::make_unique<ContiguousLiteral>(type, std::move(elements), is_global);
+}
+
 std::unique_ptr<lang::value::Value> lang::value::literal(const lang::memory::Literal& lit, const lang::memory::Ref& ref) {
-  auto value = value::value();
-  value->rvalue(std::make_unique<Literal>(lit, ref));
+  auto value = literal(lit);
+  value->rvalue(ref);
   return value;
 }
 
@@ -144,6 +190,97 @@ std::unique_ptr<lang::value::RValue> lang::value::RValue::copy() const {
   return std::make_unique<RValue>(type_, ref_);
 }
 
-std::unique_ptr<lang::value::RValue> lang::value::Literal::copy() const {
-  return std::make_unique<Literal>(lit_, ref());
+std::unique_ptr<lang::value::Value> lang::value::Literal::copy() const {
+  auto copy = std::make_unique<Literal>(lit_);
+  if (is_rvalue()) copy->rvalue(rvalue().copy());
+  if (is_lvalue()) copy->lvalue(lvalue().copy());
+  return copy;
+}
+
+bool lang::value::Literal::materialise(lang::Context& ctx, const lang::value::MaterialisationOptions& options) {
+  // load and set rvalue
+  memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(lit_);
+  ref = ctx.reg_alloc_manager.guarantee_register(ref);
+  rvalue(ref);
+
+  // if target is not provided, exit
+  if (!options.target) return false;
+
+  // move/copy into target
+  auto target_arg = options.target->get().resolve();
+  if (options.copy_or_move && lit_.type().reference_as_ptr()) {
+    ops::mem_copy(ctx, ref, *this, std::move(target_arg));
+  } else {
+    ctx.program.current().add(assembly::create_store(
+        ref.offset,
+        std::move(target_arg)
+      ));
+  }
+
+  return true;
+}
+
+lang::value::ContiguousLiteral::ContiguousLiteral(const lang::ast::type::Node& type, Elements elements, bool is_global)
+  : Value(type), elements_(std::move(elements)), global_(is_global) {}
+
+std::unique_ptr<lang::value::Value> lang::value::ContiguousLiteral::copy() const {
+  auto copy = std::make_unique<ContiguousLiteral>(type(), elements_, global_);
+  if (is_rvalue()) copy->rvalue(rvalue().copy());
+  if (is_lvalue()) copy->lvalue(lvalue().copy());
+  return copy;
+}
+
+bool lang::value::ContiguousLiteral::materialise(lang::Context& ctx, const lang::value::MaterialisationOptions& options) {
+  // location of contiguous block, note this always has a value
+  memory::StorageLocation location = memory::StorageLocation::stack(0); // temporary
+
+  // allocate space for us if we need
+  if (options.target) {
+    location = options.target->get();
+  } else {
+    optional_ref<std::stringstream> comment;
+
+    if (global_) {
+      // create block to reside in
+      auto block = assembly::BasicBlock::labelled();
+      location = memory::StorageLocation::global(*block);
+      comment = block->comment();
+
+      // insert into program
+      auto& cursor = ctx.program.current();
+      ctx.program.insert(assembly::Position::End, std::move(block));
+      ctx.program.select(cursor);
+    } else {
+      // allocate space on the stack
+      ctx.stack_manager.push(type().size());
+      location = memory::StorageLocation::stack(ctx.stack_manager.offset());
+      comment = ctx.program.current().back().comment();
+    }
+
+    // add comment
+    comment->get() << "literal: ";
+    type().print_code(comment->get());
+  }
+
+  // materialise our children
+  int offset = 0;
+  for (Value& element : elements_) {
+    // adjust location to child
+    if (offset) location = location + offset;
+
+    // attempt to materialise child
+    if (!element.materialise(ctx, {location, options.copy_or_move})) return false;
+
+    // increase offset according to child's size
+    offset += element.type().size();
+  }
+
+  // if we haven't got a target (temporary) and this is the outer block, load reference
+  if (!options.target) {
+    memory::Ref ref = ctx.reg_alloc_manager.insert({value::value(type())});
+    ref = ctx.reg_alloc_manager.guarantee_register(ref);
+    rvalue(ref);
+  }
+
+  return true;
 }

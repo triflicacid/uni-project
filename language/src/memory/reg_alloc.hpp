@@ -3,7 +3,7 @@
 #include <memory>
 #include <stack>
 #include "constants.hpp"
-#include "ast/expr/literal.hpp"
+#include "language/src/ast/leaves/literal.hpp"
 #include "assembly/program.hpp"
 #include "symbol/table.hpp"
 #include "ref.hpp"

@@ -4,19 +4,17 @@
 #include "ast/types/function.hpp"
 #include "operators/operator.hpp"
 #include "context.hpp"
-#include "operators/builtin.hpp"
 #include "ast/types/namespace.hpp"
-#include "ast/expr/symbol_reference.hpp"
+#include "language/src/ast/leaves/symbol_reference.hpp"
 #include "ast/namespace.hpp"
 #include "message_helper.hpp"
-#include "value/symbol.hpp"
+#include "value/future.hpp"
 #include "ast/types/graph.hpp"
 #include "ast/types/int.hpp"
 #include "ast/types/pointer.hpp"
 #include "assembly/create.hpp"
 #include "ast/function/function.hpp"
 #include "operators/user_defined.hpp"
-#include "symbol/function.hpp"
 #include "operators/builtins.hpp"
 #include "ast/types/bool.hpp"
 
@@ -142,12 +140,16 @@ std::string lang::ast::OverloadableOperatorNode::to_string() const {
   return s.str();
 }
 
-bool lang::ast::OverloadableOperatorNode::generate_code(lang::Context& ctx) {
+bool lang::ast::OverloadableOperatorNode::generate_code(Context& ctx) {
   if (special_pointer_op_) {
     // generate code for arguments and check if rvalues
-    for (int i = 0; i < 2; i++) {
-      if (!arg(i).generate_code(ctx) || !expect_arg_lrvalue(i, ctx.messages, false)) return false;
-    }
+    if (!arg(0).generate_code(ctx)) return false;
+    arg(0).value().materialise(ctx);
+    if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
+
+    if (!arg(1).generate_code(ctx)) return false;
+    arg(1).value().materialise(ctx);
+    if (!expect_arg_lrvalue(1, ctx.messages, false)) return false;
 
     // generate code for pointer arithmetic operation
     memory::Ref result = ops::pointer_arithmetic(ctx, arg(0).value(), arg(1).value(), op_symbol_.image == "-", true);
@@ -163,7 +165,7 @@ bool lang::ast::OverloadableOperatorNode::generate_code(lang::Context& ctx) {
       ctx,
       args_,
       *value_,
-      conditional_context()
+      ops::InvocationOptions(conditional_context())
   );
 }
 
@@ -227,11 +229,13 @@ bool lang::ast::CStyleCastOperatorNode::process(lang::Context& ctx) {
 }
 
 bool lang::ast::CStyleCastOperatorNode::generate_code(lang::Context& ctx) {
-  // argument must be an rvalue
-  if (!arg(0).resolve(ctx) || !expect_arg_lrvalue(0, ctx.messages, false)) return false;
+  if (!arg(0).resolve(ctx) || !arg(0).generate_code(ctx)) return false;
+  auto& value = arg(0).value();
+  value.materialise(ctx);
+  if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
   // fetch reference to arg and convert
-  memory::Ref ref = arg(0).value().rvalue().ref();
+  memory::Ref ref = value.rvalue().ref();
   ref = ctx.reg_alloc_manager.guarantee_datatype(ref, target_);
 
   // update rvalue
@@ -294,10 +298,8 @@ bool lang::ast::DotOperatorNode::process(lang::Context& ctx) {
 
 bool lang::ast::DotOperatorNode::resolve(Context& ctx) {
   // if we are a symbol reference, resolve it
-  if (auto symbol_ref = value().get_symbol_ref()) {
-    auto resolved = symbol_ref->resolve(*this, ctx.messages, type_hint());
-    if (!resolved) return false;
-    value_->lvalue(std::move(resolved));
+  if (value_->get_symbol_ref()) {
+    return static_cast<value::SymbolRef&>(*value_).resolve(*this, ctx.messages, type_hint());
   }
 
   return true;
@@ -324,7 +326,13 @@ bool lang::ast::DotOperatorNode::generate_code(lang::Context& ctx) {
 
   // otherwise, get the property
   assert(!property_.empty());
-  if (!arg(0).value().type().get_property(ctx, *value_, property_)) {
+  if (!(value_ = arg(0).value().type().get_property(ctx, property_))) {
+    return false;
+  }
+
+  value_->materialise(ctx);
+  if (!value_->is_rvalue()) {
+    ctx.messages.add(util::error_expected_lrvalue(arg(0), value_->type(), false));
     return false;
   }
 
@@ -397,12 +405,15 @@ bool lang::ast::AssignmentOperatorNode::process(lang::Context& ctx) {
 
 bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) {
   // generate RHS, assert it is an rvalue
-  if (!arg(1).generate_code(ctx) || !expect_arg_lrvalue(1, ctx.messages, false)) return false;
-  const auto& rhs_value = arg(1).value();
+  if (!arg(1).generate_code(ctx)) return false;
+  auto& rhs_value = arg(1).value();
+  rhs_value.materialise(ctx); // TODO get target from LHS?
+  if (!expect_arg_lrvalue(1, ctx.messages, false)) return false;
 
   // generate LHS, assert it is an lvalue
-  if (!arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, true)) return false;
-  const auto& lhs_value = arg(0).value();
+  if (!arg(0).generate_code(ctx)) return false;
+  auto& lhs_value = arg(0).value();
+  if (!expect_arg_lrvalue(0, ctx.messages, true)) return false;
 
   // update value_ to point to LHS
   value_->lvalue(lhs_value.lvalue().copy());
@@ -485,11 +496,15 @@ bool lang::ast::CastOperatorNode::process(lang::Context& ctx) {
 
 bool lang::ast::CastOperatorNode::generate_code(lang::Context& ctx) {
   // generate argument code & assure rvalue
-  if (!arg(0).resolve(ctx) || !arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, false)) return false;
+  if (!arg(0).resolve(ctx) || !arg(0).generate_code(ctx)) return false;
 
   // get argument's original value
   auto& value = arg(0).value();
   auto& type = value.type();
+
+  // materialise and ensure we have an rvalue
+  value.materialise(ctx);
+  if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
   // if not sudo, we cannot cast if:
   // - functional and do not match
@@ -529,7 +544,7 @@ bool lang::ast::AddressOfOperatorNode::process(lang::Context& ctx) {
   if (!arg.resolve(ctx)) return false;
 
   // if lvalue/reference-like
-  if ((value.is_lvalue() && value.lvalue().get_ref()) || value.type().reference_as_ptr()) {
+  if (value.is_lvalue() || value.type().reference_as_ptr()) {
     // set our type to the wrapped input type
     auto& ptr_type = type::PointerNode::get(value.type());
     value_ = value::value(ptr_type);
@@ -584,9 +599,10 @@ bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) {
   }
 
   // otherwise, we will use a reference
-  const memory::Ref& ref = value.type().reference_as_ptr()
-      ? value.rvalue().ref()
-      : value.lvalue().get_ref()->get();
+  value.materialise(ctx);
+  const memory::Ref& ref = value.is_lvalue() && value.lvalue().get_ref()
+      ? value.lvalue().get_ref()->get()
+      : value.rvalue().ref();
 
   // update value_ & object
   memory::Object& object = ctx.reg_alloc_manager.find(ref);
@@ -628,10 +644,12 @@ bool lang::ast::DereferenceOperatorNode::process(lang::Context& ctx) {
 
 bool lang::ast::DereferenceOperatorNode::generate_code(lang::Context& ctx) {
   // generate argument, expect rvalue
-  if (!arg(0).generate_code(ctx) || !expect_arg_lrvalue(0, ctx.messages, false)) return false;
+  if (!arg(0).generate_code(ctx)) return false;
+  auto& pointer_value = arg(0).value();
+  pointer_value.materialise(ctx);
+  if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
   // get the source (pointer location)
-  auto& pointer_value = arg(0).value();
   memory::Ref src = pointer_value.rvalue().ref();
   src = ctx.reg_alloc_manager.guarantee_register(src);
 
@@ -848,13 +866,19 @@ bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
 
     auto location = ctx.symbols.locate(symbol_->get().id());
     assert(location.has_value());
-    arg = ctx.symbols.resolve_location(location->get());
+    arg = location->get().resolve();
   } else {
-    // otherwise, generate subject's code
+    // otherwise, generate subject's code (must be an rvalue)
     if (!subject_->generate_code(ctx)) return false;
+    auto& value = subject_->value();
+    value.materialise(ctx);
+    if (!value.is_rvalue()) {
+      ctx.messages.add(util::error_expected_lrvalue(*subject_, value.type(), false));
+     return false;
+    }
 
     // load into a register (functional types are always rvalues)
-    const memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(subject_->value().rvalue().ref());
+    const memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(value.rvalue().ref());
     arg = assembly::Arg::reg(ref.offset);
   }
 
@@ -865,6 +889,7 @@ bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
       args_,
       {},
       *value_,
+      target(),
       ctx
   );
 }
@@ -906,7 +931,8 @@ bool lang::ast::SizeOfOperatorNode::generate_code(lang::Context& ctx) {
   // load the size of the type into a register
   const memory::Literal& lit = memory::Literal::get(value_->type(), type->get().size());
   memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(lit);
-  value_->rvalue(std::make_unique<value::Literal>(lit, ref));
+//  value_ = value::literal(lit, ref);
+  value_->rvalue(ref); // TODO mark as literal somehow?
 
   // add comment
   auto& comment = ctx.program.current().back().comment();
@@ -974,9 +1000,13 @@ bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) {
   // check if we have a pointer/array LHS
   if (auto& lhs = arg(0).value(); lhs.type().get_pointer() || lhs.type().get_array()) {
     // generate both arguments, check if rvalues
-    for (int i = 0; i < 2; i++) {
-      if (!arg(i).generate_code(ctx) || !expect_arg_lrvalue(i, ctx.messages, false)) return false;
-    }
+    if (!arg(0).generate_code(ctx)) return false;
+    arg(0).value().materialise(ctx);
+    if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
+
+    if (!arg(1).generate_code(ctx)) return false;
+    arg(1).value().materialise(ctx);
+    if (!expect_arg_lrvalue(1, ctx.messages, false)) return false;
 
     int index = ctx.program.current().size();
 
@@ -1005,7 +1035,7 @@ bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) {
       ctx,
       args_,
       *value_,
-      conditional_context()
+      {conditional_context()}
   );
 }
 
@@ -1039,5 +1069,5 @@ bool lang::ast::LazyLogicalOperator::process(lang::Context& ctx) {
 
 bool lang::ast::LazyLogicalOperator::generate_code(lang::Context& ctx) {
   const ops::Operator& op = ops::get(op_symbol_.image).front();
-  return op.invoke(ctx, args_, *value_, conditional_context());
+  return op.invoke(ctx, args_, *value_, {conditional_context()});
 }

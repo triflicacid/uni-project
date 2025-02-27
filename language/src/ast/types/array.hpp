@@ -10,7 +10,6 @@ namespace lang::ast::type {
 
   public:
     ArrayNode(const ast::type::Node& inner, size_t size);
-    explicit ArrayNode(const ast::type::Node& inner);
 
     const ArrayNode* get_array() const override { return this; }
 
@@ -18,7 +17,7 @@ namespace lang::ast::type {
 
     optional_ref<const Node> get_property_type(const std::string &property) const override;
 
-    bool get_property(Context &ctx, value::Value& result, const std::string &property) const override;
+    std::unique_ptr<value::Value> get_property(Context &ctx, const std::string &property) const override;
 
     // this return the size of the array, i.e., unwrap.size() * size_
     size_t size() const override;

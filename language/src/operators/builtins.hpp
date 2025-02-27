@@ -5,6 +5,8 @@
 #include "constants.hpp"
 #include "assembly/arg.hpp"
 #include "memory/ref.hpp"
+#include "memory/storage_location.hpp"
+#include "optional_ref.hpp"
 
 namespace lang {
   struct Context;
@@ -48,7 +50,7 @@ namespace lang::ops {
   // generate a call to function pointed to by argument
   // save stack frame, registers, prepare args, etc.
   // return if success
-  bool call_function(std::unique_ptr<assembly::BaseArg> function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, const std::unordered_set<int>& args_to_ignore, value::Value& return_value, Context& ctx);
+  bool call_function(std::unique_ptr<assembly::BaseArg> function, const std::string& name, const ast::type::FunctionNode& signature, const std::deque<std::unique_ptr<ast::Node>>& args, const std::unordered_set<int>& args_to_ignore, value::Value& return_value, optional_ref<const memory::StorageLocation> target, Context& ctx);
 
   // pointer addition: r = a <op> b * c where `a` is ptr, `b` is offset, `c` is size
   // <op> is either `add` or `sub` depending on flag

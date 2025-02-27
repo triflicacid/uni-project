@@ -23,7 +23,7 @@ std::ostream& lang::ast::ReturnNode::print_tree(std::ostream& os, unsigned int i
   return os;
 }
 
-const lang::value::Value& lang::ast::ReturnNode::value() const {
+lang::value::Value& lang::ast::ReturnNode::value() const {
   return expr_.has_value()
     ? expr_.value()->value()
     : *value::unit_value_instance;
@@ -89,8 +89,17 @@ bool lang::ast::ReturnNode::generate_code(lang::Context& ctx) {
     return true;
   }
 
+  auto& value = this->value();
+
+  // materialise and ensure we have an rvalue
+  value.materialise(ctx);
+  if (!value.is_rvalue()) {
+    ctx.messages.add(util::error_expected_lrvalue(*expr_.value(), value.type(), false));
+    return false;
+  }
+
   // otherwise, return a value
-  memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(value().rvalue().ref());
+  memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(value.rvalue().ref());
   ctx.program.current().add(assembly::create_return(assembly::Arg::reg(ref.offset)));
 
   return true;

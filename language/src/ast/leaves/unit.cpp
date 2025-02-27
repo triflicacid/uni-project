@@ -8,6 +8,6 @@ bool lang::ast::UnitNode::process(lang::Context& ctx) {
   return true;
 }
 
-const lang::value::Value& lang::ast::UnitNode::value() const {
+lang::value::Value& lang::ast::UnitNode::value() const {
   return *value::unit_value_instance;
 }

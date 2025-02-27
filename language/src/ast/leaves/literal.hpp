@@ -4,7 +4,7 @@
 #include "memory/literal.hpp"
 
 namespace lang::ast {
-  // describe a float or int literal
+  // describe a scalar literal
   // essentially a node wrapper around memory::Literal
   class LiteralNode : public Node {
     optional_ref<const memory::Literal> lit_;
@@ -24,8 +24,6 @@ namespace lang::ast {
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    bool process(lang::Context &ctx) override;
-
-    bool generate_code(Context &ctx) override;
+    bool process(Context &ctx) override;
   };
 }

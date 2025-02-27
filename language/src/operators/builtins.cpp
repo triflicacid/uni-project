@@ -526,11 +526,12 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
                               const lang::ast::type::FunctionNode& signature,
                               const std::deque<std::unique_ptr<ast::Node>>& args,
                               const std::unordered_set<int>& args_to_ignore,
-                              lang::value::Value& return_value, lang::Context& ctx) {
+                              lang::value::Value& return_value,
+                              optional_ref<const memory::StorageLocation> target, lang::Context& ctx) {
   // before entering the function: if reference to value, create buffer space to load value
   auto& return_type = signature.returns();
   bool has_return_buffer = false;
-  if ((has_return_buffer = return_type.reference_as_ptr() && return_type.size() > 8)) {
+  if ((has_return_buffer = return_type.reference_as_ptr() && return_type.size() > 8 && !target)) {
     // reserve sufficient space
     ctx.stack_manager.push(return_type.size());
     auto& comment = ctx.program.current().back().comment();
@@ -570,6 +571,7 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
     auto& value = arg->value();
     arg->type_hint(signature.arg(i)); // given arg a type hint
     if (!arg->generate_code(ctx)) return false;
+    value.materialise(ctx);
     if (!value.is_rvalue()) {
       ctx.messages.add(util::error_expected_lrvalue(*arg, value.type(), false));
       return false;
@@ -803,24 +805,24 @@ bool lang::ops::address_of(lang::Context& ctx, const lang::symbol::Symbol& symbo
   if (location.type == memory::StorageLocation::Stack) { // calculate offset from $sp
     const uint64_t stack_offset = ctx.stack_manager.offset();
 
-    if (location.offset == stack_offset) {
+    if (location.base_offset == stack_offset) {
       ctx.program.current().add(assembly::create_load(
           ref.offset,
           assembly::Arg::reg(constants::registers::sp)
       ));
-    } else if (location.offset < stack_offset) {
+    } else if (location.base_offset < stack_offset) {
       ctx.program.current().add(assembly::create_sub(
           constants::inst::datatype::u64,
           ref.offset,
           constants::registers::sp,
-          assembly::Arg::imm(stack_offset - location.offset)
+          assembly::Arg::imm(stack_offset - location.base_offset)
       ));
     } else {
       ctx.program.current().add(assembly::create_add(
           constants::inst::datatype::u64,
           ref.offset,
           constants::registers::sp,
-          assembly::Arg::imm(location.offset - location.offset)
+          assembly::Arg::imm(location.base_offset - location.base_offset)
       ));
     }
   } else {
@@ -880,7 +882,7 @@ void lang::ops::mem_copy(Context& ctx, const memory::Ref& src, const value::Valu
       old_r2 = ctx.reg_alloc_manager.save_register(reg);
       block.add(assembly::create_load(
           reg,
-          ctx.symbols.resolve_location(location->get())
+          location->get().resolve()
       ));
     }
   } else {

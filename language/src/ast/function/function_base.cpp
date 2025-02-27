@@ -7,6 +7,7 @@
 #include "config.hpp"
 #include "message_helper.hpp"
 #include "symbol/function.hpp"
+#include "value/future.hpp"
 
 lang::ast::FunctionBaseNode::FunctionBaseNode(lang::lexer::Token token, lexer::Token name, const type::FunctionNode& type,
                                               std::deque<std::unique_ptr<SymbolDeclarationNode>> params)
@@ -236,11 +237,8 @@ bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
       value = value::rvalue(return_type, memory::Ref::reg(constants::registers::ret));
       ctx.program.current().add(assembly::create_return()); // don't bother supplying a value as it'll never be referenced
     } else {
-      value = value::value();
-      value->rvalue(std::make_unique<value::Literal>(
-          memory::Literal::zero(return_type),
-          memory::Ref::reg(constants::registers::ret)
-      ));
+      value = value::literal(memory::Literal::zero(return_type),
+                             memory::Ref::reg(constants::registers::ret));
       ctx.program.current().add(assembly::create_return(assembly::Arg::imm(0))); // return '0' to clear $ret;
     }
     ctx.reg_alloc_manager.update_ret(memory::Object(std::move(value)));

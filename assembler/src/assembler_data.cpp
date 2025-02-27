@@ -18,7 +18,7 @@ namespace assembler {
       return 0;
 
     const auto &last = buffer.back();
-    return last->offset + last->size();
+    return last->base_offset + last->size();
   }
 
   void Data::write(std::ostream &stream) const {

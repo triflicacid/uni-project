@@ -46,7 +46,7 @@ namespace lang::ast {
 
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     // create a unary overloadable operator node
     static std::unique_ptr<OperatorNode> unary(lexer::Token token, std::unique_ptr<Node> expr);
@@ -57,8 +57,8 @@ namespace lang::ast {
 
   // define an overlodable operator - search operatorX(...)
   class OverloadableOperatorNode : public OperatorNode {
-    std::optional<std::reference_wrapper<const type::FunctionNode>> signature_; // signature, set in ::process
-    std::optional<std::reference_wrapper<const ops::Operator>> op_; // resolves operator, set in ::process
+    optional_ref<const type::FunctionNode> signature_; // signature, set in ::process
+    optional_ref<const ops::Operator> op_; // resolves operator, set in ::process
     bool special_pointer_op_ = false; // track if +/- on a pointer as we need to do something special
 
   public:
@@ -67,7 +67,7 @@ namespace lang::ast {
     // "operatorX(...)"
     std::string to_string() const;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -84,7 +84,7 @@ namespace lang::ast {
 
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -100,7 +100,7 @@ namespace lang::ast {
 
     const std::string& symbol() const override { return symbol_; }
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -112,7 +112,7 @@ namespace lang::ast {
   public:
     DotOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool resolve(Context& ctx) override;
 
@@ -124,7 +124,7 @@ namespace lang::ast {
   public:
     AssignmentOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -135,7 +135,7 @@ namespace lang::ast {
   public:
     AddressOfOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -146,7 +146,7 @@ namespace lang::ast {
   public:
     DereferenceOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> expr);
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -169,7 +169,7 @@ namespace lang::ast {
 
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -184,7 +184,7 @@ namespace lang::ast {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -199,7 +199,7 @@ namespace lang::ast {
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };
@@ -211,7 +211,7 @@ namespace lang::ast {
   public:
     LazyLogicalOperator(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs);
 
-    bool process(lang::Context &ctx) override;
+    bool process(Context &ctx) override;
 
     bool generate_code(Context &ctx) override;
   };

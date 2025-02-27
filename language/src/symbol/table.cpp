@@ -140,16 +140,6 @@ optional_ref<const lang::memory::StorageLocation> lang::symbol::SymbolTable::loc
   return {};
 }
 
-std::unique_ptr<lang::assembly::BaseArg>
-lang::symbol::SymbolTable::resolve_location(const lang::memory::StorageLocation& location) const {
-  switch (location.type) {
-    case memory::StorageLocation::Block:
-      return assembly::Arg::label(location.block);
-    case memory::StorageLocation::Stack:
-      return assembly::Arg::reg_indirect(constants::registers::fp, -location.offset); // remember to negate location from $fp as stack grows downwards
-  }
-}
-
 void lang::symbol::SymbolTable::insert(Registry& registry) {
   for (auto& [symbolId, symbol] : registry.symbols_) {
     insert(std::move(symbol));
@@ -205,7 +195,7 @@ void lang::symbol::SymbolTable::assign_symbol(lang::symbol::SymbolId symbol, uin
   const memory::StorageLocation location = maybe_location.value().get();
 
   // store register into symbol (resolved location)
-  auto argument = resolve_location(location);
+  auto argument = location.resolve();
   stack_.program().current().add(assembly::create_store(reg, std::move(argument)));
   auto& comment = stack_.program().current().back().comment();
   comment << get(symbol).full_name() << " = $" << constants::registers::to_string($reg(reg));

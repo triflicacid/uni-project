@@ -6,6 +6,8 @@
 #include "context.hpp"
 #include "uint64.hpp"
 #include "message_helper.hpp"
+#include "assembly/create.hpp"
+#include "value/future.hpp"
 
 const lang::memory::Literal& lang::ast::LiteralNode::get() const {
   assert(lit_.has_value());
@@ -29,12 +31,14 @@ std::ostream &lang::ast::LiteralNode::print_tree(std::ostream &os, unsigned int 
 }
 
 const lang::ast::type::Node& lang::ast::LiteralNode::get_target_numeric_type() const {
-  if (type_hint().has_value() && (type_hint()->get().get_int() || type_hint()->get().get_float())) {
-    return type_hint()->get();
-  } else if (token_start().type == lexer::TokenType::float_lit) {
-    return ast::type::float32;
+  if (token_start().type == lexer::TokenType::float_lit) {
+    return type_hint() && type_hint()->get().get_float()
+      ? type_hint()->get()
+      : ast::type::float32;
   } else {
-    return ast::type::int32;
+    return type_hint() && (type_hint()->get().get_int() || type_hint()->get().get_float())
+           ? type_hint()->get()
+           : ast::type::int32;
   }
 }
 
@@ -77,7 +81,7 @@ bool lang::ast::LiteralNode::process(lang::Context& ctx) {
           value = 0;
           is_error = true;
         }
-      } catch (std::exception e) {
+      } catch (std::exception& e) {
         is_error = true;
       }
 
@@ -92,12 +96,6 @@ bool lang::ast::LiteralNode::process(lang::Context& ctx) {
     }
   }
 
-  value_ = value::value(get().type());
-  return true;
-}
-
-bool lang::ast::LiteralNode::generate_code(lang::Context& ctx) {
-  const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(get());
-  value_->rvalue(std::make_unique<value::Literal>(get(), ref));
+  value_ = value::literal(lit_->get());
   return true;
 }
