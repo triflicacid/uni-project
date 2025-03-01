@@ -163,6 +163,10 @@ namespace lang::parser {
     // parse a namespace
     std::unique_ptr<ast::NamespaceNode> parse_namespace();
 
+    // parse a structure
+    // TODO
+    std::unique_ptr<ast::Node> parse_struct();
+
     // parse a code line in the top-level
     void parse_top_level_line(ast::ContainerNode& container);
 

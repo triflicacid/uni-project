@@ -862,11 +862,9 @@ const lang::lexer::TokenSet lang::parser::firstset::line = lexer::merge_sets({
      lexer::BasicToken(lexer::TokenType::break_kw),
      lexer::BasicToken(lexer::TokenType::const_kw),
      lexer::BasicToken(lexer::TokenType::continue_kw),
-     lexer::BasicToken(lexer::TokenType::func),
      lexer::BasicToken(lexer::TokenType::if_kw),
      lexer::BasicToken(lexer::TokenType::let),
      lexer::BasicToken(lexer::TokenType::loop_kw),
-     lexer::BasicToken(lexer::TokenType::namespace_kw),
      lexer::BasicToken(lexer::TokenType::return_kw),
      lexer::BasicToken(lexer::TokenType::while_kw),
    },
@@ -944,11 +942,6 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
     return;
   }
 
-  if (expect(lexer::TokenType::func)) {
-    block.add(parse_func());
-    return;
-  }
-
   if (expect(lexer::TokenTypeSet{lexer::TokenType::let, lexer::TokenType::const_kw})) {
     parse_var_decl(block);
     return;
@@ -961,11 +954,6 @@ void lang::parser::Parser::parse_line(lang::ast::BlockNode& block) {
 
   if (expect(lexer::TokenType::if_kw)) {
     block.add(parse_if_statement());
-    return;
-  }
-
-  if (expect(lexer::TokenType::namespace_kw)) {
-    block.add(parse_namespace());
     return;
   }
 
@@ -1088,6 +1076,16 @@ std::unique_ptr<lang::ast::NamespaceNode> lang::parser::Parser::parse_namespace(
   return ns;
 }
 
+std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_struct() {
+  // 'struct'
+  const lexer::Token token_start = consume();
+
+  auto msg = token_start.generate_message(message::Error);
+  msg->get() << "structs have not been implemented yet";
+  add_message(std::move(msg));
+  return nullptr;
+}
+
 const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merge_sets({
     {
       lexer::BasicToken(lexer::TokenType::lbrace),
@@ -1098,6 +1096,7 @@ const lang::lexer::TokenSet lang::parser::firstset::top_level_line = lexer::merg
       lexer::BasicToken(lexer::TokenType::loop_kw),
       lexer::BasicToken(lexer::TokenType::namespace_kw),
       lexer::BasicToken(lexer::TokenType::operator_kw),
+      lexer::BasicToken(lexer::TokenType::struct_kw),
       lexer::BasicToken(lexer::TokenType::while_kw),
     },
     firstset::expression,
@@ -1136,6 +1135,11 @@ void lang::parser::Parser::parse_top_level_line(ast::ContainerNode& container) {
 
   if (expect(lexer::TokenType::operator_kw)) {
     container.add(parse_operator_definition());
+    return;
+  }
+
+  if (expect(lexer::TokenType::struct_kw)) {
+    container.add(parse_struct());
     return;
   }
 

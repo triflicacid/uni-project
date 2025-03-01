@@ -56,6 +56,7 @@ namespace lang::lexer {
     operator_kw,
     return_kw,
     sizeof_kw,
+    struct_kw,
     true_kw,
     while_kw,
 

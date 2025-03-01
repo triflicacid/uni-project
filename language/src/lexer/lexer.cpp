@@ -44,6 +44,7 @@ static const std::deque<std::unordered_map<std::string, TokenType>>
       {"null", TokenType::null_kw},
       {"operator", TokenType::operator_kw},
       {"sizeof", TokenType::sizeof_kw},
+      {"struct", TokenType::struct_kw},
       {"return", TokenType::return_kw},
       {"while", TokenType::while_kw},
     }
