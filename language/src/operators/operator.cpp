@@ -128,7 +128,7 @@ bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::uniq
 
     // materialise value, check if rvalue
     auto& value = arg->value();
-    value.materialise(ctx);
+    value.materialise(ctx, arg->token_start().loc);
     if (!value.is_rvalue()) {
       ctx.messages.add(util::error_expected_lrvalue(*arg, value.type(), false));
       return false;
@@ -170,6 +170,7 @@ bool lang::ops::RelationalBuiltinOperator::invoke(Context& ctx, const std::deque
   std::deque<std::reference_wrapper<const value::Value>> arg_values;
   for (auto& arg : args) {
     if (!arg->generate_code(ctx)) return false;
+    arg->value().materialise(ctx, arg->token_start().loc);
     if (!arg->value().is_rvalue()) {
       ctx.messages.add(util::error_expected_lrvalue(*arg, arg->value().type(), false));
       return false;
@@ -203,13 +204,15 @@ bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque
 
   // we must be unary
   assert(args.size() == 1);
+  auto& arg = *args.front();
 
   // propagate the inverse conditional to child
   control_flow::ConditionalContext inverse = options.conditional->get().inverse();
-  args.front()->conditional_context(inverse);
+  arg.conditional_context(inverse);
 
   // generate child's code
-  if (!args.front()->generate_code(ctx)) return false;
+  if (!arg.generate_code(ctx)) return false;
+  arg.value().materialise(ctx, arg.token_start().loc);
 
   // was the inverse handled?
   options.conditional->get().handled = true;
@@ -219,6 +222,7 @@ bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque
 
   // otherwise, we have a Boolean
   // do not call BuiltinOperator::invoke as this will re-generate argument's code
+  // don't update origins - this will be passed to the parent, as branching is up to them
   return inverse.generate_branches(ctx, *args.front(), args.front()->value());
 }
 
@@ -248,14 +252,18 @@ bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::
     auto& lhs = *args.front();
     lhs.conditional_context(cond_ctx);
     if (!lhs.generate_code(ctx)) return false;
+    int index = ctx.program.current().size();
     if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, lhs, lhs.value())) return false;
+    ctx.program.update_line_origins(lhs.token_start().loc, index);
 
     // handle RHS, use original conditional
     ctx.program.insert(assembly::Position::Next, std::move(rhs_block));
     auto& rhs = *args.back();
     rhs.conditional_context(options.conditional->get());
     if (!rhs.generate_code(ctx)) return false;
+    index = ctx.program.current().size();
     if (!options.conditional->get().handled && !options.conditional->get().generate_branches(ctx, rhs, rhs.value())) return false;
+    ctx.program.update_line_origins(rhs.token_start().loc, index);
 
     return true;
   }
@@ -290,7 +298,10 @@ bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::
   auto& lhs = *args.front();
   lhs.conditional_context(cond_ctx);
   if (!lhs.generate_code(ctx)) return false;
+  lhs.value().materialise(ctx, lhs.token_start().loc);
+  int index = ctx.program.current().size();
   if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, lhs, lhs.value())) return false;
+  ctx.program.update_line_origins(lhs.token_end().loc, index);
 
   // RHS portion
   ctx.program.insert(assembly::Position::Next, std::move(rhs_block));
@@ -301,12 +312,18 @@ bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::
   auto& rhs = *args.back();
   rhs.conditional_context(cond_ctx);
   if (!rhs.generate_code(ctx)) return false;
+  rhs.value().materialise(ctx, rhs.token_start().loc);
+  index = ctx.program.current().size();
   if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, rhs, rhs.value())) return false;
+  ctx.program.update_line_origins(rhs.token_end().loc, index);
 
   // insert remaining blocks
   ctx.program.insert(assembly::Position::Next, std::move(true_block));
+  ctx.program.update_line_origins(options.origin, 0);
   ctx.program.insert(assembly::Position::Next, std::move(false_block));
+  ctx.program.update_line_origins(options.origin, 0);
   ctx.program.insert(assembly::Position::Next, std::move(after_block));
+  ctx.program.update_line_origins(options.origin, 0);
 
   // set $ret to a Boolean
   ctx.reg_alloc_manager.update_ret(memory::Object(value::rvalue(

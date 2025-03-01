@@ -78,7 +78,7 @@ namespace lang::ast {
     bool sudo_ = false;
 
   public:
-    CastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr, bool sudo = false);
+    CastOperatorNode(lexer::Token token, lexer::Token symbol, const type::Node& target, std::unique_ptr<Node> expr, bool sudo = false);
 
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
@@ -91,6 +91,7 @@ namespace lang::ast {
 
   // represents (type) expr
   // this is used for basic C-style casting (only primitive types are permitted)
+  // @deprecated TODO remove
   class CStyleCastOperatorNode : public OperatorNode {
     const type::Node& target_;
     std::string symbol_; // (type) symbol, stored for future reference (printing)

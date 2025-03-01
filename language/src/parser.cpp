@@ -425,7 +425,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal
       info = &ops::builtin_binary.at("as");
       // exit if lower precedence - some things are tighter than a 'as'
       if (precedence >= info->precedence) break;
-      consume();
+      const lexer::Token as_token = consume();
       // are we sudo or not?
       bool is_sudo = false;
       if (expect(bang)) {
@@ -438,7 +438,7 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal
       if (is_error() || !type) return nullptr;
       // construct node and continue to next operation
       const lexer::Token token_start = expr->token_start();
-      expr = std::make_unique<ast::CastOperatorNode>(token_start, *type, std::move(expr), is_sudo);
+      expr = std::make_unique<ast::CastOperatorNode>(token_start, as_token, *type, std::move(expr), is_sudo);
       continue;
     } else {
         break;
@@ -885,13 +885,14 @@ std::unique_ptr<lang::ast::IfStatementNode> lang::parser::Parser::parse_if_state
 
   // 'else' ?
   std::optional<std::unique_ptr<ast::Node>> else_body;
+  std::optional<lexer::Token> else_token;
   if (expect(lexer::TokenType::else_kw)) {
-    consume();
+    else_token = consume();
     else_body = parse_block_or_line(false);
     if (is_error()) return nullptr;
   }
 
-  return std::make_unique<ast::IfStatementNode>(token_start, std::move(guard), std::move(then_body), std::move(else_body));
+  return std::make_unique<ast::IfStatementNode>(token_start, std::move(guard), std::move(then_body), else_token, std::move(else_body));
 }
 
 std::unique_ptr<lang::ast::WhileStatementNode> lang::parser::Parser::parse_while_statement() {

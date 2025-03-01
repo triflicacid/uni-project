@@ -119,7 +119,9 @@ bool lang::ast::FunctionBaseNode::collate_registry(message::List& messages, lang
 
 bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   // if declaration and not generating a shell, check that we exist
-  if (!is_implemented() && !lang::conf::function_placeholder) {
+  if (!is_implemented()) {
+    if (lang::conf::function_placeholder) return true;
+
     // lookup symbol
     const std::string name = ctx.symbols.path_name(name_.image);
     auto maybe_symbol = ctx.symbols.find(name, type());
@@ -217,7 +219,9 @@ bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
   defined_ = true; // only call this function once
 
   // allocate space for the function, as this is not done on declaration
+  ctx.program.add_location(token_start().loc);
   ctx.symbols.allocate(id_);
+  ctx.program.remove_location();
 
   // symbol has already been inserted, so lookup the associated block
   auto maybe_store = ctx.symbols.locate(id_);
@@ -243,6 +247,7 @@ bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
     }
     ctx.reg_alloc_manager.update_ret(memory::Object(std::move(value)));
 
+    ctx.program.update_line_origins(token_end().loc, 0);
     ctx.program.select(previous);
     return true;
   }
@@ -263,6 +268,7 @@ bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
   if (!always_returns()) {
     // if it doesn't, we must return `()` (this is checked in ::process)
     ctx.program.current().add(assembly::create_return());
+    ctx.program.current().back().origin(token_end().loc);
 
     // set $ret to ()
     auto value = value::rvalue(

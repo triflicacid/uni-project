@@ -13,6 +13,7 @@ namespace lang::assembly {
     std::string label_;
     std::deque<std::unique_ptr<Line>> contents_;
     std::stringstream comment_; // comment after the block's label
+    std::optional<Location> origin_;
 
     BasicBlock() {}
     explicit BasicBlock(std::string label) : label_(std::move(label)) {}
@@ -28,11 +29,13 @@ namespace lang::assembly {
 
     size_t size() const { return contents_.size(); }
 
-    Line& back() { return *contents_.back(); }
+    Line& back() const;
 
-    Line& front() { return *contents_.front(); }
+    Line& front() const;
 
-    Line& operator[](int i) { return *contents_[i]; }
+    Line& operator[](int i) { return *contents_.at(i); }
+
+    void origin(Location loc) { origin_ = std::move(loc); }
 
     std::ostream& print(std::ostream& os) const;
 

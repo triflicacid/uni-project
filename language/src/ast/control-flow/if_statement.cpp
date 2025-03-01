@@ -10,8 +10,8 @@
 static int current_id = 0;
 
 lang::ast::IfStatementNode::IfStatementNode(lang::lexer::Token token, std::unique_ptr<Node> guard, std::unique_ptr<Node> then_body,
-                                            std::optional<std::unique_ptr<Node>> else_body)
-    : Node(std::move(token)), guard_(std::move(guard)), then_(std::move(then_body)), else_(std::move(else_body)), id_(current_id++) {
+                                            std::optional<lexer::Token> else_token, std::optional<std::unique_ptr<Node>> else_body)
+    : Node(std::move(token)), guard_(std::move(guard)), then_(std::move(then_body)), else_(std::move(else_body)), id_(current_id++), else_token_(std::move(else_token)) {
   token_end(else_.has_value() ? else_.value()->token_end() : then_->token_end());
 }
 
@@ -121,13 +121,17 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
 
   // generate the guard
   if (!guard_->generate_code(ctx)) return false;
+  guard_->value().materialise(ctx, guard_->token_start().loc);
 
   // if branching has not been handled, do it ourselves
+  int index = ctx.program.current().size();
   if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, *guard_, guard_->value())) return false;
+  ctx.program.update_line_origins(token_start().loc, index); //  origin is the `if`
 
   // generate then branch
   ctx.program.insert(assembly::Position::Next, std::move(then_block));
   if (!then_->generate_code(ctx)) return false;
+  then_->value().materialise(ctx, then_->token_start().loc);
 
   // if we return, don't bother any more on this branch
   if (!then_->always_returns()) {
@@ -138,18 +142,19 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
           constants::registers::ret,
           ctx.reg_alloc_manager.resolve_ref(result, true)
       ));
+      ctx.program.current().back().origin(then_->token_end().loc);
     }
 
     // jump to end of the if statement
     ctx.program.current().add(assembly::create_branch(assembly::Arg::label(*after_block)));
+    ctx.program.current().back().origin(then_->token_end().loc);
   }
 
   // generate else branch?
   if (else_.has_value()) {
     ctx.program.insert(assembly::Position::Next, std::move(else_block));
     if (!else_.value()->generate_code(ctx)) return false;
-    // no need for branch, we'll fall through (needed for proper basic block semantics though)
-    // ctx.program.current().add(assembly::create_branch(assembly::Arg::label(*after_block)));
+    else_.value()->value().materialise(ctx, else_.value()->token_start().loc);
 
     // move result, if any, to $ret
     if (!else_.value()->always_returns()) {
@@ -159,8 +164,13 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
             constants::registers::ret,
             ctx.reg_alloc_manager.resolve_ref(result, true)
         ));
+        ctx.program.current().back().origin(else_.value()->token_end().loc);
       }
     }
+
+    // no need for branch, we'll fall through (needed for proper basic block semantics though)
+//    ctx.program.current().add(assembly::create_branch(assembly::Arg::label(*after_block)));
+//    ctx.program.current().back().origin(else_.value()->token_end().loc);
   }
 
   // update $ret, if necessary, to contain 'return' value from if statement

@@ -53,6 +53,10 @@ std::unique_ptr<lang::value::Value> lang::value::Value::copy() const {
   return copy;
 }
 
+bool lang::value::Value::materialise(lang::Context& ctx, const Location& origin) {
+  return materialise(ctx, {{}, false, origin});
+}
+
 std::unique_ptr<lang::value::Value> lang::value::SymbolRef::copy() const {
   auto copy = std::make_unique<SymbolRef>(name_, overload_set_);
   if (is_rvalue()) copy->rvalue(rvalue().copy());
@@ -110,6 +114,7 @@ bool lang::value::SymbolRef::resolve(const message::MessageGenerator& source, op
 bool lang::value::SymbolRef::materialise(Context& ctx, const MaterialisationOptions& options) {
   // assume we have been resolved
   assert(is_lvalue() && lvalue().get_symbol());
+  const int index = ctx.program.current().size();
 
   // get the symbol and its location
   const symbol::Symbol& symbol = lvalue().get_symbol()->get();
@@ -123,15 +128,19 @@ bool lang::value::SymbolRef::materialise(Context& ctx, const MaterialisationOpti
   ref = ctx.reg_alloc_manager.guarantee_register(ref);
   rvalue(ref);
 
-  // if location is already in target, or we have no target, return
-  if (!options.target || options.target->get() == location->get()) return true;
-
-  // otherwise, copy is needs be
-  if (options.copy_or_move && symbol.type().reference_as_ptr()) {
+  // if needed, copy into target location
+  bool materialised = false;
+  if (options.target && options.target->get() != location->get() && options.copy_or_move && symbol.type().reference_as_ptr()) {
     ops::mem_copy(ctx, ref, *this, options.target->get().resolve());
+    materialised = true;
   }
 
-  return true;
+  // set line origins
+  if (options.origin) {
+    ctx.program.update_line_origins(options.origin.value(), index);
+  }
+
+  return materialised;
 }
 
 lang::value::Symbol::Symbol(const symbol::Symbol& symbol) : LValue(symbol.type()), symbol_(symbol) {}
@@ -198,23 +207,29 @@ std::unique_ptr<lang::value::Value> lang::value::Literal::copy() const {
 }
 
 bool lang::value::Literal::materialise(lang::Context& ctx, const lang::value::MaterialisationOptions& options) {
+  const int index = ctx.program.current().size();
+
   // load and set rvalue
   memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(lit_);
   ref = ctx.reg_alloc_manager.guarantee_register(ref);
   rvalue(ref);
 
-  // if target is not provided, exit
-  if (!options.target) return false;
-
-  // move/copy into target
-  auto target_arg = options.target->get().resolve();
-  if (options.copy_or_move && lit_.type().reference_as_ptr()) {
-    ops::mem_copy(ctx, ref, *this, std::move(target_arg));
-  } else {
-    ctx.program.current().add(assembly::create_store(
-        ref.offset,
-        std::move(target_arg)
+  if (options.target) {
+    // move/copy into target
+    auto target_arg = options.target->get().resolve();
+    if (options.copy_or_move && lit_.type().reference_as_ptr()) {
+      ops::mem_copy(ctx, ref, *this, std::move(target_arg));
+    } else {
+      ctx.program.current().add(assembly::create_store(
+          ref.offset,
+          std::move(target_arg)
       ));
+    }
+  }
+
+  // set line origins
+  if (options.origin) {
+    ctx.program.update_line_origins(options.origin.value(), index);
   }
 
   return true;
@@ -269,7 +284,7 @@ bool lang::value::ContiguousLiteral::materialise(lang::Context& ctx, const lang:
     if (offset) location = location + offset;
 
     // attempt to materialise child
-    if (!element.materialise(ctx, {location, options.copy_or_move})) return false;
+    if (!element.materialise(ctx, {location, options.copy_or_move, options.origin})) return false;
 
     // increase offset according to child's size
     offset += element.type().size();

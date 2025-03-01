@@ -33,6 +33,7 @@ namespace lang::ops {
 
   struct InvocationOptions {
     optional_ref<control_flow::ConditionalContext> conditional;
+    Location origin;
   };
 
   class Operator {

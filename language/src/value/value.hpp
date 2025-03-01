@@ -56,6 +56,9 @@ namespace lang::value {
     virtual bool materialise(Context& ctx, const MaterialisationOptions& options = {})
     { return false; }
 
+    // materialise with no options, but providing a location
+    bool materialise(Context& ctx, const Location& origin);
+
     virtual const SymbolRef* get_symbol_ref() const { return nullptr; }
 
     virtual const Literal* get_literal() const { return nullptr; }

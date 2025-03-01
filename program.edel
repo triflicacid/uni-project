@@ -1,4 +1,5 @@
-struct Point {
-    x: int;
-    y: int;
+operator$(a: int, b: int) -> int {
+    return a * 2 + b * 2;
 }
+
+1 $ 2;

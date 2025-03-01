@@ -571,7 +571,7 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
     auto& value = arg->value();
     arg->type_hint(signature.arg(i)); // given arg a type hint
     if (!arg->generate_code(ctx)) return false;
-    value.materialise(ctx);
+    value.materialise(ctx, arg->token_start().loc);
     if (!value.is_rvalue()) {
       ctx.messages.add(util::error_expected_lrvalue(*arg, value.type(), false));
       return false;
@@ -790,10 +790,7 @@ void lang::ops::dereference(Context& ctx, const value::Value& pointer, value::Va
 bool lang::ops::address_of(lang::Context& ctx, const lang::symbol::Symbol& symbol, lang::value::Value& result) {
   // get location of the symbol (must have size then)
   auto maybe_location = ctx.symbols.locate(symbol.id());
-
-  if (!maybe_location) {
-    return false;
-  }
+  if (!maybe_location) return false;
 
   // find destination register
   memory::Ref ref = ctx.reg_alloc_manager.insert({nullptr});

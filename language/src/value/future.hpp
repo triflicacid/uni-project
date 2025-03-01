@@ -39,7 +39,7 @@ namespace lang::value {
     const memory::Literal& lit_;
 
   public:
-    explicit Literal(const memory::Literal& lit) : lit_(lit), Value(lit.type()) {}
+    explicit Literal(const memory::Literal& lit) : Value(lit.type()), lit_(lit) {}
 
     std::unique_ptr<Value> copy() const override;
 

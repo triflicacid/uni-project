@@ -66,4 +66,3 @@ bool lang::ast::ProgramNode::generate_code(lang::Context& ctx) {
 
   return true;
 }
-

@@ -144,15 +144,19 @@ bool lang::ast::OverloadableOperatorNode::generate_code(Context& ctx) {
   if (special_pointer_op_) {
     // generate code for arguments and check if rvalues
     if (!arg(0).generate_code(ctx)) return false;
-    arg(0).value().materialise(ctx);
+    arg(0).value().materialise(ctx, arg(0).token_start().loc);
     if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
     if (!arg(1).generate_code(ctx)) return false;
-    arg(1).value().materialise(ctx);
+    arg(1).value().materialise(ctx, arg(1).token_start().loc);
     if (!expect_arg_lrvalue(1, ctx.messages, false)) return false;
 
     // generate code for pointer arithmetic operation
+    const int index = ctx.program.current().size();
     memory::Ref result = ops::pointer_arithmetic(ctx, arg(0).value(), arg(1).value(), op_symbol_.image == "-", true);
+
+    // update location
+    ctx.program.update_line_origins(op_symbol_.loc, index);
 
     // update value_
     value_->rvalue(result);
@@ -161,12 +165,17 @@ bool lang::ast::OverloadableOperatorNode::generate_code(Context& ctx) {
 
   // operator must have been set by ::process, so invoke it
   assert(op_.has_value());
-  return op_->get().invoke(
+  const int index = ctx.program.current().size();
+  bool success = op_->get().invoke(
       ctx,
       args_,
       *value_,
-      ops::InvocationOptions(conditional_context())
+      ops::InvocationOptions(conditional_context(), op_symbol_.loc)
   );
+
+  // update location and return
+  ctx.program.update_line_origins(op_symbol_.loc, index);
+  return success;
 }
 
 std::unique_ptr<lang::ast::OperatorNode> lang::ast::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> expr) {
@@ -231,7 +240,7 @@ bool lang::ast::CStyleCastOperatorNode::process(lang::Context& ctx) {
 bool lang::ast::CStyleCastOperatorNode::generate_code(lang::Context& ctx) {
   if (!arg(0).resolve(ctx) || !arg(0).generate_code(ctx)) return false;
   auto& value = arg(0).value();
-  value.materialise(ctx);
+  value.materialise(ctx, arg(0).token_start().loc);
   if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
   // fetch reference to arg and convert
@@ -319,8 +328,10 @@ bool lang::ast::DotOperatorNode::generate_code(lang::Context& ctx) {
     if (!symbol->get().define(ctx)) return false;
 
     // load into registers
+    const int index = ctx.program.current().size();
     const memory::Ref ref = ctx.reg_alloc_manager.find_or_insert(symbol->get());
     value_->rvalue(std::make_unique<value::RValue>(symbol->type(), ref));
+    ctx.program.update_line_origins(arg(1).token_start().loc, index);
     return true;
   }
 
@@ -330,7 +341,7 @@ bool lang::ast::DotOperatorNode::generate_code(lang::Context& ctx) {
     return false;
   }
 
-  value_->materialise(ctx);
+  value_->materialise(ctx, arg(1).token_start().loc);
   if (!value_->is_rvalue()) {
     ctx.messages.add(util::error_expected_lrvalue(arg(0), value_->type(), false));
     return false;
@@ -407,7 +418,7 @@ bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) {
   // generate RHS, assert it is an rvalue
   if (!arg(1).generate_code(ctx)) return false;
   auto& rhs_value = arg(1).value();
-  rhs_value.materialise(ctx); // TODO get target from LHS?
+  rhs_value.materialise(ctx, arg(1).token_start().loc); // TODO get target from LHS?
   if (!expect_arg_lrvalue(1, ctx.messages, false)) return false;
 
   // generate LHS, assert it is an lvalue
@@ -422,6 +433,7 @@ bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) {
   if (lhs_value.type().size() == 0) return true;
 
   // coerce into correct type (this is safe as subtyping checked) and update our value
+  const int index = ctx.program.current().size();
   const memory::Ref& expr = ctx.reg_alloc_manager.guarantee_datatype(rhs_value.rvalue().ref(), lhs_value.type());
   value_->rvalue(expr);
 
@@ -432,31 +444,30 @@ bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) {
 
     // copy memory between the two
     ops::mem_copy(ctx, expr, lhs_value, nullptr);
-    return true;
-  }
-
-  // if symbol, assign symbol to register
-  if (auto symbol = lhs_value.lvalue().get_symbol()) {
+  } else if (auto symbol = lhs_value.lvalue().get_symbol()) {
+    // if symbol, assign symbol to register
     ctx.symbols.assign_symbol(symbol->get().id(), expr.offset);
 
     // then evict it as it has been updated
     ctx.reg_alloc_manager.evict(symbol->get());
-    return true;
+  } else {
+    // otherwise, treat as ptr
+    auto lvalue_ref = lhs_value.lvalue().get_ref();
+    assert(lvalue_ref);
+    ctx.program.current().add(assembly::create_store(
+        expr.offset,
+        assembly::Arg::reg_indirect(lvalue_ref->get().offset)
+    ));
   }
 
-  // otherwise, treat as ptr
-  auto lvalue_ref = lhs_value.lvalue().get_ref();
-  assert(lvalue_ref);
-  ctx.program.current().add(assembly::create_store(
-      expr.offset,
-      assembly::Arg::reg_indirect(lvalue_ref->get().offset)
-  ));
+  // update origins
+  ctx.program.update_line_origins(op_symbol_.loc, index);
 
   return true;
 }
 
-lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr, bool sudo)
-: OperatorNode(token, token, {}), target_(target), sudo_(sudo) {
+lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, lexer::Token symbol, const lang::ast::type::Node& target, std::unique_ptr<Node> expr, bool sudo)
+: OperatorNode(token, symbol, {}), target_(target), sudo_(sudo) {
   args_.push_back(std::move(expr));
   token_end(args_.back()->token_end());
 }
@@ -503,7 +514,7 @@ bool lang::ast::CastOperatorNode::generate_code(lang::Context& ctx) {
   auto& type = value.type();
 
   // materialise and ensure we have an rvalue
-  value.materialise(ctx);
+  value.materialise(ctx, arg(0).token_start().loc);
   if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
   // if not sudo, we cannot cast if:
@@ -518,8 +529,12 @@ bool lang::ast::CastOperatorNode::generate_code(lang::Context& ctx) {
   }
 
   // fetch reference to arg and convert
+  const int index = ctx.program.current().size();
   memory::Ref ref = value.rvalue().ref();
   ref = ctx.reg_alloc_manager.guarantee_datatype(ref, target_);
+
+  // update location
+  ctx.program.update_line_origins(op_symbol_.loc, index);
 
   // update rvalue
   value_->rvalue(ref);
@@ -564,11 +579,9 @@ bool lang::ast::AddressOfOperatorNode::process(lang::Context& ctx) {
 }
 
 bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) {
-  // generate symbol's code
-  if (!arg(0).generate_code(ctx)) return false;
-
   // get the argument's value
   auto& value = arg(0).value();
+  const int index = ctx.program.current().size();
 
   // if we are a symbol...
   if (value.is_lvalue() && value.lvalue().get_symbol()) {
@@ -577,6 +590,7 @@ bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) {
 
     // attempt to get the address of
     bool success = ops::address_of(ctx, symbol, *value_);
+    ctx.program.update_line_origins(op_symbol_.loc, index);
 
     // if error, this means no location
     if (!success) {
@@ -596,16 +610,22 @@ bool lang::ast::AddressOfOperatorNode::generate_code(lang::Context& ctx) {
     auto& comment = ctx.program.current().back().comment();
     comment << op_symbol_.image << symbol.full_name() << ": ";
     value_->type().print_code(comment);
+
+    return true;
   }
 
   // otherwise, we will use a reference
-  value.materialise(ctx);
+  // generate symbol's code
+  if (!arg(0).generate_code(ctx)) return false;
+
+  value.materialise(ctx, arg(0).token_start().loc);
   const memory::Ref& ref = value.is_lvalue() && value.lvalue().get_ref()
       ? value.lvalue().get_ref()->get()
       : value.rvalue().ref();
 
   // update value_ & object
   memory::Object& object = ctx.reg_alloc_manager.find(ref);
+  ctx.program.update_line_origins(op_symbol_.loc, index);
   object.value = value::rvalue(value_->type(), ref);
   value_->rvalue(ref);
 
@@ -646,10 +666,11 @@ bool lang::ast::DereferenceOperatorNode::generate_code(lang::Context& ctx) {
   // generate argument, expect rvalue
   if (!arg(0).generate_code(ctx)) return false;
   auto& pointer_value = arg(0).value();
-  pointer_value.materialise(ctx);
+  pointer_value.materialise(ctx, arg(0).token_start().loc);
   if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
   // get the source (pointer location)
+  const int index = ctx.program.current().size();
   memory::Ref src = pointer_value.rvalue().ref();
   src = ctx.reg_alloc_manager.guarantee_register(src);
 
@@ -659,11 +680,14 @@ bool lang::ast::DereferenceOperatorNode::generate_code(lang::Context& ctx) {
   // dereference the pointer
   ops::dereference(ctx, pointer_value, *value_, true);
 
+  // update lines' origin
+  ctx.program.update_line_origins(op_symbol_.loc, index);
+
   return true;
 }
 
 lang::ast::FunctionCallOperatorNode::FunctionCallOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> subject, std::deque<std::unique_ptr<Node>> args)
-  : OperatorNode(token, token, std::move(args)), subject_(std::move(subject)) {
+  : OperatorNode(std::move(token), std::move(symbol), std::move(args)), subject_(std::move(subject)) {
   token_start(subject_->token_start());
   if (!args_.empty()) token_end(args_.back()->token_end());
 }
@@ -859,19 +883,43 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
 
 bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
   std::unique_ptr<assembly::BaseArg> arg;
+  const int index = ctx.program.current().size();
 
   if (symbol_.has_value()) {
     // if we resolved to a symbol, make sure it is defined before looking up its location
-    if (!symbol_->get().define(ctx)) return false;
+    auto& symbol = symbol_->get();
+    if (!symbol.define(ctx)) return false;
 
-    auto location = ctx.symbols.locate(symbol_->get().id());
+    // get the symbol's location
+    auto location = ctx.symbols.locate(symbol.id());
     assert(location.has_value());
-    arg = location->get().resolve();
+
+    // if we are a function, call its location
+    if (symbol.category() == symbol::Category::Function) {
+      arg = location->get().resolve();
+    } else {
+      // otherwise, load and dereference it
+      memory::Ref ref = ctx.reg_alloc_manager.insert({value::value(symbol.type())});
+      ref = ctx.reg_alloc_manager.guarantee_register(ref);
+
+      ctx.program.current().add(assembly::create_load(
+          ref.offset,
+          location->get().resolve()
+        ));
+      ctx.program.current().back().origin(subject_->token_start().loc);
+
+      auto& comment = ctx.program.current().back().comment();
+      comment << symbol.full_name() << ": ";
+      symbol.type().print_code(comment);
+
+      arg = assembly::Arg::reg_indirect(ref.offset);
+      ctx.reg_alloc_manager.mark_free(ref);
+    }
   } else {
     // otherwise, generate subject's code (must be an rvalue)
     if (!subject_->generate_code(ctx)) return false;
     auto& value = subject_->value();
-    value.materialise(ctx);
+    value.materialise(ctx, subject_->token_start().loc);
     if (!value.is_rvalue()) {
       ctx.messages.add(util::error_expected_lrvalue(*subject_, value.type(), false));
      return false;
@@ -882,7 +930,7 @@ bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
     arg = assembly::Arg::reg(ref.offset);
   }
 
-  return ops::call_function(
+  bool success = ops::call_function(
       std::move(arg),
       symbol_.has_value() ? symbol_->get().full_name() : "<expr>",
       *signature_,
@@ -892,6 +940,10 @@ bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
       target(),
       ctx
   );
+
+  // update line origins
+  ctx.program.update_line_origins(op_symbol_.loc, index);
+  return success;
 }
 
 lang::ast::SizeOfOperatorNode::SizeOfOperatorNode(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> expr)
@@ -917,6 +969,7 @@ bool lang::ast::SizeOfOperatorNode::process(lang::Context& ctx) {
 
 bool lang::ast::SizeOfOperatorNode::generate_code(lang::Context& ctx) {
   optional_ref<const type::Node> type;
+  const int index = ctx.program.current().size();
 
   // if a type is supplied, cool
   if (type_.has_value()) {
@@ -939,6 +992,9 @@ bool lang::ast::SizeOfOperatorNode::generate_code(lang::Context& ctx) {
   comment.str(""); // make sure it is cleared
   comment << "sizeof(";
   type->get().print_code(comment) << ")";
+
+  // update line origins
+  ctx.program.update_line_origins(op_symbol_.loc, index);
 
   return true;
 }
@@ -1001,14 +1057,14 @@ bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) {
   if (auto& lhs = arg(0).value(); lhs.type().get_pointer() || lhs.type().get_array()) {
     // generate both arguments, check if rvalues
     if (!arg(0).generate_code(ctx)) return false;
-    arg(0).value().materialise(ctx);
+    arg(0).value().materialise(ctx, arg(0).token_start().loc);
     if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
 
     if (!arg(1).generate_code(ctx)) return false;
-    arg(1).value().materialise(ctx);
+    arg(1).value().materialise(ctx, arg(1).token_start().loc);
     if (!expect_arg_lrvalue(1, ctx.messages, false)) return false;
 
-    int index = ctx.program.current().size();
+    const int index = ctx.program.current().size();
 
     // perform pointer addition to get the source
     memory::Ref src = ops::pointer_arithmetic(ctx, lhs, arg(1).value(), false, false);
@@ -1026,6 +1082,9 @@ bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) {
     arg(0).value().type().print_code(comment) << ", ";
     arg(1).value().type().print_code(comment) << ")";
 
+    // update line origins
+    ctx.program.update_line_origins(op_symbol_.loc, index);
+
     return true;
   }
 
@@ -1035,7 +1094,7 @@ bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) {
       ctx,
       args_,
       *value_,
-      {conditional_context()}
+      {conditional_context(), op_symbol_.loc}
   );
 }
 
@@ -1069,5 +1128,5 @@ bool lang::ast::LazyLogicalOperator::process(lang::Context& ctx) {
 
 bool lang::ast::LazyLogicalOperator::generate_code(lang::Context& ctx) {
   const ops::Operator& op = ops::get(op_symbol_.image).front();
-  return op.invoke(ctx, args_, *value_, {conditional_context()});
+  return op.invoke(ctx, args_, *value_, {conditional_context(), op_symbol_.loc});
 }

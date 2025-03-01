@@ -93,7 +93,10 @@ bool lang::ast::WhileStatementNode::generate_code(lang::Context& ctx) {
   ctx.program.insert(assembly::Position::Next, std::move(guard_block));
   guard_->conditional_context(cond_ctx);
   if (!guard_->generate_code(ctx)) return false;
+  guard_->value().materialise(ctx, guard_->token_start().loc);
+  const int index = ctx.program.current().size();
   if (!cond_ctx.handled && !cond_ctx.generate_branches(ctx, *guard_, guard_->value())) return false;
+  ctx.program.update_line_origins(token_start().loc, index);
 
   // generate the body
   ctx.program.insert(assembly::Position::Next, std::move(body_block));
@@ -101,6 +104,7 @@ bool lang::ast::WhileStatementNode::generate_code(lang::Context& ctx) {
 
   // add branch back to the guard (form a loop)
   ctx.program.current().add(assembly::create_branch(assembly::Arg::label(guard_ref)));
+  ctx.program.current().back().origin(token_end().loc);
   ctx.program.current().back().comment() << "loop while#" << id_;
 
   // create the `after` block for when the loop exits

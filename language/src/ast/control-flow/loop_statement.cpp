@@ -10,7 +10,9 @@
 static unsigned int current_id = 0;
 
 lang::ast::LoopStatementNode::LoopStatementNode(lexer::Token token, std::unique_ptr<Node> body)
-  : Node(std::move(token)), body_(std::move(body)), id_(current_id++) {}
+  : Node(std::move(token)), body_(std::move(body)), id_(current_id++) {
+  token_end(body_->token_end());
+}
 
 std::ostream& lang::ast::LoopStatementNode::print_code(std::ostream& os, unsigned int indent_level) const {
   os << "loop ";
@@ -76,6 +78,7 @@ bool lang::ast::LoopStatementNode::generate_code(lang::Context& ctx) {
   // add branch back to the body (form a loop)
   ctx.program.current().add(assembly::create_branch(assembly::Arg::label(body_ref)));
   ctx.program.current().back().comment() << "loop#" << id_;
+  ctx.program.current().back().origin(token_end().loc);
 
   // create the `after` block for when the loop exits
   ctx.program.insert(assembly::Position::Next, std::move(after_block));

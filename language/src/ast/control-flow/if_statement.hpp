@@ -9,9 +9,10 @@ namespace lang::ast {
     std::unique_ptr<Node> guard_;
     std::unique_ptr<Node> then_;
     std::optional<std::unique_ptr<Node>> else_;
+    std::optional<lexer::Token> else_token_; // `else` token
 
   public:
-    IfStatementNode(lexer::Token token, std::unique_ptr<Node> guard, std::unique_ptr<Node> then_body, std::optional<std::unique_ptr<Node>> else_body);
+    IfStatementNode(lexer::Token token, std::unique_ptr<Node> guard, std::unique_ptr<Node> then_body, std::optional<lexer::Token> else_token, std::optional<std::unique_ptr<Node>> else_body);
 
     std::string node_name() const override { return "if statement"; }
 

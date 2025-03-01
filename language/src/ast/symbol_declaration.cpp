@@ -193,7 +193,9 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
 bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
   // allocate this symbol
+  ctx.program.add_location(token_start().loc);
   ctx.symbols.allocate(id_);
+  ctx.program.remove_location();
   const auto& symbol_location = ctx.symbols.locate(id_); // may be nothing if zero sized
 
   // if no assignment, we're done
@@ -211,7 +213,9 @@ bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
   if (value.type().size() == 0) return true;
 
   // materialise the RHS' value
-  bool materialisation_did_store = value.materialise(ctx, {symbol_location});
+  // TODO target might be slightly off
+  bool materialisation_did_store = value.materialise(ctx, {symbol_location, false, assignment_.value()->token_start().loc});
+  const int index = ctx.program.current().size();
 
   // if not an rvalue but we have a storage_location, point to that
   if (!value.is_rvalue() && symbol_location) {
@@ -263,6 +267,9 @@ bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
 
   // mark as free, though, as it is not required
   ctx.reg_alloc_manager.mark_free(expr);
+
+  // update origins
+  ctx.program.update_line_origins(token_start().loc, index);
 
   return true;
 }

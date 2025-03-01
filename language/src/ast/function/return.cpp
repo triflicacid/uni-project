@@ -92,7 +92,7 @@ bool lang::ast::ReturnNode::generate_code(lang::Context& ctx) {
   auto& value = this->value();
 
   // materialise and ensure we have an rvalue
-  value.materialise(ctx);
+  value.materialise(ctx, expr_ ? expr_.value()->token_start().loc : token_start().loc);
   if (!value.is_rvalue()) {
     ctx.messages.add(util::error_expected_lrvalue(*expr_.value(), value.type(), false));
     return false;
@@ -101,6 +101,7 @@ bool lang::ast::ReturnNode::generate_code(lang::Context& ctx) {
   // otherwise, return a value
   memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(value.rvalue().ref());
   ctx.program.current().add(assembly::create_return(assembly::Arg::reg(ref.offset)));
+  ctx.program.current().back().origin(token_start().loc);
 
   return true;
 }

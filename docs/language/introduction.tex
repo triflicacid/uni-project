@@ -27,6 +27,9 @@ Where \texttt{[flags]} are as follows:
 \begin{itemize}
     \item \texttt{--always-define-symbols} - always define symbols even if they are unused (e.g., all functions).
     \item \texttt{--ast} - prints the parsed program's AST.
+    \item \texttt{-d} - enables debug mode.
+    This will append each line with a trace back to the source code.
+    Note that this is required by the visualiser component.
     \item \texttt{--[no-]function-placeholder} - changes behaviour of a function declaration; see subsection ~\ref{subsec:function-declaration}.
     \item \texttt{--[no-]indentation} - adds/removes indentation from generated assembly.
     \item \texttt{--[no-]lint} - enables/disables linting messages.

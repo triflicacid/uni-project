@@ -2,7 +2,9 @@
 
 #include <deque>
 #include <map>
+#include <stack>
 #include "basic_block.hpp"
+#include "optional_ref.hpp"
 
 namespace lang::assembly {
   enum class Position {
@@ -20,6 +22,7 @@ namespace lang::assembly {
     std::deque<std::unique_ptr<BasicBlock>> blocks_;
     std::map<std::string, std::reference_wrapper<BasicBlock>> labels_; // map labels to the index of the BasicBlock
     int current_; // 'pointer' to current BasicBlock
+    std::stack<Location> locations_; // track source locations
 
     // insert BasicBlock at the given index, update current_
     void insert_at(int index, std::unique_ptr<BasicBlock> block);
@@ -28,7 +31,7 @@ namespace lang::assembly {
     explicit Program(std::string start_label);
 
     // return the currently selected block
-    BasicBlock& current() { return *blocks_[current_]; }
+    BasicBlock& current() const { return *blocks_[current_]; }
 
     // return reference to the given block, errors if fail
     BasicBlock& get(const std::string& label);
@@ -45,6 +48,25 @@ namespace lang::assembly {
 
     // select the block relative to current_
     void select(Position pos);
+
+    // add a Location to the trace stack
+    void add_location(Location loc);
+
+    // get the most recent location
+    optional_ref<const Location> location() const;
+
+    // remove the topmost Location
+    void remove_location();
+
+    // set the topmost location to the given value
+    void set_location(Location loc);
+
+    // set current line's location (or from given index to most recent)
+    // only update's a line's origin if it has not already been set (unless sudo is true)
+    void update_line_origins(const Location& origin, int start = -1, bool sudo = false) const;
+
+    // same as ::update_line_origins, but use current location
+    void update_line_origins(int start = -1, bool sudo = false) const;
 
     std::ostream& print(std::ostream& os) const;
   };

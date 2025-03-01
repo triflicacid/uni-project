@@ -46,6 +46,7 @@ bool lang::ast::LoopControlNode::generate_code(lang::Context& ctx) {
       assembly::Arg::label(label)
     ));
   ctx.program.current().back().comment() << node_name();
+  ctx.program.current().back().origin(token_start().loc);
 
   return true;
 }

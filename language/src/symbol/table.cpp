@@ -66,6 +66,7 @@ void lang::symbol::SymbolTable::insert(std::unique_ptr<Symbol> symbol) {
 void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
   assert(symbols_.contains(id));
   assert(!storage_.contains(id)); // do not allocate twice!
+  assembly::Program& program = stack_.program();
 
   // get the symbol
   const symbol::Symbol& symbol = *symbols_.at(id);
@@ -80,6 +81,9 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       block->comment() << "alloc " << symbol.full_name() << ": ";
       symbol.type().print_code(block->comment());
 
+      // set source location
+      if (auto loc = program.location()) block->origin(loc->get());
+
       // reserve space inside the block
       // TODO directly load data if possible
       block->add(assembly::Directive::space(symbol.type().size()));
@@ -88,9 +92,9 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       storage_.insert({id, memory::StorageLocation::global(*block)});
 
       // insert block into the program
-      const auto& cursor = stack_.program().current();
-      stack_.program().insert(assembly::Position::End, std::move(block));
-      stack_.program().select(cursor);
+      const auto& cursor = program.current();
+      program.insert(assembly::Position::End, std::move(block));
+      program.select(cursor);
 
       break;
     }
@@ -98,9 +102,14 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       // add symbol to stack, adjust fp
       stack_.push(symbol.type().size());
       storage_.insert({id, memory::StorageLocation::stack(stack_.offset())});
-      auto& comment = stack_.program().current().back().comment();
+
+      auto& comment = program.current().back().comment();
       comment << "alloc " << symbol.full_name() << ": ";
       symbol.type().print_code(comment);
+
+      // set source location
+      if (auto loc = program.location()) program.current().back().origin(loc->get());
+
       break;
     }
     case symbol::Category::Argument: { // point to location in stack
@@ -113,13 +122,16 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       block->comment() << symbol.full_name();
       symbol.type().print_code(block->comment());
 
+      // set source location
+      if (auto loc = program.location()) block->origin(loc->get());
+
       // register stored location
       storage_.insert({id, memory::StorageLocation::global(*block)});
 
       // insert block into the program
-      const auto& cursor = stack_.program().current();
-      stack_.program().insert(assembly::Position::End, std::move(block));
-      stack_.program().select(cursor);
+      const auto& cursor = program.current();
+      program.insert(assembly::Position::End, std::move(block));
+      program.select(cursor);
       break;
     }
     case symbol::Category::Namespace:

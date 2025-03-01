@@ -1,3 +1,4 @@
+#include <cassert>
 #include "basic_block.hpp"
 #include "config.hpp"
 
@@ -10,6 +11,7 @@ std::ostream& lang::assembly::BasicBlock::print(std::ostream& os) const {
   // print label and comment
   os << label_ << ":";
   if (std::string str = comment_.str(); !str.empty()) os << "  ; " << str;
+  if (origin_.has_value()) os << "  ; " << origin_.value();
   os << std::endl;
 
   // print our instructions
@@ -32,4 +34,14 @@ std::unique_ptr<lang::assembly::BasicBlock> lang::assembly::BasicBlock::labelled
 
 std::unique_ptr<lang::assembly::BasicBlock> lang::assembly::BasicBlock::unlabelled() {
   return std::unique_ptr<BasicBlock>(new BasicBlock);
+}
+
+lang::assembly::Line& lang::assembly::BasicBlock::back() const {
+  assert(!contents_.empty());
+  return *contents_.back();
+}
+
+lang::assembly::Line& lang::assembly::BasicBlock::front() const {
+  assert(!contents_.empty());
+  return *contents_.front();
 }

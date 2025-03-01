@@ -77,3 +77,43 @@ std::ostream& lang::assembly::Program::print(std::ostream& os) const {
 lang::assembly::BasicBlock& lang::assembly::Program::get(const std::string& label) {
   return labels_.find(label)->second;
 }
+
+void lang::assembly::Program::add_location(Location loc) {
+  locations_.push(std::move(loc));
+}
+
+optional_ref<const Location> lang::assembly::Program::location() const {
+  if (locations_.empty()) return {};
+  return std::ref(locations_.top());
+}
+
+void lang::assembly::Program::remove_location() {
+  if (!locations_.empty()) locations_.pop();
+}
+
+void lang::assembly::Program::set_location(Location loc) {
+  if (locations_.empty()) {
+    locations_.push(std::move(loc));
+  } else {
+    locations_.top() = std::move(loc);
+  }
+}
+
+void lang::assembly::Program::update_line_origins(int start, bool sudo) const {
+  auto origin = location();
+  if (!origin) return;
+  update_line_origins(origin->get(), start, sudo);
+}
+
+void lang::assembly::Program::update_line_origins(const Location& origin, int start, bool sudo) const {
+  // get the current block
+  BasicBlock& block = current();
+
+  // set start to end if needed
+  if (start == -1) start = block.size() - 1;
+
+  for (int i = start; i < block.size(); i++) {
+    if (sudo || !block[i].origin())
+      block[i].origin(origin);
+  }
+}
