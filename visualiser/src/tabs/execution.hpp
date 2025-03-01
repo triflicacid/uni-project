@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tab.hpp"
-#include "data.hpp"
+#include "sources.hpp"
 
 namespace visualiser::tabs {
   class CodeExecutionTab : public Tab {

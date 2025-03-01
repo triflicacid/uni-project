@@ -810,8 +810,10 @@ namespace assembler::parser {
         os << "\t; ";
         //if (!chunk->is_data()) os << "0x" << std::hex << chunk->get_instruction()->compile() << std::dec << " ";
         chunk->location().print(os, true);
-        os << "+" << chunk->offset << std::endl;
+        os << "+" << chunk->offset;
       }
+
+      os << std::endl;
     }
   }
 }

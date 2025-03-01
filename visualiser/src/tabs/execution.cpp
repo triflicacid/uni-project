@@ -1,20 +1,21 @@
 #include "execution.hpp"
-#include "data.hpp"
+#include "sources.hpp"
 #include "processor.hpp"
 #include "style.hpp"
 #include "util.hpp"
 #include "components/scroller.hpp"
 #include "components/checkbox.hpp"
 #include <ftxui/component/event.hpp>
+#include <cassert>
 
 struct PaneStateData {
-  visualiser::Type type;
+  visualiser::sources::Type type;
   ftxui::Component component;
-  const visualiser::File* file; // file which we are viewing
+  const visualiser::sources::File* file; // file which we are viewing
   int *pos_ptr; // pointer top ScrollerBase::selected_
   std::deque<int> selected_lines; // store selected lines in each pane
 
-  PaneStateData(visualiser::Type type) : type(type) {}
+  PaneStateData(visualiser::sources::Type type) : type(type) {}
 };
 
 namespace state {
@@ -27,8 +28,8 @@ namespace state {
   static ftxui::Component is_running_toggle; // toggle for IS_RUNNING
   static bool do_update_selected_line = false;
 
-  static PaneStateData source_pane(visualiser::Type::Source);
-  static PaneStateData asm_pane(visualiser::Type::Assembly);
+  static PaneStateData source_pane(visualiser::sources::Type::Source);
+  static PaneStateData asm_pane(visualiser::sources::Type::Assembly);
   static std::array<PaneStateData*, 2> panes{&source_pane, &asm_pane};
   static PaneStateData* selected_pane = nullptr;
   static int selected_line = 0; // current line which is selected
@@ -69,12 +70,12 @@ static void update_selected_line() {
   // select the current line
   selected_pane->selected_lines.push_back(selected_line);
 
-  if (selected_pane->type == visualiser::Type::Source) {
-    auto location = visualiser::locate_line(selected_line);
+  if (selected_pane->type == visualiser::sources::Type::Source) {
+    auto location = visualiser::sources::locate_line(selected_line);
     if (location)
       asm_pane.selected_lines.push_back(location->asm_origin.line());
-  } else if (selected_pane->type == visualiser::Type::Assembly) {
-    auto locations = visualiser::locate_asm_line(visualiser::processor::pc_line->asm_origin.path(), selected_line);
+  } else if (selected_pane->type == visualiser::sources::Type::Assembly) {
+    auto locations = visualiser::sources::locate_asm_line(visualiser::processor::pc_line->asm_origin.path(), selected_line);
     for (auto &location: locations)
       source_pane.selected_lines.push_back(location->line_no);
   }
@@ -91,18 +92,20 @@ static void update_pane_positions_from_selection() {
 }
 
 // get the line highlight colour for the given pane
-static ftxui::Decorator* get_line_highlight_style(visualiser::Type pane) {
+static ftxui::Decorator* get_line_highlight_style(visualiser::sources::Type pane) {
   return state::selected_pane && pane == state::selected_pane->type ? &visualiser::style::highlight_selected : &visualiser::style::highlight_traced;
 }
 
 // get PC's Location
-static Location get_pc_location_in_pane(const visualiser::PCLine* pc_entry, visualiser::Type pane) {
+static Location get_pc_location_in_pane(const visualiser::sources::PCLine* pc_entry, visualiser::sources::Type pane) {
   switch (pane) {
-    case visualiser::Type::Source:
-      return Location(visualiser::source->path, pc_entry->line_no);
-    case visualiser::Type::Assembly:
+    case visualiser::sources::Type::Source:
+      return Location(visualiser::sources::s_source->path, pc_entry->line_no);
+    case visualiser::sources::Type::Assembly:
       return pc_entry->asm_origin;
-    default: std::exit(-1);
+    default:
+      assert(false);
+      std::exit(-1);
   }
 }
 
@@ -244,15 +247,15 @@ namespace events {
   }
 
   // execute *one* cycle
-  static bool on_space(visualiser::Type pane) {
+  static bool on_space(visualiser::sources::Type pane) {
     if (!visualiser::processor::pc_line) return false;
 
     switch (pane) {
-      case visualiser::Type::Source:
+      case visualiser::sources::Type::Source:
         // viewing machine code, step processor once
         step_processor();
         return true;
-      case visualiser::Type::Assembly: {
+      case visualiser::sources::Type::Assembly: {
         // step beyond current line
         int source_line_count = state::asm_pane.file->lines[visualiser::processor::pc_line->asm_origin.line() - 1].trace.size();
         for (int i = 0; i < source_line_count; i++)
@@ -266,7 +269,7 @@ namespace events {
   }
 
   // execute until next breakpoint or done
-  static bool on_enter(visualiser::Type pane) {
+  static bool on_enter(visualiser::sources::Type pane) {
     do {
       step_processor();
     } while (visualiser::processor::cpu.is_running() && !visualiser::processor::pc_line->has_breakpoint());
@@ -305,7 +308,7 @@ namespace events {
 
   static bool on_J(PaneStateData* pane) {
     if (state::show_selected_line && !state::source_pane.selected_lines.empty()) {
-      if (auto entry = visualiser::locate_line(state::source_pane.selected_lines.front())) {
+      if (auto entry = visualiser::sources::locate_line(state::source_pane.selected_lines.front())) {
         visualiser::processor::update_pc(entry->pc);
         return true;
       }
@@ -358,7 +361,7 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
 }
 
 // return Element wrapping the current line
-static ftxui::Element wrap_line(const visualiser::FileLine &line) {
+static ftxui::Element wrap_line(const visualiser::sources::FileLine &line) {
   // test if there is a breakpoint on this line
   if (line.has_breakpoint()) {
     return hbox(visualiser::style::breakpoint_prefix(), ftxui::text(line.line));
@@ -375,7 +378,7 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
     using namespace visualiser;
     std::vector<Element> elements;
     Location location = get_pc_location_in_pane(visualiser::processor::pc_line, pane.type);
-    pane.file = get_file(location.path());
+    pane.file = sources::get_file(location.path());
     elements.reserve(pane.file->lines.size());
 
     // create Elements for each line

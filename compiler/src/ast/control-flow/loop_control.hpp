@@ -1,6 +1,6 @@
 #pragma once
 
-#include "language/src/ast/node.hpp"
+#include "ast/node.hpp"
 #include "control-flow/loop_context.hpp"
 
 namespace lang::ast {

@@ -3,7 +3,7 @@
 #include <set>
 #include "../processor/src/cpu.hpp"
 #include "named_fstream.hpp"
-#include "data.hpp"
+#include "sources.hpp"
 
 namespace visualiser::processor {
   extern ::processor::CPU cpu;
@@ -12,10 +12,10 @@ namespace visualiser::processor {
   extern std::unique_ptr<named_fstream> piped_stdout; // if provided, forward processor output to this file.
   extern std::unique_ptr<named_fstream> piped_stdin; // if provided, source input from this rather than the pane
 
-  extern std::set<const PCLine*> breakpoints; // store set breakpoints
+  extern std::set<const sources::PCLine*> breakpoints; // store set breakpoints
 
   extern uint64_t pc; // value of $pc (should be equal to cpu.read_pc)
-  extern const PCLine* pc_line;
+  extern const sources::PCLine* pc_line;
 
   /** Initialise processor from `source`. */
   void init();

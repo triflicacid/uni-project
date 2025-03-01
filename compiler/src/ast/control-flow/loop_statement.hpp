@@ -1,6 +1,6 @@
 #pragma once
 
-#include "language/src/ast/node.hpp"
+#include "ast/node.hpp"
 #include "optional_ref.hpp"
 
 namespace lang::ast {

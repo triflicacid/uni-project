@@ -158,14 +158,10 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  // print program
-  std::cout << std::endl;
-  ctx.program.print(std::cout);
-
   // write to output file is provided
   if (options.output) {
     if (lang::conf::debug) {
-      options.output->stream << "// debug: on" << std::endl; // mark with tag for visualiser
+      options.output->stream << "; debug: on" << std::endl; // mark with tag for visualiser
     }
 
     ctx.program.print(options.output->stream);

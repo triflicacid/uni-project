@@ -5,9 +5,9 @@ std::unique_ptr<named_fstream> visualiser::processor::source = nullptr;
 uint64_t visualiser::processor::initial_pc = 0;
 std::unique_ptr<named_fstream> visualiser::processor::piped_stdout;
 std::unique_ptr<named_fstream> visualiser::processor::piped_stdin;
-std::set<const visualiser::PCLine*> visualiser::processor::breakpoints;
+std::set<const visualiser::sources::PCLine*> visualiser::processor::breakpoints;
 uint64_t visualiser::processor::pc = 0;
-const visualiser::PCLine* visualiser::processor::pc_line = nullptr;
+const visualiser::sources::PCLine* visualiser::processor::pc_line = nullptr;
 
 void visualiser::processor::init() {
   cpu.reset();
@@ -27,13 +27,13 @@ uint64_t visualiser::processor::restore_pc() {
 
 void visualiser::processor::update_pc() {
   pc = visualiser::processor::cpu.read_pc();
-  if (const PCLine* new_pc_line = visualiser::locate_pc(pc))
+  if (const sources::PCLine* new_pc_line = visualiser::sources::locate_pc(pc))
     pc_line = new_pc_line;
 }
 
 void visualiser::processor::update_pc(uint64_t val) {
   pc = val;
   cpu.write_pc(val);
-  if (const PCLine* new_pc_line = visualiser::locate_pc(val))
+  if (const sources::PCLine* new_pc_line = visualiser::sources::locate_pc(val))
     pc_line = new_pc_line;
 }

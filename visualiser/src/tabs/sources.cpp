@@ -7,7 +7,7 @@
 
 namespace state {
   static ftxui::Component menu_focus_component; // if focused, highlight selected file
-  static std::vector<const visualiser::File*> files;
+  static std::vector<const visualiser::sources::File*> files;
   static int menu_selected; // Menu::selected_
   static ftxui::Component file_pane;
   static int selected_line = 1; // 1-indexed
@@ -25,17 +25,17 @@ static int find_file(const std::filesystem::path& path) {
 }
 
 // get the selected file
-inline const visualiser::File* selected() {
+inline const visualiser::sources::File* selected() {
   return state::files[state::menu_selected];
 }
 
 // get the selected file's line
-inline const visualiser::FileLine& selected_line() {
+inline const visualiser::sources::FileLine& selected_line() {
   return selected()->lines[state::selected_line - 1];
 }
 
 // given file, generate element
-static ftxui::Element generate_file_element(const visualiser::File& file) {
+static ftxui::Element generate_file_element(const visualiser::sources::File& file) {
   ftxui::Element base = ftxui::text(file.path.string());
 
   if (int breakpoints = file.count_breakpoints()) {
@@ -53,7 +53,7 @@ static ftxui::Element generate_file_element(const visualiser::File& file) {
 }
 
 // return Element wrapping the current line
-static ftxui::Element wrap_line(const visualiser::FileLine &line) {
+static ftxui::Element wrap_line(const visualiser::sources::FileLine &line) {
   // test if there is a breakpoint on this line
   if (line.has_breakpoint()) {
     return hbox(visualiser::style::breakpoint_prefix(), ftxui::text(line.line));
@@ -64,7 +64,7 @@ static ftxui::Element wrap_line(const visualiser::FileLine &line) {
 
 // ensure state::selected_line is in bounds
 static void validate_selected_line() {
-  const visualiser::File* file = selected();
+  const visualiser::sources::File* file = selected();
   if (!file) return;
 
   clamp(state::selected_line, 1, (int)file->lines.size() + 1);
@@ -101,7 +101,7 @@ namespace events {
 
   static bool on_right_bracket(ftxui::Event& e) { // ']'
     // trace the current line
-    const visualiser::File* file = selected();
+    const visualiser::sources::File* file = selected();
     auto& line = selected_line();
     if (line.trace.empty()) return true;
 
@@ -109,11 +109,11 @@ namespace events {
 
     // trace back to previous abstraction level
     switch (file->type) {
-      case visualiser::Type::Language: // -> assembly
+      case visualiser::sources::Type::Language: // -> assembly
         state::menu_selected = find_file(pc_line->asm_origin.path());
         state::selected_line = pc_line->asm_origin.line();
         break;
-      case visualiser::Type::Assembly: // -> source
+      case visualiser::sources::Type::Assembly: // -> source
         state::menu_selected = 0;
         state::selected_line = pc_line->line_no;
         break;
@@ -124,17 +124,17 @@ namespace events {
   }
 
   static bool on_left_bracket(ftxui::Event& e) { // ']'
-    const visualiser::File* file = selected();
-    const visualiser::FileLine& file_line = selected_line();
+    const visualiser::sources::File* file = selected();
+    const visualiser::sources::FileLine& file_line = selected_line();
     if (file_line.trace.empty()) return true;
 
-    const visualiser::PCLine* pc_line = file_line.trace.front();
+    const visualiser::sources::PCLine* pc_line = file_line.trace.front();
     const Location* location = nullptr;
     switch (file->type) {
-      case visualiser::Type::Source: // -> assembly
+      case visualiser::sources::Type::Source: // -> assembly
         location = &pc_line->asm_origin;
         break;
-      case visualiser::Type::Assembly: // -> language
+      case visualiser::sources::Type::Assembly: // -> language
         location = &pc_line->lang_origin;
         break;
       default: ;
@@ -159,7 +159,7 @@ namespace events {
 
   static bool on_e(ftxui::Event& e) {
     // lookup line associated to $pc, jump to its origin (in source)
-    if (auto* pc = visualiser::locate_pc(visualiser::processor::pc)) {
+    if (auto* pc = visualiser::sources::locate_pc(visualiser::processor::pc)) {
       state::selected_line = pc->line_no;
       state::menu_selected = 0; // first file (i.e., source)
       state::file_pane->TakeFocus();
@@ -169,7 +169,7 @@ namespace events {
   }
 
   static bool on_j(ftxui::Event& e) {
-    const visualiser::FileLine& line = selected_line();
+    const visualiser::sources::FileLine& line = selected_line();
     if (std::optional<uint64_t> pc = line.pc(); pc.has_value() && pc.value() != visualiser::processor::pc)
       visualiser::processor::update_pc(pc.value());
     return true;
@@ -199,9 +199,9 @@ void visualiser::tabs::SourcesTab::init() {
 
   // create menu containing file names
   std::vector<std::string> file_names;
-  state::files.reserve(visualiser::files.size());
-  file_names.reserve(visualiser::files.size());
-  for (auto& [path, file] : visualiser::files) {
+  state::files.reserve(visualiser::sources::files.size());
+  file_names.reserve(visualiser::sources::files.size());
+  for (auto& [path, file] : visualiser::sources::files) {
     state::files.push_back(&file);
     file_names.push_back(path.string());
   }
@@ -209,7 +209,7 @@ void visualiser::tabs::SourcesTab::init() {
   // create pane which will contain selected file's content
   state::file_pane = Scroller(Renderer([](bool focused) {
     // create Elements for each line of the file
-    const File* file = selected();
+    const sources::File* file = selected();
     std::vector<Element> elements;
     elements.reserve(file->lines.size());
     for (auto& line : file->lines) {
@@ -244,12 +244,12 @@ void visualiser::tabs::SourcesTab::init() {
     std::vector<Element> elements;
 
     // sort source files into correct lists
-    const File* source_file = get_file(source->path);
+    const sources::File* source_file = sources::get_file(sources::s_source->path);
     std::vector<Element> asm_files, lang_files;
-    for (auto& [path, file] : visualiser::files) {
-      if (file.type == visualiser::Type::Assembly) {
+    for (auto& [path, file] : visualiser::sources::files) {
+      if (file.type == sources::Type::Assembly) {
         asm_files.push_back(generate_file_element(file));
-      } else if (file.type == Type::Language) {
+      } else if (file.type == sources::Type::Language) {
         lang_files.push_back(generate_file_element(file));
       }
     }

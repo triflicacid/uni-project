@@ -5,8 +5,8 @@
 #include "ast/block.hpp"
 #include "ast/types/float.hpp"
 #include "ast/types/int.hpp"
-#include "language/src/ast/operator.hpp"
-#include "language/src/ast/leaves/symbol_reference.hpp"
+#include "ast/operator.hpp"
+#include "ast/leaves/symbol_reference.hpp"
 #include "util.hpp"
 #include "ast/program.hpp"
 #include "operators/info.hpp"
@@ -14,7 +14,7 @@
 #include "ast/types/pointer.hpp"
 #include "ast/types/array.hpp"
 #include "config.hpp"
-#include "language/src/ast/leaves/unit.hpp"
+#include "ast/leaves/unit.hpp"
 #include "message_helper.hpp"
 
 void lang::parser::Parser::read_tokens(unsigned int n) {

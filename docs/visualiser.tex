@@ -47,13 +47,26 @@
 
     \medskip
     \begin{lstlisting}[style=bashconsole]
-$ ./visualiser --asm <asm_file> --bin <bin_file> [flags]
+$ ./visualiser [filename] [flags]
     \end{lstlisting}
 
-    The \texttt{--asm} and \texttt{--bin} flags set the source assembly and binary files, respectively.
-    The file provided to \texttt{--asm} is the output from the assembler's reconstruction; if not, features such as trace-back will not be enabled.
+    If a filename is provided, this is assumed to be the root name of all components: \texttt{filename.edel}, \texttt{filename.asm}, \texttt{filename.s}, and \texttt{filename} (binary).
+    Each file may be provided using a flag which will override the assumption:
+    \begin{itemize}
+        \item \texttt{--edel <file>} -- sets the input high-level Edel source file.
+        Default: \texttt{<filename>.edel}.
+        \item \texttt{--asm <file>} -- sets the input assembly source file.
+        Expects output from the compiler.
+        Default: \texttt{<filename>.asm}.
+        \item \texttt{--reconstructed <file>} -- sets the reconstructed assembly file.
+        Expects \texttt{-r ...} file from the assembler.
+        Default: \texttt{<filename>.s}.
+        \item \texttt{--bin <file>} -- sets the binary file.
+        Expects output from the assembler.
+        Default: \texttt{<filename>}.
+    \end{itemize}
 
-    The following flags are optional:
+    There are some additional flags available:
     \begin{itemize}
         \item \texttt{-b <list>} or \texttt{--breakpoints <list>} -- a comma-separated list of \$pc values to install breakpoints at.
         \item \texttt{--stdout <file>} -- pipe the processor's output to this file.
@@ -62,19 +75,26 @@ $ ./visualiser --asm <asm_file> --bin <bin_file> [flags]
 
     \subsection{Execution Example}
 
-    The visualiser relies on output from the assembler.
-    Below is the sequence of steps to go from a source assembly file, to running it on the visualiser.
+    Below is the sequence of steps to go from a source Edel file to running it on the visualiser.
+
     \begin{enumerate}
-        \item Write an assembly source, say \texttt{source.asm}.
+        \item Write a high-level source file, say \texttt{source.edel}.
+        \item Compile the file, emitting debug comments.
+        The following command will output an assembly file, \texttt{source.asm}.
+        \begin{lstlisting}[style=bashconsole]
+$ ./compiler source.edel -o source.asm -d
+        \end{lstlisting}
         \item Assemble the file, emitting a reconstruction.
+        The following command will output a binary, \texttt{source}, and a reconstruction mapping, \texttt{source.s}.
         \medskip
         \begin{lstlisting}[style=bashconsole]
 $ ./assembler source.asm -o source -r source.s
         \end{lstlisting}
         \item Launch the visualiser.
+        If all the file names are the same, with the correct extensions, we can simply pass the file name without an extension.
         \medskip
         \begin{lstlisting}[style=bashconsole]
-$ ./visualiser --asm source.s --bin source
+$ ./visualiser source
         \end{lstlisting}
     \end{enumerate}
 

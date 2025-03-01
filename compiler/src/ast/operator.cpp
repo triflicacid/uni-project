@@ -5,7 +5,7 @@
 #include "operators/operator.hpp"
 #include "context.hpp"
 #include "ast/types/namespace.hpp"
-#include "language/src/ast/leaves/symbol_reference.hpp"
+#include "ast/leaves/symbol_reference.hpp"
 #include "ast/namespace.hpp"
 #include "message_helper.hpp"
 #include "value/future.hpp"
