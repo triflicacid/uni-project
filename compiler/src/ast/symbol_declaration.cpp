@@ -13,6 +13,7 @@
 #include "ast/types/pointer.hpp"
 #include "operators/builtins.hpp"
 #include "assembly/create.hpp"
+#include "ast/types/unit.hpp"
 
 std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
@@ -79,6 +80,8 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
       ctx.messages.add(std::move(msg));
       return false;
     }
+
+    type_ = type::unit;
 
     // we must have an assignment
     if (!assignment_.has_value()) {
@@ -193,10 +196,13 @@ bool lang::ast::SymbolDeclarationNode::process(lang::Context& ctx) {
 
 bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
   // allocate this symbol
-  ctx.program.add_location(token_start().loc);
-  ctx.symbols.allocate(id_);
-  ctx.program.remove_location();
-  const auto& symbol_location = ctx.symbols.locate(id_); // may be nothing if zero sized
+  optional_ref<const lang::memory::StorageLocation> symbol_location;
+  if (name_.image != "_") {
+    ctx.program.add_location(token_start().loc);
+    ctx.symbols.allocate(id_);
+    ctx.program.remove_location();
+    symbol_location = ctx.symbols.locate(id_); // may be nothing if zero sized
+  }
 
   // if no assignment, we're done
   if (!assignment_.has_value()) return true;
@@ -216,6 +222,9 @@ bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
   // TODO target might be slightly off
   bool materialisation_did_store = value.materialise(ctx, {symbol_location, false, assignment_.value()->token_start().loc});
   const int index = ctx.program.current().size();
+
+  // if '_', return now as we are done
+  if (name_.image == "_") return true;
 
   // if not an rvalue but we have a storage_location, point to that
   if (!value.is_rvalue() && symbol_location) {

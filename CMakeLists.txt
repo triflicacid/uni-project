@@ -9,5 +9,5 @@ include_directories(shared)
 
 add_subdirectory(processor)
 add_subdirectory(assembler)
-add_subdirectory(language)
+add_subdirectory(compiler)
 add_subdirectory(visualiser)
