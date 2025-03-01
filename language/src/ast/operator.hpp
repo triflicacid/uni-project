@@ -89,23 +89,6 @@ namespace lang::ast {
     bool generate_code(Context &ctx) override;
   };
 
-  // represents (type) expr
-  // this is used for basic C-style casting (only primitive types are permitted)
-  // @deprecated TODO remove
-  class CStyleCastOperatorNode : public OperatorNode {
-    const type::Node& target_;
-    std::string symbol_; // (type) symbol, stored for future reference (printing)
-
-  public:
-    CStyleCastOperatorNode(lexer::Token token, const type::Node& target, std::unique_ptr<Node> expr);
-
-    const std::string& symbol() const override { return symbol_; }
-
-    bool process(Context &ctx) override;
-
-    bool generate_code(Context &ctx) override;
-  };
-
   // represents lhs.rhs
   class DotOperatorNode : public OperatorNode {
     std::string property_;

@@ -352,23 +352,6 @@ std::unique_ptr<lang::ast::Node> lang::parser::Parser::parse_expression_internal
       expr = ast::OperatorNode::unary(op_token, std::move(expr));
     }
   }
-  else if (expect(lexer::TokenType::lpar) && expect(numerical_types, 1)) { // primitive cast
-    const lexer::Token op_token = consume();
-
-    // expect type `)`
-    auto type = parse_type();
-    if (is_error() || !expect_or_error(lexer::TokenType::rpar)) return nullptr;
-    consume();
-
-    // followed by an expression
-    if (!expect_or_error(firstset::expression)) return nullptr;
-    auto& info = ops::builtin_unary.at("(type)");
-    expr = parse_expression_internal(info.precedence);
-    if (is_error()) return nullptr;
-
-    // wrap and continue
-    expr = std::make_unique<ast::CStyleCastOperatorNode>(op_token, *type, std::move(expr));
-  }
   else if (expect(firstset::term)) { // term
     expr = parse_term();
     if (is_error()) return nullptr;

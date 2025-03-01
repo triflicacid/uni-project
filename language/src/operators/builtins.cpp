@@ -108,7 +108,6 @@ std::unordered_map<std::string, const lang::ops::OperatorInfo> lang::ops::builti
     {"~", {18, true}}, // bitwise NOT
     {"&", {18, true, false}}, // address-of
     {"*", {18, true, false}}, // dereference
-    {"(type)", {18, true, false}}, // primitive cast
     {"sizeof", {18, true, false}}, // size of type
 };
 

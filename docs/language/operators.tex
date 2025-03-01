@@ -36,8 +36,7 @@ The associativity and precedence of a generic (non built-in) operator is also sh
         \texttt{a()} & Function call & \multirow{2}{*}{\(\longrightarrow\)} & \multirow{2}{*}{Yes} \\
         \texttt{a[]} & Subscript & & \\
         \hline
-        \texttt{(T) a} & Primitive cast & \multirow{4}{*}{\(\longleftarrow\)} & \multirow{4}{*}{No} \\
-        \texttt{\&a} & Address-of & & \\
+        \texttt{\&a} & Address-of & \multirow{3}{*}{\(\longleftarrow\)} & \multirow{3}{*}{No} \\
         \texttt{*a} & Dereference & & \\
         \texttt{sizeof a} & Get size & & \\
         \hline
@@ -81,29 +80,6 @@ The associativity and precedence of a generic (non built-in) operator is also sh
         \hline
     \end{tabular}\label{tab:builtin-operators}
 \end{table}
-
-\subsection{Casting}\label{subsec:op-casting}
-
-The concept of casting is explained in subsection ~\ref{subsec:type-casting}.
-Edel offers two casting operators: \texttt{(T) a} and \texttt{a as T}.
-
-The former is a primitive cast, meaning it only supports casting to primitive, atomic types.
-This cast is direct and is ignorant of the type of \texttt{a} and whether the cast is meaningful.
-
-The latter, using the \texttt{as} keyword, is a straightforward explicit cast.
-There are no restrictions on \texttt{T} but, as explained in subsection ~\ref{subsec:type-casting}, this cast still must obey some rules and will fail otherwise.
-
-\begin{lstlisting}[language=CustomLang]
-let a = (int) 3.14; // ok
-let b = (*int) 0; // syntax error
-let c = 0 as *int; // ok
-\end{lstlisting}
-
-Also note the difference in precedence: the \texttt{as} cast is slightly looser than other unary operators.
-
-\begin{lstlisting}[language=CustomLang]
-!1 as bool; // same as `(!1) as bool' NOT `!(1 as bool)'
-\end{lstlisting}
 
 \subsection{Address-Of \& Dereferencing}\label{subsec:address-of-&-dereferencing}
 

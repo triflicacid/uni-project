@@ -216,42 +216,6 @@ lang::ast::OperatorNode::binary(lexer::Token token, lexer::Token symbol, std::un
   return std::make_unique<OverloadableOperatorNode>(std::move(token), std::move(symbol), std::move(children));
 }
 
-lang::ast::CStyleCastOperatorNode::CStyleCastOperatorNode(lang::lexer::Token token, const lang::ast::type::Node& target, std::unique_ptr<Node> expr)
-  : OperatorNode(token, token, {}), target_(target) {
-  args_.push_back(std::move(expr));
-  token_end(args_.back()->token_end());
-
-  std::stringstream stream;
-  stream << '(';
-  target_.print_code(stream);
-  stream << ')';
-  symbol_ = stream.str();
-
-  op_symbol_.image = symbol_; // doctor image for correct-looking error reporting
-}
-
-bool lang::ast::CStyleCastOperatorNode::process(lang::Context& ctx) {
-  arg(0).type_hint(target_);
-  if (!OperatorNode::process(ctx)) return false;
-  value_ = value::value(target_);
-  return true;
-}
-
-bool lang::ast::CStyleCastOperatorNode::generate_code(lang::Context& ctx) {
-  if (!arg(0).resolve(ctx) || !arg(0).generate_code(ctx)) return false;
-  auto& value = arg(0).value();
-  value.materialise(ctx, arg(0).token_start().loc);
-  if (!expect_arg_lrvalue(0, ctx.messages, false)) return false;
-
-  // fetch reference to arg and convert
-  memory::Ref ref = value.rvalue().ref();
-  ref = ctx.reg_alloc_manager.guarantee_datatype(ref, target_);
-
-  // update rvalue
-  value_->rvalue(ref);
-  return true;
-}
-
 lang::ast::DotOperatorNode::DotOperatorNode(lang::lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
   : OperatorNode(std::move(token), std::move(symbol), {}) {
   token_start(lhs->token_start());
