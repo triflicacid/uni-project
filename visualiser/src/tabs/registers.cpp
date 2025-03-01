@@ -20,6 +20,7 @@ namespace state {
   static std::vector<std::string> reg_names; // list of register names, used in menu
   static int current_reg = 0; // index of the current register
   static std::optional<uint64_t> copied_reg; // copied register contents
+  static bool do_sync_inputs = false; // do we need to refresh inputs next render?
 
   namespace inputs {
     static std::string s_hex, s_int, s_long, s_float, s_double;
@@ -155,6 +156,12 @@ static bool register_list_on_event(ftxui::Event &e) {
   if (e == ftxui::Event::Backspace || e == ftxui::Event::Delete) { // clear current register
     sync_inputs(0);
     return true;
+  }
+
+  // if navigate down/up, sync inputs
+  if (e == ftxui::Event::ArrowUp || e == ftxui::Event::ArrowDown) {
+    state::do_sync_inputs = true;
+    return false;
   }
 
   return false;
@@ -310,6 +317,11 @@ void visualiser::tabs::RegistersTab::init() {
 
   auto register_view = Renderer(register_view_layout, [] {
         auto reg = $reg(state::current_reg);
+        if (state::do_sync_inputs) {
+          state::do_sync_inputs = false;
+          sync_inputs();
+        }
+
         std::vector<Element> children{
                         center(text("Register $" + constants::registers::to_string(reg)) | bold),
                         separator(),
