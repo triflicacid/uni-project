@@ -119,6 +119,12 @@ int main(int argc, char** argv) {
     return ret;
   }
 
+  // canonicalise file names
+  visualiser::sources::edel_source->canonicalise();
+  visualiser::sources::asm_source->canonicalise();
+  visualiser::sources::s_source->canonicalise();
+  visualiser::processor::source->canonicalise();
+
   // populate assembly data
   visualiser::sources::init();
 

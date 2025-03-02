@@ -257,7 +257,7 @@ void visualiser::tabs::SourcesTab::init() {
     return hbox({
       vbox({
               window(
-                  text("Machine Code"),
+                  text("Reconstructed Source"),
                   vbox(generate_file_element(*source_file)),
                   LIGHT
               ),

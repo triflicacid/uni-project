@@ -39,14 +39,14 @@ namespace visualiser::sources {
 
     std::string to_string() const;
 
-    // return the number of breakpoints in thes file
+    // return the number of breakpoints in the file
     int count_breakpoints() const;
   };
 
   struct FileLine {
     int n;
     std::string line;
-    std::vector<const PCLine*> trace;
+    std::vector<PCLine*> trace;
 
     // test if this line produced (traces to) the given pc
     bool contains_pc(uint64_t pc) const;
@@ -77,8 +77,8 @@ namespace visualiser::sources {
   const PCLine* locate_line(int line);
 
   // find all PCLines which originate from path.asm:line
-  std::vector<const PCLine*> locate_asm_line(const std::filesystem::path &path, int line);
+  std::vector<PCLine*> locate_asm_line(const std::filesystem::path &path, int line);
 
   // find all PCLines which originate from path.src:line
-  std::vector<const PCLine*> locate_lang_line(const std::filesystem::path &path, int line);
+  std::vector<PCLine*> locate_lang_line(const std::filesystem::path &path, int line);
 }

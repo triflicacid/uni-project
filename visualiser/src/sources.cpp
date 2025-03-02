@@ -9,7 +9,10 @@ std::unique_ptr<named_fstream> visualiser::sources::s_source = nullptr;
 std::map<uint32_t, visualiser::sources::PCLine> visualiser::sources::pc_to_line = {};
 std::map<std::filesystem::path, visualiser::sources::File> visualiser::sources::files = {};
 
-void visualiser::sources::init() {
+// read .s file, create binary-to-s links
+static void init_s_source() {
+  using namespace visualiser::sources;
+
   // reset file & other state
   auto &stream = s_source->stream;
   stream.clear();
@@ -61,6 +64,77 @@ void visualiser::sources::init() {
   files.insert({file.path, file});
 }
 
+// read .asm file, create links to source file
+static void init_asm_source() {
+  using namespace visualiser::sources;
+
+  // reset file & other state
+  auto &stream = asm_source->stream;
+  stream.clear();
+  stream.seekg(std::ios::beg);
+
+  // read each line (save in map entry)
+  File file = {asm_source->path, Type::Assembly, {}, true};
+  std::string line;
+  int idx = 0;
+
+  while (std::getline(stream, line)) {
+    idx++;
+
+    // split into line contents & debug info
+    size_t i = line.find_last_of(';');
+
+    // extract debug info and offset
+    std::string debug_info = line.substr(i + 1);
+    trim(debug_info);
+
+    // extract filename and line number
+    size_t j = debug_info.find_first_of(':'), k = debug_info.find_last_of(':');
+    int line_no = -1, col_no = -1;
+    if (j == k) {
+      try {
+        line_no = std::stoi(debug_info.substr(j + 1));
+      } catch (std::exception& e) { }
+    } else {
+      try {
+        std::string s = debug_info.substr(j + 1, k - j);
+        line_no = std::stoi(s);
+        j += s.length();
+
+        s = debug_info.substr(k + 1);
+        col_no = std::stoi(s);
+      } catch (std::exception& e) { }
+    }
+    std::string filepath = debug_info.substr(0, j);
+
+    // register file as high-level, if need to
+    if (files.find(filepath) == files.end())
+      files.insert({
+                       filepath,
+                       File{filepath, Type::Language, {}, false}
+                   });
+
+    // find PC entry and update lang_origin
+    if (line_no > -1) {
+      line = line.substr(0, i);
+      auto pc_lines = locate_asm_line(asm_source->path, idx);
+      for (PCLine* pc_line: pc_lines) {
+        pc_line->lang_origin = Location(filepath, line_no, col_no);
+      }
+    }
+  }
+
+  // add map entry to file dictionary
+  files.insert({file.path, file});
+}
+
+void visualiser::sources::init() {
+  init_s_source();
+  init_asm_source();
+  // lang source will be loaded when needed
+  return;
+}
+
 const visualiser::sources::PCLine* visualiser::sources::locate_pc(uint64_t pc) {
   if (auto it = pc_to_line.find(pc); it != pc_to_line.end()) {
     return &it->second;
@@ -69,10 +143,10 @@ const visualiser::sources::PCLine* visualiser::sources::locate_pc(uint64_t pc) {
   return nullptr;
 }
 
-std::vector<const visualiser::sources::PCLine*> visualiser::sources::locate_asm_line(const std::filesystem::path &path, int line) {
-  std::vector<const visualiser::sources::PCLine *> entries;
+std::vector<visualiser::sources::PCLine*> visualiser::sources::locate_asm_line(const std::filesystem::path &path, int line) {
+  std::vector<visualiser::sources::PCLine *> entries;
 
-  for (const auto &[pc, entry]: visualiser::sources::pc_to_line) {
+  for (auto &[pc, entry]: visualiser::sources::pc_to_line) {
     if (entry.asm_origin.path() == path && entry.asm_origin.line() == line) {
       entries.push_back(&entry);
     }
@@ -81,10 +155,10 @@ std::vector<const visualiser::sources::PCLine*> visualiser::sources::locate_asm_
   return entries;
 }
 
-std::vector<const visualiser::sources::PCLine*> visualiser::sources::locate_lang_line(const std::filesystem::path &path, int line) {
-  std::vector<const visualiser::sources::PCLine *> entries;
+std::vector<visualiser::sources::PCLine*> visualiser::sources::locate_lang_line(const std::filesystem::path &path, int line) {
+  std::vector<visualiser::sources::PCLine *> entries;
 
-  for (const auto &[pc, entry]: visualiser::sources::pc_to_line) {
+  for (auto &[pc, entry]: visualiser::sources::pc_to_line) {
     if (entry.lang_origin.path() == path && entry.lang_origin.line() == line) {
       entries.push_back(&entry);
     }
@@ -105,8 +179,12 @@ const visualiser::sources::File* visualiser::sources::get_file(const std::filesy
   std::string line;
   int n = 1;
 
+  const std::filesystem::path extension = path.extension();
+  const bool is_asm_file = extension == ".s" || extension == ".S" || extension == ".asm";
+
   while (std::getline(stream, line)) {
-    file->lines.push_back({n, line, locate_asm_line(path, n++)});
+    file->lines.push_back({n, line, is_asm_file ? locate_asm_line(path, n) : locate_lang_line(path, n)});
+    n++;
   }
 
   // insert into dictionary and return
