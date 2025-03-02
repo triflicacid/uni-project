@@ -21,7 +21,7 @@ namespace assembler::instruction {
   class Instruction {
   public:
     const Signature *signature; // signature of instruction we are representing
-    uint8_t overload; // selected signature overload index, default 0
+    uint8_t overload = 0; // selected signature overload index, default 0
     std::deque<Argument> args; // list of supplied arguments
 
   private:

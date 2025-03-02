@@ -100,6 +100,7 @@ namespace assembler::instruction {
       Signature::_not,
       Signature::_or,
       Signature::_push,
+      {"ret", 0x00, true, false, {{ArgumentType::Value}, {}}, false, nullptr, transform::ret},
       {"rti", 0x00, true, false, {{}}, false, nullptr, transform::interrupt_return},
       Signature::_sext,
       Signature::_shl,

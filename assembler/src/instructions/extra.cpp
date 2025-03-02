@@ -138,6 +138,24 @@ namespace assembler::instruction::transform {
     instruction->args.emplace_back(ArgumentType::Immediate, 0);
     instructions.push_back(std::move(instruction));
   }
+
+  void
+  ret(std::vector<std::unique_ptr<Instruction>>& instructions, std::unique_ptr<Instruction> instruction, int overload) {
+    // original: "ret [value]"
+    // optional: "load $ret, <value>"
+    if (overload == 0) {
+      instructions.push_back(std::make_unique<Instruction>(&Signature::_load, std::deque{
+          Argument(ArgumentType::Register, constants::registers::ret),
+          instruction->args.front()
+      }));
+    }
+
+    // "load $pc, $rpc"
+    instructions.push_back(std::make_unique<Instruction>(&Signature::_load, std::deque{
+        Argument(ArgumentType::Register, constants::registers::pc),
+        Argument(ArgumentType::Register, constants::registers::rpc)
+    }));
+  }
 }
 
 namespace assembler::instruction::parse {

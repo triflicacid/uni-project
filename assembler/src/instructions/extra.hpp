@@ -40,6 +40,8 @@ namespace assembler::instruction::transform {
   interrupt_return(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
                    int overload);
 
+  void ret(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction, int overload);
+
   void jump(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
             int overload);
 
