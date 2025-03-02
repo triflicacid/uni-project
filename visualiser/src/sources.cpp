@@ -74,18 +74,29 @@ static void init_asm_source() {
   stream.seekg(std::ios::beg);
 
   // read each line (save in map entry)
-  File file = {asm_source->path, Type::Assembly, {}, true};
+  File& file = files.at(asm_source->path);
+  file.loaded = true;
   std::string line;
   int idx = 0;
 
   while (std::getline(stream, line)) {
     idx++;
 
+    // insert line into file
+    file.lines.push_back(FileLine{
+        idx,
+        line,
+        {}
+    });
+
     // split into line contents & debug info
     size_t i = line.find_last_of(';');
 
+    // does this line contain a debug comment
+    if (i == std::string::npos || i + 1 >= line.length() || line[i + 1] != '@') continue;
+
     // extract debug info and offset
-    std::string debug_info = line.substr(i + 1);
+    std::string debug_info = line.substr(i + 2);
     trim(debug_info);
 
     // extract filename and line number
@@ -97,12 +108,8 @@ static void init_asm_source() {
       } catch (std::exception& e) { }
     } else {
       try {
-        std::string s = debug_info.substr(j + 1, k - j);
-        line_no = std::stoi(s);
-        j += s.length();
-
-        s = debug_info.substr(k + 1);
-        col_no = std::stoi(s);
+        line_no = std::stoi(debug_info.substr(j + 1, k - j));
+        col_no = std::stoi(debug_info.substr(k + 1));
       } catch (std::exception& e) { }
     }
     std::string filepath = debug_info.substr(0, j);
@@ -117,22 +124,20 @@ static void init_asm_source() {
     // find PC entry and update lang_origin
     if (line_no > -1) {
       line = line.substr(0, i);
-      auto pc_lines = locate_asm_line(asm_source->path, idx);
+      auto pc_lines = locate_asm_line(file.path, idx);
       for (PCLine* pc_line: pc_lines) {
         pc_line->lang_origin = Location(filepath, line_no, col_no);
       }
+      file.lines.back().trace = std::move(pc_lines);
+      file.lines.back().line = line;
     }
   }
-
-  // add map entry to file dictionary
-  files.insert({file.path, file});
 }
 
 void visualiser::sources::init() {
   init_s_source();
   init_asm_source();
   // lang source will be loaded when needed
-  return;
 }
 
 const visualiser::sources::PCLine* visualiser::sources::locate_pc(uint64_t pc) {
@@ -179,7 +184,7 @@ const visualiser::sources::File* visualiser::sources::get_file(const std::filesy
   std::string line;
   int n = 1;
 
-  const std::filesystem::path extension = path.extension();
+  const std::string extension = path.extension().string();
   const bool is_asm_file = extension == ".s" || extension == ".S" || extension == ".asm";
 
   while (std::getline(stream, line)) {

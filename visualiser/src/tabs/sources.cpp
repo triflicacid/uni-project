@@ -26,7 +26,8 @@ static int find_file(const std::filesystem::path& path) {
 
 // get the selected file
 inline const visualiser::sources::File* selected() {
-  return state::files[state::menu_selected];
+  // call ::get_file to ensure it is loaded
+  return visualiser::sources::get_file(state::files[state::menu_selected]->path);
 }
 
 // get the selected file's line
@@ -198,12 +199,30 @@ void visualiser::tabs::SourcesTab::init() {
   const int paneMaxHeight = 25;
 
   // create menu containing file names
+  std::vector<sources::File*> s_files, asm_files, lang_files;
+  for (auto& [path, file] : visualiser::sources::files) {
+    std::vector<sources::File*>* files;
+    switch (file.type) {
+      case sources::Type::Source:
+        files = &s_files;
+        break;
+      case sources::Type::Assembly:
+        files = &asm_files;
+        break;
+      case sources::Type::Language:
+        files = &lang_files;
+    }
+    files->push_back(&file);
+  }
+
+  // join files into one, and accumulate file names
   std::vector<std::string> file_names;
   state::files.reserve(visualiser::sources::files.size());
-  file_names.reserve(visualiser::sources::files.size());
-  for (auto& [path, file] : visualiser::sources::files) {
-    state::files.push_back(&file);
-    file_names.push_back(path.string());
+  for (auto& files : std::vector{&s_files, &asm_files, &lang_files}) {
+    for (auto& file : *files) {
+      file_names.push_back(file->path);
+      state::files.push_back(file);
+    }
   }
 
   // create pane which will contain selected file's content

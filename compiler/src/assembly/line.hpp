@@ -27,7 +27,7 @@ namespace lang::assembly {
       if (const std::string str = comment_.str(); !str.empty())
         os << "  ; " << str;
       if (conf::debug && origin_) {
-        os << "  ; ";
+        os << "  ;@";
         origin_->print(os, true);
       }
       return os;
