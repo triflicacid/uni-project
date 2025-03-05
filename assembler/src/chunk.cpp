@@ -69,4 +69,21 @@ namespace assembler {
 
     os << std::dec;
   }
+
+  uint16_t SpaceDirectiveChunk::size() const {
+    return m_value;
+  }
+
+  void SpaceDirectiveChunk::debug_print(std::ostream& os) {
+    Chunk::debug_print(os);
+    os << " - space (0x" << std::hex << m_value << std::dec << ")" << std::endl;
+  }
+
+  void SpaceDirectiveChunk::write(std::ostream& os) {
+
+  }
+
+  void SpaceDirectiveChunk::reconstruct(std::ostream& os) {
+    os << ".space 0x" << std::hex << m_value << std::dec;
+  }
 }

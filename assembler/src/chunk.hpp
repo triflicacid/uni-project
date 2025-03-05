@@ -72,4 +72,20 @@ namespace assembler {
 
       void reconstruct(std::ostream &os) override;
   };
+
+  class SpaceDirectiveChunk : public Chunk {
+    uint32_t m_value;
+
+  public:
+    SpaceDirectiveChunk(Location source, uint32_t offset, uint32_t value)
+      : Chunk(std::move(source), offset), m_value(value) {}
+
+    uint16_t size() const override;
+
+    void debug_print(std::ostream &os) override;
+
+    void write(std::ostream &os) override;
+
+    void reconstruct(std::ostream &os) override;
+  };
 }

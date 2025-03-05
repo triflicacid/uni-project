@@ -188,7 +188,7 @@ int compile_result(assembler::Data &data) {
     std::cout << ANSI_GREEN "=== COMPILATION ===\n" ANSI_RESET;
 
     for (const auto &chunk: data.buffer) {
-      chunk->print(std::cout);
+      chunk->debug_print(std::cout);
     }
   }
 
