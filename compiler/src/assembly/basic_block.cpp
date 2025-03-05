@@ -11,7 +11,10 @@ std::ostream& lang::assembly::BasicBlock::print(std::ostream& os) const {
   // print label and comment
   os << label_ << ":";
   if (std::string str = comment_.str(); !str.empty()) os << "  ; " << str;
-  if (origin_.has_value()) os << "  ; " << origin_.value();
+  if (origin_.has_value()) {
+    os << "  ;@";
+    origin_->print(os, true);
+  }
   os << std::endl;
 
   // print our instructions

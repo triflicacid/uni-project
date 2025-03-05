@@ -81,12 +81,15 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       block->comment() << "alloc " << symbol.full_name() << ": ";
       symbol.type().print_code(block->comment());
 
-      // set source location
-      if (auto loc = program.location()) block->origin(loc->get());
-
       // reserve space inside the block
       // TODO directly load data if possible
       block->add(assembly::Directive::space(symbol.type().size()));
+
+      // set source location
+      if (auto loc = program.location()) {
+        block->origin(loc->get());
+        block->back().origin(loc->get());
+      }
 
       // register stored location
       storage_.insert({id, memory::StorageLocation::global(*block)});

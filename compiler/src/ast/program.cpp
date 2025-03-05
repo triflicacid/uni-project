@@ -6,10 +6,14 @@
 #include "assembly/create.hpp"
 
 void lang::ast::ProgramNode::add(std::unique_ptr<Node> ast_node) {
+  token_end(ast_node->token_end());
   lines_.push_back(std::move(ast_node));
 }
 
 void lang::ast::ProgramNode::add(std::deque<std::unique_ptr<Node>> ast_nodes) {
+  if (ast_nodes.empty()) return;
+  token_end(ast_nodes.back()->token_end());
+
   while (!ast_nodes.empty()) {
     lines_.push_back(std::move(ast_nodes.front()));
     ast_nodes.pop_front();
@@ -63,6 +67,7 @@ bool lang::ast::ProgramNode::generate_code(lang::Context& ctx) {
 
   // add 'exit' to ensure program exits OK
   ctx.program.current().add(assembly::create_exit());
+  ctx.program.current().back().origin(token_end().loc);
 
   return true;
 }
