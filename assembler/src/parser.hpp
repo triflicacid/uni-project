@@ -23,8 +23,7 @@ namespace assembler::parser {
 
   /** Parse a sequence of data. Give size of each element in bytes: 1 (byte), 4 (half word), or 8 (word).
    * Allocate vector on heap and fill with bytes. */
-  bool parse_data(const Data &data, Location &loc, int line_idx, uint8_t size, message::List &msgs,
-                  std::unique_ptr<std::vector<uint8_t>> &bytes);
+  bool parse_data(const Data &data, Location &loc, int line_idx, uint8_t size, message::List &msgs, std::vector<uint8_t> &bytes);
 
   /** Parse an argument, populate <argument>.
    * Provide arg type: one of Immediate, Register, Value, Address. */

@@ -207,23 +207,19 @@ namespace assembler::parser {
         }
 
         // create a Chunk and insert
-        auto chunk = std::make_unique<Chunk>(line.first, data.offset);
-        chunk->set(std::move(instruction));
-        data.add_chunk(std::move(chunk));
+        data.add_chunk(std::make_unique<InstructionChunk>(line.first, data.offset, std::move(instruction)));
       }
     }
 
     // check if any labels left...
     for (auto &chunk: data.buffer) {
-      if (!chunk->is_data()) {
-        for (const auto &instruction = chunk->get_instruction(); auto &arg: instruction->args) {
-          if (arg.is_label()) {
-            auto msg = std::make_unique<message::Message>(message::Error, chunk->location());
-            msg->get() << "unresolved reference to label " << arg.get_label()->label;
-            msgs.add(std::move(msg));
-            return;
-          }
-        }
+      auto label = chunk->get_first_label();
+
+      if (label) {
+        auto msg = std::make_unique<message::Message>(message::Error, chunk->location());
+        msg->get() << "unresolved reference to label " << label->label;
+        msgs.add(std::move(msg));
+        return;
       }
     }
 
@@ -236,28 +232,26 @@ namespace assembler::parser {
   bool parse_directive(Data &data, Location &loc, int line_idx, const std::string &directive, message::List &msgs) {
     if (directive == "byte" || directive == "data" || directive == "word") {
       uint8_t size = directive == "byte" ? 1 : directive == "word" ? 8 : 4;
-      std::unique_ptr<std::vector<uint8_t>> bytes;
+      std::vector<uint8_t> bytes;
 
       if (!parse_data(data, loc, line_idx, size, msgs, bytes)) {
         return false;
       }
 
       // if no data has been provided, add a single zero
-      if (bytes->empty()) {
+      if (bytes.empty()) {
         for (uint8_t i = 0; i < size; i++) {
-          bytes->push_back(0x00);
+          bytes.push_back(0x00);
         }
       }
 
       if (data.cli_args.debug) {
-        std::cout << loc << " ." << directive << ": size " << bytes->size() << " bytes" << std::endl;
+        std::cout << loc << " ." << directive << ": size " << bytes.size() << " bytes" << std::endl;
       }
 
       // insert buffer into a Chunk
-      auto chunk = std::make_unique<Chunk>(loc, data.offset);
-      chunk->set(std::move(bytes));
-      data.offset += chunk->size();
-      data.buffer.push_back(std::move(chunk));
+      data.offset += bytes.size();
+      data.buffer.push_back(std::make_unique<DataChunk>(loc, data.offset, std::move(bytes)));
 
       return true;
     }
@@ -451,14 +445,12 @@ namespace assembler::parser {
     return true;
   }
 
-  bool parse_data(const Data &data, Location &loc, int line_idx, uint8_t size, message::List &msgs,
-                  std::unique_ptr<std::vector<uint8_t>> &bytes) {
+  bool parse_data(const Data &data, Location &loc, int line_idx, uint8_t size, message::List &msgs, std::vector<uint8_t> &bytes) {
     auto &line = data.lines[line_idx];
 
     int str_start = -1; // index of string start, or -1 if not in string
     bool is_decimal = false;
     uint64_t value; // used to store result from various functions
-    bytes = std::make_unique<std::vector<uint8_t>>();
 
     int &col = loc.columnref();
     skip_whitespace(line.second, col);
@@ -532,11 +524,11 @@ namespace assembler::parser {
       // add 'value' to vector
       if constexpr (std::endian::native == std::endian::little) {
         for (int16_t i = 0; i < size; i++) {
-          bytes->push_back(*((uint8_t *) &value + i));
+          bytes.push_back(*((uint8_t *) &value + i));
         }
       } else {
         for (int16_t i = size - 1; i >= 0; i--) {
-          bytes->push_back(*((uint8_t *) &value + i));
+          bytes.push_back(*((uint8_t *) &value + i));
         }
       }
 
@@ -792,18 +784,7 @@ namespace assembler::parser {
 
   void reconstruct_assembly(const Data &data, std::ostream &os) {
     for (auto &chunk: data.buffer) {
-      if (chunk->is_data()) {
-        os << ".byte" << std::hex;
-
-        for (const auto &byte: *chunk->get_data()) {
-          os << " 0x" << (int) byte;
-        }
-
-        os << std::dec;
-      } else {
-        auto &inst = *chunk->get_instruction();
-        inst.print(os);
-      }
+      chunk->reconstruct(os);
 
       // include debug info in comment?
       if (data.cli_args.debug) {

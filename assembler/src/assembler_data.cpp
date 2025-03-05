@@ -6,10 +6,7 @@
 namespace assembler {
   void Data::replace_label(const std::string &label, uint32_t address) const {
     for (const auto &chunk: buffer) {
-      if (!chunk->is_data()) {
-        const auto &inst = chunk->get_instruction();
-        chunk->get_instruction()->replace_label(label, address, cli_args.debug);
-      }
+      chunk->replace_label(label, address, cli_args.debug);
     }
   }
 

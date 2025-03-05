@@ -3,48 +3,70 @@
 #include <iomanip>
 
 namespace assembler {
-  void Chunk::print(std::ostream &os) {
-    os << "Chunk at +0x" << std::hex << offset << std::dec << " of " << m_size << " bytes";
+  void Chunk::debug_print(std::ostream &os) {
+    os << "Chunk at +0x" << std::hex << offset << std::dec << " of " << size() << " bytes";
+  }
 
-    if (m_is_data) {
-      os << " - data:" << std::endl << '\t' << std::uppercase << std::hex;
+  void InstructionChunk::debug_print(std::ostream& os) {
+    Chunk::debug_print(os);
 
-      const auto bytes = *get_data();
+    std::cout << " - instruction 0x" << std::hex << m_instruction->compile() << std::dec << std::endl
+              << '\t';
+    m_instruction->debug_print(os);
+  }
 
-      for (int i = 0; i < bytes.size(); i++) {
-        os << std::setw(2) << std::setfill('0') << (int) bytes[i];
+  void InstructionChunk::write(std::ostream& os) {
+    uint64_t data = m_instruction->compile();
+    os.write((char *) &data, sizeof(data));
+  }
 
-        if (i + 1 < bytes.size()) os << " ";
+  void InstructionChunk::reconstruct(std::ostream& os) {
+    m_instruction->print(os);
+  }
+
+  void InstructionChunk::replace_label(const std::string& label, uint32_t address, bool debug) {
+    m_instruction->replace_label(label, address, debug);
+  }
+
+  const instruction::ArgumentLabel* InstructionChunk::get_first_label() const {
+    for (auto &arg: m_instruction->args) {
+      if (arg.is_label()) {
+        return arg.get_label();
       }
+    }
 
-      std::cout << std::dec << std::endl;
-    } else {
-      std::cout << " - instruction 0x" << std::hex << get_instruction()->compile() << std::dec << std::endl
-                << '\t';
-      get_instruction()->debug_print(os);
+    return nullptr;
+  }
+
+  uint16_t DataChunk::size() const {
+    return m_bytes.size();
+  }
+
+  void DataChunk::debug_print(std::ostream& os) {
+    Chunk::debug_print(os);
+    os << " - data:" << std::endl << '\t' << std::uppercase << std::hex;
+
+    for (int i = 0; i < m_bytes.size(); i++) {
+      os << std::setw(2) << std::setfill('0') << int(m_bytes[i]);
+      if (i + 1 < m_bytes.size()) os << " ";
+    }
+
+    std::cout << std::dec << std::endl;
+  }
+
+  void DataChunk::write(std::ostream& os) {
+    for (uint8_t byte: m_bytes) {
+      os.write((char *) &byte, sizeof(byte));
     }
   }
 
-  void Chunk::write(std::ostream &os) {
-    if (m_is_data) {
-      for (auto &byte: *get_data()) {
-        os.write((char *) &byte, sizeof(byte));
-      }
-    } else {
-      auto data = get_instruction()->compile();
-      os.write((char *) &data, sizeof(data));
+  void DataChunk::reconstruct(std::ostream& os) {
+    os << ".byte" << std::hex;
+
+    for (uint8_t byte: m_bytes) {
+      os << " 0x" << int(byte);
     }
-  }
 
-  void Chunk::set(std::unique_ptr<std::vector<uint8_t>> bytes) {
-    m_is_data = true;
-    m_size = bytes->size();
-    m_bytes = std::move(bytes);
-  }
-
-  void Chunk::set(std::unique_ptr<instruction::Instruction> instruction) {
-    m_is_data = false;
-    m_size = sizeof(uint64_t);
-    m_instruction = std::move(instruction);
+    os << std::dec;
   }
 }
