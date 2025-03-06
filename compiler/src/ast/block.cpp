@@ -7,6 +7,7 @@
 #include "optional_ref.hpp"
 
 void lang::ast::BlockNode::add(std::unique_ptr<Node> ast_node) {
+  if (!ast_node) return;
   lines_.push_back(std::move(ast_node));
 }
 

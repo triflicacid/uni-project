@@ -6,6 +6,7 @@
 #include "assembly/create.hpp"
 
 void lang::ast::ProgramNode::add(std::unique_ptr<Node> ast_node) {
+  if (!ast_node) return;
   token_end(ast_node->token_end());
   lines_.push_back(std::move(ast_node));
 }
