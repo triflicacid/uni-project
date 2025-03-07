@@ -232,7 +232,7 @@ namespace assembler::instruction {
     m_next = NextArgument::None;
   }
 
-  void InstructionBuilder::arg_reg_indirect(uint8_t reg, int32_t offset) {
+  void InstructionBuilder::arg_reg_indirect(uint8_t reg, int16_t offset) {
     switch (m_next) {
       case NextArgument::None:
         return;
@@ -245,7 +245,7 @@ namespace assembler::instruction {
     }
 
     write(8, reg);
-    write(24, *(uint32_t *) &offset & 0xffffff);
+    write(16, *(uint16_t*)&offset);
 
     m_next = NextArgument::None;
   }

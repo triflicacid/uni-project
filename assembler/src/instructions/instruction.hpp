@@ -104,6 +104,6 @@ namespace assembler::instruction {
     void arg_addr(uint32_t addr);
 
     /** Write argument: register indirect. */
-    void arg_reg_indirect(uint8_t reg, int32_t offset);
+    void arg_reg_indirect(uint8_t reg, int16_t offset);
   };
 }
