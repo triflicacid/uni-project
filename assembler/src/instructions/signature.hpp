@@ -11,17 +11,17 @@ namespace assembler::instruction {
     bool expect_test; // expect conditional test?
     bool expect_datatype; // expect datatype?
     std::vector<std::deque<ArgumentType>> arguments; // list of supplied args overloads
-    bool is_full_word; // expect full-word immediates?
+    bool is_full_word = false; // expect full-word immediates?
     // custom parse function -- takes place just after mnemonic extraction from options, before test and datatype parsed
     // modify options as necessary
     void (*parse)(const Data &data, Location &loc, std::unique_ptr<Instruction> &instruction,
-                  std::string &options, message::List &msgs);
+                  std::string &options, message::List &msgs) = nullptr;
 
     // custom function to intercept instruction. If called, instruction IS NOT added to instruction vector.
     // Provide index of matched overload
     void
     (*intercept)(std::vector<std::unique_ptr<Instruction>> &instructions, std::unique_ptr<Instruction> instruction,
-                 int overload_index);
+                 int overload_index) = nullptr;
 
     static const Signature _add, _and, _cmp, _cvt, _div, _jal, _load, _loadu, _mod, _mul, _nop, _not, _or, _push, _sext, _shl, _shr, _store, _sub, _syscall, _xor, _zext;
   };
