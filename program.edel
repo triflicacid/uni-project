@@ -1,7 +1,5 @@
-/*func id(x: int) -> int {
+func id(x: int) -> int {
     return x;
 }
 
 let x = id(1);
-*/
-let x = 1;

@@ -544,6 +544,14 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
   // save registers
   ctx.reg_alloc_manager.save_store(true);
 
+  // push $rpc
+  ctx.stack_manager.push(8);
+  ctx.program.current().back().comment() << "save $rpc";
+  ctx.program.current().add(assembly::create_store(
+      constants::registers::rpc,
+      assembly::Arg::reg_indirect(constants::registers::sp)
+  ));
+
   // push $fp
   ctx.stack_manager.push(8);
   ctx.program.current().back().comment() << "save $fp";
@@ -554,14 +562,6 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
 
   // save $fp
   ctx.stack_manager.push_frame(true);
-
-  // push $rpc
-  ctx.stack_manager.push(8);
-  ctx.program.current().back().comment() << "save return addr";
-  ctx.program.current().add(assembly::create_store(
-      constants::registers::rpc,
-      assembly::Arg::reg_indirect(constants::registers::sp)
-  ));
 
   // push arguments
   int i = 0;
@@ -616,18 +616,8 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
   // update value_'s location
   return_value.rvalue(memory::Ref::reg(constants::registers::ret));
 
-  // restore $rpc
-  ctx.program.current().add(assembly::create_load(
-      constants::registers::rpc,
-      assembly::Arg::reg_indirect(constants::registers::fp, -8)
-  ));
-  ctx.program.current().back().comment() << "restore return addr";
-
   // restore $sp
   ctx.stack_manager.pop_frame(true);
-
-  // restore registers
-  ctx.reg_alloc_manager.destroy_store(true);
 
   // restore $fp
   ctx.program.current().add(assembly::create_load(
@@ -635,6 +625,16 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
       assembly::Arg::reg_indirect(constants::registers::fp)
   ));
   ctx.program.current().back().comment() << "restore $fp";
+
+  // restore $rpc
+  ctx.program.current().add(assembly::create_load(
+      constants::registers::rpc,
+      assembly::Arg::reg_indirect(constants::registers::fp, 8)
+  ));
+  ctx.program.current().back().comment() << "restore $rpc";
+
+  // restore registers
+  ctx.reg_alloc_manager.destroy_store(true);
 
   // populate $ret in alloc manager
   ctx.reg_alloc_manager.update_ret(memory::Object(value::rvalue(
@@ -644,7 +644,7 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
 
   // restore $sp to starting position
   if (auto current_offset = ctx.stack_manager.offset(); current_offset != start_offset) {
-    ctx.program.current().add(assembly::create_sub(
+    ctx.program.current().add(assembly::create_add(
         constants::inst::datatype::u64,
         constants::registers::sp,
         constants::registers::sp,
