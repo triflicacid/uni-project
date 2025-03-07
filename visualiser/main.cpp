@@ -132,6 +132,7 @@ int main(int argc, char** argv) {
   visualiser::processor::init();
   processor::debug::cpu = true;
   processor::debug::args = true;
+  processor::debug::conditionals = true;
 
   for (uint64_t breakpoint : breakpoints) {
     if (auto* pc = visualiser::sources::locate_pc(breakpoint)) {

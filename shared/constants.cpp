@@ -14,6 +14,55 @@ std::string constants::inst::arg_to_string(arg a) {
   }
 }
 
+std::string inst::opcode_to_mnemonic(int opcode) {
+  switch (opcode) {
+    case inst::_load:
+      return "load";
+    case inst::_load_upper:
+      return "loadu";
+    case inst::_store:
+      return "store";
+    case inst::_compare:
+      return "cmp";
+    case inst::_convert:
+      return "cvt";
+    case inst::_not:
+      return "not";
+    case inst::_and:
+      return "and";
+    case inst::_or:
+      return "or";
+    case inst::_xor:
+      return "xor";
+    case inst::_shl:
+      return "shl";
+    case inst::_shr:
+      return "shr";
+    case inst::_zext:
+      return "zext";
+    case inst::_sext:
+      return "sext";
+    case inst::_add:
+      return "add";
+    case inst::_sub:
+      return "sub";
+    case inst::_mul:
+      return "mul";
+    case inst::_div:
+      return "div";
+    case inst::_mod:
+      return "mod";
+    case inst::_jal:
+      return "jal";
+    case inst::_push:
+      return "push";
+    case inst::_syscall:
+      return "syscall";
+    default:
+      return "?";
+  }
+}
+
 std::map<std::string, registers::reg> registers::map = {
         {"pc",   registers::pc},
         {"rpc",  registers::rpc},

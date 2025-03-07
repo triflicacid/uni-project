@@ -115,7 +115,12 @@ static void handle_debug_message(const processor::debug::Message &msg) {
     }
     case Message::Instruction: {
       auto *message = (InstructionMessage*)&msg;
-      *debug_stream << message->mnemonic << ": " << message->message.str() << std::endl;
+      std::string msg = message->message.str();
+      if (msg.empty()) {
+        *debug_stream << "mnemonic: " << message->mnemonic << std::endl;
+      } else {
+        *debug_stream << message->mnemonic << ": " << message->message.str() << std::endl;
+      }
       break;
     }
     case Message::Argument: {

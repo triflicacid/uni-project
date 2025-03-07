@@ -189,7 +189,7 @@ void processor::CPU::exec_compare(uint64_t inst) {
     auto msg = std::make_unique<debug::InstructionMessage>("cmp");
     msg->stream() << "datatype=" << inst::datatype::to_string(datatype) << " (0x" << datatype << ")  |  "
        << "register $" << registers::to_string(reg) << " (0x" << this->reg(reg, true) << ") vs 0x" << value
-       << " = " ANSI_CYAN << cmp::to_string(flag) << std::dec << ANSI_RESET;
+       << " = " << cmp::to_string(flag) << std::dec;
     add_debug_message(std::move(msg));
   }
 }
@@ -829,6 +829,8 @@ void processor::CPU::execute(uint64_t inst) {
 
   // extract the opcode
   auto opcode = static_cast<inst::op>(inst & inst::op_mask);
+
+  if (debug::cpu) add_debug_message(std::make_unique<debug::InstructionMessage>(constants::inst::opcode_to_mnemonic(opcode)));
 
   if (opcode == inst::_nop) {
     if (debug::cpu) *os << "nop: dummy instruction, skipping cycle...";

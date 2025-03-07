@@ -181,6 +181,8 @@ namespace constants {
             _push, // deprecated
             _syscall = 0x3f,
         };
+
+        std::string opcode_to_mnemonic(int opcode);
     }
 }
 

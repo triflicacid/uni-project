@@ -177,7 +177,12 @@ static ftxui::Element format_debug_message(const processor::debug::Message &msg)
     }
     case Message::Instruction: {
       auto *message = (InstructionMessage*)&msg;
-      os << message->mnemonic << ": " << message->message.str();
+      std::string msg = message->message.str();
+      if (msg.empty()) {
+        os << "mnemonic: " << message->mnemonic;
+      } else {
+        os << message->mnemonic << ": " << message->message.str();
+      }
       children.push_back(text(os.str()));
       break;
     }
