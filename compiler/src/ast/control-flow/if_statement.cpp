@@ -121,7 +121,7 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
 
   // generate the guard
   if (!guard_->generate_code(ctx)) return false;
-  guard_->value().materialise(ctx, guard_->token_start().loc);
+  guard_->value().materialise(ctx, guard_->token_end().loc);
 
   // if branching has not been handled, do it ourselves
   int index = ctx.program.current().size();
@@ -131,7 +131,7 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
   // generate then branch
   ctx.program.insert(assembly::Position::Next, std::move(then_block));
   if (!then_->generate_code(ctx)) return false;
-  then_->value().materialise(ctx, then_->token_start().loc);
+  then_->value().materialise(ctx, then_->token_end().loc);
 
   // if we return, don't bother any more on this branch
   if (!then_->always_returns()) {
@@ -154,7 +154,7 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
   if (else_.has_value()) {
     ctx.program.insert(assembly::Position::Next, std::move(else_block));
     if (!else_.value()->generate_code(ctx)) return false;
-    else_.value()->value().materialise(ctx, else_.value()->token_start().loc);
+    else_.value()->value().materialise(ctx, else_.value()->token_end().loc);
 
     // move result, if any, to $ret
     if (!else_.value()->always_returns()) {
