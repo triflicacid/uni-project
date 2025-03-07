@@ -190,6 +190,12 @@ static void update_mem_input() {
 // catch event in memory grid
 static bool memory_grid_on_event(const ftxui::Event& e) {
   using namespace ftxui;
+//  if (!e.is_mouse()) {
+//    std::cerr << e.DebugString() << " | {";
+//    for (char c : e.input()) std::cerr << int(c) << ", ";
+//    std::cerr << "}" << std::endl;
+//  }
+
   if (e == Event::Return) {
     state::mem_input->TakeFocus();
     sync_mem_input();
@@ -214,13 +220,13 @@ static bool memory_grid_on_event(const ftxui::Event& e) {
   } else if (e == Event::PageDown) {
     move_pos(0, state::rows);
     sync_mem_input();
-  } else if (e == Event::Special({27, 91, 54, 59, 53, 126})) { // Ctrl+PageDown
+  } else if (e == Event::Special({27, 91, 49, 59, 53, 70})) { // Ctrl+End
     state::base_address = ::processor::dram::size - state::rows * state::cols;
     sync_mem_input();
   } else if (e == Event::PageUp) {
     move_pos(0, -state::rows);
     sync_mem_input();
-  } else if (e == Event::Special({27, 91, 53, 59, 53, 126})) { // Ctrl+PageUp
+  } else if (e == Event::Special({27, 91, 49, 59, 53, 72})) { // Ctrl+Home
     state::base_address = 0;
     sync_mem_input();
   } else if (e == Event::Backspace || e == Event::Delete) { // clear the given address
@@ -369,7 +375,7 @@ void visualiser::tabs::MemoryTab::init() {
     return create_key_help_pane({
                                     {"Arrows", "move selection"},
                                     {"PageUp/Down", "move one page up/down"},
-                                    {"Ctrl+PageUp/Down", "move to start/end of memory"},
+                                    {"Ctrl+Home/End", "move to start/end of memory"},
                                     {"Home/End", "move to start/end of line"},
                                     {"Backspace/Delete", "zero memory location"},
                                     {"Enter", "jump to input box"},
