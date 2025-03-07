@@ -41,9 +41,13 @@ void processor::Core::reg_copy(constants::registers::reg rd, constants::register
 }
 
 uint64_t processor::Core::mem_load(uint64_t addr, uint8_t size) {
-  if (debug::mem) add_debug_message(std::move(std::make_unique<debug::MemoryMessage>(addr, size)));
   uint64_t data = m_bus.load(addr, size);
-  if (debug::mem) get_latest_debug_message<debug::MemoryMessage>()->read(data);
+
+  if (debug::mem) {
+    auto msg = std::make_unique<debug::MemoryMessage>(addr, size);
+    msg->read(data);
+    add_debug_message(std::move(msg));
+  }
   return data;
 }
 

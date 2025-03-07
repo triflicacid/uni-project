@@ -40,13 +40,13 @@ namespace processor {
     void test_is_zero(constants::registers::reg reg);
 
     // extract `<reg>` argument from data
-    constants::registers::reg _arg_reg(uint32_t data);
+    constants::registers::reg _arg_reg(uint32_t data, std::unique_ptr<debug::ArgumentMessage>& debug_msg);
 
     // extract `<addr>` argument from data
-    uint32_t _arg_addr(uint32_t data);
+    uint32_t _arg_addr(uint32_t data,  std::unique_ptr<debug::ArgumentMessage>& debug_msg);
 
     // extract `<register indirect>` address argument from word, return offset
-    uint32_t _arg_reg_indirect(uint32_t data);
+    uint32_t _arg_reg_indirect(uint32_t data,  std::unique_ptr<debug::ArgumentMessage>& debug_msg);
 
     // get argument `<reg>`
     [[nodiscard]] constants::registers::reg get_arg_reg(uint64_t inst, uint8_t pos);

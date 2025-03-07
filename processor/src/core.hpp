@@ -6,6 +6,7 @@
 #include <deque>
 #include <memory>
 #include <functional>
+#include <cassert>
 #include "constants.hpp"
 #include "bus.hpp"
 #include "debug.hpp"
@@ -32,14 +33,9 @@ namespace processor {
     // remove all debug messages
     void clear_debug_messages() { debug_message.clear(); }
 
-    // get a reference to the most recent message
-    [[nodiscard]] debug::Message &get_latest_debug_message() const { return *debug_message.back(); }
-
-    template<typename T>
-    [[nodiscard]] T* get_latest_debug_message() const { return (T*)debug_message.back().get(); }
-
     // add a new debug message
     void add_debug_message(std::unique_ptr<debug::Message> m) {
+      assert(m != nullptr);
       debug_message.push_back(std::move(m));
       if (on_add_debug_message.has_value()) on_add_debug_message.value()(*debug_message.back());
     }

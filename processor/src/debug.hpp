@@ -39,9 +39,9 @@ namespace processor::debug {
   struct CycleMessage : Message {
     int n = 0;
     uint64_t pc;
-    uint64_t inst = 0;
+    uint64_t inst;
 
-    CycleMessage(int n, uint64_t pc) : Message(Type::Cycle), n(n), pc(pc) {}
+    CycleMessage(int n, uint64_t pc, uint64_t inst = 0x0) : Message(Type::Cycle), n(n), pc(pc), inst(inst) {}
   };
 
   struct InstructionMessage : Message {
