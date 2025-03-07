@@ -151,6 +151,13 @@ static bool register_list_on_event(ftxui::Event &e) {
       }
       return true;
     }
+
+    // if number 0-9, select register
+    const std::string& value = e.character();
+    if (value.length() == 1 && std::isdigit(value.front())) {
+      state::current_reg = constants::registers::r1 - 1 - '0' + int(value.front());
+      return true;
+    }
   }
 
   if (e == ftxui::Event::Backspace || e == ftxui::Event::Delete) { // clear current register
@@ -351,6 +358,7 @@ void visualiser::tabs::RegistersTab::init() {
 
   help_ = Renderer([&] {
     return create_key_help_pane({
+                                    {"1-9", "select $r<n>"},
                                     {"Backspace/Delete", "zeroes the register"},
                                     {"c", "copies register contents"},
                                     {"v", "pastes contents into register"},
