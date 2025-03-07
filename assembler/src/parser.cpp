@@ -282,11 +282,8 @@ namespace assembler::parser {
         if (data.cli_args.debug)
           std::cout << loc << " .space: insert " << value << " null bytes" << std::endl;
 
-        // add chunk to data
+        // add chunk to data (this will increase data.offset)
         data.add_chunk(std::make_unique<SpaceDirectiveChunk>(loc, data.offset, value));
-
-        // increment offset as desired
-        data.offset += value;
       } else {
         if (data.cli_args.debug)
           std::cout << loc << " .org: move from 0x" << std::hex << data.offset << " to 0x"
