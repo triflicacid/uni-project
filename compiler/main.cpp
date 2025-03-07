@@ -160,10 +160,6 @@ int main(int argc, char** argv) {
 
   // write to output file is provided
   if (options.output) {
-    if (lang::conf::debug) {
-      options.output->stream << "; debug: on" << std::endl; // mark with tag for visualiser
-    }
-
     ctx.program.print(options.output->stream);
   }
 

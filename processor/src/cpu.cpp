@@ -208,7 +208,7 @@ void processor::CPU::exec_not(uint64_t inst) {
 
   if (debug::cpu) {
     auto msg = std::make_unique<debug::InstructionMessage>("not");
-    msg->stream() << constants::registers::to_string(reg_dst) << " = ~0x" << std::hex << reg(reg_src, true)
+    msg->stream() << "$" << constants::registers::to_string(reg_dst) << " = ~0x" << std::hex << reg(reg_src, true)
                   << " = 0x" << reg(reg_dst, true) << std::dec;
     add_debug_message(std::move(msg));
   }
@@ -220,12 +220,12 @@ void processor::CPU::exec_and(uint64_t inst) {
   constants::registers::reg reg_src, reg_dst;
   uint64_t value;
 
-  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
+  if (!fetch_reg_reg_val(inst, reg_dst, reg_src, value, 0, false)) return;
   reg_set(reg_dst, this->reg(reg_src) & value);
 
   if (debug::cpu) {
     auto msg = std::make_unique<debug::InstructionMessage>("and");
-    msg->stream() << "and: " << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
+    msg->stream() << "and: $" << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
                   << ") & 0x" << value << " = 0x" << reg(reg_dst, true) << std::dec;
     add_debug_message(std::move(msg));
   }
@@ -237,13 +237,13 @@ void processor::CPU::exec_or(uint64_t inst) {
   constants::registers::reg reg_src, reg_dst;
   uint64_t value;
 
-  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
+  if (!fetch_reg_reg_val(inst, reg_dst, reg_src, value, 0, false)) return;
 
   reg_set(reg_dst, this->reg(reg_src) | value);
 
   if (debug::cpu) {
     auto msg = std::make_unique<debug::InstructionMessage>("or");
-    msg->stream() << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true) << ") | 0x"
+    msg->stream() << "$" << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true) << ") | 0x"
                   << value << " = 0x" << reg(reg_dst) << std::dec;
     add_debug_message(std::move(msg));
   }
@@ -255,12 +255,12 @@ void processor::CPU::exec_xor(uint64_t inst) {
   constants::registers::reg reg_src, reg_dst;
   uint64_t value;
 
-  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
+  if (!fetch_reg_reg_val(inst, reg_dst, reg_src, value, 0, false)) return;
 
   reg_set(reg_dst, this->reg(reg_src) ^ value);
   if (debug::cpu) {
     auto msg = std::make_unique<debug::InstructionMessage>("xor");
-    msg->stream() << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
+    msg->stream() << "$" << constants::registers::to_string(reg_src) << " (0x" << std::hex << reg(reg_src, true)
                   << ") ^ 0x" << value << " = 0x" << reg(reg_dst, true) << std::dec;
     add_debug_message(std::move(msg));
   }
@@ -272,7 +272,7 @@ void processor::CPU::exec_shift_left(uint64_t inst) {
   constants::registers::reg reg_src, reg_dst;
   uint64_t value;
 
-  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
+  if (!fetch_reg_reg_val(inst, reg_dst, reg_src, value, 0, false)) return;
 
   reg_set(reg_dst, reg(reg_src) << value);
   if (debug::cpu) {
@@ -289,7 +289,7 @@ void processor::CPU::exec_shift_right(uint64_t inst) {
   constants::registers::reg reg_src, reg_dst;
   uint64_t value;
 
-  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, 0, false)) return;
+  if (!fetch_reg_reg_val(inst, reg_dst, reg_src, value, 0, false)) return;
 
   reg_set(reg_dst, reg(reg_src) >> value);
   if (debug::cpu) {
@@ -356,7 +356,7 @@ void processor::CPU::exec_sign_extend(uint64_t inst) {
   uint64_t value, result; \
   std::unique_ptr<processor::debug::InstructionMessage> dmsg = debug::cpu ? std::make_unique<processor::debug::InstructionMessage>(MNEMONIC) : nullptr;                                                  \
   std::ostream *ds = debug::cpu ? &dmsg->stream() : nullptr;                                                  \
-  if (!fetch_reg_reg_val(inst, reg_src, reg_dst, value, constants::inst::datatype::size, datatype == constants::inst::datatype::dbl))\
+  if (!fetch_reg_reg_val(inst, reg_dst, reg_src, value, constants::inst::datatype::size, datatype == constants::inst::datatype::dbl))\
     return;\
   if (debug::cpu) *ds << "arithmetic operation (on type " << constants::inst::datatype::to_string(datatype) << "): ";\
   switch (datatype) {\

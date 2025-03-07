@@ -1,4 +1,5 @@
 #include "create.hpp"
+#include <cmath>
 
 using namespace lang::assembly;
 
@@ -223,15 +224,26 @@ void lang::assembly::create_load(uint8_t reg, std::unique_ptr<BaseArg> value, ui
 }
 
 void lang::assembly::create_store(uint8_t reg, std::unique_ptr<BaseArg> address, uint8_t bytes, BasicBlock& block) {
-  // TODO implemented sized store
-  block.add(create_store(reg, std::move(address)));
-  return;
+  // if bytes < 8, we need to bitwise-OR the location first to revent bytes from being overwritten
+  if (bytes < 8) {
+    // load location into $k1
+    block.add(create_load(constants::registers::k1, address->copy()));
+    if (address->is_label()) block.add(create_load(constants::registers::k1, assembly::Arg::reg_indirect(constants::registers::k1)));
 
-  // if bytes exceeds a word, we do nothing
-  if (bytes > 7) {
-    block.add(create_store(reg, std::move(address)));
-    return;
+    // clear bottom n bytes
+    uint64_t mask = ~((1ull << (bytes * 8)) - 1);
+    block.add(create_load_long(constants::registers::k2, mask));
+    block.add(create_and(constants::registers::k1, constants::registers::k1, assembly::Arg::reg(constants::registers::k2)));
+
+    // load in payload
+    block.add(create_or(
+        constants::registers::k1,
+        constants::registers::k1,
+        assembly::Arg::reg(reg)
+    ));
+    reg = constants::registers::k1;
   }
 
-  // otherwise, pick a register (must be register) to use as a temporary
+  // store register to the given address
+  block.add(create_store(reg, std::move(address)));
 }

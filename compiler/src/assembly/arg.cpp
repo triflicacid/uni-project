@@ -46,14 +46,26 @@ std::unique_ptr<lang::assembly::BlockReferenceArg> lang::assembly::Arg::label(co
   return std::make_unique<BlockReferenceArg>(block, offset);
 }
 
+std::unique_ptr<lang::assembly::BaseArg> lang::assembly::Arg::copy() const {
+  return std::make_unique<Arg>(type_, value_);
+}
+
 std::ostream& lang::assembly::LabelArg::print(std::ostream& os) const {
   os << label_;
   if (offset_ != 0) os << " + " << offset_;
   return os;
 }
 
+std::unique_ptr<lang::assembly::BaseArg> lang::assembly::LabelArg::copy() const {
+  return std::make_unique<LabelArg>(label_, offset_);
+}
+
 std::ostream& lang::assembly::BlockReferenceArg::print(std::ostream& os) const {
   os << block_.label();
   if (offset_ != 0) os << " + " << offset_;
   return os;
+}
+
+std::unique_ptr<lang::assembly::BaseArg> lang::assembly::BlockReferenceArg::copy() const {
+  return std::make_unique<BlockReferenceArg>(block_, offset_);
 }

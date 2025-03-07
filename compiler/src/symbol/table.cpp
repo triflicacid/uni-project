@@ -204,16 +204,22 @@ std::unordered_set<lang::symbol::SymbolId> lang::symbol::SymbolTable::peek() con
   return local;
 }
 
-void lang::symbol::SymbolTable::assign_symbol(lang::symbol::SymbolId symbol, uint8_t reg) const {
-  const auto maybe_location = locate(symbol);
+void lang::symbol::SymbolTable::assign_symbol(lang::symbol::SymbolId symbol_id, uint8_t reg) const {
+  // get the symbol's location
+  const auto maybe_location = locate(symbol_id);
   assert(maybe_location.has_value());
-  const memory::StorageLocation location = maybe_location.value().get();
+  const memory::StorageLocation& location = maybe_location.value().get();
+
+  // get the actual symbol, exist if size==0
+  const symbol::Symbol& symbol = get(symbol_id);
+  if (symbol.type().size() == 0) return;
 
   // store register into symbol (resolved location)
-  auto argument = location.resolve();
-  stack_.program().current().add(assembly::create_store(reg, std::move(argument)));
-  auto& comment = stack_.program().current().back().comment();
-  comment << get(symbol).full_name() << " = $" << constants::registers::to_string($reg(reg));
+  const int idx = stack_.program().current().size();
+  assembly::create_store(reg, location.resolve(), symbol.type().size(), stack_.program().current());
+
+  auto& comment = stack_.program().current()[idx].comment();
+  comment << get(symbol_id).full_name() << " = $" << constants::registers::to_string($reg(reg));
 }
 
 void lang::symbol::SymbolTable::push_path(lang::symbol::SymbolId id) {

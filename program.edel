@@ -1,5 +1,3 @@
-func abs(x: int) -> int {
-    return if x < 0 { -x } else { x };
-}
-
-let x = abs(1);
+let x: int, y: int;
+y = 286331153; // all 1s
+x = 572662306; // all 2s

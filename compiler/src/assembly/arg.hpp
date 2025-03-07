@@ -9,6 +9,11 @@ namespace lang::assembly {
     virtual ~BaseArg() = default;
 
     virtual std::ostream& print(std::ostream& os) const = 0;
+
+    virtual std::unique_ptr<BaseArg> copy() const = 0;
+
+    virtual bool is_label() const
+    { return false; }
   };
 
   // an argument which references a label
@@ -20,6 +25,11 @@ namespace lang::assembly {
     LabelArg(const std::string& label, int offset) : label_(label), offset_(offset) {}
 
     std::ostream& print(std::ostream &os) const override;
+
+    std::unique_ptr<BaseArg> copy() const override;
+
+    bool is_label() const override
+    { return true; }
   };
 
   class BasicBlock;
@@ -34,6 +44,11 @@ namespace lang::assembly {
     BlockReferenceArg(const BasicBlock& block, int offset) : block_(block), offset_(offset) {}
 
     std::ostream& print(std::ostream &os) const override;
+
+    std::unique_ptr<BaseArg> copy() const override;
+
+    bool is_label() const override
+    { return true; }
   };
 
   // a generic assembly argument: imm, mem, reg, reg_indirect
@@ -45,6 +60,8 @@ namespace lang::assembly {
     Arg(constants::inst::arg type, uint32_t value) : type_(type), value_(value) {}
 
     std::ostream& print(std::ostream &os) const override;
+
+    std::unique_ptr<BaseArg> copy() const override;
 
     // create an immediate argument
     static std::unique_ptr<Arg> imm(uint32_t x);

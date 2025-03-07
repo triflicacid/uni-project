@@ -65,7 +65,7 @@ namespace lang::symbol {
 
     // assign given symbol to contents of the given register, inserting asm instructions in program
     // note: errors if symbol has no physical location
-    void assign_symbol(SymbolId symbol, uint8_t reg) const;
+    void assign_symbol(SymbolId symbol_id, uint8_t reg) const;
 
     // remove the given symbol
     void erase(SymbolId symbol);

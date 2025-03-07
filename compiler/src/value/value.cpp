@@ -220,10 +220,7 @@ bool lang::value::Literal::materialise(lang::Context& ctx, const lang::value::Ma
     if (options.copy_or_move && lit_.type().reference_as_ptr()) {
       ops::mem_copy(ctx, ref, *this, std::move(target_arg));
     } else {
-      ctx.program.current().add(assembly::create_store(
-          ref.offset,
-          std::move(target_arg)
-      ));
+      assembly::create_store(ref.offset, std::move(target_arg), type().size(), ctx.program.current());
     }
   }
 
