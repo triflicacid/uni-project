@@ -6,14 +6,14 @@
 #include "components/scroller.hpp"
 #include "components/checkbox.hpp"
 #include <ftxui/component/event.hpp>
-#include <cassert>
+#include <unordered_set>
 
 struct PaneStateData {
   visualiser::sources::Type type;
   ftxui::Component component;
   const visualiser::sources::File* file; // file which we are viewing
   int *pos_ptr; // pointer top ScrollerBase::selected_
-  std::deque<int> selected_lines; // store selected lines in each pane
+  std::unordered_set<int> selected_lines; // store selected lines in each pane
 
   PaneStateData(visualiser::sources::Type type) : type(type) {}
 };
@@ -30,20 +30,39 @@ namespace state {
 
   static PaneStateData source_pane(visualiser::sources::Type::Source);
   static PaneStateData asm_pane(visualiser::sources::Type::Assembly);
-  static std::array<PaneStateData*, 2> panes{&source_pane, &asm_pane};
+  static PaneStateData lang_pane(visualiser::sources::Type::Language);
+  static std::array<PaneStateData*, 3> panes{&source_pane, &asm_pane, &lang_pane};
   static PaneStateData* selected_pane = nullptr;
   static int selected_line = 0; // current line which is selected
 }// namespace state
+
+// get pane state given pane type
+static PaneStateData& get_pane_by_type(visualiser::sources::Type type) {
+  switch (type) {
+    case visualiser::sources::Type::Source:
+      return state::source_pane;
+    case visualiser::sources::Type::Assembly:
+      return state::asm_pane;
+    case visualiser::sources::Type::Language:
+      return state::lang_pane;
+  }
+}
 
 // update panes' positions based on state::current_pc
 static void update_align_pane_pc() {
   if (!visualiser::processor::pc_line) return;
 
+  // TODO update
   // align source pane
   *state::source_pane.pos_ptr = visualiser::processor::pc_line->line_no;
 
   // align assembly pane
   *state::asm_pane.pos_ptr = visualiser::processor::pc_line->asm_origin.line();
+
+  // align language (Edel) pane
+  if (auto& origin = visualiser::processor::pc_line->lang_origin) {
+    *state::lang_pane.pos_ptr = origin->line();
+  }
 }
 
 // update state::selected_pane
@@ -51,7 +70,17 @@ static void update_selected_pane() {
   state::selected_pane =
     state::source_pane.component->Focused() ? &state::source_pane
   : state::asm_pane.component->Focused() ? &state::asm_pane
+  : state::lang_pane.component->Focused() ? &state::lang_pane
   : nullptr;
+}
+
+// get the first (minimum) selected line
+static unsigned int get_first_line_selected() {
+  if (!state::selected_pane) return 0;
+  auto& lines = state::selected_pane->selected_lines;
+  return lines.empty()
+    ? 0
+    : *std::min_element(lines.begin(), lines.end());
 }
 
 // update selected line information - trace lines from current pane to others
@@ -61,23 +90,42 @@ static void update_selected_line() {
   if (!show_selected_line || !selected_pane) return;
 
   // ensure selected line is in bounds
-  clamp(selected_line, 1, (int) selected_pane->file->lines.size() + 1);
+  clamp(selected_line, 0, int(selected_pane->file->lines.size()));
 
   // clear selection
   for (PaneStateData* pane : state::panes)
     pane->selected_lines.clear();
 
   // select the current line
-  selected_pane->selected_lines.push_back(selected_line);
+  selected_pane->selected_lines.insert(selected_line);
 
   if (selected_pane->type == visualiser::sources::Type::Source) {
     auto location = visualiser::sources::locate_line(selected_line);
-    if (location)
-      asm_pane.selected_lines.push_back(location->asm_origin.line());
+    if (location) {
+      asm_pane.selected_lines.insert(location->asm_origin.line());
+      if (location->lang_origin) lang_pane.selected_lines.insert(location->lang_origin->line());
+    }
   } else if (selected_pane->type == visualiser::sources::Type::Assembly) {
+//    auto key = std::make_pair(visualiser::processor::pc_line->asm_origin.path(), selected_line);
+//    visualiser::sources::trace.bfs(key, [](const auto& trace) {
+//      visualiser::sources::FileLine* file_line = visualiser::sources::trace.get(trace)->get();
+//      PaneStateData& pane = get_pane_by_type(file_line->parent->type);
+//      pane.selected_lines.insert(trace.second);
+//    });
+
     auto locations = visualiser::sources::locate_asm_line(visualiser::processor::pc_line->asm_origin.path(), selected_line);
-    for (auto &location: locations)
-      source_pane.selected_lines.push_back(location->line_no);
+    for (auto &location: locations) {
+      source_pane.selected_lines.insert(location->line_no);
+      if (location->lang_origin) lang_pane.selected_lines.insert(location->lang_origin->line());
+    }
+  } else if (selected_pane->type == visualiser::sources::Type::Language) {
+    if (auto& origin = visualiser::processor::pc_line->lang_origin) {
+      auto locations = visualiser::sources::locate_lang_line(origin->path(), selected_line);
+      for (auto& location: locations) {
+        source_pane.selected_lines.insert(location->line_no);
+        asm_pane.selected_lines.insert(location->asm_origin.line());
+      }
+    }
   }
 }
 
@@ -99,13 +147,13 @@ static ftxui::Decorator* get_line_highlight_style(visualiser::sources::Type pane
 // get PC's Location
 static Location get_pc_location_in_pane(const visualiser::sources::PCLine* pc_entry, visualiser::sources::Type pane) {
   switch (pane) {
-    case visualiser::sources::Type::Source:
-      return Location(visualiser::sources::s_source->path, pc_entry->line_no);
     case visualiser::sources::Type::Assembly:
       return pc_entry->asm_origin;
+    case visualiser::sources::Type::Language:
+      if (pc_entry->lang_origin)
+        return pc_entry->lang_origin.value();
     default:
-      assert(false);
-      std::exit(-1);
+      return Location(visualiser::sources::s_source->path, pc_entry->line_no);
   }
 }
 
@@ -257,11 +305,26 @@ namespace events {
         return true;
       case visualiser::sources::Type::Assembly: {
         // step beyond current line
-        int source_line_count = state::asm_pane.file->lines[visualiser::processor::pc_line->asm_origin.line() - 1].trace.size();
+        int source_line_count = state::asm_pane.file->lines[visualiser::processor::pc_line->asm_origin.line()].pc_trace.size();
         for (int i = 0; i < source_line_count; i++)
           step_processor();
         return true;
       }
+      case visualiser::sources::Type::Language: {
+        // step beyond current line
+        auto& origin = visualiser::processor::pc_line->lang_origin;
+        if (origin) {
+          int source_line_count = state::lang_pane.file->lines[origin->line()].pc_trace.size();
+          if (source_line_count == 0) source_line_count++;
+          for (int i = 0; i < source_line_count; i++)
+            step_processor();
+        } else {
+          std::cerr << "lang origin: (none)" << std::endl;
+          step_processor();
+        }
+        return true;
+      }
+
       default: ;
     }
 
@@ -294,7 +357,7 @@ namespace events {
 
   static bool on_B(PaneStateData* pane) {
     // lookup our current location in this pane and toggle breakpoint
-    auto &lines = state::selected_pane->file->lines[state::selected_line - 1].trace;
+    auto &lines = state::selected_pane->file->lines[state::selected_line].pc_trace;
     if (lines.empty()) return false;
 
     lines.front()->toggle_breakpoint();
@@ -308,7 +371,7 @@ namespace events {
 
   static bool on_J(PaneStateData* pane) {
     if (state::show_selected_line && !state::source_pane.selected_lines.empty()) {
-      if (auto entry = visualiser::sources::locate_line(state::source_pane.selected_lines.front())) {
+      if (auto entry = visualiser::sources::locate_line(get_first_line_selected())) {
         visualiser::processor::update_pc(entry->pc);
         return true;
       }
@@ -344,7 +407,7 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   int old_selected = *pane->pos_ptr;
 
   // forward event to pane's component
-  bool handled = pane->component->OnEvent(e);
+  const bool handled = pane->component->OnEvent(e);
 
   if (auto is_down = e == ftxui::Event::ArrowDown; (is_down || e == ftxui::Event::ArrowUp) && events::on_vert_arrow(pane, is_down)) return true;
   if (auto is_right = e == ftxui::Event::ArrowRight; (is_right || e == ftxui::Event::ArrowLeft) && events::on_horiz_arrow(pane, is_right)) return handled;
@@ -377,24 +440,29 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
   return Scroller(Renderer([&pane](bool f) {
     using namespace visualiser;
     std::vector<Element> elements;
-    Location location = get_pc_location_in_pane(visualiser::processor::pc_line, pane.type);
-    pane.file = sources::get_file(location.path());
-    elements.reserve(pane.file->lines.size());
 
-    // create Elements for each line
-    for (auto& line : pane.file->lines) {
-      elements.push_back(wrap_line(line));
-    }
+    if (visualiser::processor::pc_line) {
+      Location location = get_pc_location_in_pane(visualiser::processor::pc_line, pane.type);
+      pane.file = sources::get_file(location.path());
+      elements.reserve(pane.file->lines.size());
 
-    // highlight the $pc line
-    if (location.line() <= elements.size())
-      elements[location.line() - 1] |= style::highlight_execution;
+      // create Elements for each line
+      for (auto& line: pane.file->lines) {
+        elements.push_back(wrap_line(line));
+      }
 
-    // if enabled, show selected/traced lines
-    if (state::show_selected_line && state::selected_pane) {
-      auto style = get_line_highlight_style(pane.type);
-      for (const auto &line: pane.selected_lines)
-        elements[line - 1] |= *style;
+      // highlight the $pc line
+      if (location.line() < elements.size())
+        elements[location.line()] |= style::highlight_execution;
+
+      // if enabled, show selected/traced lines
+      if (state::show_selected_line && state::selected_pane) {
+        auto style = get_line_highlight_style(pane.type);
+        for (const auto& line: pane.selected_lines)
+          elements[line] |= *style;
+      }
+    } else {
+      elements.push_back(text("unable to trace source") | color(Color::Red));
     }
 
     return vbox(std::move(elements));
@@ -403,18 +471,21 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
 
 void visualiser::tabs::CodeExecutionTab::init() {
   using namespace ftxui;
-  const int paneMaxHeight = 15, debugMaxHeight = 8;
+  const int paneMaxHeight = 16, debugMaxHeight = 10;
 
   state::show_selected_line_toggle = create_checkbox("Show Line Selection", state::show_selected_line);
   state::is_running_toggle = create_checkbox("Is Running", [] {
     visualiser::processor::cpu.flag_toggle(constants::flag::is_running, true);
   }, state::is_running);
 
-  // pane for source code
+  // pane for source code, .s
   state::source_pane.component = create_pane_component(state::source_pane) | size(HEIGHT, LESS_THAN, paneMaxHeight);
 
-  // pane for original assembly
+  // pane for assembly code, .asm
   state::asm_pane.component = create_pane_component(state::asm_pane) | size(HEIGHT, LESS_THAN, paneMaxHeight);
+
+  // pane for Edel code, .edel
+  state::lang_pane.component = create_pane_component(state::lang_pane) | size(HEIGHT, LESS_THAN, paneMaxHeight);
 
   Component debugComponent = Scroller(Renderer([](bool f) {
     return state::debug_lines.empty() ? text("(None)") : vbox(state::debug_lines);
@@ -426,6 +497,9 @@ void visualiser::tabs::CodeExecutionTab::init() {
       state::is_running_toggle
     }),
     Container::Horizontal({
+      state::lang_pane.component | CatchEvent([](Event e) {
+        return pane_on_event(&state::lang_pane, e);
+      }),
       state::asm_pane.component | CatchEvent([](Event e) {
         return pane_on_event(&state::asm_pane, e);
       }),
@@ -465,7 +539,7 @@ void visualiser::tabs::CodeExecutionTab::init() {
       if (state::selected_pane) {
         // transition selected line to the new pane
         update_selected_pane();
-        state::selected_line = state::selected_pane->selected_lines.empty() ? 0 : state::selected_pane->selected_lines.front();
+        state::selected_line = get_first_line_selected();
 
         update_selected_line();
         update_pane_positions_from_selection();
@@ -481,12 +555,19 @@ void visualiser::tabs::CodeExecutionTab::init() {
       }),
       hbox({
         vbox({
-          text(visualiser::processor::pc_line->asm_origin.path()) | bold,
+          text("Edel") | bold,
           separator(),
+          text("// " + (visualiser::processor::pc_line && visualiser::processor::pc_line->lang_origin ? std::string(visualiser::processor::pc_line->lang_origin->path()) : "(unknown)")),
+          state::lang_pane.component->Render(),
+        }) | (state::lang_pane.component->Focused() ? borderDouble : border),
+        vbox({
+          text("Assembly") | bold,
+          separator(),
+          text("; " + (visualiser::processor::pc_line ? std::string(visualiser::processor::pc_line->asm_origin.path()) : "(unknown)")),
           state::asm_pane.component->Render(),
         }) | (state::asm_pane.component->Focused() ? borderDouble : border),
         vbox({
-          text("Machine Code") | bold,
+          text("Reconstructed Assembly") | bold,
           separator(),
           state::source_pane.component->Render(),
         }) | (state::source_pane.component->Focused() ? borderDouble : border)

@@ -110,3 +110,6 @@ void split_string(const std::string& str, char delimiter, std::function<void(con
 
 // play a bell sound
 void bell_sound();
+
+// StackOverflow: https://stackoverflow.com/questions/5889238/why-is-xor-the-default-way-to-combine-hashes/27952689#27952689
+size_t hash_combine(size_t lhs, size_t rhs);

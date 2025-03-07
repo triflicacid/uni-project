@@ -8,10 +8,11 @@
 #include <stack>
 
 /// represents a directed unweighted graph with nodes of type `_Node_` which are indexed by keys of type `_Key`
-template<typename _Key, typename _Node>
+template<typename _Key, typename _Node, typename _Hash = std::hash<_Key>>
 class Graph {
-  std::unordered_map<_Key, _Node> nodes_;
-  std::unordered_map<_Key, std::unordered_set<_Key>> edges_;
+  std::unordered_map<_Key, _Node, _Hash> nodes_;
+  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> edges_;
+  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> inv_edges_; // inverse edges
 
 public:
   bool empty() const { return nodes_.empty(); }
@@ -53,6 +54,13 @@ public:
   // insert an edge
   void insert(const _Key& from, const _Key& to) {
     edges_[from].insert(to);
+    edges_[to].insert(from);
+  }
+
+  // insert an edge, with the connection both ways
+  void insert_symmetric(const _Key& from, const _Key& to) {
+    insert(from, to);
+    insert(to, from);
   }
 
   // insert a path a -> b -> c -> ...
@@ -73,12 +81,23 @@ public:
   // remove the given edge
   void remove(const _Key& from, const _Key& to) {
     edges_[from].erase(to);
+    inv_edges_[to].erase(from);
+  }
+
+  // get outward connections for a node
+  std::unordered_set<_Key> get_outward_connections(const _Key& from) {
+    return edges_[from];
+  }
+
+  // get ingoing connections to a node
+  std::unordered_set<_Key> get_inward_connections(const _Key& to) {
+    return inv_edges_[to];
   }
 
   // execute a BFS search
   // call visit() on node, return whether to halt (true = halt, false = continue)
   void conditional_bfs(const _Key& start, const std::function<bool(const _Key&)>& visit) const {
-    std::unordered_set<_Key> visited{start};
+    std::unordered_set<_Key, _Hash> visited{start};
     std::queue<_Key> q;
     q.push(start);
 
@@ -109,7 +128,7 @@ public:
   // execute a DFS search
   // call visit() on node, return whether to halt (true = halt, false = continue)
   void conditional_dfs(const _Key& start, const std::function<bool(const _Key&)>& visit) const {
-    std::unordered_set<_Key> visited;
+    std::unordered_set<_Key, _Hash> visited;
     std::stack<_Key> s;
     s.push(start);
 

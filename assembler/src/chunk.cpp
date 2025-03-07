@@ -80,7 +80,9 @@ namespace assembler {
   }
 
   void SpaceDirectiveChunk::write(std::ostream& os) {
-
+    for (uint32_t i = 0; i < m_value; i++) {
+      os << 0x00;
+    }
   }
 
   void SpaceDirectiveChunk::reconstruct(std::ostream& os) {

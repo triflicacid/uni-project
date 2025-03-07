@@ -5,6 +5,8 @@
 #include "named_fstream.hpp"
 #include "location.hpp"
 #include "messages/list.hpp"
+#include "graph.hpp"
+#include "pair_hash.hpp"
 
 namespace visualiser::sources {
   enum class Type {
@@ -17,7 +19,8 @@ namespace visualiser::sources {
     uint64_t pc;
     std::string line; // line in reconstructed source
     int line_no; // line number in reconstructed source
-    Location asm_origin, lang_origin; // source locations
+    Location asm_origin; // source in .asm file
+    std::optional<Location> lang_origin; // source in .edel file
 
     // test if this $pc has a breakpoint
     bool has_breakpoint() const;
@@ -35,7 +38,7 @@ namespace visualiser::sources {
     std::filesystem::path path;
     Type type;
     std::vector<FileLine> lines;
-    bool loaded;
+    bool loaded = false;
 
     std::string to_string() const;
 
@@ -44,9 +47,10 @@ namespace visualiser::sources {
   };
 
   struct FileLine {
+    File* parent;
     int n;
     std::string line;
-    std::vector<PCLine*> trace;
+    std::vector<PCLine*> pc_trace; // trace back to $pc (.s file)
 
     // test if this line produced (traces to) the given pc
     bool contains_pc(uint64_t pc) const;
@@ -63,6 +67,9 @@ namespace visualiser::sources {
   extern std::unique_ptr<named_fstream> s_source; // source assembly file (reconstruction)
   extern std::map<uint32_t, PCLine> pc_to_line; // map byte offset ($pc) to location
   extern std::map<std::filesystem::path, File> files; // map file paths to contents (used for source storing sources)
+
+  // map file:line to another line, trace is lang <-> asm <-> reconstructed
+  extern Graph<std::pair<std::filesystem::path, int>, FileLine*, pair_hash> trace;
 
   /** Initialise internal data from `source` */
   void init();

@@ -286,3 +286,12 @@ void split_string(const std::string &str, char delimiter, std::function<void(con
 void bell_sound() {
   std::cout << "\x1b[\007";
 }
+
+size_t hash_combine(size_t lhs, size_t rhs) {
+  if constexpr (sizeof(size_t) >= 8) {
+    lhs ^= rhs + 0x517cc1b727220a95 + (lhs << 6) + (lhs >> 2);
+  } else {
+    lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
+  }
+  return lhs;
+}

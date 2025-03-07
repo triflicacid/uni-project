@@ -8,6 +8,7 @@ std::unique_ptr<named_fstream> visualiser::sources::asm_source = nullptr;
 std::unique_ptr<named_fstream> visualiser::sources::s_source = nullptr;
 std::map<uint32_t, visualiser::sources::PCLine> visualiser::sources::pc_to_line = {};
 std::map<std::filesystem::path, visualiser::sources::File> visualiser::sources::files = {};
+Graph<std::pair<std::filesystem::path, int>, visualiser::sources::FileLine*, pair_hash> visualiser::sources::trace;
 
 // read .s file, create binary-to-s links
 static void init_s_source() {
@@ -20,12 +21,16 @@ static void init_s_source() {
   pc_to_line.clear();
 
   // read each line (save in map entry)
-  File file = {s_source->path, Type::Source, {}, true};
+  File* file;
+  {
+    File file_object{s_source->path, Type::Source, {}, true};
+    files.insert({file_object.path, file_object});
+    file = &files.at(file_object.path);
+  }
   std::string line;
   int idx = 0;
 
   while (std::getline(stream, line)) {
-    idx++;
 
     // split into line contents & debug info
     size_t i = line.find(';');
@@ -40,7 +45,7 @@ static void init_s_source() {
     debug_info = debug_info.substr(0, j);
     trim(debug_info);
     j = debug_info.find(':');
-    int line_no = std::stoi(debug_info.substr(j + 1));
+    int line_no = std::stoi(debug_info.substr(j + 1)) - 1;
     std::string filepath = debug_info.substr(0, j);
 
     // register file as assembly, if need to
@@ -52,16 +57,22 @@ static void init_s_source() {
 
     // insert into (both) maps
     line = line.substr(0, i);
-    pc_to_line.insert({offset, PCLine{offset, line, idx, Location(filepath, line_no), Location("fake")}});
-    file.lines.push_back(FileLine{
+    pc_to_line.insert({offset, PCLine{offset, line, idx, Location(filepath, line_no)}});
+    file->lines.push_back(FileLine{
+      file,
       idx,
       line,
       {&pc_to_line.find(offset)->second}
     });
-  }
 
-  // add map entry to file dictionary
-  files.insert({file.path, file});
+    FileLine* file_line = &file->lines.back();
+    auto s_key = std::make_pair(file->path, idx);
+    auto asm_key = std::make_pair(filepath, line_no);
+    trace.insert(s_key, file_line);
+    trace.insert_symmetric(s_key, asm_key);
+
+    idx++;
+  }
 }
 
 // read .asm file, create links to source file
@@ -74,16 +85,23 @@ static void init_asm_source() {
   stream.seekg(std::ios::beg);
 
   // read each line (save in map entry)
-  File& file = files.at(asm_source->path);
-  file.loaded = true;
+  File* file;
+  if (auto it = files.find(asm_source->path); it != files.end()) {
+    file = &it->second;
+  } else {
+    File file_object{asm_source->path, Type::Assembly, {}, true};
+    files.insert({file_object.path, file_object});
+    file = &files.at(file_object.path);
+  }
+
+  file->loaded = true;
   std::string line;
   int idx = 0;
 
   while (std::getline(stream, line)) {
-    idx++;
-
     // insert line into file
-    file.lines.push_back(FileLine{
+    file->lines.push_back(FileLine{
+        file,
         idx,
         line,
         {}
@@ -93,7 +111,10 @@ static void init_asm_source() {
     size_t i = line.find_last_of(';');
 
     // does this line contain a debug comment
-    if (i == std::string::npos || i + 1 >= line.length() || line[i + 1] != '@') continue;
+    if (i == std::string::npos || i + 1 >= line.length() || line[i + 1] != '@') {
+      idx++;
+      continue;
+    }
 
     // extract debug info and offset
     std::string debug_info = line.substr(i + 2);
@@ -104,12 +125,12 @@ static void init_asm_source() {
     int line_no = -1, col_no = -1;
     if (j == k) {
       try {
-        line_no = std::stoi(debug_info.substr(j + 1));
+        line_no = std::stoi(debug_info.substr(j + 1)) - 1;
       } catch (std::exception& e) { }
     } else {
       try {
-        line_no = std::stoi(debug_info.substr(j + 1, k - j));
-        col_no = std::stoi(debug_info.substr(k + 1));
+        line_no = std::stoi(debug_info.substr(j + 1, k - j)) - 1;
+        col_no = std::stoi(debug_info.substr(k + 1)) - 1;
       } catch (std::exception& e) { }
     }
     std::string filepath = debug_info.substr(0, j);
@@ -124,20 +145,38 @@ static void init_asm_source() {
     // find PC entry and update lang_origin
     if (line_no > -1) {
       line = line.substr(0, i);
-      auto pc_lines = locate_asm_line(file.path, idx);
+      file->lines.back().line = line;
+
+      // update trace graph
+      FileLine* file_line = &file->lines.back();
+      auto asm_key = std::make_pair(file->path, idx);
+      auto lang_key = std::make_pair(filepath, line_no);
+      trace.insert(asm_key, file_line);
+      trace.insert_symmetric(lang_key, asm_key);
+
+      // update pc traces
+      auto pc_lines = locate_asm_line(file->path, idx);
       for (PCLine* pc_line: pc_lines) {
         pc_line->lang_origin = Location(filepath, line_no, col_no);
       }
-      file.lines.back().trace = std::move(pc_lines);
-      file.lines.back().line = line;
+      file->lines.back().pc_trace = std::move(pc_lines);
     }
+
+    idx++;
   }
 }
 
 void visualiser::sources::init() {
   init_s_source();
   init_asm_source();
-  // lang source will be loaded when needed
+
+  // ensure language file exists
+  if (auto it = files.find(edel_source->path); it == files.end()) {
+    File file{edel_source->path, Type::Language, {}, false};
+    files.insert({file.path, file});
+  }
+  get_file(edel_source->path);
+  return;
 }
 
 const visualiser::sources::PCLine* visualiser::sources::locate_pc(uint64_t pc) {
@@ -164,7 +203,7 @@ std::vector<visualiser::sources::PCLine*> visualiser::sources::locate_lang_line(
   std::vector<visualiser::sources::PCLine *> entries;
 
   for (auto &[pc, entry]: visualiser::sources::pc_to_line) {
-    if (entry.lang_origin.path() == path && entry.lang_origin.line() == line) {
+    if (auto origin = entry.lang_origin; origin && origin->path() == path && origin->line() == line) {
       entries.push_back(&entry);
     }
   }
@@ -182,13 +221,15 @@ const visualiser::sources::File* visualiser::sources::get_file(const std::filesy
   std::ifstream stream(path);
   std::pair<std::filesystem::path, std::vector<visualiser::sources::FileLine>> map_entry = {path, {}};
   std::string line;
-  int n = 1;
+  int n = 0;
 
   const std::string extension = path.extension().string();
   const bool is_asm_file = extension == ".s" || extension == ".S" || extension == ".asm";
 
   while (std::getline(stream, line)) {
-    file->lines.push_back({n, line, is_asm_file ? locate_asm_line(path, n) : locate_lang_line(path, n)});
+    FileLine file_line{file, n, line, is_asm_file ? locate_asm_line(path, n) : locate_lang_line(path, n)};
+    file->lines.push_back(file_line);
+    trace.insert(std::make_pair(path, n), &file->lines.back());
     n++;
   }
 
@@ -225,16 +266,16 @@ int visualiser::sources::File::count_breakpoints() const {
 }
 
 bool visualiser::sources::FileLine::has_breakpoint() const {
-  return !trace.empty() && std::any_of(trace.begin(), trace.end(), [](auto* line) { return line->has_breakpoint(); });
+  return !pc_trace.empty() && std::any_of(pc_trace.begin(), pc_trace.end(), [](auto* line) { return line->has_breakpoint(); });
 }
 
 bool visualiser::sources::FileLine::contains_pc(uint64_t pc) const {
-  return !trace.empty() && std::any_of(trace.begin(), trace.end(), [pc](auto* line) { return line->pc == pc; });
+  return !pc_trace.empty() && std::any_of(pc_trace.begin(), pc_trace.end(), [pc](auto* line) { return line->pc == pc; });
 }
 
 std::optional<uint64_t> visualiser::sources::FileLine::pc() const {
-  if (trace.empty()) return {};
-  return trace.front()->pc;
+  if (pc_trace.empty()) return {};
+  return pc_trace.front()->pc;
 }
 
 bool visualiser::sources::PCLine::has_breakpoint() const {

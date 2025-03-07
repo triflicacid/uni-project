@@ -104,9 +104,9 @@ namespace events {
     // trace the current line
     const visualiser::sources::File* file = selected();
     auto& line = selected_line();
-    if (line.trace.empty()) return true;
+    if (line.pc_trace.empty()) return true;
 
-    auto& pc_line = line.trace.front();
+    auto& pc_line = line.pc_trace.front();
 
     // trace back to previous abstraction level
     switch (file->type) {
@@ -127,16 +127,16 @@ namespace events {
   static bool on_left_bracket(ftxui::Event& e) { // ']'
     const visualiser::sources::File* file = selected();
     const visualiser::sources::FileLine& file_line = selected_line();
-    if (file_line.trace.empty()) return true;
+    if (file_line.pc_trace.empty()) return true;
 
-    const visualiser::sources::PCLine* pc_line = file_line.trace.front();
+    const visualiser::sources::PCLine* pc_line = file_line.pc_trace.front();
     const Location* location = nullptr;
     switch (file->type) {
       case visualiser::sources::Type::Source: // -> assembly
         location = &pc_line->asm_origin;
         break;
       case visualiser::sources::Type::Assembly: // -> language
-        location = &pc_line->lang_origin;
+        if (pc_line->lang_origin) location = &pc_line->lang_origin.value();
         break;
       default: ;
     }
@@ -154,7 +154,7 @@ namespace events {
 
   static bool on_b(ftxui::Event& e) {
     auto& line = selected_line();
-    if (!line.trace.empty()) line.trace.front()->toggle_breakpoint();
+    if (!line.pc_trace.empty()) line.pc_trace.front()->toggle_breakpoint();
     return true;
   }
 
@@ -241,7 +241,7 @@ void visualiser::tabs::SourcesTab::init() {
     }
 
     // highlight the selected line
-    if (focused) {
+    if (focused && !elements.empty()) {
       elements[state::selected_line - 1] |= style::highlight_selected;
     }
 
