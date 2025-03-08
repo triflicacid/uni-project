@@ -133,13 +133,22 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
   if (!then_->generate_code(ctx)) return false;
   then_->value().materialise(ctx, then_->token_end().loc);
 
+  // if either side returns, we need to store the result in a register
+  std::optional<memory::Ref> phi_ref;
+  if (auto& value = then_->value(); value.is_rvalue() && value.type().size() > 0) {
+    phi_ref = ctx.reg_alloc_manager.insert({value::value(value.type())});
+  }
+
   // if we return, don't bother any more on this branch
   if (!then_->always_returns()) {
     // move result, if any, to $ret
     if (auto& then_value = then_->value(); then_value.is_rvalue() && then_value.type().size() > 0) {
+      assert(phi_ref.has_value());
+      phi_ref = ctx.reg_alloc_manager.guarantee_register(*phi_ref);
+
       memory::Ref result = ctx.reg_alloc_manager.guarantee_datatype(then_value.rvalue().ref(), then_value.type());
       ctx.program.current().add(assembly::create_load(
-          constants::registers::ret,
+          phi_ref->offset,
           ctx.reg_alloc_manager.resolve_ref(result, true)
       ));
       ctx.program.current().back().origin(then_->token_end().loc);
@@ -159,9 +168,12 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
     // move result, if any, to $ret
     if (!else_.value()->always_returns()) {
       if (auto& else_value = else_.value()->value(); else_value.is_rvalue() && else_value.type().size() > 0) {
+        assert(phi_ref.has_value());
+        phi_ref = ctx.reg_alloc_manager.guarantee_register(*phi_ref);
+
         memory::Ref result = ctx.reg_alloc_manager.guarantee_datatype(else_value.rvalue().ref(), else_value.type());
         ctx.program.current().add(assembly::create_load(
-            constants::registers::ret,
+            phi_ref->offset,
             ctx.reg_alloc_manager.resolve_ref(result, true)
         ));
         ctx.program.current().back().origin(else_.value()->token_end().loc);
@@ -175,15 +187,14 @@ bool lang::ast::IfStatementNode::generate_code(lang::Context& ctx) {
 
   // update $ret, if necessary, to contain 'return' value from if statement
   // note it doesn't matter if a branch contained a return statement - populating the alloc manager's $ret happens on function calls
-  auto value = value::rvalue(
-      value_->type(),
-      memory::Ref::reg(constants::registers::ret)
-  );
-  value_->rvalue(value->rvalue().copy());
-  ctx.reg_alloc_manager.update_ret(memory::Object(std::move(value)));
+  if (phi_ref) value_->rvalue(*phi_ref);
 
   // insert the after block to finish this up
   ctx.program.insert(assembly::Position::Next, std::move(after_block));
 
+  return true;
+}
+
+bool lang::ast::IfStatementNode::writes_to_ret() const {
   return true;
 }

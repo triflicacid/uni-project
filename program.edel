@@ -1,3 +1,10 @@
-let x: int, y: int;
-y = 286331153; // all 1s
-x = 572662306; // all 2s
+func factorial(n: long) -> long {
+    return if n < 2i64 {
+        1i64
+    } else {
+        n * factorial(n - 1i64)
+    };
+}
+
+let x = 5 as long;
+let y = factorial(x);

@@ -65,6 +65,10 @@ namespace lang::ast {
     // used to check if control reaches the end of a function
     virtual bool always_returns() const { return false; }
 
+    // check if this node can write to $ret
+    // this is used to check if we can leave our value in $ret or should move it
+    virtual bool writes_to_ret() const { return false; }
+
     // refer to the value represents the result of this node
     virtual value::Value& value() const;
 

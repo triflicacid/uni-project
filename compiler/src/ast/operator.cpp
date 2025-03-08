@@ -178,6 +178,10 @@ bool lang::ast::OverloadableOperatorNode::generate_code(Context& ctx) {
   return success;
 }
 
+bool lang::ast::OverloadableOperatorNode::writes_to_ret() const {
+  return (op_.has_value() && !op_->get().builtin()) || OperatorNode::writes_to_ret();
+}
+
 std::unique_ptr<lang::ast::OperatorNode> lang::ast::OperatorNode::unary(lexer::Token token, std::unique_ptr<Node> expr) {
   lexer::Token symbol = token;
 
@@ -214,6 +218,13 @@ lang::ast::OperatorNode::binary(lexer::Token token, lexer::Token symbol, std::un
   children.push_back(std::move(lhs));
   children.push_back(std::move(rhs));
   return std::make_unique<OverloadableOperatorNode>(std::move(token), std::move(symbol), std::move(children));
+}
+
+bool lang::ast::OperatorNode::writes_to_ret() const {
+  for (auto& arg : args_) {
+    if (arg->writes_to_ret()) return true;
+  }
+  return false;
 }
 
 lang::ast::DotOperatorNode::DotOperatorNode(lang::lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)
@@ -1060,6 +1071,10 @@ bool lang::ast::SubscriptOperatorNode::generate_code(lang::Context& ctx) {
       *value_,
       {conditional_context(), op_symbol_.loc}
   );
+}
+
+bool lang::ast::SubscriptOperatorNode::writes_to_ret() const {
+  return (op_.has_value() && !op_->get().builtin()) || OperatorNode::writes_to_ret();
 }
 
 lang::ast::LazyLogicalOperator::LazyLogicalOperator(lang::lexer::Token token, lang::lexer::Token symbol, std::unique_ptr<Node> lhs, std::unique_ptr<Node> rhs)

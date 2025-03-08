@@ -16,7 +16,7 @@ namespace lang::memory {
 
     Type type;
     union {
-      uint64_t base_offset;
+      int base_offset;
       std::reference_wrapper<assembly::BasicBlock> block;
     };
     int offset; // offset from base
@@ -33,6 +33,6 @@ namespace lang::memory {
     static StorageLocation global(assembly::BasicBlock& block, int offset = 0);
 
     // location is `offset` on the stack
-    static StorageLocation stack(uint64_t stack_offset, int offset = 0);
+    static StorageLocation stack(int stack_offset, int offset = 0);
   };
 }

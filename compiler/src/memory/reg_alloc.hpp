@@ -82,6 +82,9 @@ namespace lang::memory {
     // return reference to an item, insert if needed
     Ref find_or_insert(const Literal& literal);
 
+    // check if the given reference is in use
+    bool in_use(const Ref& location) const;
+
     // find the given reference
     const lang::memory::Object& find(const Ref& location) const;
 
@@ -118,6 +121,9 @@ namespace lang::memory {
 
     // propagate $ret's value to the next store
     void propagate_ret();
+
+    // move $ret to another register
+    Ref move_ret();
 
     // get the nth most recent allocation
     // default `n=0` (i.e., most recent)

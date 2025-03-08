@@ -147,15 +147,15 @@ std::optional<std::string> constants::registers::describe(reg r) {
 std::unordered_map<std::string, cmp::flag> constants::cmp::map = {
         {"z",   cmp::z},
         {"nz",  cmp::nz},
-        {"neq", cmp::ne},
-        {"ne",  cmp::ne},
+        {"neq", cmp::neq},
+        {"ne",  cmp::neq},
         {"eq",  cmp::eq},
-        {"lte", cmp::le},
+        {"lte", cmp::ngt},
         {"lt",  cmp::lt},
-        {"le",  cmp::le},
-        {"gte", cmp::ge},
+        {"le",  cmp::ngt},
+        {"gte", cmp::nlt},
         {"gt",  cmp::gt},
-        {"ge",  cmp::ge},
+        {"ge",  cmp::nlt},
 };
 
 std::string cmp::to_string(flag v) {
@@ -183,26 +183,7 @@ std::optional<cmp::flag> cmp::from_string(const std::string &s, int &i) {
 }
 
 cmp::flag constants::cmp::inverse_of(cmp::flag input) {
-  switch (input) {
-    case ne:
-      return eq;
-    case eq:
-      return ne;
-    case lt:
-      return ge;
-    case le:
-      return gt;
-    case nz:
-      return z;
-    case gt:
-      return le;
-    case ge:
-      return lt;
-    case z:
-      return nz;
-    default:
-      return na;
-  }
+  return static_cast<flag>(uint8_t(input) ^ 0b100); // toggle the 'inverse' bit
 }
 
 std::unordered_map<std::string, inst::datatype::dt> inst::datatype::map = {

@@ -14,7 +14,7 @@ lang::memory::StorageLocation lang::memory::StorageLocation::global(lang::assemb
   return StorageLocation{ .type = Block, .block = block, .offset = offset };
 }
 
-lang::memory::StorageLocation lang::memory::StorageLocation::stack(uint64_t stack_offset, int offset) {
+lang::memory::StorageLocation lang::memory::StorageLocation::stack(int stack_offset, int offset) {
   return StorageLocation{ .type = Stack, .base_offset = stack_offset, .offset = offset };
 }
 

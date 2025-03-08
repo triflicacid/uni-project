@@ -55,7 +55,7 @@ void lang::control_flow::ConditionalContext::generate_branches(lang::assembly::B
   ));
 
   // generate branches
-  generate_branches(block, constants::cmp::ne);
+  generate_branches(block, constants::cmp::neq);
 }
 
 bool lang::control_flow::ConditionalContext::generate_branches(lang::Context& ctx, const message::MessageGenerator& source, const value::Value& value) {

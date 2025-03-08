@@ -152,25 +152,27 @@ bool lang::ast::FunctionBaseNode::process(lang::Context& ctx) {
   ctx.symbols.push();
 
   // process parameters - we know where they should be located
-  uint64_t offset = 0; // offset from $fp
-  for (const auto& param : params_) {
+  int offset = 2 * sizeof(uint64_t); // offset from $fp, skip past ($rpc + $fp)
+  for (int i = params_.size() - 1; i >= 0; i--) {
     // TODO if discard '_', ignore
     // requires implementation in caller as well (FunctionCallOperatorNode, OperatorOverloadNode)
     // if (param->name().image == "_") continue;
 
-    // increase offset by our width
-    auto& type = param->type();
-    offset += type.size();
+    const auto& param = *params_[i];
+    auto& type = param.type();
 
     // create argument symbol with this location
-    auto arg = std::make_unique<symbol::Symbol>(param->name(), symbol::Category::Argument, type);
+    auto arg = std::make_unique<symbol::Symbol>(param.name(), symbol::Category::Argument, type);
     const symbol::SymbolId id = arg->id();
 
     // insert into scope
     ctx.symbols.insert(std::move(arg));
 
     // tell symbol table its stack location
-    ctx.symbols.allocate(id, memory::StorageLocation::stack(offset));
+    ctx.symbols.allocate(id, memory::StorageLocation::stack(-offset));
+
+    // increase offset to next arg
+    offset += type.size();
   }
 
   // process child
@@ -281,5 +283,9 @@ bool lang::ast::FunctionBaseNode::define(lang::Context& ctx) {
   // move cursor back to previous position
   ctx.program.select(previous);
 
+  return true;
+}
+
+bool lang::ast::FunctionBaseNode::writes_to_ret() const {
   return true;
 }

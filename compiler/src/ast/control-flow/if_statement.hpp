@@ -22,6 +22,8 @@ namespace lang::ast {
 
     bool always_returns() const override;
 
+    bool writes_to_ret() const override;
+
     bool collate_registry(message::List &messages, symbol::Registry &registry) override;
 
     bool process(Context &ctx) override;

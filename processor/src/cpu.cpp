@@ -856,14 +856,20 @@ void processor::CPU::execute(uint64_t inst) {
     auto flag_bits = static_cast<cmp::flag>(reg(registers::flag) & cmp_bits);
 
     // special case for [N]Z test, otherwise compare directly
-    if (flag_test(int(test_bits), flag::zero)) {
+    if (test_bits == cmp::z || test_bits == cmp::nz) {
       bool zero_flag = flag_test(flag::zero);
 
       if ((test_bits == cmp::nz && zero_flag) || (test_bits == cmp::z && !zero_flag)) {
         fail = true;
       }
-    } else if (test_bits != flag_bits) {
-      fail = true;
+    } else {
+      // compare the base cmp bits
+      bool result = (test_bits & 0x3) == (flag_bits & 0x3);
+      if (test_bits & 0b100) result = !result; // inverse test?
+
+      if (!result) {
+        fail = true;
+      }
     }
 
     // update message
@@ -875,6 +881,7 @@ void processor::CPU::execute(uint64_t inst) {
       return;
     } else if (msg) {
       msg->pass();
+      add_debug_message(std::move(msg));
     }
   }
 

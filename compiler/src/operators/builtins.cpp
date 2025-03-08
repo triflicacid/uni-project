@@ -380,7 +380,7 @@ namespace init_builtin {
   static void relational() {
     static const std::unordered_map<std::string, constants::cmp::flag> ops = {
         {"==", constants::cmp::eq},
-        {"!=", constants::cmp::ne},
+        {"!=", constants::cmp::neq},
         {"<", constants::cmp::lt},
         {"<=", constants::cmp::le},
         {">", constants::cmp::gt},
@@ -405,7 +405,7 @@ namespace init_builtin {
         "!=",
         FunctionNode::create({boolean, boolean}, boolean),
         [](Context& ctx, Args args) { return generators::generate_xor(ctx, args); },
-        constants::cmp::ne,
+        constants::cmp::neq,
         boolean
     ));
 
@@ -503,7 +503,7 @@ void lang::ops::boolean_cast(assembly::BasicBlock& block, uint8_t reg) {
   // zero out the register if ==
   block.add(set_conditional(assembly::create_zero(reg), constants::cmp::eq));
   // set to 1 if !=
-  block.add(set_conditional(assembly::create_load(reg, assembly::Arg::imm(1)), constants::cmp::ne));
+  block.add(set_conditional(assembly::create_load(reg, assembly::Arg::imm(1)), constants::cmp::neq));
   // add comment
   comment << "boolean cast";
 }
@@ -544,26 +544,7 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
   // save registers
   ctx.reg_alloc_manager.save_store(true);
 
-  // push $rpc
-  ctx.stack_manager.push(8);
-  ctx.program.current().back().comment() << "save $rpc";
-  ctx.program.current().add(assembly::create_store(
-      constants::registers::rpc,
-      assembly::Arg::reg_indirect(constants::registers::sp)
-  ));
-
-  // push $fp
-  ctx.stack_manager.push(8);
-  ctx.program.current().back().comment() << "save $fp";
-  ctx.program.current().add(assembly::create_store(
-      constants::registers::fp,
-      assembly::Arg::reg_indirect(constants::registers::sp)
-  ));
-
-  // save $fp
-  ctx.stack_manager.push_frame(true);
-
-  // push arguments
+  // push arguments to the stack
   int i = 0;
   for (const auto& arg : args) {
     // evaluate rvalue
@@ -577,7 +558,10 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
     }
 
     // if size==0, or ignore, skip (as nothing actually there)
-    if (value.type().size() == 0 || args_to_ignore.contains(i)) continue;
+    if (value.type().size() == 0 || args_to_ignore.contains(i)) {
+      i++;
+      continue;
+    }
 
     // get location of the argument
     const memory::Ref location = value.rvalue().ref();
@@ -607,14 +591,30 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
     i++;
   }
 
+  // push $rpc
+  ctx.stack_manager.push(8);
+  ctx.program.current().back().comment() << "save $rpc";
+  ctx.program.current().add(assembly::create_store(
+      constants::registers::rpc,
+      assembly::Arg::reg_indirect(constants::registers::sp)
+  ));
+
+  // push $fp
+  ctx.stack_manager.push(8);
+  ctx.program.current().back().comment() << "save $fp";
+  ctx.program.current().add(assembly::create_store(
+      constants::registers::fp,
+      assembly::Arg::reg_indirect(constants::registers::sp)
+  ));
+
+  // save $fp
+  ctx.stack_manager.push_frame(true);
+
   // call the function (via jal) and add comment
   ctx.program.current().add(assembly::create_jump_and_link(std::move(function)));
   auto& comment = ctx.program.current().back().comment();
   comment << "call " << name;
   signature.print_code(comment);
-
-  // update value_'s location
-  return_value.rvalue(memory::Ref::reg(constants::registers::ret));
 
   // restore $sp
   ctx.stack_manager.pop_frame(true);
@@ -622,14 +622,14 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
   // restore $fp
   ctx.program.current().add(assembly::create_load(
       constants::registers::fp,
-      assembly::Arg::reg_indirect(constants::registers::fp)
+      assembly::Arg::reg_indirect(constants::registers::sp)
   ));
   ctx.program.current().back().comment() << "restore $fp";
 
   // restore $rpc
   ctx.program.current().add(assembly::create_load(
       constants::registers::rpc,
-      assembly::Arg::reg_indirect(constants::registers::fp, 8)
+      assembly::Arg::reg_indirect(constants::registers::sp, 8)
   ));
   ctx.program.current().back().comment() << "restore $rpc";
 
@@ -667,6 +667,12 @@ bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const
     auto& comment = ctx.program.current()[index].comment();
     comment << "copy return value into buffer";
   }
+
+  // move $ret
+  const memory::Ref new_ref = ctx.reg_alloc_manager.guarantee_register(ctx.reg_alloc_manager.move_ret());
+  return_value.rvalue(new_ref);
+  ctx.program.current().add(assembly::create_load(new_ref.offset, assembly::Arg::reg(constants::registers::ret)));
+  ctx.program.current().back().comment() << "move $ret";
 
   return true;
 }

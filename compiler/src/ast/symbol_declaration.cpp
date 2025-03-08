@@ -282,3 +282,7 @@ bool lang::ast::SymbolDeclarationNode::generate_code(lang::Context& ctx) {
 
   return true;
 }
+
+bool lang::ast::SymbolDeclarationNode::writes_to_ret() const {
+  return assignment_.has_value() && assignment_.value()->writes_to_ret();
+}

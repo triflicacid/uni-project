@@ -47,6 +47,8 @@ namespace lang::ast {
 
     const ast::type::FunctionNode& type() const { return type_; }
 
+    bool writes_to_ret() const override;
+
     // return set of 0-indexed arguments to ignore, pass to ops::call_function
     std::unordered_set<int> get_args_to_ignore() const;
 

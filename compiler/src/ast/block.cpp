@@ -140,3 +140,10 @@ bool lang::ast::BlockNode::always_returns() const {
   }
   return false;
 }
+
+bool lang::ast::BlockNode::writes_to_ret() const {
+  for (auto& line : lines_) {
+    if (line->writes_to_ret()) return true;
+  }
+  return false;
+}

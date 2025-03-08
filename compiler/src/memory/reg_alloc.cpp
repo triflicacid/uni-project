@@ -70,7 +70,8 @@ void lang::memory::RegisterAllocationManager::save_store(bool save_registers) {
     instances_.emplace_front();
   } else {
     instances_.front().stack_offset = symbols_.stack().offset();
-    instances_.push_front(instances_.front());
+//    instances_.push_front(instances_.front());
+    instances_.emplace_front();
   }
 }
 
@@ -86,12 +87,11 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
     // point to the top of the register cache and work backwards
     uint64_t& addr = instances_.front().stack_offset;
 
-    auto& regs = instances_.front().regs;;
+    auto& regs = instances_.front().regs;
     for (int i = regs.size() - 1; i >= 0; i--) {
       if (auto& object = regs[i]; object && object->required) {
-        // determine offset to register save
         size_t bytes = object->size();
-        addr -= bytes;
+        addr += bytes;
 
         // store region back in the correct register
         int idx = program_.current().size();
@@ -194,6 +194,17 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const 
     return maybe.value();
   } else {
     return memory_.at(location.offset);
+  }
+}
+
+bool lang::memory::RegisterAllocationManager::in_use(const lang::memory::Ref& location) const {
+  if (location.type == Ref::Register) {
+    auto& maybe = location.offset == constants::registers::ret
+                  ? instances_.front().ret
+                  : instances_.front().regs[location.offset - initial_register];
+    return maybe.has_value();
+  } else {
+    return memory_.find(location.offset) != memory_.end();
   }
 }
 
@@ -528,4 +539,9 @@ void lang::memory::RegisterAllocationManager::restore_register(uint8_t reg, cons
 
   // set new content
   maybe = object;
+}
+
+lang::memory::Ref lang::memory::RegisterAllocationManager::move_ret() {
+  Object object = find(Ref::reg(constants::registers::ret));
+  return insert(object);
 }

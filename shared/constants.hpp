@@ -57,15 +57,19 @@ namespace constants {
 
     namespace cmp {
         enum flag : uint8_t {
-            ne = 0b0000,
-            eq = 0b0001,
-            lt = 0b0010,
-            le = 0b0011,
-            nz = 0b1000,
-            gt = 0b0110,
-            ge = 0b0111,
-            z = 0b1001,
-            na = 0b1111,
+            z  = 0b1000,
+            eq = 0b1010,
+            lt = 0b1001,
+            gt = 0b1011,
+
+            nz  = 0b100 | z,
+            neq = 0b100 | eq,
+            nlt = 0b100 | lt,
+            ge = nlt,
+            ngt = 0b100 | gt,
+            le = ngt,
+
+            na = 0b0000,
         };
 
         extern std::unordered_map<std::string, flag> map;
