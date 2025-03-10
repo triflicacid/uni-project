@@ -470,16 +470,17 @@ static ftxui::Component create_pane_component(PaneStateData& pane) {
         elements.push_back(wrap_line(line));
       }
 
-      // highlight the $pc line
-      if (location.line() < elements.size())
-        elements[location.line()] |= style::highlight_execution;
-
       // if enabled, show selected/traced lines
       if (state::show_selected_line && state::selected_pane) {
         auto style = get_line_highlight_style(pane.type);
-        for (const auto& line: pane.selected_lines)
+        for (const auto& line: pane.selected_lines) {
           elements[line] |= *style;
+        }
       }
+
+      // highlight the $pc line, unless highlighted already
+      if (location.line() < elements.size() && !(state::show_selected_line && state::selected_pane && pane.selected_lines.contains(location.line())))
+        elements[location.line()] |= style::highlight_execution;
     } else {
       elements.push_back(text("unable to trace source") | color(Color::Red));
     }
