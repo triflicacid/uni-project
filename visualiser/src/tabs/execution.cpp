@@ -319,12 +319,26 @@ namespace events {
         // step beyond current line
         auto& origin = visualiser::processor::pc_line->lang_origin;
         if (origin) {
-          int source_line_count = state::lang_pane.file->lines[origin->line()].pc_trace.size();
-          if (source_line_count == 0) source_line_count++;
-          for (int i = 0; i < source_line_count; i++)
+          auto& traces = state::lang_pane.file->lines[origin->line()].pc_trace;
+          if (traces.empty()) {
+            step_processor();
+            break;
+          }
+
+          // determine number of lines to execute
+          int step_count = 0;
+          uint64_t pc = traces.front()->pc;
+          for (auto& trace : traces) {
+            if (trace->pc == pc) {
+              step_count++;
+              pc += 8;
+            }
+          }
+
+          std::cerr << "space on lang pane: execute " << step_count << " steps" << std::endl;
+          for (int i = 0; i < step_count; i++)
             step_processor();
         } else {
-          std::cerr << "lang origin: (none)" << std::endl;
           step_processor();
         }
         return true;

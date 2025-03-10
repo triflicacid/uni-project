@@ -21,7 +21,9 @@ namespace lang::memory {
     };
     int offset; // offset from base
 
-    std::unique_ptr<assembly::BaseArg> resolve() const;
+    // return assembly argument which gets value at this location
+    // if is_addr, does not get value if possible (e.g., returns block label)
+    std::unique_ptr<assembly::BaseArg> resolve(bool as_addr = false) const;
 
     bool operator==(const StorageLocation& other) const;
 

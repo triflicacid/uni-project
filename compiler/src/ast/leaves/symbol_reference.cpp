@@ -34,3 +34,11 @@ bool lang::ast::SymbolReferenceNode::resolve(Context& ctx) {
   assert(value_->get_symbol_ref());
   return static_cast<value::SymbolRef&>(*value_).resolve(*this, ctx.messages, type_hint());
 }
+
+bool lang::ast::SymbolReferenceNode::generate_code(lang::Context& ctx) {
+  // ensure the symbol is defined
+  if (value_->is_lvalue() && value_->lvalue().get_symbol()) {
+    return value_->lvalue().get_symbol()->get().define(ctx);
+  }
+  return true;
+}

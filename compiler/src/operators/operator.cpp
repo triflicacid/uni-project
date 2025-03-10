@@ -108,7 +108,7 @@ bool lang::ops::UserDefinedOperator::invoke(lang::Context &ctx, const std::deque
   assert(function_loc.has_value());
 
   return ops::call_function(
-      function_loc->get().resolve(),
+      function_loc->get().resolve(true),
       symbol().full_name(),
       type(),
       args,

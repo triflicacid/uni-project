@@ -870,26 +870,30 @@ bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
     assert(location.has_value());
 
     // if we are a function, call its location
-    if (symbol.category() == symbol::Category::Function) {
-      arg = location->get().resolve();
-    } else {
-      // otherwise, load and dereference it
-      memory::Ref ref = ctx.reg_alloc_manager.insert({value::value(symbol.type())});
-      ref = ctx.reg_alloc_manager.guarantee_register(ref);
+    // if in variable, remember to deref it (as ptr)
+    bool is_fn = symbol.category() == symbol::Category::Function;
+    arg = location->get().resolve(is_fn);
 
-      ctx.program.current().add(assembly::create_load(
-          ref.offset,
-          location->get().resolve()
-        ));
-      ctx.program.current().back().origin(subject_->token_start().loc);
-
-      auto& comment = ctx.program.current().back().comment();
-      comment << symbol.full_name() << ": ";
-      symbol.type().print_code(comment);
-
-      arg = assembly::Arg::reg_indirect(ref.offset);
-      ctx.reg_alloc_manager.mark_free(ref);
-    }
+//    if (symbol.category() == symbol::Category::Function) {
+//      arg = location->get().resolve(true);
+//    } else {
+//      // otherwise, load and dereference it
+//      memory::Ref ref = ctx.reg_alloc_manager.insert({value::value(symbol.type())});
+//      ref = ctx.reg_alloc_manager.guarantee_register(ref);
+//
+//      ctx.program.current().add(assembly::create_load(
+//          ref.offset,
+//          location->get().resolve()
+//        ));
+//      ctx.program.current().back().origin(subject_->token_start().loc);
+//
+//      auto& comment = ctx.program.current().back().comment();
+//      comment << symbol.full_name() << ": ";
+//      symbol.type().print_code(comment);
+//
+//      arg = assembly::Arg::reg_indirect(ref.offset);
+//      ctx.reg_alloc_manager.mark_free(ref);
+//    }
   } else {
     // otherwise, generate subject's code (must be an rvalue)
     if (!subject_->generate_code(ctx)) return false;
@@ -902,7 +906,7 @@ bool lang::ast::FunctionCallOperatorNode::generate_code(lang::Context& ctx) {
 
     // load into a register (functional types are always rvalues)
     const memory::Ref ref = ctx.reg_alloc_manager.guarantee_register(value.rvalue().ref());
-    arg = assembly::Arg::reg(ref.offset);
+    arg = assembly::Arg::reg_indirect(ref.offset);
   }
 
   bool success = ops::call_function(

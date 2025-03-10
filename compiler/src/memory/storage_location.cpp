@@ -1,10 +1,10 @@
 #include "storage_location.hpp"
 #include "assembly/basic_block.hpp"
 
-std::unique_ptr <lang::assembly::BaseArg> lang::memory::StorageLocation::resolve() const {
+std::unique_ptr <lang::assembly::BaseArg> lang::memory::StorageLocation::resolve(bool as_addr) const {
   switch (type) {
     case memory::StorageLocation::Block:
-      return assembly::Arg::label(block, offset, true);
+      return assembly::Arg::label(block, offset, !as_addr);
     case memory::StorageLocation::Stack:
       return assembly::Arg::reg_indirect(constants::registers::fp, -base_offset - offset); // remember to negate location from $fp as stack grows downwards
   }

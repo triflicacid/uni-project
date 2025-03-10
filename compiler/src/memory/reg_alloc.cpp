@@ -295,7 +295,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
       switch (storage.type) {
         case StorageLocation::Block: {
           auto& type = symbol.type();
-          bool dereference = !type.get_pointer() && !type.get_func() && !type.reference_as_ptr();
+          bool dereference = !(type.get_func() || type.reference_as_ptr());
           // load address into register
           program_.current().add(assembly::create_load(
               location.offset,
