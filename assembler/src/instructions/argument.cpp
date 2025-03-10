@@ -157,10 +157,10 @@ namespace assembler::instruction {
     m_data = data;
   }
 
-  void Argument::set_label(const std::string &label, int offset) {
+  void Argument::set_label(const std::string &label, int offset, bool is_addr) {
     destroy();
     m_type = ArgumentType::Label;
-    auto ptr = new ArgumentLabel(label, offset);
+    auto ptr = new ArgumentLabel(label, offset, is_addr);
     m_data = (uint64_t) ptr;
   }
 }

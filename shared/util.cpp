@@ -295,3 +295,16 @@ size_t hash_combine(size_t lhs, size_t rhs) {
   }
   return lhs;
 }
+
+void skip_label(const std::string& s, int& i) {
+  uint64_t len = s.length();
+  if (i >= len) return;
+
+  if (s[i] == '_' || std::isalpha(s[i])) {
+    i++;
+
+    while (i < s.length() && (s[i] == '_' || std::isalnum(s[i]))) {
+      i++;
+    }
+  }
+}

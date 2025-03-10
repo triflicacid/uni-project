@@ -1,0 +1,7 @@
+let array: [i64; 4] = [1, 2, 3, 4];
+let i = 0u64, sum = 0i64;
+
+while i < array.length {
+    sum = sum + array[i];
+    i = i + 1u64;
+}

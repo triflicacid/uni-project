@@ -228,7 +228,6 @@ void lang::assembly::create_store(uint8_t reg, std::unique_ptr<BaseArg> address,
   if (bytes < 8) {
     // load location into $k1
     block.add(create_load(constants::registers::k1, address->copy()));
-    if (address->is_label()) block.add(create_load(constants::registers::k1, assembly::Arg::reg_indirect(constants::registers::k1)));
 
     // clear bottom n bytes
     uint64_t mask = ~((1ull << (bytes * 8)) - 1);

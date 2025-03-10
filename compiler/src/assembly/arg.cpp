@@ -38,12 +38,12 @@ std::unique_ptr<lang::assembly::Arg> lang::assembly::Arg::reg_indirect(uint8_t r
   return std::make_unique<Arg>(constants::inst::reg_indirect, shifted | reg);
 }
 
-std::unique_ptr<lang::assembly::LabelArg> lang::assembly::Arg::label(const std::string& label, int offset) {
-  return std::make_unique<LabelArg>(label, offset);
+std::unique_ptr<lang::assembly::LabelArg> lang::assembly::Arg::label(const std::string& label, int offset, bool is_addr) {
+  return std::make_unique<LabelArg>(label, offset, is_addr);
 }
 
-std::unique_ptr<lang::assembly::BlockReferenceArg> lang::assembly::Arg::label(const lang::assembly::BasicBlock& block, int offset) {
-  return std::make_unique<BlockReferenceArg>(block, offset);
+std::unique_ptr<lang::assembly::BlockReferenceArg> lang::assembly::Arg::label(const lang::assembly::BasicBlock& block, int offset, bool is_addr) {
+  return std::make_unique<BlockReferenceArg>(block, offset, is_addr);
 }
 
 std::unique_ptr<lang::assembly::BaseArg> lang::assembly::Arg::copy() const {
@@ -51,21 +51,31 @@ std::unique_ptr<lang::assembly::BaseArg> lang::assembly::Arg::copy() const {
 }
 
 std::ostream& lang::assembly::LabelArg::print(std::ostream& os) const {
-  os << label_;
-  if (offset_ != 0) os << " + " << offset_;
+  if (addr_) {
+    if (offset_ != 0) os << offset_;
+    os << "(" << label_ << ")";
+  } else {
+    os << label_;
+    if (offset_ != 0) os << " + " << offset_;
+  }
   return os;
 }
 
 std::unique_ptr<lang::assembly::BaseArg> lang::assembly::LabelArg::copy() const {
-  return std::make_unique<LabelArg>(label_, offset_);
+  return std::make_unique<LabelArg>(label_, offset_, addr_);
 }
 
 std::ostream& lang::assembly::BlockReferenceArg::print(std::ostream& os) const {
-  os << block_.label();
-  if (offset_ != 0) os << " + " << offset_;
+  if (addr_) {
+    if (offset_ != 0) os << offset_;
+    os << "(" << block_.label() << ")";
+  } else {
+    os << block_.label();
+    if (offset_ != 0) os << " + " << offset_;
+  }
   return os;
 }
 
 std::unique_ptr<lang::assembly::BaseArg> lang::assembly::BlockReferenceArg::copy() const {
-  return std::make_unique<BlockReferenceArg>(block_, offset_);
+  return std::make_unique<BlockReferenceArg>(block_, offset_, addr_);
 }

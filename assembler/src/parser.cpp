@@ -625,13 +625,7 @@ namespace assembler::parser {
         }
       }
 
-      // if already exists, substitute immediately
-      //if (auto entry = data.labels.find(label); entry == data.labels.end()) {
-        argument.set_label(label, offset);
-      //} else {
-      //  argument.update(instruction::ArgumentType::Immediate, entry->second.addr + offset);
-      //}
-
+      argument.set_label(label, offset);
       return;
     }
 
@@ -654,17 +648,17 @@ namespace assembler::parser {
     if (line.second[col] == '(') {
       start = ++col;
 
+      // if constant was decimal, this is bad
+      if (found_number && number_decimal) {
+        auto msg = std::make_unique<message::Message>(message::Error, loc);
+        msg->get() << "decimal number cannot be followed by '(' (got " << *(double *) &value << ")";
+        msgs.add(std::move(msg));
+        return;
+      }
+
       // register?
       if (line.second[col] == '$') {
         col++;
-
-        // if constant was decimal, this is bad
-        if (found_number && number_decimal) {
-          auto msg = std::make_unique<message::Message>(message::Error, loc);
-          msg->get() << "offset in register-indirect cannot be a decimal! (got " << *(double *) &value << ")";
-          msgs.add(std::move(msg));
-          return;
-        }
 
         // parse register
         auto reg = constants::registers::from_string(line.second, col);
@@ -697,29 +691,60 @@ namespace assembler::parser {
         return;
       }
 
-      // if found number, MUST have been register, so this is bad
-      if (found_number) {
-        auto msg = std::make_unique<message::Message>(message::Error, loc);
-        msg->get() << "expected '$' for register-indirect, found '" << line.second[col] << "' after '('";
-        msgs.add(std::move(msg));
-        return;
-      }
-
       // parse as number
-      if (!parse_number(line.second, col, value, number_decimal)) {
-        auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
-        msg->get() << "expected memory address, found '" << line.second[col] << "' after '('";
+      uint64_t addr;
+      if (parse_number(line.second, col, addr, number_decimal)) {
+        // cannot have a number in this case
+        if (found_number) {
+          auto msg = std::make_unique<message::Message>(message::Error, loc);
+          msg->get() << "expected '$' for register-indirect or label, found '" << line.second[col] << "' after '('";
+          msgs.add(std::move(msg));
+          return;
+        }
+
+        // disallow decimals
+        if (number_decimal) {
+          auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
+          msg->get() << "memory address cannot be a decimal!";
+          msgs.add(std::move(msg));
+          return;
+        }
+
+        // ending bracket?
+        if (line.second[col] != ')') {
+          auto msg = std::make_unique<message::Message>(message::Error, loc);
+          msg->get() << "expected ')', got ";
+          emit_ch(msg->get(), line.second, col);
+          msgs.add(std::move(msg));
+
+          msg = std::make_unique<message::Message>(message::Note, loc.copy().column(start - 1));
+          msg->get() << "group opened here";
+          msgs.add(std::move(msg));
+          return;
+        }
+
+        col++;
+
+        // update argument
+        argument.update(instruction::ArgumentType::Address, addr);
+        return;
+      }
+
+      // extract until ')'
+      start = col;
+      skip_label(line.second, col);
+
+      if (start == col) {
+        auto msg = std::make_unique<message::Message>(message::Error, loc);
+        msg->get() << "expected address or label, got '";
+        emit_ch(msg->get(), line.second, col);
+        msg->get() << "'";
         msgs.add(std::move(msg));
         return;
       }
 
-      // disallow decimals
-      if (number_decimal) {
-        auto msg = std::make_unique<message::Message>(message::Error, loc.copy().column(start));
-        msg->get() << "memory address cannot be a decimal!";
-        msgs.add(std::move(msg));
-        return;
-      }
+      const std::string label = line.second.substr(start, col - start);
+      argument.set_label(label, value, true);
 
       // ending bracket?
       if (line.second[col] != ')') {
@@ -735,9 +760,6 @@ namespace assembler::parser {
       }
 
       col++;
-
-      // update argument
-      argument.update(instruction::ArgumentType::Address, value);
       return;
     }
 

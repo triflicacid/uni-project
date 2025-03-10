@@ -138,9 +138,10 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(c
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const symbol::Symbol& symbol) {
   // get location; return if found
-  if (auto ref = find(symbol)) {
-    return *ref;
-  }
+  // TODO make sure the symbol is always up-to-date
+//  if (auto ref = find(symbol)) {
+//    return *ref;
+//  }
 
   // otherwise, insert
   auto value = value::value();
@@ -292,21 +293,16 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
 
       int idx = program_.current().size();
       switch (storage.type) {
-        case StorageLocation::Block:
+        case StorageLocation::Block: {
+          auto& type = symbol.type();
+          bool dereference = !type.get_pointer() && !type.get_func() && !type.reference_as_ptr();
           // load address into register
           program_.current().add(assembly::create_load(
               location.offset,
-              assembly::Arg::label(storage.block)
+              assembly::Arg::label(storage.block, 0, dereference)
           ));
-          // read register as an address (indirectly)
-          // do not deference (essential) if pointer/function/pointer-like type
-          if (auto& type = symbol.type(); !type.get_pointer() && !type.get_func() && !type.reference_as_ptr()) {
-            program_.current().add(assembly::create_load(
-                location.offset,
-                assembly::Arg::reg_indirect(location.offset)
-            ));
-          }
           break;
+        }
         case StorageLocation::Stack:
           // if treating as a pointer, return address, otherwise get value at symbol
           if (auto& type = symbol.type(); type.reference_as_ptr()) {

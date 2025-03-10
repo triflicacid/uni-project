@@ -175,7 +175,7 @@ std::unique_ptr<lang::ast::LiteralNode> lang::parser::Parser::parse_literal() {
   // if suffixed, this gives us more of a type hint
   if (expect(numerical_types)) {
     const lexer::Token type_token = consume();
-    node->type_hint(*static_type_map.at(type_token.type));
+    node->suffix(*static_type_map.at(type_token.type));
   }
 
   return node;

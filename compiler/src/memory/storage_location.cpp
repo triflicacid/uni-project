@@ -4,7 +4,7 @@
 std::unique_ptr <lang::assembly::BaseArg> lang::memory::StorageLocation::resolve() const {
   switch (type) {
     case memory::StorageLocation::Block:
-      return assembly::Arg::label(block, offset);
+      return assembly::Arg::label(block, offset, true);
     case memory::StorageLocation::Stack:
       return assembly::Arg::reg_indirect(constants::registers::fp, -base_offset - offset); // remember to negate location from $fp as stack grows downwards
   }

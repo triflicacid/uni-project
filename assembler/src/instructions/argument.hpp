@@ -14,7 +14,7 @@ namespace assembler::instruction {
     Register, // <reg>, no indicator bits
     RegisterIndirect, // PRIVATE.
     Value, // <value>
-    Label, // PRIVATE. substituted as signature sees fit (imm unless <addr>)
+    Label, // PRIVATE. substituted as signature sees fit
   };
 
   /** Data structure used for representing an indirect register. */
@@ -27,6 +27,7 @@ namespace assembler::instruction {
   struct ArgumentLabel {
     std::string label;
     int offset;
+    bool is_addr = false; // address if surrounded by brackets `()'
   };
 
   class Argument {
@@ -67,7 +68,7 @@ namespace assembler::instruction {
     [[nodiscard]] bool is_label() const { return m_type == ArgumentType::Label; }
 
     /** Set value to a label. */
-    void set_label(const std::string &label, int offset = 0);
+    void set_label(const std::string &label, int offset = 0, bool is_addr = false);
 
     void debug_print(std::ostream &out = std::cout);
 

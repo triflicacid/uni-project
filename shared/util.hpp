@@ -65,7 +65,10 @@ inline int get_base_value(char c, uint8_t base) {
 /** Convert integer string to decimal integer/float, return success. */
 bool parse_number(const std::string &string, int &index, uint64_t &value, bool &is_double);
 
-/** Return is valid label name: [A-Za-z][0-9A-Za-z]* */
+/** Advance past a label: [A-Za-z_][0-9A-Za-z_]*  */
+void skip_label(const std::string &s, int &i);
+
+/** Return is valid label name: [A-Za-z_][0-9A-Za-z_]* */
 bool is_valid_label_name(const std::string &label);
 
 /** convert number to hex */

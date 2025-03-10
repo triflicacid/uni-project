@@ -1,0 +1,6 @@
+let n = 1u64, sum = 0u64;
+
+while n < 10u64 {
+    sum = sum + n;
+    n = n + 1u64;
+}

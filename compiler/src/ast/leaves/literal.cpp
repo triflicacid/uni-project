@@ -51,7 +51,7 @@ bool lang::ast::LiteralNode::process(lang::Context& ctx) {
           : type::PointerNode::get(type::uint8);
       lit_ = memory::Literal::get(target, 0x0);
     } else {
-      const type::Node& target = get_target_numeric_type();
+      const type::Node& target = suffix_ ? suffix_->get() : get_target_numeric_type();
       const std::string& image = token_start().image;
       uint64_t value;
       bool is_error = false;

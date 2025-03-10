@@ -277,14 +277,12 @@ bool lang::value::ContiguousLiteral::materialise(lang::Context& ctx, const lang:
   // materialise our children
   int offset = 0;
   for (Value& element : elements_) {
-    // adjust location to child
-    if (offset) location = location + offset;
-
     // attempt to materialise child
     if (!element.materialise(ctx, {location, options.copy_or_move, options.origin})) return false;
 
     // increase offset according to child's size
-    offset += element.type().size();
+    // adjust location to child
+    location = location + element.type().size();
   }
 
   // if we haven't got a target (temporary) and this is the outer block, load reference

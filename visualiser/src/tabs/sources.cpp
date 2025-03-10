@@ -107,6 +107,8 @@ namespace events {
     if (line.pc_trace.empty()) return true;
 
     auto& pc_line = line.pc_trace.front();
+    std::cerr << "selected line: " << pc_line << std::endl;
+    std::cerr << " - $pc= " << pc_line->pc << std::endl;
 
     // trace back to previous abstraction level
     switch (file->type) {

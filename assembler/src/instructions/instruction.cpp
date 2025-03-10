@@ -154,7 +154,7 @@ namespace assembler::instruction {
         if (debug)
           std::cout << "Replace label " << label << " with address 0x" << std::hex << address
                     << std::dec << std::endl;
-        arg.update(signature->arguments[overload][i] == instruction::ArgumentType::Address
+        arg.update(signature->arguments[overload][i] == instruction::ArgumentType::Address || arg.get_label()->is_addr
                    ? instruction::ArgumentType::Address
                    : instruction::ArgumentType::Immediate, address + arg.get_label()->offset);
       }

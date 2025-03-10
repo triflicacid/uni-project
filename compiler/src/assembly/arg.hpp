@@ -20,9 +20,10 @@ namespace lang::assembly {
   class LabelArg : public BaseArg {
     const std::string label_;
     int offset_;
+    bool addr_;
 
   public:
-    LabelArg(const std::string& label, int offset) : label_(label), offset_(offset) {}
+    LabelArg(const std::string& label, int offset, bool is_addr) : label_(label), offset_(offset), addr_(is_addr) {}
 
     std::ostream& print(std::ostream &os) const override;
 
@@ -39,9 +40,10 @@ namespace lang::assembly {
   class BlockReferenceArg : public BaseArg {
     const BasicBlock& block_;
     int offset_;
+    bool addr_;
 
   public:
-    BlockReferenceArg(const BasicBlock& block, int offset) : block_(block), offset_(offset) {}
+    BlockReferenceArg(const BasicBlock& block, int offset, bool is_addr) : block_(block), offset_(offset), addr_(is_addr) {}
 
     std::ostream& print(std::ostream &os) const override;
 
@@ -76,9 +78,9 @@ namespace lang::assembly {
     static std::unique_ptr<Arg> reg_indirect(uint8_t reg, int32_t offset = 0);
 
     // create an argument to a label
-    static std::unique_ptr<LabelArg> label(const std::string& label, int offset = 0);
+    static std::unique_ptr<LabelArg> label(const std::string& label, int offset = 0, bool is_addr = false);
 
     // create an argument referencing a BasicBlock
-    static std::unique_ptr<BlockReferenceArg> label(const assembly::BasicBlock& block, int offset = 0);
+    static std::unique_ptr<BlockReferenceArg> label(const assembly::BasicBlock& block, int offset = 0, bool is_addr = false);
   };
 }
