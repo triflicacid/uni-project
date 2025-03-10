@@ -430,6 +430,19 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
 
   if (auto is_down = e == ftxui::Event::ArrowDown; (is_down || e == ftxui::Event::ArrowUp) && events::on_vert_arrow(pane, is_down)) return true;
   if (auto is_right = e == ftxui::Event::ArrowRight; (is_right || e == ftxui::Event::ArrowLeft) && events::on_horiz_arrow(pane, is_right)) return handled;
+  if (e == ftxui::Event::Home || e == ftxui::Event::End) {
+    if (state::selected_pane && state::show_selected_line) {
+      uint64_t target = e == ftxui::Event::Home
+          ? 0
+          : state::selected_pane->file->lines.size() - 1;
+      if (state::selected_line != target) {
+        state::selected_line = target;
+        update_selected_line();
+        update_pane_positions_from_selection();
+      }
+    }
+    return true;
+  }
 
   // did the event change the pane's position?
   if (int new_selected = *pane->pos_ptr; new_selected != old_selected) {
