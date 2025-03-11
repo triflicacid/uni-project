@@ -716,7 +716,10 @@ constants::registers::reg processor::CPU::get_arg_reg(uint64_t inst, uint8_t pos
   current_arg_num++;
   std::unique_ptr<debug::ArgumentMessage> debug_msg;
   constants::registers::reg result = _arg_reg(inst >> pos, debug_msg);
-  if (debug_msg) add_debug_message(std::move(debug_msg));
+  if (debug_msg) {
+    debug_msg->value = result;
+    add_debug_message(std::move(debug_msg));
+  }
   return result;
 }
 
@@ -756,7 +759,10 @@ uint64_t processor::CPU::get_arg_value(uint64_t word, uint8_t pos, bool cast_imm
 
   switch (indicator) {
     case arg::imm:
-      if (debug::args) msg = std::make_unique<debug::ArgumentMessage>(constants::inst::arg::imm, current_arg_num);
+      if (debug::args) {
+        msg = std::make_unique<debug::ArgumentMessage>(constants::inst::arg::imm, current_arg_num);
+        msg->value = data;
+      }
 
       if (cast_imm_double) {
         double d = *(float *) &data;

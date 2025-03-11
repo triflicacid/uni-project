@@ -117,9 +117,9 @@ static void handle_debug_message(const processor::debug::Message &msg) {
       auto *message = (InstructionMessage*)&msg;
       std::string msg = message->message.str();
       if (msg.empty()) {
-        *debug_stream << "mnemonic: " << message->mnemonic << std::endl;
+        *debug_stream << "instruction: " << message->instruction << std::endl;
       } else {
-        *debug_stream << message->mnemonic << ": " << message->message.str() << std::endl;
+        *debug_stream << message->instruction << ": " << message->message.str() << std::endl;
       }
       break;
     }

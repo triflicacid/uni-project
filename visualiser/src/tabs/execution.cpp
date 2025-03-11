@@ -179,9 +179,9 @@ static ftxui::Element format_debug_message(const processor::debug::Message &msg)
       auto *message = (InstructionMessage*)&msg;
       std::string msg = message->message.str();
       if (msg.empty()) {
-        os << "mnemonic: " << message->mnemonic;
+        os << "instruction: " << message->instruction;
       } else {
-        os << message->mnemonic << ": " << message->message.str();
+        os << message->instruction << ": " << message->message.str();
       }
       children.push_back(text(os.str()));
       break;

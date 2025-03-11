@@ -141,16 +141,14 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  // print the AST program structure if desired
-  if (options.print_ast) {
-    ast->print_tree(std::cout) << std::endl;
-  }
-
   // process tree, ensure everything is OK
   ast->process(ctx);
   if (message::print_and_check(messages, std::cerr)) {
+    if (options.print_ast) ast->print_tree(std::cout) << std::endl;
     return EXIT_FAILURE;
   }
+
+  if (options.print_ast) ast->print_tree(std::cout) << std::endl;
 
   // generate assembly code
   ast->generate_code(ctx);

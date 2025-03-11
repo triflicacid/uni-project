@@ -45,10 +45,10 @@ namespace processor::debug {
   };
 
   struct InstructionMessage : Message {
-    std::string mnemonic;
+    std::string instruction;
     std::stringstream message;
 
-    explicit InstructionMessage(std::string mnemonic) : Message(Type::Instruction), mnemonic(std::move(mnemonic)) {}
+    explicit InstructionMessage(std::string mnemonic) : Message(Type::Instruction), instruction(std::move(mnemonic)) {}
 
     std::ostream &stream() { return message; }
   };
