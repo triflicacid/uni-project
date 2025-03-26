@@ -151,10 +151,13 @@
         \hline
         00 & Immediate & \texttt{imm} & \texttt{imm} & 32 \\
         01 & Register & \texttt{\$reg} & \texttt{Reg[\$reg]} & 8 \\
-        10 & Memory & \texttt{(mem)} & \texttt{Mem[mem]} & 32\\
-        11 & Register Indirect & \texttt{n(\$reg)} & \texttt{Mem[Reg[\$reg] + n]} & \texttt{\$reg}=8, \texttt{\$n}=24 \\
+        10 & Memory & \makecell[l]{\texttt{(mem)}\\\texttt{n(mem)}} & \makecell[l]{\texttt{Mem[mem]}\\\texttt{Mem[mem+n]}} & 32\\
+        11 & Register Indirect & \texttt{n(\$reg)} & \texttt{Mem[Reg[\$reg] + n]} & \texttt{\$reg}=8, \texttt{n}=16 \\
         \hline
     \end{tabular}
+
+    Note that \texttt{<value>} is any of the four addressing modes, whereas \texttt{<addr>} is only the latter two.
+    Hence, \texttt{<addr>} needs only 1 indicator bit.
 
     \section{Instruction Set}\label{sec:instruction-set}
 
