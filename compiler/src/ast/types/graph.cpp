@@ -84,8 +84,8 @@ void lang::ast::type::TypeGraph::init() {
   // [u]int<n> < float64
   graph.add_subtypes({uint8.id(), int8.id(), uint16.id(), int16.id(), uint32.id(), int32.id(), uint64.id(), int64.id()}, float64.id());
 
-  // [u]int<n> < float32 where n < 64
-  graph.add_subtypes({uint8.id(), int8.id(), uint16.id(), int16.id(), uint32.id(), int32.id()}, float32.id());
+  // [u]int<n> < float32
+  graph.add_subtypes({uint8.id(), int8.id(), uint16.id(), int16.id(), uint32.id(), int32.id(), uint64.id(), int64.id()}, float32.id());
 
   //! Boolean types
   graph.insert(boolean);

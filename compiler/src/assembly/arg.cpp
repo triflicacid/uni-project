@@ -79,3 +79,36 @@ std::ostream& lang::assembly::BlockReferenceArg::print(std::ostream& os) const {
 std::unique_ptr<lang::assembly::BaseArg> lang::assembly::BlockReferenceArg::copy() const {
   return std::make_unique<BlockReferenceArg>(block_, offset_, addr_);
 }
+
+std::ostream& lang::assembly::CharArg::print(std::ostream& os) const {
+  os << '\'';
+  if (ch_ == '\'') os << "\\'";
+  else os << ch_;
+  return os << '\'';
+}
+
+std::unique_ptr<lang::assembly::BaseArg> lang::assembly::CharArg::copy() const {
+  return std::make_unique<CharArg>(ch_);
+}
+
+std::unique_ptr<lang::assembly::BaseArg> lang::assembly::StringArg::copy() const {
+  auto arg = std::make_unique<StringArg>();
+  arg->get() << stream_.str();
+  return arg;
+}
+
+std::ostream& lang::assembly::StringArg::print(std::ostream& os) const {
+  const std::string string = stream_.str();
+  os << '"';
+
+  for (char ch : string) {
+    assert(std::isprint(ch));
+    if (ch == '"') {
+      os << "\\\"";
+    } else {
+      os << ch;
+    }
+  }
+
+  return os << '"';
+}

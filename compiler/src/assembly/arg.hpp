@@ -2,6 +2,7 @@
 
 #include "constants.hpp"
 #include <ostream>
+#include <sstream>
 #include <memory>
 
 namespace lang::assembly {
@@ -11,9 +12,6 @@ namespace lang::assembly {
     virtual std::ostream& print(std::ostream& os) const = 0;
 
     virtual std::unique_ptr<BaseArg> copy() const = 0;
-
-    virtual bool is_label() const
-    { return false; }
   };
 
   // an argument which references a label
@@ -28,9 +26,6 @@ namespace lang::assembly {
     std::ostream& print(std::ostream &os) const override;
 
     std::unique_ptr<BaseArg> copy() const override;
-
-    bool is_label() const override
-    { return true; }
   };
 
   class BasicBlock;
@@ -48,9 +43,6 @@ namespace lang::assembly {
     std::ostream& print(std::ostream &os) const override;
 
     std::unique_ptr<BaseArg> copy() const override;
-
-    bool is_label() const override
-    { return true; }
   };
 
   // a generic assembly argument: imm, mem, reg, reg_indirect
@@ -82,5 +74,31 @@ namespace lang::assembly {
 
     // create an argument referencing a BasicBlock
     static std::unique_ptr<BlockReferenceArg> label(const assembly::BasicBlock& block, int offset = 0, bool is_addr = false);
+  };
+
+  // an argument representing a character
+  class CharArg : public BaseArg {
+    char ch_;
+
+  public:
+    explicit CharArg(char ch) : ch_(ch) {}
+
+    std::ostream & print(std::ostream &os) const override;
+
+    std::unique_ptr<BaseArg> copy() const override;
+  };
+
+  // an argument representing a string (null-terminated)
+  class StringArg : public BaseArg {
+    std::stringstream stream_;
+
+  public:
+    StringArg() = default;
+
+    std::stringstream& get() { return stream_; }
+
+    std::ostream& print(std::ostream &os) const override;
+
+    std::unique_ptr<BaseArg> copy() const override;
   };
 }
