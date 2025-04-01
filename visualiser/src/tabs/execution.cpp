@@ -553,15 +553,19 @@ void visualiser::tabs::CodeExecutionTab::init() {
       children.push_back(text("Running") | style::ok);
     } else if (processor::cpu.get_error()) {
       children.push_back(text("Halted (error)") | style::error);
+
+      // add error message to message stack
+      std::stringstream error_stream;
+      processor::cpu.print_error(error_stream, false);
+      elements.push_back(hbox({
+        text("Error: "),
+        text(error_stream.str()) | style::error
+      }));
     } else {
       children.push_back(text("Halted") | style::bad);
     }
     elements.push_back(hbox(children));
 
-    elements.push_back(hbox({
-                                text("Cycle: "),
-                                text(std::to_string(state::current_cycle)) | style::value,
-                            }));
     elements.push_back(hbox({
                                 text("$pc: "),
                                 text("0x" + to_hex_string(visualiser::processor::pc, 8)) | style::reg,

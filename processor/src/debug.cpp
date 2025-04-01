@@ -15,3 +15,7 @@ void processor::debug::set_all(bool b) {
 bool processor::debug::any() {
   return cpu || args || mem || reg || zflag || conditionals || errs;
 }
+
+bool processor::debug::all() {
+  return cpu && args && mem && reg && zflag && conditionals && errs;
+}

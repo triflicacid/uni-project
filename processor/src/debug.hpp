@@ -16,7 +16,11 @@ namespace processor::debug {
 
   void set_all(bool b);
 
+  // returns if any debug flag is set
   bool any();
+
+  // returns if all the debug flags are set
+  bool all();
 
   struct Message {
     enum Type {
