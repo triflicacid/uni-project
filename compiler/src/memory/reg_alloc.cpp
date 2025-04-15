@@ -83,26 +83,34 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
     return;
   }
 
+  // NOTE
+  // a key assumption is that, after registers are saved, offset to next $fp is known (all data's type and size is known and constant)
+  // also assume that $sp points to equiv. of stack().offset
+
   if (restore_registers) {
     // point to the top of the register cache and work backwards
-    uint64_t& addr = instances_.front().stack_offset;
+    // we know current stack offset, and also the offset when registers were pushed
+    // assuming the above assumption, we know the offset from $sp
+    uint64_t offset = symbols_.stack().offset() - instances_.front().stack_offset;
 
     auto& regs = instances_.front().regs;
     for (int i = regs.size() - 1; i >= 0; i--) {
       if (auto& object = regs[i]; object && object->required) {
         size_t bytes = object->size();
-        addr += bytes;
 
         // store region back in the correct register
         int idx = program_.current().size();
         assembly::create_load(
             initial_register + i,
-            assembly::Arg::reg_indirect(constants::registers::sp, addr),
+            assembly::Arg::reg_indirect(constants::registers::sp, offset),
             bytes,
             program_.current(),
             false
           );
         program_.current()[idx].comment() << "restore $" << constants::registers::to_string($reg(initial_register + i));
+
+        // increase offset (stack grows downwards)
+        offset += bytes;
       }
     }
   }
