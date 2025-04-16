@@ -88,6 +88,12 @@ lang::ops::select_candidate(const std::string& symbol, const ast::type::Function
   msg->get() << ")";
   messages.add(std::move(msg));
 
+  if (!candidates.empty()) {
+    msg = std::make_unique<message::BasicMessage>(message::Note);
+    msg->get() << "multiple suitable candidates found - caller needs to be more specific";
+    messages.add(std::move(msg));
+  }
+
   for (auto& option : options) {
     msg = std::make_unique<message::BasicMessage>(message::Note);
     msg->get() << "candidate: ";

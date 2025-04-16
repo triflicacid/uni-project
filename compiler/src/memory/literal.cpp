@@ -66,3 +66,136 @@ bool lang::memory::Literal::operator==(const lang::memory::Literal& other) const
   if (type_.get_array() || other.type_.get_array()) return false; // arrays are never equal
   return type_ == other.type_ && data_ == other.data_;
 }
+
+const lang::memory::Literal& lang::memory::Literal::change_type(const ast::type::Node& target) const {
+  // get internal datatypes
+  auto from = type_.get_asm_datatype();
+  auto to = target.get_asm_datatype();
+
+  // if equal, return copy now
+  if (from == to) return *this;
+
+  // otherwise, convert
+  uint64_t new_data = 0;
+  switch (from) {
+    case constants::inst::datatype::u32:
+      switch (to) {
+        case constants::inst::datatype::s32:
+          new_data = uint64::from((int32_t) uint64::to_uint32(data_));
+          break;
+        case constants::inst::datatype::s64:
+          new_data = uint64::from((int64_t) uint64::to_uint32(data_));
+          break;
+        case constants::inst::datatype::flt:
+          new_data = uint64::from((float) uint64::to_uint32(data_));
+          break;
+        case constants::inst::datatype::dbl:
+          new_data = uint64::from((double) uint64::to_uint32(data_));
+          break;
+        default: ;
+      }
+      break;
+    case constants::inst::datatype::u64:
+      switch (to) {
+        case constants::inst::datatype::u32:
+          new_data = uint64::from((uint32_t) data_);
+          break;
+        case constants::inst::datatype::s32:
+          new_data = uint64::from((int32_t) data_);
+          break;
+        case constants::inst::datatype::s64:
+          new_data = uint64::from((int64_t) data_);
+          break;
+        case constants::inst::datatype::flt:
+          new_data = uint64::from((float) data_);
+          break;
+        case constants::inst::datatype::dbl:
+          new_data = uint64::from((double) data_);
+          break;
+        default: ;
+      }
+      break;
+    case constants::inst::datatype::s32:
+      switch (to) {
+        case constants::inst::datatype::u32:
+          new_data = uint64::from((uint32_t) uint64::to_int32(data_));
+          break;
+        case constants::inst::datatype::u64:
+          new_data = uint64::from((uint64_t) uint64::to_int32(data_));
+          break;
+        case constants::inst::datatype::s64:
+          new_data = uint64::from((int64_t) uint64::to_int32(data_));
+          break;
+        case constants::inst::datatype::flt:
+          new_data = uint64::from((float) uint64::to_int32(data_));
+          break;
+        case constants::inst::datatype::dbl:
+          new_data = uint64::from((double) uint64::to_int32(data_));
+          break;
+        default: ;
+      }
+      break;
+    case constants::inst::datatype::s64:
+      switch (to) {
+        case constants::inst::datatype::u32:
+          new_data = uint64::from((uint32_t) uint64::to_int64(data_));
+          break;
+        case constants::inst::datatype::u64:
+          new_data = uint64::from((uint64_t) uint64::to_int64(data_));
+          break;
+        case constants::inst::datatype::s32:
+          new_data = uint64::from((int32_t) uint64::to_int64(data_));
+          break;
+        case constants::inst::datatype::flt:
+          new_data = uint64::from((float) uint64::to_int64(data_));
+          break;
+        case constants::inst::datatype::dbl:
+          new_data = uint64::from((double) uint64::to_int64(data_));
+          break;
+        default: ;
+      }
+      break;
+    case constants::inst::datatype::flt:
+      switch (to) {
+        case constants::inst::datatype::u32:
+          new_data = uint64::from((uint32_t) uint64::to_float(data_));
+          break;
+        case constants::inst::datatype::u64:
+          new_data = uint64::from((uint64_t) uint64::to_float(data_));
+          break;
+        case constants::inst::datatype::s32:
+          new_data = uint64::from((int32_t) uint64::to_float(data_));
+          break;
+        case constants::inst::datatype::s64:
+          new_data = uint64::from((int64_t) uint64::to_float(data_));
+          break;
+        case constants::inst::datatype::dbl:
+          new_data = uint64::from((double) uint64::to_float(data_));
+          break;
+        default: ;
+      }
+      break;
+    case constants::inst::datatype::dbl:
+      switch (to) {
+        case constants::inst::datatype::u32:
+          new_data = uint64::from((uint32_t) uint64::to_double(data_));
+          break;
+        case constants::inst::datatype::u64:
+          new_data = uint64::from((uint64_t) uint64::to_double(data_));
+          break;
+        case constants::inst::datatype::s32:
+          new_data = uint64::from((int32_t) uint64::to_double(data_));
+          break;
+        case constants::inst::datatype::s64:
+          new_data = uint64::from((int64_t) uint64::to_double(data_));
+          break;
+        case constants::inst::datatype::flt:
+          new_data = uint64::from((float) uint64::to_double(data_));
+          break;
+        default: ;
+      }
+      break;
+  }
+
+  return get(target, new_data);
+}

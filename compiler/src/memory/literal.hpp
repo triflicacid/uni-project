@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include "constants.hpp"
 
 namespace lang::ast::type {
   class Node;
@@ -26,6 +27,10 @@ namespace lang::memory {
 
     // return string format of the numeric literal we represent
     std::string to_string() const;
+
+    // change literal's type, returns copy (changes internal data to reflect datatype change)
+    // works on basis of internal asm types
+    const Literal& change_type(const ast::type::Node& target) const;
 
     // get the following Literal object
     static const Literal& get(const ast::type::Node& type, uint64_t data);

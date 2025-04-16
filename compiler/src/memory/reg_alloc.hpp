@@ -46,8 +46,8 @@ namespace lang::memory {
   public:
     RegisterAllocationManager(symbol::SymbolTable& symbols, assembly::Program& program);
 
-    // return number of free registers
-    int count_free() const;
+    // return number of empty registers
+    int count_empty() const;
 
     // return reference to the oldest register
     Ref get_oldest() const;

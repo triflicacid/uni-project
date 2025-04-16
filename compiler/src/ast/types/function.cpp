@@ -66,8 +66,7 @@ std::deque<std::reference_wrapper<const lang::ast::type::FunctionNode>> lang::as
 std::deque<std::reference_wrapper<const lang::ast::type::FunctionNode>>
 lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::deque<std::reference_wrapper<const FunctionNode>>& options) {
   std::deque<std::reference_wrapper<const FunctionNode>> candidates;
-  std::deque<int> scores; // measure similarity between parameters and candidates[i], i.e., how many params are equal
-  int max_score = -1;
+  int max_score = -1; // measure similarity between parameters and candidates[i], i.e., how many params are equal
   for (auto& option : options) {
     // we are a candidate if #args match and all types are equal or subtypes
     if (option.get().args() != parameters.size()) continue;
@@ -75,20 +74,21 @@ lang::ast::type::FunctionNode::filter_candidates(const std::deque<std::reference
     int score = 0;
     for (int i = 0; is_candidate && i < parameters.size(); i++) {
       if (parameters[i].get() == option.get().arg(i)) score++;
-      if (!graph.is_subtype(parameters[i].get().id(), option.get().arg(i).id())) is_candidate = false;
+      else if (!graph.is_subtype(parameters[i].get().id(), option.get().arg(i).id())) is_candidate = false;
     }
     // if perfect score, exact match, so ignore all others
     if (score == parameters.size()) return {option};
+    // otherwise, add to candidate list
     if (is_candidate) {
-      // if new high score, regards all other candidates
+      // if new high score, disregard all other candidates
       if (score > max_score) {
         candidates.clear();
-        scores.clear();
         max_score = score;
       }
-      // add candidate and its score to shortlist
-      candidates.push_back(option);
-      scores.push_back(score);
+      // add candidate to shortlist but ONLY if it is not worse than the best candidate
+      if (score == max_score) {
+        candidates.push_back(option);
+      }
     }
   }
 

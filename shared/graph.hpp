@@ -11,8 +11,8 @@
 template<typename _Key, typename _Node, typename _Hash = std::hash<_Key>>
 class Graph {
   std::unordered_map<_Key, _Node, _Hash> nodes_;
-  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> edges_;
-  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> inv_edges_; // inverse edges
+  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> edges_; // key connected to values, outgoing connections
+  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> inv_edges_; // inverse edges, incoming connections
 
 public:
   bool empty() const { return nodes_.empty(); }
@@ -22,6 +22,7 @@ public:
   void clear() {
     nodes_.clear();
     edges_.clear();
+    inv_edges_.clear();
   }
 
   // check if the given node exists
@@ -54,7 +55,7 @@ public:
   // insert an edge
   void insert(const _Key& from, const _Key& to) {
     edges_[from].insert(to);
-    edges_[to].insert(from);
+    inv_edges_[to].insert(from);
   }
 
   // insert an edge, with the connection both ways
@@ -72,9 +73,14 @@ public:
 
   // delete the given node
   void remove(const _Key& key) {
+    if (!nodes_.contains(key)) return;
+
     nodes_.erase(key);
     edges_.erase(key);
     for (auto& [_, edges] : edges_)
+      edges.erase(key);
+    inv_edges_.erase(key);
+    for (auto& [_, edges] : inv_edges_)
       edges.erase(key);
   }
 
@@ -86,11 +92,13 @@ public:
 
   // get outward connections for a node
   std::unordered_set<_Key> get_outward_connections(const _Key& from) {
+    if (!nodes_.contains(from)) return {};
     return edges_[from];
   }
 
   // get ingoing connections to a node
   std::unordered_set<_Key> get_inward_connections(const _Key& to) {
+    if (!nodes_.contains(to)) return {};
     return inv_edges_[to];
   }
 

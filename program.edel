@@ -1,8 +1,4 @@
-func something() {
-    3 + 4 + 5;
-}
-
-let x = 5i64;
-x + 1i64;
-something();
-x + 1i64;
+let x = 5f32;
+x + 1;
+1f32 + 2;
+1 + 2;

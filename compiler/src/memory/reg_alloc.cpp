@@ -12,7 +12,7 @@ lang::memory::RegisterAllocationManager::RegisterAllocationManager(symbol::Symbo
   instances_.emplace_front();
 }
 
-int lang::memory::RegisterAllocationManager::count_free() const {
+int lang::memory::RegisterAllocationManager::count_empty() const {
   int count = 0;
   for (auto& object : instances_.front().regs) {
     if (!object)
@@ -267,9 +267,9 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::insert(Object object)
   // check if we have a register free
   // if not, use the first freed register
   int i = initial_register;
-  const int free_count = count_free();
+  const int free_count = count_empty();
   for (auto& stored_object : instances_.front().regs) {
-    if (stored_object && (free_count != 0 || stored_object->required)) {
+    if (stored_object && (stored_object->required || free_count > 0)) { // skip if reserved OR there is another one free
       stored_object->occupied_ticks++;
     } else {
       Ref location(Ref::Register, i);
@@ -435,7 +435,6 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
     if (object.value->is_lvalue() && object.value->lvalue().get_symbol()) {
       auto& symbol = object.value->lvalue().get_symbol()->get();
       // get original datatype
-      auto& type = symbol.type();
       asm_original = symbol.type().get_asm_datatype();
       // remove lvalue, we are only an rvalue now
       object = Object(value::rvalue(target, ref));
@@ -444,7 +443,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
       // get original datatype
       asm_original = literal.type().get_asm_datatype();
       // update Object's contents
-      object.value = value::literal(Literal::get(target, literal.data()));
+      object.value = value::literal(literal.change_type(target));
       object.value->rvalue(ref);
     } else {
       // can't do anything, we have no further information

@@ -49,8 +49,9 @@ namespace lang::ast::type {
     std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const FunctionNode>>& options) const;
 
     // given list of parameter types, return list of possible candidates from input list of options
-    // if there is a perfect match, return this
-    // otherwise, there are selection issues, so return all suitable candidates
+    // uses scoring concept, where exact type matches add one to the candidate's score
+    // only return candidates with maximum score (i.e., most similar to `parameters`)
+    // if multiple are returned, we have ambiguity
     static std::deque<std::reference_wrapper<const FunctionNode>> filter_candidates(const std::deque<std::reference_wrapper<const Node>>& parameters, const std::deque<std::reference_wrapper<const FunctionNode>>& options);
   };
 }
