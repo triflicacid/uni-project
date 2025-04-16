@@ -64,6 +64,8 @@ bool lang::ast::ProgramNode::generate_code(lang::Context& ctx) {
   // generate code for each child
   for (auto& line : lines_) {
     if (!line->generate_code(ctx)) return false;
+    // resources cannot cross lines, so they are not required
+    ctx.reg_alloc_manager.mark_all_free();
   }
 
   // add 'exit' to ensure program exits OK

@@ -399,7 +399,13 @@ bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) {
   // generate LHS, assert it is an lvalue
   if (!arg(0).generate_code(ctx)) return false;
   auto& lhs_value = arg(0).value();
-  if (!expect_arg_lrvalue(0, ctx.messages, true)) return false;
+  if (!expect_arg_lrvalue(0, ctx.messages, true)) {
+    auto msg = op_symbol_.generate_message(message::Note);
+    msg->get() << "can only assign to an lvalue";
+    ctx.messages.add(std::move(msg));
+
+    return false;
+  }
 
   // update value_ to point to LHS
   value_->lvalue(lhs_value.lvalue().copy());

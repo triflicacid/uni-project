@@ -150,8 +150,16 @@ bool lang::ops::BuiltinOperator::invoke(Context& ctx, const std::deque<std::uniq
   }
   comment << ")";
 
-  // "spoil" the current register
+  // free arguments
+  for (auto &arg : args) {
+    // we know it is an rvalue
+    ctx.reg_alloc_manager.mark_free(arg->value().rvalue().ref());
+  }
+
+  // reserve returned register
+  // we know object exists, so directly manipulate it
   auto& object = ctx.reg_alloc_manager.find(ref);
+  object.required = true;
   object.value->rvalue(std::make_unique<value::RValue>(return_value.type(), ref));
 
   return true;

@@ -1,11 +1,8 @@
-func factorial(n: long) -> long {
-    return if n < 2i64 {
-        1i64
-    } else {
-        n * factorial(n - 1i64)
-    };
+func something() {
+    3 + 4 + 5;
 }
 
-let x = 5 as long;
-let y = factorial(x);
- 
+let x = 5i64;
+x + 1i64;
+something();
+x + 1i64;

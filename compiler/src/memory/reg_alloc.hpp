@@ -85,10 +85,10 @@ namespace lang::memory {
     // check if the given reference is in use
     bool in_use(const Ref& location) const;
 
-    // find the given reference
+    // find the given reference, assume it exists
     const lang::memory::Object& find(const Ref& location) const;
 
-    // find the given reference
+    // find the given reference, assume it exists
     lang::memory::Object& find(const Ref& location);
 
     // evict item at the given location

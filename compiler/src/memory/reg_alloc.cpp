@@ -86,6 +86,8 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
   // NOTE
   // a key assumption is that, after registers are saved, offset to next $fp is known (all data's type and size is known and constant)
   // also assume that $sp points to equiv. of stack().offset
+  // unless object was saved, it must be destroyed to ensure content is valid
+  // TODO only destroying those which were overwritten is necessary
 
   if (restore_registers) {
     // point to the top of the register cache and work backwards
@@ -95,7 +97,10 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
 
     auto& regs = instances_.front().regs;
     for (int i = regs.size() - 1; i >= 0; i--) {
-      if (auto& object = regs[i]; object && object->required) {
+      auto& object = regs[i];
+      if (!object) continue;
+
+      if (object->required) { // restore as it was saved
         size_t bytes = object->size();
 
         // store region back in the correct register
@@ -111,7 +116,15 @@ void lang::memory::RegisterAllocationManager::destroy_store(bool restore_registe
 
         // increase offset (stack grows downwards)
         offset += bytes;
+      } else {
+        // destroy it
+        object = std::nullopt;
       }
+    }
+  } else {
+    // destroy all objects in registers, as none were saved
+    for (auto& reg : instances_.front().regs) {
+      reg = std::nullopt;
     }
   }
 }
@@ -277,7 +290,7 @@ void lang::memory::RegisterAllocationManager::insert(const Ref& location, Object
   evict(location);
   instances_.front().history.push_front(location);
 
-  // update rvalue
+  // update rvalue with given reference
   if (object.value) object.value->rvalue(location);
 
   if (location.type == Ref::Register) {
@@ -446,11 +459,14 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
 }
 
 void lang::memory::RegisterAllocationManager::mark_free(const lang::memory::Ref& ref) {
+  // note: if ref does not exist, that is fine... technically, it is free
   if (ref.type == Ref::Register) {
-    instances_.front().regs[ref.offset - initial_register]->required = false;
-  } else {
-    auto& object = memory_.at(ref.offset);
+    auto& object = instances_.front().regs[ref.offset - initial_register];
+    if (object) object->required = false;
+  } else if (auto it = memory_.find(ref.offset); it != memory_.end()) {
+    auto& object = it->second;
     object.required = false;
+    // if topmost object, reduce spill address
     if (size_t size = object.size(); ref.offset - size == instances_.front().spill_addr) {
       instances_.front().spill_addr -= size;
     }
