@@ -1,0 +1,30 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="visualiser" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--edel program.edel out/program" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://../" PASS_PARENT_ENVS_2="true" PROJECT_NAME="all" TARGET_NAME="visualiser" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="all" RUN_TARGET_NAME="visualiser">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+  <configuration default="false" name="visualiser" type="LATEX_RUN_CONFIGURATION" factoryName="LaTeX configuration factory">
+    <texify>
+      <compiler>PDFLATEX</compiler>
+      <compiler-path />
+      <sumatra-path />
+      <pdf-viewer>BUILT-IN-PDF-VIEWER</pdf-viewer>
+      <viewer-command />
+      <compiler-arguments />
+      <envs />
+      <expand-macros-in-environment-variables>false</expand-macros-in-environment-variables>
+      <before-run-command />
+      <main-file>$PROJECT_DIR$/docs/visualiser.tex</main-file>
+      <output-path>$PROJECT_DIR$/out</output-path>
+      <auxil-path>$PROJECT_DIR$/auxil</auxil-path>
+      <compile-twice>false</compile-twice>
+      <output-format>PDF</output-format>
+      <latex-distribution>MIKTEX</latex-distribution>
+      <has-been-run>true</has-been-run>
+      <bib-run-config>[]</bib-run-config>
+      <makeindex-run-config>[]</makeindex-run-config>
+    </texify>
+    <method v="2" />
+  </configuration>
+</component>
