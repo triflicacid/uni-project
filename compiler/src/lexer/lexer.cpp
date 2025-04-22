@@ -278,10 +278,10 @@ Token Lexer::next() {
   }
 
   // scan for an identifier
-  if (std::isalpha(ch) || ch == '_') {
+  if (std::isalpha(ch) || ch == '_' || ch == '$') {
     // extract [0-9A-Za-z_]+
     std::stringstream tmp;
-    stream_.eat_while(tmp, [](int ch) { return std::isalnum(ch) || ch == '_'; });
+    stream_.eat_while(tmp, [](int ch) { return std::isalnum(ch) || ch == '_' || ch == '$'; });
     const std::string identifier = tmp.str();
 
     // check if this identifier is a keyword
