@@ -1,4 +1,10 @@
-let x = 5f32;
-x + 1;
-1f32 + 2;
-1 + 2;
+func factorial(n: long) -> long {
+    return if n < 2 {
+        1i64
+    } else {
+        n * factorial(n - 1)
+    };
+}
+
+let x = 5;
+let y = factorial(x);

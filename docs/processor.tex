@@ -210,21 +210,18 @@
         \hline
         \textbf{Suffix} & \textbf{Bits} & \textbf{Operator} & \textbf{Comments} \\
         \hline
-        N/A & \texttt{1111} & N/A & Skip test. \\
+        N/A & \texttt{0000} & N/A & Skip test. \\
         \hline
-        ne / neq & \texttt{0000} & \(\neq\) & Test if not equal. \\
-        eq & \texttt{0001} & \(=\) & Test if equal. \\
+        z & \texttt{1000} & \(= 0\) & Test of zero flag is set. \\
         \hline
-        lt & \texttt{0010} & \(<\) & Test if less than. \\
-        le / lte & \texttt{0011} & \(\le\) & Test if less than or equal to. \\
-        \hline
-        gt & \texttt{0110} & \(>\) & Test if greater than. \\
-        ge / gte & \texttt{0111} & \(\ge\) & Test if greater than or equal to. \\
-        \hline
-        z & \texttt{1001} & \(= 0\) & Test if zero flag is set. \\
-        nz & \texttt{1000} & \(\neq 0\) & Test if zero flag is clear. \\
+        eq & \texttt{1010} & \(=\) & Test of equal. \\
+        lt & \texttt{1001} & \(<\) & Test if less than. \\
+        gt & \texttt{1011} & \(>\) & Test of greater than. \\
         \hline
     \end{tabular}
+
+    Conditions are inverted by flipping the third bit.
+    For example, \texttt{1110} means not equal, \(\neq\).
 
     \paragraph{Data-Type Indicator}
     Some instructions have a field to specify the data-type of the data being operated on.
@@ -395,7 +392,7 @@
 
     System calls are core functionality abstracted inside the processor.
     Actions are assigned operation codes and invoked via \texttt{syscall <opcode>}.
-    Optionally, each read arguments from general-purpose registers \texttt{r1} onward.
+    Optionally, each read arguments from general-purpose registers \texttt{\$r15} onward.
 
     \bigskip
     \begin{longtable}{|c|c|l|l|l|}
