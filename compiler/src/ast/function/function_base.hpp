@@ -45,7 +45,7 @@ namespace lang::ast {
     // get ID of created function
     symbol::SymbolId id() const { return id_; }
 
-    const ast::type::FunctionNode& type() const { return type_; }
+    const type::FunctionNode& type() const { return type_; }
 
     bool writes_to_ret() const override;
 

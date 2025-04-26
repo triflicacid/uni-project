@@ -1,9 +1,9 @@
 #include <cassert>
 #include "reg_alloc.hpp"
 #include "assembly/create.hpp"
-#include "ast/types/int.hpp"
+#include "types/int.hpp"
 #include "value/future.hpp"
-#include "ast/types/bool.hpp"
+#include "types/bool.hpp"
 #include "operators/builtin.hpp"
 #include "operators/builtins.hpp"
 
@@ -406,7 +406,7 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_register(co
   return ref;
 }
 
-lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(const lang::memory::Ref& old_ref, const lang::ast::type::Node& target) {
+lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(const lang::memory::Ref& old_ref, const lang::type::Node& target) {
   assert(target.size() > 0);
 
   // first, we must be in a register
@@ -420,10 +420,10 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
     return ref;
   }
 
-  const ast::type::Node& original = object.value->type();
+  const type::Node& original = object.value->type();
 
   // if Boolean, do something special
-  if (target == ast::type::boolean) {
+  if (target == type::boolean) {
     ops::boolean_cast(program_.current(), ref.offset);
   } else if (target.get_pointer() && original.get_array()) { // array -> pointer?
     // TODO array -> pointer conversion

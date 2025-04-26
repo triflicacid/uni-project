@@ -3,7 +3,7 @@
 #include "node.hpp"
 #include "graph.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   // a wrapper wraps a type
   class WrapperNode : public Node {
     std::string name_;

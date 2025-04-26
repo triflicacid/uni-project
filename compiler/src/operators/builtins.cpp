@@ -5,11 +5,11 @@
 #include "context.hpp"
 #include "assembly/basic_block.hpp"
 #include "ast/function/function_base.hpp"
-#include "ast/types/function.hpp"
-#include "ast/types/int.hpp"
-#include "ast/types/float.hpp"
-#include "ast/types/bool.hpp"
-#include "ast/types/pointer.hpp"
+#include "types/function.hpp"
+#include "types/int.hpp"
+#include "types/float.hpp"
+#include "types/bool.hpp"
+#include "types/pointer.hpp"
 #include "assembly/create.hpp"
 #include "message_helper.hpp"
 
@@ -26,7 +26,7 @@ static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args,
 // fetch the given argument, return assembly argument to resolve it
 // returns the register location, as we guarantee register placement
 // optionally, also guarantee the datatype
-static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional_ref<const lang::ast::type::Node> cast_to = std::nullopt) {
+static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional_ref<const lang::type::Node> cast_to = std::nullopt) {
   // determine argument offset based on selection
   auto& value = args[arg_select];
   lang::memory::Ref ref = value.get().rvalue().ref();
@@ -39,7 +39,7 @@ static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional
 // fetch LHS and RHS argument pair, enforcing at least one is in a register
 // return <register argument, other argument>
 // argument: cast arguments to this type?
-static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx, Args args, optional_ref<const lang::ast::type::Node> cast_to = std::nullopt) {
+static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx, Args args, optional_ref<const lang::type::Node> cast_to = std::nullopt) {
   // fetch references to lhs and rhs
   const auto& lhs = args[0].get();
   lang::memory::Ref lhs_ref = lhs.rvalue().ref();
@@ -120,28 +120,28 @@ namespace generators {
   // generate an addition instruction for the given asm datatype
   // assume values stored in LHS and RHS are compatible with the asm datatype
   // return which register the result is in
-  static uint8_t generate_add(Context& ctx, Args args, const ast::type::Node& datatype) {
+  static uint8_t generate_add(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_add(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // like generate_add, but for subtraction
-  static uint8_t generate_sub(Context& ctx, Args args, const ast::type::Node& datatype) {
+  static uint8_t generate_sub(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_sub(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // like generate_add, but for multiplication
-  static uint8_t generate_mul(Context& ctx, Args args, const ast::type::Node& datatype) {
+  static uint8_t generate_mul(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_mul(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // like generate_add, but for multiplication
-  static uint8_t generate_div(Context& ctx, Args args, const ast::type::Node& datatype) {
+  static uint8_t generate_div(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_div(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
@@ -204,14 +204,14 @@ namespace generators {
   }
 
   // like generate_add, but for a comparison
-  static uint8_t generate_cmp(Context& ctx, Args args, const ast::type::Node& datatype) {
+  static uint8_t generate_cmp(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_comparison(datatype.get_asm_datatype(), reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
   // generate a comparison, setting a Boolean result if equal to a test flag
-  static uint8_t generate_cmp_bool(Context& ctx, Args args, std::reference_wrapper<const ast::type::Node> datatype, constants::cmp::flag cmp) {
+  static uint8_t generate_cmp_bool(Context& ctx, Args args, std::reference_wrapper<const type::Node> datatype, constants::cmp::flag cmp) {
     uint8_t reg = generate_cmp(ctx, args, datatype);
     // zero-out the register
     ctx.program.current().add(assembly::create_zero(reg));
@@ -221,7 +221,7 @@ namespace generators {
   }
 
   // like generate_add, but for negation
-  static uint8_t generate_neg(Context& ctx, Args args, const ast::type::Node& datatype) {
+  static uint8_t generate_neg(Context& ctx, Args args, const type::Node& datatype) {
     uint8_t reg_arg = fetch_reg(ctx, args, 0, datatype);
 
     // load 0 into register
@@ -238,7 +238,7 @@ namespace generators {
 namespace init_builtin {
   using namespace lang;
   using namespace lang::ops;
-  using namespace ast::type;
+  using namespace type;
 
   static void addition() {
     for (const auto& type : numerical) {
@@ -516,13 +516,13 @@ void lang::ops::cast(lang::assembly::BasicBlock& block, uint8_t reg, constants::
 
   // add comment
   auto& comment = block.back().comment();
-  ast::type::from_asm_type(original).print_code(comment);
+  type::from_asm_type(original).print_code(comment);
   comment << " -> ";
-  ast::type::from_asm_type(target).print_code(comment);
+  type::from_asm_type(target).print_code(comment);
 }
 
 bool lang::ops::call_function(std::unique_ptr<assembly::BaseArg> function, const std::string& name,
-                              const lang::ast::type::FunctionNode& signature,
+                              const lang::type::FunctionNode& signature,
                               const std::deque<std::unique_ptr<ast::Node>>& args,
                               const std::unordered_set<int>& args_to_ignore,
                               lang::value::Value& return_value,
@@ -743,7 +743,7 @@ lang::memory::Ref lang::ops::pointer_arithmetic(Context& ctx, const value::Value
   if (to_spoil == 2) {
     // spoil `offset` register
     auto& object_offset = ctx.reg_alloc_manager.find(ref_offset);
-    object_offset.value->rvalue(std::make_unique<value::RValue>(ast::type::uint64, ref_offset));
+    object_offset.value->rvalue(std::make_unique<value::RValue>(type::uint64, ref_offset));
   }
 
   return ref_ptr;

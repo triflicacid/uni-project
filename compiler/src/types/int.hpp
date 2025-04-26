@@ -3,7 +3,7 @@
 #include "node.hpp"
 #include "constants.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class IntNode : public Node {
     bool signed_;
     uint8_t width_; // width of integer in bytes

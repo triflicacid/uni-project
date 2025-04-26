@@ -1,13 +1,13 @@
 #include <deque>
 #include "symbol.hpp"
-#include "ast/types/namespace.hpp"
+#include "types/namespace.hpp"
 #include "context.hpp"
 
 static lang::symbol::SymbolId current_id = 0;
 
-lang::symbol::Symbol::Symbol(lang::lexer::Token name, const ast::type::Node& type) : token_(std::move(name)), id_(current_id++), type_(type) {}
+lang::symbol::Symbol::Symbol(lang::lexer::Token name, const type::Node& type) : token_(std::move(name)), id_(current_id++), type_(type) {}
 
-lang::symbol::Symbol::Symbol(lexer::Token name, Category category, const ast::type::Node& type)
+lang::symbol::Symbol::Symbol(lexer::Token name, Category category, const type::Node& type)
   : token_(std::move(name)), category_(std::move(category)), id_(current_id++), type_(type) {}
 
 std::string lang::symbol::Symbol::full_name() const {
@@ -63,7 +63,7 @@ std::string lang::symbol::category_to_string(lang::symbol::Category category) {
 }
 
 std::unique_ptr<lang::symbol::Symbol> lang::symbol::create_namespace(const lexer::Token& name) {
-  auto ns = std::make_unique<Symbol>(name, Category::Namespace, ast::type::name_space);
+  auto ns = std::make_unique<Symbol>(name, Category::Namespace, type::name_space);
   ns->make_constant();
   return ns;
 }

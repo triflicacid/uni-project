@@ -6,16 +6,18 @@
 #include "memory/storage_location.hpp"
 #include <unordered_set>
 
-namespace lang::ops {
-  class Operator;
-}
+namespace lang {
+  namespace ops {
+    class Operator;
+  }
 
-namespace lang::symbol {
-  class Symbol;
-}
+  namespace symbol {
+    class Symbol;
+  }
 
-namespace lang::ast::type {
-  class FunctionNode;
+  namespace type {
+    class FunctionNode;
+  }
 }
 
 namespace lang::ast {

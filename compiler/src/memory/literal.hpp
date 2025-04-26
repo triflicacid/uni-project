@@ -4,7 +4,7 @@
 #include <string>
 #include "constants.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class Node;
   class ArrayNode;
 }
@@ -12,16 +12,16 @@ namespace lang::ast::type {
 namespace lang::memory {
   // describe a literal - a word of memory + a type
   class Literal {
-    const ast::type::Node& type_;
+    const type::Node& type_;
     uint64_t data_;
 
     Literal(const Literal&) = delete;
 
   protected:
-    Literal(const ast::type::Node& type, uint64_t data) : type_(type), data_(data) {}
+    Literal(const type::Node& type, uint64_t data) : type_(type), data_(data) {}
 
   public:
-    const ast::type::Node& type() const { return type_; }
+    const type::Node& type() const { return type_; }
 
     uint64_t data() const { return data_; }
 
@@ -30,13 +30,13 @@ namespace lang::memory {
 
     // change literal's type, returns copy (changes internal data to reflect datatype change)
     // works on basis of internal asm types
-    const Literal& change_type(const ast::type::Node& target) const;
+    const Literal& change_type(const type::Node& target) const;
 
     // get the following Literal object
-    static const Literal& get(const ast::type::Node& type, uint64_t data);
+    static const Literal& get(const type::Node& type, uint64_t data);
 
     // get a zero constant of the given type
-    static const Literal& zero(const ast::type::Node& type);
+    static const Literal& zero(const type::Node& type);
 
     // return a Boolean literal true or false
     static const Literal& get_boolean(bool b);

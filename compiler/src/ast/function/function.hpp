@@ -1,6 +1,6 @@
 #pragma once
 #include "function_base.hpp"
-#include "../types/function.hpp"
+#include "types/function.hpp"
 
 namespace lang::ast {
   class BlockNode;

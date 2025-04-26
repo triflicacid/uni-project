@@ -3,7 +3,7 @@
 #include "node.hpp"
 #include "constants.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class BoolNode : public Node {
   public:
     BoolNode() = default;

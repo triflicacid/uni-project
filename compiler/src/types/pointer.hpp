@@ -2,7 +2,7 @@
 
 #include "wrapper.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class PointerNode : public WrapperNode {
   public:
     explicit PointerNode(const Node& inner) : WrapperNode("pointer", inner) {}
@@ -19,6 +19,6 @@ namespace lang::ast::type {
     { return constants::inst::datatype::u64; }
 
     // create or return existing reference
-    static const PointerNode& get(const lang::ast::type::Node& inner);
+    static const PointerNode& get(const Node& inner);
   };
 }

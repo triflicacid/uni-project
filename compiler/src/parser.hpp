@@ -40,7 +40,7 @@ namespace lang::parser {
     struct FunctionTailContent {
       lexer::Token token;
       lexer::Token name;
-      const ast::type::FunctionNode& type;
+      const type::FunctionNode& type;
       std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
       std::optional<std::unique_ptr<ast::BlockNode>> body;
     };
@@ -94,7 +94,7 @@ namespace lang::parser {
     std::unique_ptr<ast::Node> parse_term();
 
     // parse a type, return pointer to type, or nullptr if invalid
-    const ast::type::Node* parse_type();
+    const type::Node* parse_type();
 
     // expect semicolon to follow an expression
     // check for SC and return if found

@@ -1,9 +1,13 @@
 #pragma once
 
-#include "ast/node.hpp"
+#include "printable_entity.hpp"
+#include "optional_ref.hpp"
+#include "value/value.hpp"
 #include "shared/constants.hpp"
+#include <deque>
+#include <memory>
 
-namespace lang::ast::type {
+namespace lang::type {
   class IntNode;
   class FloatNode;
   class FunctionNode;
@@ -13,7 +17,7 @@ namespace lang::ast::type {
 
   using TypeId = unsigned int;
 
-  class Node : public ast::NodeBase {
+  class Node : public PrintableEntity {
     TypeId id_;
 
   public:

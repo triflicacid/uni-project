@@ -12,7 +12,7 @@ namespace lang {
   struct Context;
 }
 
-namespace lang::ast::type {
+namespace lang::type {
   class Node;
 }
 
@@ -23,16 +23,16 @@ namespace lang::value {
   class Value {
     std::unique_ptr<LValue> lvalue_; // store lvalue, if applicable
     std::unique_ptr<RValue> rvalue_; // store rvalue, if applicable
-    std::reference_wrapper<const ast::type::Node> type_;
+    std::reference_wrapper<const type::Node> type_;
 
   public:
     Value();
-    Value(const ast::type::Node& type);
+    Value(const type::Node& type);
 
     // copy ourself deeply (copies l/rvalue components)
     virtual std::unique_ptr<Value> copy() const;
 
-    const ast::type::Node& type() const { return type_; }
+    const type::Node& type() const { return type_; }
 
     bool is_lvalue() const { return lvalue_ != nullptr; }
 
@@ -65,10 +65,10 @@ namespace lang::value {
   };
 
   // create a generic value
-  std::unique_ptr<Value> value(optional_ref<const ast::type::Node> type = std::nullopt);
+  std::unique_ptr<Value> value(optional_ref<const type::Node> type = std::nullopt);
 
   // create an rvalue
-  std::unique_ptr<Value> rvalue(const ast::type::Node& type, const memory::Ref& ref);
+  std::unique_ptr<Value> rvalue(const type::Node& type, const memory::Ref& ref);
 
   // create a unit value
   std::unique_ptr<Value> unit_value();

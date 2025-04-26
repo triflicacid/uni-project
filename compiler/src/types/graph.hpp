@@ -3,7 +3,7 @@
 #include "shared/graph.hpp"
 #include "node.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class TypeGraph {
     std::deque<std::unique_ptr<Node>> store_; // used to store Types with no home :(
     Graph<TypeId, std::reference_wrapper<Node>> graph_;

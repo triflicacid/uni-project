@@ -2,7 +2,7 @@
 
 #include "node.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class UnitNode : public Node {
   public:
     std::string node_name() const override { return "unit"; }

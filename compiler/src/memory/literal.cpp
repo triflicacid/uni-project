@@ -1,11 +1,11 @@
 #include "literal.hpp"
 #include "uint64.hpp"
-#include "ast/types/node.hpp"
-#include "ast/types/int.hpp"
-#include "ast/types/float.hpp"
+#include "types/node.hpp"
+#include "types/int.hpp"
+#include "types/float.hpp"
 #include "config.hpp"
-#include "ast/types/bool.hpp"
-#include "ast/types/array.hpp"
+#include "types/bool.hpp"
+#include "types/array.hpp"
 
 std::string lang::memory::Literal::to_string() const {
   if (auto int_ = type_.get_int()) {
@@ -16,7 +16,7 @@ std::string lang::memory::Literal::to_string() const {
     return float_->is_double()
            ? std::to_string(uint64::to_double(data_))
            : std::to_string(uint64::to_float(data_));
-  } else if (type_ == ast::type::boolean) { // must be a Boolean
+  } else if (type_ == type::boolean) { // must be a Boolean
     return data_ == 0
            ? lang::conf::bools::false_string
            : lang::conf::bools::true_string;
@@ -26,9 +26,9 @@ std::string lang::memory::Literal::to_string() const {
 }
 
 // store Literals, indexed by <typeID, data>
-static std::map<std::pair<lang::ast::type::TypeId, uint64_t>, std::unique_ptr<lang::memory::Literal>> literals;
+static std::map<std::pair<lang::type::TypeId, uint64_t>, std::unique_ptr<lang::memory::Literal>> literals;
 
-const lang::memory::Literal& lang::memory::Literal::get(const lang::ast::type::Node& type, uint64_t data) {
+const lang::memory::Literal& lang::memory::Literal::get(const lang::type::Node& type, uint64_t data) {
   const auto key = std::make_pair(type.id(), data);
   if (auto it = literals.find(key); it != literals.end()) {
     return *it->second;
@@ -39,7 +39,7 @@ const lang::memory::Literal& lang::memory::Literal::get(const lang::ast::type::N
   return *literals.at(key);
 }
 
-const lang::memory::Literal& lang::memory::Literal::zero(const lang::ast::type::Node& type) {
+const lang::memory::Literal& lang::memory::Literal::zero(const lang::type::Node& type) {
   static const float zero_f32 = 0;
   static const double zero_f64 = 0;
 
@@ -59,7 +59,7 @@ const lang::memory::Literal& lang::memory::Literal::zero(const lang::ast::type::
 }
 
 const lang::memory::Literal& lang::memory::Literal::get_boolean(bool b) {
-  return get(ast::type::boolean, b ? 1 : 0);
+  return get(type::boolean, b ? 1 : 0);
 }
 
 bool lang::memory::Literal::operator==(const lang::memory::Literal& other) const {
@@ -67,7 +67,7 @@ bool lang::memory::Literal::operator==(const lang::memory::Literal& other) const
   return type_ == other.type_ && data_ == other.data_;
 }
 
-const lang::memory::Literal& lang::memory::Literal::change_type(const ast::type::Node& target) const {
+const lang::memory::Literal& lang::memory::Literal::change_type(const type::Node& target) const {
   // get internal datatypes
   auto from = type_.get_asm_datatype();
   auto to = target.get_asm_datatype();

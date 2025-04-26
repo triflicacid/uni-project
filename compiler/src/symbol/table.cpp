@@ -26,7 +26,7 @@ const std::deque<std::reference_wrapper<lang::symbol::Symbol>> lang::symbol::Sym
   return {};
 }
 
-optional_ref<lang::symbol::Symbol> lang::symbol::SymbolTable::find(const std::string& name, const lang::ast::type::Node& type) const {
+optional_ref<lang::symbol::Symbol> lang::symbol::SymbolTable::find(const std::string& name, const lang::type::Node& type) const {
   auto symbols = find(name);
   for (Symbol& symbol : symbols) {
     if (symbol.type() == type) return symbol;

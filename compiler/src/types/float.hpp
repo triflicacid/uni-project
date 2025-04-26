@@ -3,7 +3,7 @@
 #include "node.hpp"
 #include "constants.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class FloatNode : public Node {
     bool double_;
 

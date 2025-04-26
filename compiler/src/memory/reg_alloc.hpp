@@ -135,7 +135,7 @@ namespace lang::memory {
 
     // ensure `Ref` is of the given datatype - if not, a conversion is emitted
     // note, this also guarantees the value is in a register
-    Ref guarantee_datatype(const Ref& ref, const ast::type::Node& target);
+    Ref guarantee_datatype(const Ref& ref, const type::Node& target);
 
     // create assembly argument resolving a reference
     // argument: mark as free?

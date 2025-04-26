@@ -4,7 +4,7 @@
 #include "value/future.hpp"
 #include "message_helper.hpp"
 #include "operators/builtins.hpp"
-#include "ast/types/array.hpp"
+#include "types/array.hpp"
 #include "assembly/create.hpp"
 
 std::ostream &lang::ast::SymbolReferenceNode::print_code(std::ostream &os, unsigned int indent_level) const {

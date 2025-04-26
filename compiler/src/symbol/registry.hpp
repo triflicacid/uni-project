@@ -5,8 +5,10 @@
 #include "assembly/basic_block.hpp"
 #include "optional_ref.hpp"
 
-namespace lang::ast {
-  class FunctionBaseNode;
+namespace lang {
+  namespace ast {
+    class FunctionBaseNode;
+  }
 
   namespace type {
     class Node;
@@ -35,7 +37,7 @@ namespace lang::symbol {
 
     const std::deque<SymbolId> get(const std::string& name) const;
 
-    optional_ref<const Symbol> get(const std::string& name, const ast::type::Node& type) const;
+    optional_ref<const Symbol> get(const std::string& name, const type::Node& type) const;
 
     const Symbol& get(SymbolId id) const;
 
@@ -51,7 +53,7 @@ namespace lang::symbol {
 
   struct VariableOptions {
     lexer::Token token;
-    const ast::type::Node& type;
+    const type::Node& type;
     Category category;
     bool is_constant = false;
     optional_ref<ast::FunctionBaseNode> func_origin;

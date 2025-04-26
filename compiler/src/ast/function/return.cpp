@@ -1,5 +1,5 @@
 #include "return.hpp"
-#include "ast/types/graph.hpp"
+#include "types/graph.hpp"
 #include "context.hpp"
 #include "function.hpp"
 #include "message_helper.hpp"

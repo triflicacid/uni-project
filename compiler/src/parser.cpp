@@ -3,16 +3,16 @@
 #include <ranges>
 #include "parser.hpp"
 #include "ast/block.hpp"
-#include "ast/types/float.hpp"
-#include "ast/types/int.hpp"
+#include "types/float.hpp"
+#include "types/int.hpp"
 #include "ast/operator.hpp"
 #include "ast/leaves/symbol_reference.hpp"
 #include "util.hpp"
 #include "ast/program.hpp"
 #include "operators/info.hpp"
-#include "ast/types/bool.hpp"
-#include "ast/types/pointer.hpp"
-#include "ast/types/array.hpp"
+#include "types/bool.hpp"
+#include "types/pointer.hpp"
+#include "types/array.hpp"
 #include "config.hpp"
 #include "ast/leaves/unit.hpp"
 #include "message_helper.hpp"
@@ -136,18 +136,18 @@ static const lang::lexer::TokenTypeSet numerical_types = {
 };
 
 // map of static type names to types
-static const std::unordered_map<lang::lexer::TokenType, lang::ast::type::Node*> static_type_map = {
-    {lang::lexer::TokenType::uint8, &lang::ast::type::uint8},
-    {lang::lexer::TokenType::int8, &lang::ast::type::int8},
-    {lang::lexer::TokenType::uint16, &lang::ast::type::uint16},
-    {lang::lexer::TokenType::int16, &lang::ast::type::int16},
-    {lang::lexer::TokenType::uint32, &lang::ast::type::uint32},
-    {lang::lexer::TokenType::int32, &lang::ast::type::int32},
-    {lang::lexer::TokenType::uint64, &lang::ast::type::uint64},
-    {lang::lexer::TokenType::int64, &lang::ast::type::int64},
-    {lang::lexer::TokenType::float32, &lang::ast::type::float32},
-    {lang::lexer::TokenType::float64, &lang::ast::type::float64},
-    {lang::lexer::TokenType::boolean, &lang::ast::type::boolean},
+static const std::unordered_map<lang::lexer::TokenType, lang::type::Node*> static_type_map = {
+    {lang::lexer::TokenType::uint8, &lang::type::uint8},
+    {lang::lexer::TokenType::int8, &lang::type::int8},
+    {lang::lexer::TokenType::uint16, &lang::type::uint16},
+    {lang::lexer::TokenType::int16, &lang::type::int16},
+    {lang::lexer::TokenType::uint32, &lang::type::uint32},
+    {lang::lexer::TokenType::int32, &lang::type::int32},
+    {lang::lexer::TokenType::uint64, &lang::type::uint64},
+    {lang::lexer::TokenType::int64, &lang::type::int64},
+    {lang::lexer::TokenType::float32, &lang::type::float32},
+    {lang::lexer::TokenType::float64, &lang::type::float64},
+    {lang::lexer::TokenType::boolean, &lang::type::boolean},
 };
 
 const lang::lexer::TokenSet lang::parser::firstset::number{
@@ -452,7 +452,7 @@ const lang::lexer::TokenSet lang::parser::firstset::type = lexer::merge_sets({
     }
 });
 
-const lang::ast::type::Node* lang::parser::Parser::parse_type() {
+const lang::type::Node* lang::parser::Parser::parse_type() {
   // is this a static type match?
   if (auto it = static_type_map.find(peek().type); it != static_type_map.end()) {
     consume();
@@ -465,13 +465,13 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     if (!expect_or_error(firstset::type)) return nullptr;
     auto inner = parse_type();
     if (is_error() || !inner) return nullptr;
-    return &ast::type::PointerNode::get(*inner);
+    return &type::PointerNode::get(*inner);
   }
 
   // unit or function type
   if (expect(lexer::TokenType::lpar)) {
     const lexer::Token lpar = consume();
-    std::deque<std::reference_wrapper<const ast::type::Node>> arg_types; // store function argument types
+    std::deque<std::reference_wrapper<const type::Node>> arg_types; // store function argument types
 
     // if close straight away: either no args, or unit
     if (expect(lexer::TokenType::rpar)) {
@@ -479,7 +479,7 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
 
       // arrow for function type, if not, return '()'
       if (!expect(arrow)) {
-        return &ast::type::unit;
+        return &type::unit;
       }
     } else {
       // parse type list
@@ -519,7 +519,7 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     if (is_error() || !return_type) return nullptr;
 
     // return function type
-    return &ast::type::FunctionNode::create(arg_types, *return_type);
+    return &type::FunctionNode::create(arg_types, *return_type);
   }
 
   if (expect(lexer::TokenType::lsquare)) { // array
@@ -554,7 +554,7 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     try {
       size = std::stoull(size_token.image);
     } catch (std::exception e) {
-      add_message(util::error_literal_bad_type(size_token, size_token.image, ast::type::uint64));
+      add_message(util::error_literal_bad_type(size_token, size_token.image, type::uint64));
       return nullptr;
     }
 
@@ -576,7 +576,7 @@ const lang::ast::type::Node* lang::parser::Parser::parse_type() {
     consume();
 
     // get (or construct) and return
-    return &ast::type::ArrayNode::get(*type, size);
+    return &type::ArrayNode::get(*type, size);
   }
 
   return nullptr;
@@ -587,7 +587,7 @@ std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_na
   const lexer::Token name = consume();
 
   // parse type if ':' or expect_type is true
-  optional_ref<const ast::type::Node> type;
+  optional_ref<const type::Node> type;
   if (expect_type || expect(lexer::TokenType::colon)) {
     // ':'
     if (!expect_or_error(lexer::TokenType::colon)) return nullptr;
@@ -595,7 +595,7 @@ std::unique_ptr<lang::ast::SymbolDeclarationNode> lang::parser::Parser::parse_na
 
     // type
     if (!expect_or_error(firstset::type)) return nullptr;
-    const ast::type::Node* type_ptr = parse_type();
+    const type::Node* type_ptr = parse_type();
     if (is_error() || !type_ptr) return nullptr;
     type = *type_ptr;
   }
@@ -716,7 +716,7 @@ std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_functio
   }
 
   // parse an optional return type
-  std::reference_wrapper<const ast::type::Node> returns = ast::type::unit;
+  std::reference_wrapper<const type::Node> returns = type::unit;
   if (expect(arrow)) {
     consume();
     if (!expect_or_error(firstset::type)) return nullptr;
@@ -734,9 +734,9 @@ std::unique_ptr<lang::ast::FunctionBaseNode> lang::parser::Parser::parse_functio
   }
 
   // create function type
-  std::deque<std::reference_wrapper<const ast::type::Node>> param_types;
+  std::deque<std::reference_wrapper<const type::Node>> param_types;
   for (auto& param : params) param_types.push_back(param->type());
-  auto& type = ast::type::FunctionNode::create(param_types, returns);
+  auto& type = type::FunctionNode::create(param_types, returns);
 
   // construct function type and node
   FunctionTailContent content{

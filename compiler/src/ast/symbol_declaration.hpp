@@ -1,7 +1,7 @@
 #pragma once
 
 #include "node.hpp"
-#include "ast/types/node.hpp"
+#include "types/node.hpp"
 #include "symbol/symbol.hpp"
 
 namespace lang::ast {

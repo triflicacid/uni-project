@@ -2,16 +2,16 @@
 #include "context.hpp"
 #include "message_helper.hpp"
 #include "value.hpp"
-#include "ast/types/unit.hpp"
+#include "types/unit.hpp"
 #include "lvalue.hpp"
 #include "rvalue.hpp"
-#include "ast/types/int.hpp"
+#include "types/int.hpp"
 #include "operators/builtins.hpp"
 #include "assembly/create.hpp"
 
-lang::value::Value::Value() : type_(ast::type::unit) {}
+lang::value::Value::Value() : type_(type::unit) {}
 
-lang::value::Value::Value(const ast::type::Node& type) : type_(type) {}
+lang::value::Value::Value(const type::Node& type) : type_(type) {}
 
 lang::value::LValue& lang::value::Value::lvalue() const {
   assert(is_lvalue());
@@ -64,7 +64,7 @@ std::unique_ptr<lang::value::Value> lang::value::SymbolRef::copy() const {
   return copy;
 }
 
-bool lang::value::SymbolRef::resolve(const message::MessageGenerator& source, optional_ref<message::List> messages, optional_ref<const ast::type::Node> type_hint) {
+bool lang::value::SymbolRef::resolve(const message::MessageGenerator& source, optional_ref<message::List> messages, optional_ref<const type::Node> type_hint) {
   auto candidates = overload_set_;
 
   // if no candidates, this symbol does not exist
@@ -153,7 +153,7 @@ std::unique_ptr<lang::value::SymbolRef> lang::value::symbol_ref(const std::strin
   return std::make_unique<SymbolRef>(name, symbols.find(name));
 }
 
-std::unique_ptr<lang::value::Value> lang::value::value(optional_ref<const lang::ast::type::Node> type) {
+std::unique_ptr<lang::value::Value> lang::value::value(optional_ref<const lang::type::Node> type) {
   if (type.has_value()) {
     return std::make_unique<Value>(type->get());
   } else {
@@ -161,14 +161,14 @@ std::unique_ptr<lang::value::Value> lang::value::value(optional_ref<const lang::
   }
 }
 
-std::unique_ptr<lang::value::Value> lang::value::rvalue(const lang::ast::type::Node& type, const lang::memory::Ref& ref) {
+std::unique_ptr<lang::value::Value> lang::value::rvalue(const lang::type::Node& type, const lang::memory::Ref& ref) {
   auto value = std::make_unique<Value>(type);
   value->rvalue(ref);
   return value;
 }
 
 std::unique_ptr<lang::value::Value> lang::value::unit_value() {
-  return rvalue(ast::type::unit, memory::Ref::reg(-1));
+  return rvalue(type::unit, memory::Ref::reg(-1));
 }
 
 const std::unique_ptr<lang::value::Value> lang::value::unit_value_instance = unit_value();
@@ -177,7 +177,7 @@ std::unique_ptr<lang::value::Value> lang::value::literal(const lang::memory::Lit
   return std::make_unique<Literal>(lit);
 }
 
-std::unique_ptr<lang::value::Value> lang::value::contiguous_literal(const lang::ast::type::Node& type, ContiguousLiteral::Elements elements, bool is_global) {
+std::unique_ptr<lang::value::Value> lang::value::contiguous_literal(const lang::type::Node& type, ContiguousLiteral::Elements elements, bool is_global) {
   return std::make_unique<ContiguousLiteral>(type, std::move(elements), is_global);
 }
 
@@ -232,7 +232,7 @@ bool lang::value::Literal::materialise(lang::Context& ctx, const lang::value::Ma
   return true;
 }
 
-lang::value::ContiguousLiteral::ContiguousLiteral(const lang::ast::type::Node& type, Elements elements, bool is_global)
+lang::value::ContiguousLiteral::ContiguousLiteral(const lang::type::Node& type, Elements elements, bool is_global)
   : Value(type), elements_(std::move(elements)), global_(is_global) {}
 
 std::unique_ptr<lang::value::Value> lang::value::ContiguousLiteral::copy() const {

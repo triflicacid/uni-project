@@ -3,56 +3,56 @@
 #include "float.hpp"
 #include "bool.hpp"
 
-void lang::ast::type::TypeGraph::insert(std::unique_ptr<Node> type) {
+void lang::type::TypeGraph::insert(std::unique_ptr<Node> type) {
   insert(*type);
   store_.push_back(std::move(type));
 }
 
-void lang::ast::type::TypeGraph::insert(lang::ast::type::Node& type) {
+void lang::type::TypeGraph::insert(type::Node& type) {
   graph_.insert(type.id(), type);
 }
 
-bool lang::ast::type::TypeGraph::exists(lang::ast::type::TypeId id) const {
+bool lang::type::TypeGraph::exists(type::TypeId id) const {
   return graph_.exists(id);
 }
 
-const lang::ast::type::Node& lang::ast::type::TypeGraph::get(TypeId id) const {
+const lang::type::Node& lang::type::TypeGraph::get(TypeId id) const {
   return graph_.get(id).value().get();
 }
 
-lang::ast::type::Node& lang::ast::type::TypeGraph::get(TypeId id) {
+lang::type::Node& lang::type::TypeGraph::get(TypeId id) {
   return graph_.get(id).value().get();
 }
 
-void lang::ast::type::TypeGraph::add_subtype(TypeId child, TypeId parent) {
+void lang::type::TypeGraph::add_subtype(TypeId child, TypeId parent) {
   graph_.insert(parent, child);
 }
 
-void lang::ast::type::TypeGraph::add_subtypes(TypeId child, const std::vector<TypeId>& parents) {
+void lang::type::TypeGraph::add_subtypes(TypeId child, const std::vector<TypeId>& parents) {
   for (TypeId parent : parents) {
     add_subtype(child, parent);
   }
 }
 
-void lang::ast::type::TypeGraph::add_subtypes(const std::vector<TypeId>& children, TypeId parent) {
+void lang::type::TypeGraph::add_subtypes(const std::vector<TypeId>& children, TypeId parent) {
   for (TypeId child : children) {
     add_subtype(child, parent);
   }
 }
 
-void lang::ast::type::TypeGraph::add_subtype_chain(const std::vector<TypeId>& chain) {
+void lang::type::TypeGraph::add_subtype_chain(const std::vector<TypeId>& chain) {
   for (int i = chain.size() - 1; i > 0; i--) {
     add_subtype(chain[i-1], chain[i]);
   }
 }
 
-bool lang::ast::type::TypeGraph::is_subtype(lang::ast::type::TypeId child, lang::ast::type::TypeId parent) const {
+bool lang::type::TypeGraph::is_subtype(TypeId child, TypeId parent) const {
   return child == parent || graph_.are_connected(parent, child);
 }
 
-lang::ast::type::TypeGraph lang::ast::type::graph;
+lang::type::TypeGraph lang::type::graph;
 
-void lang::ast::type::TypeGraph::init() {
+void lang::type::TypeGraph::init() {
   //! integer types
   graph.insert(uint8);
   graph.insert(int8);

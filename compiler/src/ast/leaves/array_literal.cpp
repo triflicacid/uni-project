@@ -1,5 +1,5 @@
 #include "array_literal.hpp"
-#include "ast/types/array.hpp"
+#include "types/array.hpp"
 #include "context.hpp"
 #include "message_helper.hpp"
 #include "assembly/create.hpp"

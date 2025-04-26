@@ -5,7 +5,7 @@
 #include "unit.hpp"
 #include "optional_ref.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class FunctionNode : public Node {
     std::deque<std::reference_wrapper<const Node>> parameters_;
     const Node& returns_;

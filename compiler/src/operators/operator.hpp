@@ -17,10 +17,10 @@ namespace lang {
 
   namespace ast {
     class Node;
+  }
 
-    namespace type {
-      class FunctionNode;
-    }
+  namespace type {
+    class FunctionNode;
   }
 
   namespace value {
@@ -39,10 +39,10 @@ namespace lang::ops {
   class Operator {
     OperatorId id_;
     std::string op_;
-    const ast::type::FunctionNode& type_;
+    const type::FunctionNode& type_;
 
   public:
-    Operator(std::string symbol, const ast::type::FunctionNode& type);
+    Operator(std::string symbol, const type::FunctionNode& type);
 
     virtual ~Operator() = default;
 
@@ -50,7 +50,7 @@ namespace lang::ops {
 
     const std::string& op() const { return op_; }
 
-    const ast::type::FunctionNode& type() const { return type_; }
+    const type::FunctionNode& type() const { return type_; }
 
     std::ostream& print_code(std::ostream& os) const;
 
@@ -65,11 +65,11 @@ namespace lang::ops {
   std::deque<std::reference_wrapper<const Operator>> get(const std::string& symbol);
 
   // get a reference to the given operator, return None if it does not exist
-  std::optional<std::reference_wrapper<const Operator>> get(const std::string& symbol, const ast::type::FunctionNode& type);
+  std::optional<std::reference_wrapper<const Operator>> get(const std::string& symbol, const type::FunctionNode& type);
 
   // add operator to store
   void store_operator(std::unique_ptr<Operator> op);
 
   // try to find the given operator, generating an error if not
-  optional_ref<const Operator> select_candidate(const std::string& symbol, const ast::type::FunctionNode& signature, const message::MessageGenerator& source, message::List& messages);
+  optional_ref<const Operator> select_candidate(const std::string& symbol, const type::FunctionNode& signature, const message::MessageGenerator& source, message::List& messages);
 }

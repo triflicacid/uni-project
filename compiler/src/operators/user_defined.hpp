@@ -9,7 +9,7 @@ namespace lang::ops {
     const symbol::Symbol& symbol_; // tied symbol ID
 
   public:
-    UserDefinedOperator(std::string op, const ast::type::FunctionNode& type, const symbol::Symbol& symbol)
+    UserDefinedOperator(std::string op, const type::FunctionNode& type, const symbol::Symbol& symbol)
       : Operator(std::move(op), type), symbol_(symbol) {}
 
     bool builtin() const override { return false; }

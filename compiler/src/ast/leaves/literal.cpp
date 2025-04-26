@@ -1,7 +1,7 @@
 #include "literal.hpp"
-#include "ast/types/int.hpp"
-#include "ast/types/float.hpp"
-#include "ast/types/pointer.hpp"
+#include "types/int.hpp"
+#include "types/float.hpp"
+#include "types/pointer.hpp"
 #include "shell.hpp"
 #include "context.hpp"
 #include "uint64.hpp"
@@ -30,15 +30,15 @@ std::ostream &lang::ast::LiteralNode::print_tree(std::ostream &os, unsigned int 
   return os << SHELL_RESET;
 }
 
-const lang::ast::type::Node& lang::ast::LiteralNode::get_target_numeric_type() const {
+const lang::type::Node& lang::ast::LiteralNode::get_target_numeric_type() const {
   if (token_start().type == lexer::TokenType::float_lit) {
     return type_hint() && type_hint()->get().get_float()
       ? type_hint()->get()
-      : ast::type::float32;
+      : type::float32;
   } else {
     return type_hint() && (type_hint()->get().get_int() || type_hint()->get().get_float())
            ? type_hint()->get()
-           : ast::type::int32;
+           : type::int32;
   }
 }
 

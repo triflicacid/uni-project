@@ -1,7 +1,7 @@
 #include <unordered_map>
 #include <memory>
 #include "operator.hpp"
-#include "ast/types/function.hpp"
+#include "types/function.hpp"
 #include "user_defined.hpp"
 #include "symbol/function.hpp"
 #include "ast/function/function_base.hpp"
@@ -10,11 +10,11 @@
 #include "builtins.hpp"
 #include "message_helper.hpp"
 #include "assembly/create.hpp"
-#include "ast/types/bool.hpp"
+#include "types/bool.hpp"
 
 static lang::ops::OperatorId current_id = 0;
 
-lang::ops::Operator::Operator(std::string symbol, const lang::ast::type::FunctionNode& type)
+lang::ops::Operator::Operator(std::string symbol, const lang::type::FunctionNode& type)
   : op_(std::move(symbol)), type_(type), id_(current_id++) {}
 
 std::ostream& lang::ops::Operator::print_code(std::ostream& os) const {
@@ -35,7 +35,7 @@ std::deque<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(con
   return matches;
 }
 
-std::optional<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(const std::string& symbol, const lang::ast::type::FunctionNode& type) {
+std::optional<std::reference_wrapper<const lang::ops::Operator>> lang::ops::get(const std::string& symbol, const lang::type::FunctionNode& type) {
   // search to see if a matching operator exists
   for (auto& [id, op] : operators) {
     if (op->op() == symbol && op->type() == type) {
@@ -52,12 +52,12 @@ void lang::ops::store_operator(std::unique_ptr<Operator> op) {
 }
 
 optional_ref<const lang::ops::Operator>
-lang::ops::select_candidate(const std::string& symbol, const ast::type::FunctionNode& signature, const message::MessageGenerator& source, message::List& messages) {
+lang::ops::select_candidate(const std::string& symbol, const type::FunctionNode& signature, const message::MessageGenerator& source, message::List& messages) {
   // search for a matching operator
   auto options = ops::get(symbol);
 
   // extract types into an option list
-  std::deque<std::reference_wrapper<const ast::type::FunctionNode>> candidates;
+  std::deque<std::reference_wrapper<const type::FunctionNode>> candidates;
   for (auto& op : options) {
     candidates.push_back(op.get().type());
   }
@@ -242,7 +242,7 @@ bool lang::ops::BooleanNotBuiltinOperator::invoke(Context& ctx, const std::deque
 
 static unsigned int lazy_op_current_id = 0;
 
-lang::ops::LazyLogicalOperator::LazyLogicalOperator(std::string symbol, const lang::ast::type::FunctionNode& type, bool is_and)
+lang::ops::LazyLogicalOperator::LazyLogicalOperator(std::string symbol, const lang::type::FunctionNode& type, bool is_and)
     : BuiltinOperator(std::move(symbol), type, nullptr), and_(is_and) {}
 
 bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, const InvocationOptions& options) const {
@@ -341,12 +341,12 @@ bool lang::ops::LazyLogicalOperator::invoke(Context& ctx, const std::deque<std::
 
   // set $ret to a Boolean
   ctx.reg_alloc_manager.update_ret(memory::Object(value::rvalue(
-      ast::type::boolean,
+      type::boolean,
       memory::Ref::reg(constants::registers::ret)
     )));
 
   // update return value
-  return_value.rvalue(std::make_unique<value::RValue>(ast::type::boolean, memory::Ref::reg(constants::registers::ret)));
+  return_value.rvalue(std::make_unique<value::RValue>(type::boolean, memory::Ref::reg(constants::registers::ret)));
 
   return true;
 }

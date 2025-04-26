@@ -8,17 +8,17 @@ namespace lang::ast {
   // essentially a node wrapper around memory::Literal
   class LiteralNode : public Node {
     optional_ref<const memory::Literal> lit_;
-    optional_ref<const ast::type::Node> suffix_; // type suffix? this overrides type hinting
+    optional_ref<const type::Node> suffix_; // type suffix? this overrides type hinting
 
     // get numeric type to cast to
-    const ast::type::Node& get_target_numeric_type() const;
+    const type::Node& get_target_numeric_type() const;
 
   public:
     LiteralNode(lexer::Token token) : Node(std::move(token)) {}
     LiteralNode(lexer::Token token, const memory::Literal& lit) : Node(std::move(token)), lit_(lit) {}
 
     // set type suffix
-    void suffix(const ast::type::Node& type) { suffix_ = type; }
+    void suffix(const type::Node& type) { suffix_ = type; }
 
     std::string node_name() const override { return "literal"; }
 

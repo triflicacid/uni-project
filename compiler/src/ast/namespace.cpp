@@ -2,7 +2,7 @@
 #include "shell.hpp"
 #include "context.hpp"
 #include "config.hpp"
-#include "ast/types/namespace.hpp"
+#include "types/namespace.hpp"
 #include "message_helper.hpp"
 
 std::string lang::ast::NamespaceNode::name() const {

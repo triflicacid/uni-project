@@ -1,11 +1,11 @@
 #include "while_statement.hpp"
-#include "ast/types/graph.hpp"
-#include "ast/types/bool.hpp"
+#include "types/graph.hpp"
+#include "types/bool.hpp"
 #include "message_helper.hpp"
 #include "context.hpp"
 #include "assembly/create.hpp"
 #include "control-flow/loop_context.hpp"
-#include "ast/types/unit.hpp"
+#include "types/unit.hpp"
 
 static unsigned int current_id = 0;
 
@@ -47,7 +47,7 @@ bool lang::ast::WhileStatementNode::process(lang::Context& ctx) {
   if (!guard_->resolve(ctx)) return false;
   auto& guard_value = guard_->value();
   if (!type::graph.is_subtype(guard_value.type().id(), type::boolean.id())) {
-    ctx.messages.add(util::error_type_mismatch(*guard_, guard_value.type(), ast::type::boolean, false));
+    ctx.messages.add(util::error_type_mismatch(*guard_, guard_value.type(), type::boolean, false));
     return false;
   }
 

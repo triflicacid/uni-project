@@ -11,8 +11,14 @@
 #include "assembly/arg.hpp"
 #include "optional_ref.hpp"
 
-namespace lang::ast {
-  class FunctionBaseNode;
+namespace lang {
+  namespace symbol {
+    class Registry;
+  }
+
+  namespace ast {
+    class FunctionBaseNode;
+  }
 }
 
 namespace lang::symbol {
@@ -38,7 +44,7 @@ namespace lang::symbol {
     const std::deque<std::reference_wrapper<Symbol>> find(const std::string& name) const;
 
     // return symbol with the given name and type
-    optional_ref<Symbol> find(const std::string& name, const ast::type::Node& type) const;
+    optional_ref<Symbol> find(const std::string& name, const type::Node& type) const;
 
     // return symbol with the given id
     const Symbol& get(SymbolId id) const;

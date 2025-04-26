@@ -2,7 +2,7 @@
 
 #include "memory/ref.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class Node;
 }
 
@@ -16,12 +16,12 @@ namespace lang::value {
 
   // an lvalue is something with storage
   class LValue {
-    const ast::type::Node& type_;
+    const type::Node& type_;
 
   public:
-    explicit LValue(const ast::type::Node& type) : type_(type) {}
+    explicit LValue(const type::Node& type) : type_(type) {}
 
-    const ast::type::Node& type() const { return type_; }
+    const type::Node& type() const { return type_; }
 
     virtual std::unique_ptr<LValue> copy() const;
 
@@ -49,7 +49,7 @@ namespace lang::value {
     memory::Ref ref_;
 
   public:
-    Reference(const ast::type::Node& type, memory::Ref ref) : LValue(type), ref_(std::move(ref)) {}
+    Reference(const type::Node& type, memory::Ref ref) : LValue(type), ref_(std::move(ref)) {}
 
     const Reference* get_ref() const override { return this; }
 

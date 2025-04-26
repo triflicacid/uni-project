@@ -4,8 +4,8 @@
 #include "value/value.hpp"
 #include "context.hpp"
 #include "message_helper.hpp"
-#include "ast/types/graph.hpp"
-#include "ast/types/bool.hpp"
+#include "types/graph.hpp"
+#include "types/bool.hpp"
 
 lang::control_flow::ConditionalContext lang::control_flow::ConditionalContext::copy() const {
   return ConditionalContext{
@@ -68,14 +68,14 @@ bool lang::control_flow::ConditionalContext::generate_branches(lang::Context& ct
   }
 
   // the result must be a Boolean
-  if (!ast::type::graph.is_subtype(value.type().id(), ast::type::boolean.id())) {
-    ctx.messages.add(util::error_type_mismatch(source, value.type(), ast::type::boolean, false));
+  if (!type::graph.is_subtype(value.type().id(), type::boolean.id())) {
+    ctx.messages.add(util::error_type_mismatch(source, value.type(), type::boolean, false));
     return false;
   }
 
   // get reference to result, ensuring we are a Boolean
   memory::Ref result = value.rvalue().ref();
-  result = ctx.reg_alloc_manager.guarantee_datatype(result, ast::type::boolean);
+  result = ctx.reg_alloc_manager.guarantee_datatype(result, type::boolean);
 
   // generate branches
   generate_branches(ctx.program.current(), result.offset);

@@ -4,16 +4,16 @@
 #include "context.hpp"
 #include "assembly/directive.hpp"
 #include "symbol/registry.hpp"
-#include "ast/types/graph.hpp"
-#include "ast/types/wrapper.hpp"
+#include "types/graph.hpp"
+#include "types/wrapper.hpp"
 #include "message_helper.hpp"
 #include "optional_ref.hpp"
-#include "ast/types/namespace.hpp"
-#include "ast/types/array.hpp"
-#include "ast/types/pointer.hpp"
+#include "types/namespace.hpp"
+#include "types/array.hpp"
+#include "types/pointer.hpp"
 #include "operators/builtins.hpp"
 #include "assembly/create.hpp"
-#include "ast/types/unit.hpp"
+#include "types/unit.hpp"
 
 std::string lang::ast::SymbolDeclarationNode::node_name() const {
   switch (category_) {
@@ -26,7 +26,7 @@ std::string lang::ast::SymbolDeclarationNode::node_name() const {
   }
 }
 
-const lang::ast::type::Node& lang::ast::SymbolDeclarationNode::type() const {
+const lang::type::Node& lang::ast::SymbolDeclarationNode::type() const {
   assert(type_.has_value());
   return type_.value();
 }

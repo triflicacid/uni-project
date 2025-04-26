@@ -1,6 +1,6 @@
 #include <cassert>
 #include "function_base.hpp"
-#include "../types/function.hpp"
+#include "types/function.hpp"
 #include "shell.hpp"
 #include "context.hpp"
 #include "assembly/create.hpp"

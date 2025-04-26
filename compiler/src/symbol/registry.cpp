@@ -1,5 +1,5 @@
 #include "registry.hpp"
-#include "ast/types/function.hpp"
+#include "types/function.hpp"
 #include "function.hpp"
 
 bool lang::symbol::Registry::contains(const std::string& name) const {
@@ -13,7 +13,7 @@ const std::deque<lang::symbol::SymbolId> lang::symbol::Registry::get(const std::
   return {};
 }
 
-optional_ref<const lang::symbol::Symbol> lang::symbol::Registry::get(const std::string& name, const lang::ast::type::Node& type) const {
+optional_ref<const lang::symbol::Symbol> lang::symbol::Registry::get(const std::string& name, const lang::type::Node& type) const {
   if (auto it = names_.find(name); it != names_.end()) {
     for (SymbolId id : it->second) {
       const Symbol& symbol = get(id);

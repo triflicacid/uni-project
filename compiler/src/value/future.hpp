@@ -2,7 +2,7 @@
 
 #include "value.hpp"
 #include "symbol/table.hpp"
-#include "ast/types/unit.hpp"
+#include "types/unit.hpp"
 
 namespace lang::value {
   // represents a symbol name (reference)
@@ -25,7 +25,7 @@ namespace lang::value {
     const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates() const { return overload_set_; }
 
     // attempt to resolve this symbol, populates lvalue with ::Symbol
-    bool resolve(const message::MessageGenerator &source, optional_ref<message::List> messages, optional_ref<const ast::type::Node> type_hint = {});
+    bool resolve(const message::MessageGenerator &source, optional_ref<message::List> messages, optional_ref<const type::Node> type_hint = {});
 
     bool materialise(Context &ctx, const MaterialisationOptions &options) override;
   };
@@ -67,7 +67,7 @@ namespace lang::value {
     bool global_; // define globally or locally?
 
   public:
-    ContiguousLiteral(const ast::type::Node& type, Elements elements, bool is_global);
+    ContiguousLiteral(const type::Node& type, Elements elements, bool is_global);
 
     std::unique_ptr<Value> copy() const override;
 
@@ -75,5 +75,5 @@ namespace lang::value {
   };
 
   // create a literal
-  std::unique_ptr<Value> contiguous_literal(const ast::type::Node& type, ContiguousLiteral::Elements elements, bool is_global);
+  std::unique_ptr<Value> contiguous_literal(const type::Node& type, ContiguousLiteral::Elements elements, bool is_global);
 }

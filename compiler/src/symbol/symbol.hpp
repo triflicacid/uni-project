@@ -1,9 +1,10 @@
  #pragma once
 
 #include <string>
-#include "ast/types/node.hpp"
+#include "types/node.hpp"
+#include "lexer/token.hpp"
 
-namespace lang::symbol {
+ namespace lang::symbol {
   using SymbolId = uint32_t;
 
   // represent the category of a symbol
@@ -24,14 +25,14 @@ namespace lang::symbol {
     std::optional<std::reference_wrapper<const Symbol>> parent_; // parent symbol (i.e., namespace)
     SymbolId id_ = -1;
     Category category_;
-    const ast::type::Node& type_;
+    const type::Node& type_;
     bool constant_ = false;
     bool assigned_ = false; // record if we have been assigned to
 
   public:
     Symbol(const Symbol&) = delete;
-    Symbol(lexer::Token name, const ast::type::Node& type_);
-    Symbol(lexer::Token name, Category category, const ast::type::Node& type_);
+    Symbol(lexer::Token name, const type::Node& type_);
+    Symbol(lexer::Token name, Category category, const type::Node& type_);
 
     virtual ~Symbol() = default;
 
@@ -54,7 +55,7 @@ namespace lang::symbol {
 
     uint32_t id() const { return id_; }
 
-    const ast::type::Node& type() const { return type_; }
+    const type::Node& type() const { return type_; }
 
     // ensure that this symbol is defined
     // return success

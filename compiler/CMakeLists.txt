@@ -12,7 +12,7 @@ add_executable(compiler ../shared/constants.cpp ../shared/util.cpp ../shared/mes
         src/ast/block.cpp src/ast/namespace.cpp src/ast/node.cpp src/ast/program.cpp src/ast/symbol_declaration.cpp
         src/ast/control-flow/loop_control.cpp src/ast/control-flow/loop_statement.cpp src/ast/control-flow/if_statement.cpp src/ast/control-flow/while_statement.cpp
         src/ast/function/function_base.cpp src/ast/function/function.cpp src/ast/function/operator_definition.cpp src/ast/function/return.cpp
-        src/ast/types/array.cpp src/ast/types/bool.cpp src/ast/types/node.cpp src/ast/types/pointer.cpp src/ast/types/unit.cpp src/ast/types/graph.cpp src/ast/types/int.cpp src/ast/types/namespace.cpp src/ast/types/float.cpp src/ast/types/function.cpp src/ast/types/wrapper.cpp
+        src/types/array.cpp src/types/bool.cpp src/types/node.cpp src/types/pointer.cpp src/types/unit.cpp src/types/graph.cpp src/types/int.cpp src/types/namespace.cpp src/types/float.cpp src/types/function.cpp src/types/wrapper.cpp
         src/ast/leaves/array_literal.cpp src/ast/operator.cpp src/ast/leaves/literal.cpp src/ast/leaves/symbol_reference.cpp src/ast/leaves/unit.cpp
         src/control-flow/conditional_context.cpp
         src/symbol/function.cpp src/symbol/registry.cpp src/symbol/symbol.cpp src/symbol/table.cpp

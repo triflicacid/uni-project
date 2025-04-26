@@ -2,14 +2,14 @@
 
 #include "wrapper.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class PointerNode;
 
   class ArrayNode : public WrapperNode {
     size_t size_;
 
   public:
-    ArrayNode(const ast::type::Node& inner, size_t size);
+    ArrayNode(const Node& inner, size_t size);
 
     const ArrayNode* get_array() const override { return this; }
 
@@ -30,6 +30,6 @@ namespace lang::ast::type {
     const PointerNode& decay_into_pointer() const;
 
     // create or return existing reference
-    static const ArrayNode& get(const lang::ast::type::Node& inner, size_t size);
+    static const ArrayNode& get(const Node& inner, size_t size);
   };
 }

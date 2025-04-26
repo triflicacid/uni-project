@@ -1,5 +1,6 @@
 #pragma once
 
+#include "printable_entity.hpp"
 #include <deque>
 #include <variant>
 #include "messages/list.hpp"
@@ -18,20 +19,10 @@ namespace lang {
 }
 
 namespace lang::ast {
-  class NodeBase {
-  public:
-    virtual ~NodeBase() = default;
-
-    virtual std::string node_name() const = 0;
-
-    // print in code form
-    virtual std::ostream& print_code(std::ostream& os, unsigned int indent_level = 0) const = 0;
-  };
-
-  class Node : public NodeBase, public lexer::TokenSpan {
+  class Node : public PrintableEntity, public lexer::TokenSpan {
     lexer::Token tstart_;
     std::optional<lexer::Token> tend_;
-    optional_ref<const ast::type::Node> type_hint_; // type hint, used for resolving overload sets etc
+    optional_ref<const type::Node> type_hint_; // type hint, used for resolving overload sets etc
     optional_ref<control_flow::ConditionalContext> cond_ctx_; // set when evaluating a conditional, means operator should support this and contribute
     optional_ref<const memory::StorageLocation> target_; // store result at this target?
 
@@ -39,7 +30,7 @@ namespace lang::ast {
     std::unique_ptr<value::Value> value_; // every node has a value, which is possibly set in ::process
 
   public:
-    explicit Node(lexer::Token token) : NodeBase(), tstart_(token) {}
+    explicit Node(lexer::Token token) : PrintableEntity(), tstart_(token) {}
 
     const lexer::Token& token_start() const override final { return tstart_; }
 
@@ -49,11 +40,11 @@ namespace lang::ast {
 
     void token_end(const lexer::Token& token) { tend_ = token; }
 
-    const optional_ref<const ast::type::Node>& type_hint() const { return type_hint_; }
+    const optional_ref<const type::Node>& type_hint() const { return type_hint_; }
 
     // set our type hint
-    void type_hint(const ast::type::Node& hint) { type_hint_ = hint; }
-    void type_hint(optional_ref<const ast::type::Node> hint) { type_hint_ = std::move(hint); }
+    void type_hint(const type::Node& hint) { type_hint_ = hint; }
+    void type_hint(optional_ref<const type::Node> hint) { type_hint_ = std::move(hint); }
 
     const optional_ref<control_flow::ConditionalContext>& conditional_context() const { return cond_ctx_; }
     void conditional_context(control_flow::ConditionalContext& ctx) { cond_ctx_ = std::ref(ctx); }

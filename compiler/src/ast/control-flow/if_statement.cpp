@@ -1,10 +1,10 @@
 #include "if_statement.hpp"
-#include "ast/types/node.hpp"
+#include "types/node.hpp"
 #include "context.hpp"
 #include "control-flow/conditional_context.hpp"
 #include "assembly/create.hpp"
 #include "message_helper.hpp"
-#include "ast/types/unit.hpp"
+#include "types/unit.hpp"
 
 // id used for `if` and `else` blocks
 static int current_id = 0;

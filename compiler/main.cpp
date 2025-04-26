@@ -8,10 +8,10 @@
 #include "assembly/program.hpp"
 #include "memory/stack.hpp"
 #include "memory/reg_alloc.hpp"
-#include "ast/types/int.hpp"
+#include "types/int.hpp"
 #include "context.hpp"
-#include "ast/types/graph.hpp"
-#include "ast/types/float.hpp"
+#include "types/graph.hpp"
+#include "types/float.hpp"
 #include "operators/builtins.hpp"
 
 struct Options {
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
   };
 
   // initialise type dependency graph
-  lang::ast::type::TypeGraph::init();
+  lang::type::TypeGraph::init();
 
   // initialise builtin operators
   lang::ops::init_builtins();

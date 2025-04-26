@@ -1,22 +1,22 @@
 #include <cassert>
 #include "operator.hpp"
 #include "shell.hpp"
-#include "ast/types/function.hpp"
+#include "types/function.hpp"
 #include "operators/operator.hpp"
 #include "context.hpp"
-#include "ast/types/namespace.hpp"
+#include "types/namespace.hpp"
 #include "ast/leaves/symbol_reference.hpp"
 #include "ast/namespace.hpp"
 #include "message_helper.hpp"
 #include "value/future.hpp"
-#include "ast/types/graph.hpp"
-#include "ast/types/int.hpp"
-#include "ast/types/pointer.hpp"
+#include "types/graph.hpp"
+#include "types/int.hpp"
+#include "types/pointer.hpp"
 #include "assembly/create.hpp"
 #include "ast/function/function.hpp"
 #include "operators/user_defined.hpp"
 #include "operators/builtins.hpp"
-#include "ast/types/bool.hpp"
+#include "types/bool.hpp"
 
 std::string lang::ast::OperatorNode::node_name() const {
   return args_.size() == 2
@@ -447,7 +447,7 @@ bool lang::ast::AssignmentOperatorNode::generate_code(lang::Context& ctx) {
   return true;
 }
 
-lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, lexer::Token symbol, const lang::ast::type::Node& target, std::unique_ptr<Node> expr, bool sudo)
+lang::ast::CastOperatorNode::CastOperatorNode(lang::lexer::Token token, lexer::Token symbol, const lang::type::Node& target, std::unique_ptr<Node> expr, bool sudo)
 : OperatorNode(token, symbol, {}), target_(target), sudo_(sudo) {
   args_.push_back(std::move(expr));
   token_end(args_.back()->token_end());
@@ -1103,14 +1103,14 @@ bool lang::ast::LazyLogicalOperator::process(lang::Context& ctx) {
   for (int i = 0; i < 2; i++) {
     auto& arg = this->arg(i);
     if (!arg.resolve(ctx)) return false;
-    if (!ast::type::graph.is_subtype(arg.value().type().id(), ast::type::boolean.id())) {
-      ctx.messages.add(util::error_type_mismatch(arg, arg.value().type(), ast::type::boolean, false));
+    if (!type::graph.is_subtype(arg.value().type().id(), type::boolean.id())) {
+      ctx.messages.add(util::error_type_mismatch(arg, arg.value().type(), type::boolean, false));
       return false;
     }
   }
 
   // set our value
-  value_ = value::value(ast::type::boolean);
+  value_ = value::value(type::boolean);
 
   return true;
 }

@@ -2,23 +2,23 @@
 #include "int.hpp"
 #include "float.hpp"
 
-static lang::ast::type::TypeId current_id = 0;
+static lang::type::TypeId current_id = 0;
 
-lang::ast::type::Node::Node(): id_(current_id++) {}
+lang::type::Node::Node(): id_(current_id++) {}
 
-bool lang::ast::type::Node::operator==(const lang::ast::type::Node& other) const {
+bool lang::type::Node::operator==(const Node& other) const {
   return id() == other.id();
 }
 
-optional_ref<const lang::ast::type::Node> lang::ast::type::Node::get_property_type(const std::string& property) const {
+optional_ref<const lang::type::Node> lang::type::Node::get_property_type(const std::string& property) const {
   return std::nullopt;
 }
 
-std::unique_ptr<lang::value::Value> lang::ast::type::Node::get_property(Context& ctx, const std::string& property) const {
+std::unique_ptr<lang::value::Value> lang::type::Node::get_property(Context& ctx, const std::string& property) const {
   return nullptr;
 }
 
-const lang::ast::type::Node& lang::ast::type::from_asm_type(constants::inst::datatype::dt type) {
+const lang::type::Node& lang::type::from_asm_type(constants::inst::datatype::dt type) {
   switch (type) {
     case constants::inst::datatype::u32:
       return uint32;
@@ -35,7 +35,7 @@ const lang::ast::type::Node& lang::ast::type::from_asm_type(constants::inst::dat
   }
 }
 
-const std::deque<std::reference_wrapper<const lang::ast::type::Node>> lang::ast::type::numerical{
+const std::deque<std::reference_wrapper<const lang::type::Node>> lang::type::numerical{
   uint8, int8,
   uint16, int16,
   uint32, int32,

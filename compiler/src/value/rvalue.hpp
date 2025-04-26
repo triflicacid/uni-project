@@ -3,22 +3,22 @@
 #include "memory/ref.hpp"
 #include "memory/literal.hpp"
 
-namespace lang::ast::type {
+namespace lang::type {
   class Node;
 }
 
 namespace lang::value {
   // an rvalue is something which has a value
   class RValue {
-    const ast::type::Node& type_;
+    const type::Node& type_;
     memory::Ref ref_;
 
   public:
-    RValue(const ast::type::Node& type, const memory::Ref& ref) : type_(type), ref_(ref) {}
+    RValue(const type::Node& type, const memory::Ref& ref) : type_(type), ref_(ref) {}
 
     virtual std::unique_ptr<RValue> copy() const;
 
-    const ast::type::Node& type() const { return type_; }
+    const type::Node& type() const { return type_; }
 
     const memory::Ref& ref() const { return ref_; }
 
