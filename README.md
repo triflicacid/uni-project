@@ -19,8 +19,7 @@ The project components are located in the following directories:
 
 The other directories are as follows:
 - `docs/` contains documentation written in LaTeX.
-- `out/` contains the compiled documentation PDFs.
-It is also where the built applications will reside, as well as the processor Edel file.
+- `out/` contains the compiled documentation PDFs, as well as where the built binaries are placed.
 - `shared/` contains source code files used by multiple components.
 
 ## Building the Project
@@ -28,16 +27,45 @@ It is also where the built applications will reside, as well as the processor Ed
 This project uses CMake to help build each component.
 The top-level `CMakeLists.txt` defines four processes for building the four project components.
 
-To build the project, `CMake >= 3.6` is required.
-Each component is written in C++ using the C++20 standard, so a C++ compiler is also required.
-The project was developed in IntelliJ's CLion, and the build/run configurations used are provided under the `.run/` directory.
+Requirements:
+- CMake `>= 3.6`.
+- A C++ compiler supporting `C++20`.
+- Build tool such as `make` or `ninja` (see below).
 
-Additionally, the visualiser component makes use of the third-party FTXUI library v5.1.0.
+Follow these steps to build:
+1. Open a terminal instance in the top-level directory.
+2. Run `cmake .`.
+This will download necessary dependencies and generate build scripts.
+3. Run the generated build scripts.
+This varies between platforms:
+- For Linux (WSL Ubuntu), this requires running `make`.
+- For Windows, this requires running `ninja`.
+
+At this stage, hints should be provided in the CMake output: 
+for example, "Built for ninja" or similar.
+4. All four project components should be built.
+These will be located in the `out/` directory.
+
+### Development System
+
+While this project is multi-platform, there may be issues with building, such as if your C++ compiler does not fully support C++20.
+For completeness, below lists the system which was used to develop this project:
+- OS: `WSL2 Ubuntu 22.04.2 LTS`.
+- CMake: `WSL CMake version 3.22.1`.
+- Make: `GNU Make 4.3`.
+- Compiler: `g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0`.
+- Debugger: `WSL GDB version 12.1`.
+
+The codebase was developed using IntelliJ's CLion IDE.
+The build and execution scripts used can be found under `.run/`.
+
+### Dependencies
+
+All dependencies are handled by CMake, both in terms of downloading and building.
+Other than support for C++20, the project has the following dependencies:
+- `FTXUI v5.1.0`.
+Used by the visualiser, this lightweight library offers support for constructing Textual User Interfaces (TUIs).
 GitHub: https://github.com/ArthurSonzogni/FTXUI.
-
-The project has been designed and written to be cross-platform.
-The project has was developed using WSL2 Ubuntu and its native toolchain.
-Debugging was done via WSL's GDB.
 
 ## Running the Project
 

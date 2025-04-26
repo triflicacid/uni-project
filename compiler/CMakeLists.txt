@@ -14,7 +14,7 @@ add_executable(compiler ../shared/constants.cpp ../shared/util.cpp ../shared/mes
         src/ast/function/function_base.cpp src/ast/function/function.cpp src/ast/function/operator_definition.cpp src/ast/function/return.cpp
         src/types/array.cpp src/types/bool.cpp src/types/node.cpp src/types/pointer.cpp src/types/unit.cpp src/types/graph.cpp src/types/int.cpp src/types/namespace.cpp src/types/float.cpp src/types/function.cpp src/types/wrapper.cpp
         src/ast/leaves/array_literal.cpp src/ast/operator.cpp src/ast/leaves/literal.cpp src/ast/leaves/symbol_reference.cpp src/ast/leaves/unit.cpp
-        src/control-flow/conditional_context.cpp
+        src/control_flow/conditional_context.cpp
         src/symbol/function.cpp src/symbol/registry.cpp src/symbol/symbol.cpp src/symbol/table.cpp
         src/operators/builtins.cpp src/operators/operator.cpp
         src/value/value.cpp
