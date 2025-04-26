@@ -1,10 +1,9 @@
 #include "loop_statement.hpp"
 #include "types/graph.hpp"
-#include "types/bool.hpp"
 #include "message_helper.hpp"
 #include "context.hpp"
 #include "assembly/create.hpp"
-#include "control-flow/loop_context.hpp"
+#include "control_flow/loop_context.hpp"
 #include "types/unit.hpp"
 
 static unsigned int current_id = 0;

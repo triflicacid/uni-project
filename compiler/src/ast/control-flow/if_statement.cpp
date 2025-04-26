@@ -1,7 +1,7 @@
 #include "if_statement.hpp"
 #include "types/node.hpp"
 #include "context.hpp"
-#include "control-flow/conditional_context.hpp"
+#include "control_flow/conditional_context.hpp"
 #include "assembly/create.hpp"
 #include "message_helper.hpp"
 #include "types/unit.hpp"

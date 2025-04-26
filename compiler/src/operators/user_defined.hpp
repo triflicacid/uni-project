@@ -2,7 +2,7 @@
 
 #include "operator.hpp"
 #include "symbol/symbol.hpp"
-#include "control-flow/conditional_context.hpp"
+#include "control_flow/conditional_context.hpp"
 
 namespace lang::ops {
   class UserDefinedOperator : public Operator {

@@ -7,7 +7,7 @@
 #include "lexer/token.hpp"
 #include "value/value.hpp"
 #include "optional_ref.hpp"
-#include "control-flow/conditional_context.hpp"
+#include "control_flow/conditional_context.hpp"
 #include "memory/storage_location.hpp"
 
 namespace lang {

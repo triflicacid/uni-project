@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ast/node.hpp"
-#include "control-flow/loop_context.hpp"
+#include "control_flow/loop_context.hpp"
 
 namespace lang::ast {
   // defines a node which jumps to the start/end of the current loop
