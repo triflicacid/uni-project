@@ -38,9 +38,10 @@ bool lang::symbol::Symbol::define(Context& ctx) const {
   // check if we're defined already
   auto maybe_loc = ctx.symbols.locate(id_);
 
+  // if not, allocate
   if (!maybe_loc.has_value()) {
     // TODO move SymbolDeclarationNode here, only define when needed rather than in ::generate_code
-    // if not, allocate
+    // note that this would be an optimisation, so is not necessary
     ctx.symbols.allocate(id_);
   }
 

@@ -82,7 +82,7 @@ void lang::symbol::SymbolTable::allocate(lang::symbol::SymbolId id) {
       symbol.type().print_code(block->comment());
 
       // reserve space inside the block
-      // TODO directly load data if possible
+      // TODO directly load data if possible using directives
       block->add(assembly::Directive::space(symbol.type().size()));
 
       // set source location

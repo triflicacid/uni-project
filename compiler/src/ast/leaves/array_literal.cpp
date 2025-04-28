@@ -53,7 +53,7 @@ bool lang::ast::ArrayLiteralNode::process(lang::Context& ctx) {
     if (!element->process(ctx) || !element->resolve(ctx)) return false;
 
     // if type is already given, check if matches
-    // TODO allow sub and super types
+    // allow sub and super types? no, as must be same physical size
     auto& type = element->value().type();
     if (inner_type) {
       if (!type::graph.is_subtype(type.id(), inner_type->get().id())) {

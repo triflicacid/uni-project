@@ -326,7 +326,8 @@ namespace init_builtin {
         [](Context& ctx, Args args) { return generators::generate_mod(ctx, args); }
     ));
 
-    // TODO operator%(i64, i32)
+    // TODO operator%(i64, i32):
+    // either make the ISA instruction more flexible (unlikely), os implement a software polyfill
   }
 
   static void bitwise_and() {

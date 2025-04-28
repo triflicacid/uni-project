@@ -159,7 +159,7 @@ std::optional<lang::memory::Ref> lang::memory::RegisterAllocationManager::find(c
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::find_or_insert(const symbol::Symbol& symbol) {
   // get location; return if found
-  // TODO make sure the symbol is always up-to-date
+  // TODO make sure the symbol is always up-to-date... this is done by just always loading in a fresh value (could be better)
 //  if (auto ref = find(symbol)) {
 //    return *ref;
 //  }
@@ -402,6 +402,7 @@ std::unique_ptr<lang::assembly::Arg> lang::memory::RegisterAllocationManager::re
 
 lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_register(const lang::memory::Ref& ref) {
   // TODO implement move mechanic
+  // not necessary as memory spilling has not been implemented
   assert(ref.type == Ref::Register);
   return ref;
 }
@@ -426,7 +427,8 @@ lang::memory::Ref lang::memory::RegisterAllocationManager::guarantee_datatype(co
   if (target == type::boolean) {
     ops::boolean_cast(program_.current(), ref.offset);
   } else if (target.get_pointer() && original.get_array()) { // array -> pointer?
-    // TODO array -> pointer conversion
+    // TODO array -> pointer conversion?
+    // nah, this is fine :)
   } else {
     // otherwise, analyse what Object contains and update the type accordingly
     // also track if we need to actually emit any instructions

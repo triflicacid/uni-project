@@ -853,6 +853,7 @@ bool lang::ast::FunctionCallOperatorNode::process(lang::Context& ctx) {
   assert(!op->get().builtin());
   if (op->get().builtin()) {
     // TODO what if op is built-in?
+    // shouldn't be possible, hence the assertion
   } else {
     // get location of the operator
     auto& user_op = static_cast<const ops::UserDefinedOperator&>(op->get());

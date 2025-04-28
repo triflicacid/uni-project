@@ -52,7 +52,6 @@ static PaneStateData& get_pane_by_type(visualiser::sources::Type type) {
 static void update_align_pane_pc() {
   if (!visualiser::processor::pc_line) return;
 
-  // TODO update
   // align source pane
   *state::source_pane.pos_ptr = visualiser::processor::pc_line->line_no;
 
