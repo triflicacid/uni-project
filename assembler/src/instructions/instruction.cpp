@@ -1,5 +1,6 @@
 #include <iostream>
 #include <utility>
+#include <cassert>
 
 #include "instruction.hpp"
 #include "signature.hpp"
@@ -31,9 +32,15 @@ namespace assembler::instruction {
       os << constants::cmp::to_string(static_cast<constants::cmp::flag>(test & constants::inst::cmp_mask));
     }
 
-    // TODO correct formatting for `cvt` instruction
-    for (const auto &datatype: datatypes) {
-      os << "." << constants::inst::datatype::to_string(datatype);
+    // correct formatting for `cvt` instruction: a2b
+    if (signature->mnemonic == Signature::_cvt.mnemonic) {
+      assert(datatypes.size() == 2);
+      os << constants::inst::datatype::to_string(datatypes.front())
+        << "2" << constants::inst::datatype::to_string(datatypes.back());
+    } else {
+      for (const auto& datatype: datatypes) {
+        os << "." << constants::inst::datatype::to_string(datatype);
+      }
     }
 
     for (int i = 0; i < args.size(); i++) {
