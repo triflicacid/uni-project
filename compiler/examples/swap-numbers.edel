@@ -1,8 +1,8 @@
-func swap(a: *long, b: *long) {
+func swap(a: *u64, b: *u64) {
     let tmp = *a;
     *a = *b;
     *b = tmp;
 }
 
-let a = 5 as long, b = 10 as long;
+let a = 5u64, b = 10u64;
 swap(&a, &b);
