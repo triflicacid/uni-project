@@ -1,5 +1,8 @@
 #pragma once
 
+/** @file
+ *  @brief ANSI/VT100 escape codes for terminal text color, used to format CLI output. */
+
 #define ANSI_YELLOW  "\x1b[33m"
 #define ANSI_BRIGHT_YELLOW  "\x1b[93m"
 #define ANSI_RED     "\x1b[31m"

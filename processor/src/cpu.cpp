@@ -7,6 +7,14 @@
 #include "constants.hpp"
 #include "debug.hpp"
 
+/**
+ * @brief Compute the cmp flag bits resulting from comparing two values.
+ * @tparam LHS Type of the left operand.
+ * @tparam RHS Type of the right operand.
+ * @param lhs Left operand.
+ * @param rhs Right operand.
+ * @return Combined cmp flag bits (lt/gt/eq/z as applicable).
+ */
 template<typename LHS, typename RHS>
 static constants::cmp::flag calculate_cmp_flag(LHS lhs, RHS rhs) {
   using namespace constants;
@@ -613,6 +621,13 @@ void processor::CPU::exec_jal(uint64_t inst) {
   reg_set(registers::pc, value);
 }
 
+/**
+ * @brief Cast a value to a datatype and pack its bits into a `uint64_t`.
+ * @tparam T Type of the source value.
+ * @param dt Datatype to cast `src` to before packing.
+ * @param src Source value.
+ * @return `src` cast to `dt` and packed into a `uint64_t`, or 0 if `dt` is not a recognised datatype.
+ */
 template<typename T>
 static uint64_t cast_value(constants::inst::datatype::dt dt, T src) {
   using namespace constants::inst::datatype;

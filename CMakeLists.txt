@@ -12,3 +12,12 @@ add_subdirectory(processor)
 add_subdirectory(assembler)
 add_subdirectory(compiler)
 add_subdirectory(visualiser)
+
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+    add_custom_target(doxygen
+        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating HTML documentation with Doxygen"
+        VERBATIM)
+endif()

@@ -1,0 +1,49 @@
+# Doxyfile for the Edel toolchain (processor, assembler, compiler, shared, visualiser).
+# Generate with: doxygen Doxyfile
+# Output: docs/doxygen/html/index.html
+#
+# Only settings that differ from Doxygen's built-in defaults are listed;
+# any option not present here uses doxygen's default value.
+
+#---------------------------------------------------------------------------
+# Project
+#---------------------------------------------------------------------------
+PROJECT_NAME           = "Edel Toolchain"
+PROJECT_BRIEF          = "Compiler, assembler, and processor emulator for the Edel teaching language"
+OUTPUT_DIRECTORY       = docs/doxygen
+CREATE_SUBDIRS         = NO
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+INPUT                  = shared \
+                          processor/src \
+                          assembler/src \
+                          compiler/src \
+                          visualiser/src
+RECURSIVE              = YES
+FILE_PATTERNS           = *.h *.hpp *.cpp
+EXCLUDE                 = visualiser/src/components/either.cpp \
+                           visualiser/src/components/either.hpp \
+                           visualiser/src/components/boolean.cpp \
+                           visualiser/src/components/boolean.hpp
+EXCLUDE_PATTERNS        = */cmake-build-debug/*
+
+#---------------------------------------------------------------------------
+# Extraction / coverage
+#---------------------------------------------------------------------------
+EXTRACT_ALL             = NO
+EXTRACT_PRIVATE         = YES
+EXTRACT_PRIV_VIRTUAL    = YES
+EXTRACT_STATIC          = YES
+EXTRACT_LOCAL_CLASSES   = YES
+WARN_IF_UNDOCUMENTED    = YES
+WARN_IF_INCOMPLETE_DOC  = YES
+WARN_NO_PARAMDOC        = YES
+
+#---------------------------------------------------------------------------
+# Output
+#---------------------------------------------------------------------------
+GENERATE_HTML           = YES
+GENERATE_LATEX          = NO
+HAVE_DOT                = NO
