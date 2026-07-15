@@ -74,9 +74,9 @@ std::unique_ptr<message::Message> lang::util::note_while_evaluating(const messag
 
 void lang::util::error_if_statement_mismatch(message::List& messages, const message::MessageGenerator& if_source,
                                              const message::MessageGenerator& then_source,
-                                             const lang::type::Node& then_type,
+                                             const type::Node& then_type,
                                              const message::MessageGenerator& else_source,
-                                             optional_ref<const lang::type::Node> else_type) {
+                                             optional_ref<const type::Node> else_type) {
   auto msg = if_source.generate_message(message::Error);
   if (else_type.has_value()) {
     msg->get() << "type mismatch: the blocks of an if statement must return the same type, got ";
