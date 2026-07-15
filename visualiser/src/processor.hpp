@@ -6,26 +6,40 @@
 #include "sources.hpp"
 
 namespace visualiser::processor {
+  /** The emulated CPU instance backing the visualiser session. */
   extern ::processor::CPU cpu;
+  /** Binary file the CPU's program was loaded from. */
   extern std::unique_ptr<named_fstream> source;
+  /** Value of `$pc` at load time, used to restore the CPU to its starting state. */
   extern uint64_t initial_pc;
-  extern std::unique_ptr<named_fstream> piped_stdout; // if provided, forward processor output to this file.
-  extern std::unique_ptr<named_fstream> piped_stdin; // if provided, source input from this rather than the pane
+  /** If set, processor output is forwarded to this file instead of the UI pane. */
+  extern std::unique_ptr<named_fstream> piped_stdout;
+  /** If set, processor input is sourced from this file instead of the UI pane. */
+  extern std::unique_ptr<named_fstream> piped_stdin;
 
-  extern std::set<const sources::PCLine*> breakpoints; // store set breakpoints
+  /** Set of source lines with a breakpoint currently set. */
+  extern std::set<const sources::PCLine*> breakpoints;
 
-  extern uint64_t pc; // value of $pc (should be equal to cpu.read_pc)
+  /** Cached value of `$pc`, kept in sync with `cpu.read_pc()`. */
+  extern uint64_t pc;
+  /** Source line corresponding to the current value of `pc`, if known. */
   extern const sources::PCLine* pc_line;
 
-  /** Initialise processor from `source`. */
+  /** @brief Reset the CPU and load the program from `source`. */
   void init();
 
-  // reset cpu's $pc to initial value, return the $pc's value
+  /**
+   * @brief Reset the CPU's `$pc` to its initial value.
+   * @return The restored `$pc` value.
+   */
   uint64_t restore_pc();
 
-  // update $pc, but only in state:: -- use CPU's $pc
+  /** @brief Refresh the cached `pc` and `pc_line` from the CPU's current `$pc`, without changing the CPU's state. */
   void update_pc();
 
-  // update $pc -- sets both CPU's actual pc, state::current_pc, and state::pc_entry
+  /**
+   * @brief Set the CPU's `$pc` and refresh the cached `pc` and `pc_line` to match.
+   * @param val New program counter value.
+   */
   void update_pc(uint64_t val);
 }

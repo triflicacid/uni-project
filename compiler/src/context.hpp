@@ -7,6 +7,9 @@
 #include "control_flow/loop_context.hpp"
 
 namespace lang {
+  /**
+   * @brief Aggregate of the compiler's shared mutable state, threaded by reference through every phase of the compilation pipeline (process, resolve, generate_code) after parsing.
+   */
   struct Context {
     message::List& messages;
     assembly::Program& program;

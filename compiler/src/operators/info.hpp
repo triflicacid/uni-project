@@ -5,6 +5,9 @@
 #include <string>
 
 namespace lang::ops {
+  /**
+   * @brief Describes an operator's parse-time syntax: precedence, associativity, and whether it may be user-overloaded.
+   */
   // describes an operator
   struct OperatorInfo {
     uint8_t precedence; // operator precedence, 1 is loosest (higher = stronger)

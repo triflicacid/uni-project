@@ -5,6 +5,7 @@
 #include <vector>
 
 namespace lang::lexer {
+  /** @brief Kind of lexeme a token represents: punctuation, operator, built-in type name, literal, keyword, or the special `ident`/`eof`/`invalid` markers. */
   enum class TokenType {
     ident = -1, // identifier name
     eof,
@@ -63,10 +64,21 @@ namespace lang::lexer {
     invalid
   };
 
-  // given token type, return string representation
+  /**
+   * @brief Convert a token type to its human-readable string representation.
+   * @param type Token type to describe.
+   * @param add_quotes Whether to wrap the result in double quotes.
+   * @return String naming the token type, or literal text for punctuation/keyword types.
+   */
   std::string token_type_to_string(TokenType type, bool add_quotes = true);
 
+  /** @brief Set of distinct token types, used to describe the set of tokens expected at a parse point. */
   using TokenTypeSet = std::set<TokenType>;
 
+  /**
+   * @brief Union a collection of token type sets into one set.
+   * @param sets Sets to merge.
+   * @return Union of all the given sets.
+   */
   TokenTypeSet merge_sets(const std::vector<TokenTypeSet>& sets);
 }

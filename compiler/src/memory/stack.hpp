@@ -6,6 +6,9 @@
 #include "assembly/program.hpp"
 
 namespace lang::memory {
+  /**
+   * @brief Tracks the compiled program's runtime stack layout at compile time: the current offset from $fp and a history of saved frame offsets.
+   */
   // class to manage storing and retrieving values from the stack
   class StackManager {
     uint64_t offset_ = 0; // record offset into the stack from $fp
@@ -13,24 +16,57 @@ namespace lang::memory {
     assembly::Program& program_;
 
   public:
+    /**
+     * @brief Binds the manager to the program it will emit stack-adjustment instructions into.
+     * @param program Output program to emit instructions into.
+     */
     StackManager(assembly::Program& program) : program_(program) {}
 
+    /**
+     * @brief Returns the underlying program.
+     * @return The program.
+     */
     assembly::Program& program() { return program_; }
 
+    /**
+     * @brief Returns the current stack offset from $fp.
+     * @return The offset in bytes.
+     */
     uint64_t offset() const { return offset_; }
 
+    /**
+     * @brief Reserves additional stack space, updating the compile-time offset and emitting a push instruction.
+     * @param bytes Number of bytes to reserve. No-ops if zero.
+     */
     // increase offset by the given byte count
     void push(uint8_t bytes);
 
+    /**
+     * @brief Releases stack space, updating the compile-time offset and emitting a pop instruction.
+     * @param bytes Number of bytes to release. No-ops if zero.
+     */
     // decrease offset by the given byte count
     void pop(uint8_t bytes);
 
+    /**
+     * @brief Begins a new stack frame, saving the current offset and optionally emitting the $fp-establishing instruction.
+     * @param generate_code Whether to emit the instruction copying $sp into $fp.
+     */
     // create a new stack frame
     void push_frame(bool generate_code);
 
+    /**
+     * @brief Ends the current stack frame, restoring the enclosing frame's offset and optionally emitting the $fp-restoring instruction.
+     * @param generate_code Whether to emit the instruction restoring $sp from $fp.
+     */
     // remove latest stack frame
     void pop_frame(bool generate_code);
 
+    /**
+     * @brief Returns the saved offset of the nth most recently pushed (not yet popped) frame.
+     * @param n Depth to look back, where 0 is the most recently pushed frame.
+     * @return The saved offset.
+     */
     // get the address of the nth topmost frame (default n = 0 = most recent)
     uint64_t peek_frame(unsigned int n = 0) const;
   };

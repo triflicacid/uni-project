@@ -15,5 +15,9 @@ namespace visualiser::style {
   extern ftxui::Decorator breakpoint_colour;
   extern std::string breakpoint_icon;
 
+  /**
+   * @brief Build the styled breakpoint marker element shown next to lines with a breakpoint set.
+   * @return The rendered breakpoint prefix element.
+   */
   ftxui::Element breakpoint_prefix();
 }

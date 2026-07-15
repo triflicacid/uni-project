@@ -7,6 +7,13 @@ std::unique_ptr<GenericInstruction> lang::assembly::instruction(const std::strin
   return std::make_unique<GenericInstruction>(mnemonic);
 }
 
+/**
+ * @brief Builds a generic instruction of the form "<mnemonic> $reg, value".
+ * @param mnemonic Instruction mnemonic text.
+ * @param reg Register operand.
+ * @param value Second operand.
+ * @return The newly created instruction.
+ */
 // create reg_value instruction
 static std::unique_ptr<GenericInstruction> create_reg_value(const std::string& mnemonic, uint8_t reg, std::unique_ptr<BaseArg> value) {
   auto inst = std::make_unique<GenericInstruction>(mnemonic);
@@ -15,6 +22,14 @@ static std::unique_ptr<GenericInstruction> create_reg_value(const std::string& m
   return inst;
 }
 
+/**
+ * @brief Builds a generic instruction of the form "<mnemonic> $reg1, [$reg2,] value", omitting reg2 when it equals reg1.
+ * @param mnemonic Instruction mnemonic text.
+ * @param reg1 Destination register operand.
+ * @param reg2 Left-hand operand register; omitted from the argument list if equal to reg1.
+ * @param value Right-hand operand.
+ * @return The newly created instruction.
+ */
 // create reg_reg_value instruction
 // emit reg_value if reg1 == reg2
 static std::unique_ptr<GenericInstruction> create_reg_reg_value(const std::string& mnemonic, uint8_t reg1, uint8_t reg2, std::unique_ptr<BaseArg> value) {
