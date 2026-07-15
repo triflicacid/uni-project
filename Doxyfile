@@ -18,11 +18,20 @@ OUTPUT_DIRECTORY = docs/doxygen
 CREATE_SUBDIRS = NO
 
 # Directories that Doxygen should scan for source files.
-INPUT = shared \
+# README.md is included so it can be used as the main page (see
+# USE_MDFILE_AS_MAINPAGE below). docs/additional_documentation.md is included
+# so it shows up as its own "Related Pages" entry linking to the compiled
+# PDF documentation (see HTML_EXTRA_FILES below).
+INPUT = README.md \
+        docs/additional_documentation.md \
+        shared \
         processor/src \
         assembler/src \
         compiler/src \
         visualiser/src
+
+# Use the project README as the documentation's main/landing page.
+USE_MDFILE_AS_MAINPAGE = README.md
 
 # Search all subdirectories recursively.
 RECURSIVE = YES
@@ -106,3 +115,12 @@ DOT_CLEANUP = YES
 
 # Produce cleaner diagrams by hiding details from external libraries.
 HIDE_UNDOC_RELATIONS = YES
+
+# Copy the compiled PDF documentation into the generated HTML output so the
+# "Additional Documentation" page (docs/additional_documentation.md) can link
+# to them directly.
+HTML_EXTRA_FILES = out/compiler.pdf \
+                    out/assembler.pdf \
+                    out/processor.pdf \
+                    out/visualiser.pdf \
+                    out/requirements.pdf

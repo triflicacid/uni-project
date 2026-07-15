@@ -1,5 +1,7 @@
 # Uni Project
 
+GitHub repository: <https://github.com/triflicacid/uni-project>
+
 This repository holds the source code to my third year project.
 The title of my project is `A code execution toolchain targeted at learners: from compilation to emulating a custom RISC processor`.
 
