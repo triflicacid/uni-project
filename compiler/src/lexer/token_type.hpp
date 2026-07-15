@@ -7,39 +7,39 @@
 namespace lang::lexer {
   /** @brief Kind of lexeme a token represents: punctuation, operator, built-in type name, literal, keyword, or the special `ident`/`eof`/`invalid` markers. */
   enum class TokenType {
-    ident = -1, // identifier name
-    eof,
+    ident = -1, ///< Identifier name.
+    eof, ///< End of input.
 
     // punctuation
-    lbrace, // {
-    rbrace, // }
-    lpar, // (
-    rpar, // )
-    lsquare, // [
-    rsquare, // ]
-    sc, // ;
-    colon, // :
-    comma, // ,
+    lbrace, ///< `{`
+    rbrace, ///< `}`
+    lpar, ///< `(`
+    rpar, ///< `)`
+    lsquare, ///< `[`
+    rsquare, ///< `]`
+    sc, ///< `;`
+    colon, ///< `:`
+    comma, ///< `,`
 
     // operators
-    op, // generic operator
+    op, ///< Generic operator (e.g. `+`, `==`, `&&`).
 
     // types
-    boolean,
-    uint8,
-    int8,
-    uint16,
-    int16,
-    uint32,
-    int32,
-    uint64,
-    int64,
-    float32,
-    float64,
+    boolean, ///< `bool` type keyword.
+    uint8, ///< `u8`/`byte` type keyword.
+    int8, ///< `i8` type keyword.
+    uint16, ///< `u16` type keyword.
+    int16, ///< `i16` type keyword.
+    uint32, ///< `u32` type keyword.
+    int32, ///< `i32`/`int` type keyword.
+    uint64, ///< `u64` type keyword.
+    int64, ///< `i64`/`long` type keyword.
+    float32, ///< `f32`/`float` type keyword.
+    float64, ///< `f64`/`double` type keyword.
 
     // literals
-    int_lit, // any integer literal
-    float_lit, // any floating literal
+    int_lit, ///< Any integer literal.
+    float_lit, ///< Any floating-point literal.
 
     // keywords
     as_kw,
@@ -61,7 +61,7 @@ namespace lang::lexer {
     true_kw,
     while_kw,
 
-    invalid
+    invalid ///< Malformed or unrecognised lexeme.
   };
 
   /**

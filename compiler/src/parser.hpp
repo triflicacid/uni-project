@@ -190,9 +190,9 @@ namespace lang::parser {
 
     /** @brief Controls whether `parse_expression` requires, allows, or forbids a trailing semicolon. */
     enum class ExprExpectSC {
-      No, // no sc required or expected
-      Maybe, // not requires but may be present (sets terminated_ property)
-      Yes, // absolutely required
+      No, ///< No trailing semicolon required or expected.
+      Maybe, ///< Not required, but may be present (sets the `terminated_` property if so).
+      Yes, ///< Absolutely required.
     };
 
     /**

@@ -88,9 +88,9 @@ namespace assembler::instruction {
   private:
     /** @brief What kind of argument, if any, the next @ref write call should be interpreted as. */
     enum class NextArgument {
-      None,
-      AsValue,
-      AsAddress
+      None, ///< No special interpretation; write plain bits.
+      AsValue, ///< Interpret the next write as a `<value>` argument.
+      AsAddress ///< Interpret the next write as an `<addr>` argument.
     };
 
     uint64_t m_word; ///< Instruction word built so far.

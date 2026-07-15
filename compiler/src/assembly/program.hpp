@@ -16,12 +16,12 @@ namespace lang::assembly {
    * but the two are freely interchangeable at the type level.
    */
   enum class Position {
-    Start,
-    Previous = 1,
-    Before = 1,
-    Next = 2,
-    After = 2,
-    End,
+    Start, ///< Before the first block.
+    Previous = 1, ///< The block before the cursor (navigational name for value 1).
+    Before = 1, ///< Insert before the reference block (positional name for value 1).
+    Next = 2, ///< The block after the cursor (navigational name for value 2).
+    After = 2, ///< Insert after the reference block (positional name for value 2).
+    End, ///< After the last block.
   };
 
   /**

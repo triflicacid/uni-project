@@ -38,15 +38,15 @@ namespace processor::debug {
   struct Message {
     /** @brief Kind of event a debug message describes. */
     enum Type {
-      Cycle, // cycle number, $pc, and instruction
-      Instruction,
-      Argument, // argument type
-      Memory, // memory access (read/write)
-      Register, // register access (read/write)
-      ZeroFlag, // update zero flag
-      Conditional, // conditional test info
-      Interrupt, // an interrupt was triggered
-      Error,
+      Cycle, ///< Cycle number, $pc, and fetched instruction; see @ref CycleMessage.
+      Instruction, ///< Decoded instruction mnemonic and details; see @ref InstructionMessage.
+      Argument, ///< A single decoded instruction argument; see @ref ArgumentMessage.
+      Memory, ///< A memory read or write; see @ref MemoryMessage.
+      Register, ///< A register read or write; see @ref RegisterMessage.
+      ZeroFlag, ///< An update to the zero flag; see @ref ZeroFlagMessage.
+      Conditional, ///< The outcome of a conditional test; see @ref ConditionalMessage.
+      Interrupt, ///< An interrupt was triggered; see @ref InterruptMessage.
+      Error, ///< An error condition; see @ref ErrorMessage.
     };
 
     Type type; ///< Kind of event this message describes.

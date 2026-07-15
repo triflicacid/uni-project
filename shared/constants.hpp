@@ -25,18 +25,18 @@ namespace constants {
 
         /** @brief Index of each register in the register file. */
         enum reg : uint8_t {
-            pc = 0,
-            rpc,
-            sp,
-            fp,
-            flag,
-            isr,
-            imr,
-            ipc,
-            ret,
-            k1,
-            k2,
-            r1, // start of general registers
+            pc = 0, ///< Program counter, points to the next instruction word in memory.
+            rpc, ///< Return program counter, set to the current $pc on call to a procedure, jumped back to when the procedure is exited.
+            sp, ///< Stack pointer, points to the top of the stack (specifically, the byte above the top of the stack).
+            fp, ///< Frame pointer, points to the top of the latest stack frame.
+            flag, ///< Contains various state information about the processor.
+            isr, ///< Interrupt status register; a set bit indicates that interrupt is pending.
+            imr, ///< Interrupt mask register; a bitmask used to 'cancel out' or ignore pending interrupts in $isr.
+            ipc, ///< Interrupt program counter, set to $pc on an interrupt, used to restore it on return from the interrupt handler.
+            ret, ///< Return register, stores the return value from the procedure/process, or error information on error.
+            k1, ///< Internal register used by pseudo-instructions and as a scratch register for the interrupt handler.
+            k2, ///< Internal register used by pseudo-instructions and as a scratch register for the interrupt handler.
+            r1, ///< Start of the general-purpose registers, free for the programmer's use.
         };
 
         /** @brief Maps a register's mnemonic name to its @ref reg index. */
@@ -76,29 +76,29 @@ namespace constants {
 
     /** @brief Bit flags held in the $flag register. */
     enum class flag {
-        zero = 0x8,
-        is_running = 0x10,
-        in_interrupt = 0x100,
-        error = 0xe0,
+        zero = 0x8, ///< Set when the last data-affecting instruction produced a zero result.
+        is_running = 0x10, ///< Set while the processor is running; cleared to halt execution.
+        in_interrupt = 0x100, ///< Set while an interrupt handler is executing.
+        error = 0xe0, ///< Mask covering the error-code bits, set by @ref error::code.
     };
 
     /** @brief Comparison result flags produced by the compare instruction and tested by conditional jumps. */
     namespace cmp {
         /** @brief A comparison condition (equality/ordering), encoded as a bitmask of a base condition plus an optional 'inverse' bit. */
         enum flag : uint8_t {
-            z  = 0b1000,
-            eq = 0b1010,
-            lt = 0b1001,
-            gt = 0b1011,
+            z  = 0b1000, ///< Zero flag is set (mnemonic `z`); also the shared base bit set by eq/lt/gt.
+            eq = 0b1010, ///< Equal.
+            lt = 0b1001, ///< Less than.
+            gt = 0b1011, ///< Greater than.
 
-            nz  = 0b100 | z,
-            neq = 0b100 | eq,
-            nlt = 0b100 | lt,
-            ge = nlt,
-            ngt = 0b100 | gt,
-            le = ngt,
+            nz  = 0b100 | z, ///< Not zero.
+            neq = 0b100 | eq, ///< Not equal.
+            nlt = 0b100 | lt, ///< Not less than.
+            ge = nlt, ///< Greater than or equal to (alias of @ref nlt).
+            ngt = 0b100 | gt, ///< Not greater than.
+            le = ngt, ///< Less than or equal to (alias of @ref ngt).
 
-            na = 0b0000,
+            na = 0b0000, ///< No condition; always passes.
         };
 
         /** @brief Maps a cmp flag's mnemonic name to its @ref flag value. */
@@ -142,13 +142,13 @@ namespace constants {
 
         /** @brief Specific error condition that occurred. */
         enum code {
-            ok = 0b000,
-            opcode = 0b001,
-            segfault = 0b010,
-            reg = 0b011,
-            syscall = 0b100,
-            datatype = 0b101,
-            unknown = 0b111,
+            ok = 0b000, ///< No error.
+            opcode = 0b001, ///< Unrecognised or invalid opcode.
+            segfault = 0b010, ///< Out-of-bounds or otherwise invalid memory access.
+            reg = 0b011, ///< Invalid register index.
+            syscall = 0b100, ///< Unrecognised or invalid syscall number.
+            datatype = 0b101, ///< Invalid datatype bit pattern.
+            unknown = 0b111, ///< Unspecified error.
         };
     }
 
@@ -220,12 +220,12 @@ namespace constants {
 
             /** @brief Concrete datatype an instruction operates on. */
             enum dt {
-                u32 = 0b000,  // uint32
-                u64 = 0b001,  // uint64
-                s32 = 0b010,  // int32
-                s64 = 0b011,  // int64
-                flt = 0b100,  // float32
-                dbl = 0b101,  // float64
+                u32 = 0b000, ///< `uint32`.
+                u64 = 0b001, ///< `uint64`.
+                s32 = 0b010, ///< `int32`.
+                s64 = 0b011, ///< `int64`.
+                flt = 0b100, ///< `float32`.
+                dbl = 0b101, ///< `float64`.
             };
 
             /** @brief Maps a datatype's mnemonic suffix to its @ref dt value. */
@@ -275,7 +275,7 @@ namespace constants {
             _div,
             _mod,
             _jal,
-            _push, // deprecated
+            _push, ///< Deprecated.
             _syscall = 0x3f,
         };
 

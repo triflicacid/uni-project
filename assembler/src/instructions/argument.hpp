@@ -7,13 +7,13 @@
 namespace assembler::instruction {
   /** @brief Kind of value an instruction argument holds, used to match it against a @ref assembler::instruction::Signature's expected argument types. */
   enum class ArgumentType : uint8_t {
-    Immediate, // <imm>, int
-    Byte, // <imm>, byte
-    DecimalImmediate, // PRIVATE. <imm>, double
-    Address, // <addr> or PRIVATE <mem>
-    Register, // <reg>, no indicator bits
+    Immediate, ///< `<imm>`, integer.
+    Byte, ///< `<imm>`, byte.
+    DecimalImmediate, ///< PRIVATE. `<imm>`, double.
+    Address, ///< `<addr>` or PRIVATE `<mem>`.
+    Register, ///< `<reg>`, no indicator bits.
     RegisterIndirect, ///< PRIVATE. A register plus a byte offset, held as a heap-allocated @ref ArgumentRegisterIndirect.
-    Value, // <value>
+    Value, ///< `<value>`.
     Label, ///< PRIVATE. Substituted as the signature sees fit, held as a heap-allocated @ref ArgumentLabel.
   };
 
