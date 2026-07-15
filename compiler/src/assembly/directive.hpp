@@ -87,6 +87,11 @@ namespace lang::assembly {
   protected:
     std::deque<T> data_; ///< Elements stored by the directive, rendered as hex-formatted data.
 
+    /**
+     * @brief Renders the directive's name followed by its elements as hex-formatted data.
+     * @param os Output stream to write to.
+     * @return The same stream, for chaining.
+     */
     std::ostream& _print(std::ostream &os) const override {
       Directive::print(os);
       for (const T& x : data_) os << " 0x" << std::hex << (int64_t) x;

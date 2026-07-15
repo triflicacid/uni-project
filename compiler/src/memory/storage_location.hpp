@@ -17,9 +17,12 @@ namespace lang::memory {
    */
   // describe the physical storage location of a symbol
   struct StorageLocation {
+    /**
+     * @brief Which union member below is active.
+     */
     enum Type {
-      Block,
-      Stack, // offset `-n($fp)`
+      Block, ///< Global storage tied to a basic block.
+      Stack, ///< Stack-relative storage, offset `-n($fp)`.
     };
 
     Type type; ///< Which union member below is valid: a block-tied global, or a stack-relative offset.

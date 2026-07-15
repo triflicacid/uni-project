@@ -14,6 +14,9 @@ namespace lang::ops {
    */
   class BuiltinOperator : public Operator {
   public:
+    /**
+     * @brief Callback that generates code for the operator's arguments (evaluated left to right) and returns the register holding the result.
+     */
     using GeneratorFn = std::function<uint8_t(Context&, const std::deque<std::reference_wrapper<const value::Value>>&)>;
 
   protected:

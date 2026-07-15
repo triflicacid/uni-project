@@ -92,9 +92,28 @@ namespace lang::symbol {
      */
     void insert(std::unique_ptr<Symbol> symbol);
 
+    /**
+     * @brief Returns an iterator to the first symbol entry.
+     * @return Iterator to the beginning of the id-keyed symbol map.
+     */
     auto begin() { return symbols_.begin(); }
+
+    /**
+     * @brief Returns a const iterator to the first symbol entry.
+     * @return Const iterator to the beginning of the id-keyed symbol map.
+     */
     auto begin() const { return symbols_.begin(); }
+
+    /**
+     * @brief Returns an iterator past the last symbol entry.
+     * @return Iterator to the end of the id-keyed symbol map.
+     */
     auto end() { return symbols_.end(); }
+
+    /**
+     * @brief Returns a const iterator past the last symbol entry.
+     * @return Const iterator to the end of the id-keyed symbol map.
+     */
     auto end() const { return symbols_.end(); }
   };
 

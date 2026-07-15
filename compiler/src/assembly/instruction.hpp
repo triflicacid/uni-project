@@ -7,7 +7,14 @@
 #include "line.hpp"
 
 namespace lang::assembly {
+  /**
+   * @brief Datatype tag used to select the width/kind variant of an instruction's opcode.
+   */
   using datatype = constants::inst::datatype::dt;
+
+  /**
+   * @brief Comparison flag used to select which condition an instruction tests.
+   */
   using condition = constants::cmp::flag;
 
   /**

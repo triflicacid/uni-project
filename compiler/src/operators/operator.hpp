@@ -30,6 +30,9 @@ namespace lang {
 
 /** @brief Operators: built-in and user-defined operator resolution, overload matching, and code generation for expressions. */
 namespace lang::ops {
+  /**
+   * @brief Globally-unique identifier assigned to each registered Operator overload.
+   */
   using OperatorId = unsigned int;
 
   /**

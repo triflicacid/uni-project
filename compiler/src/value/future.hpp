@@ -146,6 +146,9 @@ namespace lang::value {
   // this is for word-sized literals only (non-reference types)
   class ContiguousLiteral : public Value {
   public:
+    /**
+     * @brief Element values making up the contiguous aggregate, in order.
+     */
     using Elements = std::deque<std::reference_wrapper<value::Value>>;
 
   private:

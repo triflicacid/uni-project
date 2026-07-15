@@ -5,15 +5,20 @@
 #include "lexer/token.hpp"
 
  namespace lang::symbol {
+  /**
+   * @brief Globally-unique identifier assigned to each registered Symbol.
+   */
   using SymbolId = uint32_t;
 
-  // represent the category of a symbol
+  /**
+   * @brief What kind of name-bound entity a Symbol represents.
+   */
   enum class Category {
-    StackBased, // ordinary symbol, stack-based, offset determined by StackManager
-    Global, // global symbol
-    Argument, // argument, point to index
-    Function, // globally-placed function (block-bound)
-    Namespace,
+    StackBased, ///< Ordinary symbol, stack-based; offset determined by StackManager.
+    Global, ///< Global symbol.
+    Argument, ///< Function argument; refers to its index.
+    Function, ///< Globally-placed function (block-bound).
+    Namespace, ///< Namespace, used purely for qualifying nested names.
   };
 
   /**

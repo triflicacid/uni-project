@@ -17,6 +17,12 @@ namespace assembler {
     }
   }
 
+  /**
+   * @brief Reads a specific source file's lines into `data.lines` (used for both the main source file and %include targets).
+   * @param filepath Path of the file to read.
+   * @param data Pre-processor data to populate.
+   * @param msgs Message list; populated with an error (plus a note giving the attempted path) if the file cannot be opened.
+   */
   void read_source_file(const std::filesystem::path &filepath, pre_processor::Data &data, message::List &msgs) {
     data.file_path = filepath;
     std::ifstream file(filepath);

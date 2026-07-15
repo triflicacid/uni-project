@@ -24,6 +24,11 @@ namespace lang::memory {
     Literal(const Literal&) = delete;
 
   protected:
+    /**
+     * @brief Constructs a literal from its type and raw data; use @ref get to obtain an interned instance instead of calling this directly.
+     * @param type The literal's type.
+     * @param data Raw 64-bit data word.
+     */
     Literal(const type::Node& type, uint64_t data) : type_(type), data_(data) {}
 
   public:

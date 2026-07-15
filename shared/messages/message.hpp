@@ -10,9 +10,9 @@
 namespace message {
   /** @brief Severity of a diagnostic message. */
   enum Level {
-    Note,
-    Warning,
-    Error
+    Note, ///< Informational, non-erroneous message.
+    Warning, ///< Potential issue that doesn't prevent compilation.
+    Error ///< Issue that prevents compilation from succeeding.
   };
 
   /**
@@ -73,7 +73,7 @@ namespace message {
 
   /**
    * @brief Map an integer to a severity level, clamping to the valid range.
-   * @param level Integer level, where the lowest value (below 1) maps to @ref Level::Note.
+   * @param level Integer level, where the lowest value (below 1) maps to @ref message::Note.
    * @return The corresponding severity level.
    */
   Level level_from_int(int level);

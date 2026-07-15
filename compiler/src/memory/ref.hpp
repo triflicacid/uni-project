@@ -8,9 +8,12 @@ namespace lang::memory {
    */
   // describe reference to an item, either a register or a memory address
   struct Ref {
+    /**
+     * @brief Which kind of location a Ref names.
+     */
     enum Type {
-      Register,
-      Memory
+      Register, ///< A register.
+      Memory ///< A memory address.
     };
 
     Type type; ///< Whether this reference names a register or a memory address.

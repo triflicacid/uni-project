@@ -24,6 +24,11 @@ namespace lang::assembly {
     std::optional<Location> origin_; ///< Source-code location this block originates from, if recorded via @ref origin.
 
     BasicBlock() {}
+
+    /**
+     * @brief Constructs a block with the given label.
+     * @param label Label text to assign.
+     */
     explicit BasicBlock(std::string label) : label_(std::move(label)) {}
 
   public:
