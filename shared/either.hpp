@@ -13,8 +13,8 @@
  */
 template<typename U, typename V>
 class Either {
-  std::optional<U> left_;
-  std::optional<V> right_;
+  std::optional<U> left_; ///< The left value, set when this Either is holding a `U`.
+  std::optional<V> right_; ///< The right value, set when this Either is holding a `V`.
 
 public:
   /**

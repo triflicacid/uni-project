@@ -11,7 +11,7 @@
 namespace processor {
   /** @brief The processor: fetch-decode-execute cycle, instruction argument decoding, flags, and interrupt handling, built on top of @ref Core. */
   class CPU : public Core {
-    uint64_t addr_interrupt_handler{};
+    uint64_t addr_interrupt_handler{}; ///< Address execution jumps to when handling an interrupt.
 
   public:
     /**

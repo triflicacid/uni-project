@@ -20,7 +20,7 @@ namespace lang::assembly {
    */
   // represent a `.<directive> ...` entry
   class Directive : public Line {
-    std::string name_;
+    std::string name_; ///< Directive name, without its leading dot.
 
   protected:
     std::ostream& _print(std::ostream &os) const override;
@@ -85,7 +85,7 @@ namespace lang::assembly {
   template<typename T>
   class _DataDirective : public Directive {
   protected:
-    std::deque<T> data_;
+    std::deque<T> data_; ///< Elements stored by the directive, rendered as hex-formatted data.
 
     std::ostream& _print(std::ostream &os) const override {
       Directive::print(os);
@@ -172,7 +172,7 @@ namespace lang::assembly {
    * @brief Internal helper directive taking exactly one numeric parameter, used to implement both .space and .offset.
    */
   class _SingleDirective : public Directive {
-    uint32_t n_;
+    uint32_t n_; ///< The directive's single numeric parameter.
 
   protected:
     std::ostream& _print(std::ostream &os) const override;

@@ -18,10 +18,10 @@ namespace lang::assembly {
   // a basic block represents a sequence of assembly instructions
   // it is labelled and can only contain jump instructions at the end
   class BasicBlock {
-    std::string label_;
-    std::deque<std::unique_ptr<Line>> contents_;
-    std::stringstream comment_; // comment after the block's label
-    std::optional<Location> origin_;
+    std::string label_; ///< The block's label text.
+    std::deque<std::unique_ptr<Line>> contents_; ///< Lines (instructions/directives) making up the block, in order.
+    std::stringstream comment_; ///< Comment attached after the block's label, written to via @ref comment.
+    std::optional<Location> origin_; ///< Source-code location this block originates from, if recorded via @ref origin.
 
     BasicBlock() {}
     explicit BasicBlock(std::string label) : label_(std::move(label)) {}

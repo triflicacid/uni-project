@@ -8,10 +8,10 @@ namespace assembler {
   /** @brief A single unit of assembled output at a fixed byte offset: one instruction, a data blob, or a reserved space directive. */
   class Chunk {
   public:
-    uint32_t offset; // Byte offset
+    uint32_t offset; ///< Byte offset this chunk occupies in the output.
 
   private:
-    Location m_source; // source location
+    Location m_source; ///< Source location this chunk was assembled from.
 //    std::unique_ptr<instruction::Instruction> m_instruction = nullptr;
 //    std::unique_ptr<std::vector<uint8_t>> m_bytes = nullptr;
 
@@ -64,7 +64,7 @@ namespace assembler {
 
   /** @brief A chunk holding a single encoded instruction. */
   class InstructionChunk : public Chunk {
-    std::unique_ptr<instruction::Instruction> m_instruction;
+    std::unique_ptr<instruction::Instruction> m_instruction; ///< The encoded instruction this chunk holds.
 
   public:
     /**
@@ -102,7 +102,7 @@ namespace assembler {
 
   /** @brief A chunk holding a raw block of data bytes (e.g. from a `.data`-style directive). */
   class DataChunk : public Chunk {
-    std::vector<uint8_t> m_bytes;
+    std::vector<uint8_t> m_bytes; ///< Raw data bytes this chunk holds.
 
   public:
     /**
@@ -129,7 +129,7 @@ namespace assembler {
 
   /** @brief A chunk that reserves a run of zero-initialised bytes (e.g. from a `.space`-style directive), without storing content. */
   class SpaceDirectiveChunk : public Chunk {
-    uint32_t m_value;
+    uint32_t m_value; ///< Number of zero bytes to reserve.
 
   public:
     /**

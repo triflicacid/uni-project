@@ -6,8 +6,8 @@
 namespace lang::ast {
   /** @brief AST leaf wrapping a scalar memory::Literal, with an optional type suffix overriding type-hint-based inference. */
   class LiteralNode : public Node {
-    optional_ref<const memory::Literal> lit_;
-    optional_ref<const type::Node> suffix_; // type suffix? this overrides type hinting
+    optional_ref<const memory::Literal> lit_; ///< Resolved literal value, set once `process` has run.
+    optional_ref<const type::Node> suffix_; ///< Explicit type suffix, if set; overrides type-hint-based inference.
 
     /** @brief Determine the numeric type this literal should be cast to, based on any type suffix/hint or the literal's own float/int form. */
     const type::Node& get_target_numeric_type() const;

@@ -18,17 +18,17 @@ class IStreamWrapper {
 public:
   /** @brief A position within the wrapped stream: byte offset plus 1-based line and column. */
   struct Position {
-    std::streampos stream;
-    int line;
-    int col;
+    std::streampos stream; ///< Byte offset into the wrapped stream.
+    int line; ///< 1-based line number.
+    int col; ///< 1-based column number.
   };
 
 private:
-  std::deque<Position> positions;
-  Position pos; // doesn't use .stream here, only in cache
-  std::unique_ptr<std::istream> istream;
-  std::optional<std::string> name;
-  std::map<unsigned int, std::string> lines; // cached lines
+  std::deque<Position> positions; ///< Stack of positions saved via @ref save_position, restored/discarded LIFO.
+  Position pos; ///< Current read position; doesn't use `.stream` here, only in cache lookups.
+  std::unique_ptr<std::istream> istream; ///< The wrapped input stream.
+  std::optional<std::string> name; ///< Display name for the stream (e.g. source file path), if set.
+  std::map<unsigned int, std::string> lines; ///< Cache of whole-line text, keyed by 1-based line number.
 
 public:
   /** @brief Wrap an input file stream. @param stream Stream to take ownership of. */

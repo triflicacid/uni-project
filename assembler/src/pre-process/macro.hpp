@@ -7,9 +7,9 @@
 namespace assembler::pre_processor {
   /** @brief A macro definition: its declared parameter names and body lines, to be expanded at each call site. */
   struct Macro {
-    Location loc;
-    std::vector<std::string> params;
-    std::vector<std::string> lines; // Lines in macro's body
+    Location loc; ///< Source location the macro was defined at.
+    std::vector<std::string> params; ///< Names of the macro's parameters.
+    std::vector<std::string> lines; ///< Lines making up the macro's body.
 
     /**
      * @brief Construct a macro with an empty body.

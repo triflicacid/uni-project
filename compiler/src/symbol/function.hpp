@@ -11,7 +11,7 @@ namespace lang::symbol {
    * @brief Symbol subclass representing a function or operator binding, overriding define() to trigger the originating AST node's code generation on demand.
    */
   class Function : public Symbol {
-    ast::FunctionBaseNode& node_;
+    ast::FunctionBaseNode& node_; ///< AST node defining this function's signature and body.
 
   public:
     /**

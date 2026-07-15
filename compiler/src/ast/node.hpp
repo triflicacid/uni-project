@@ -32,14 +32,14 @@ namespace lang::ast {
    * and `generate_code` (phase 4, code emission).
    */
   class Node : public PrintableEntity, public lexer::TokenSpan {
-    lexer::Token tstart_;
-    std::optional<lexer::Token> tend_;
-    optional_ref<const type::Node> type_hint_; // type hint, used for resolving overload sets etc
-    optional_ref<control_flow::ConditionalContext> cond_ctx_; // set when evaluating a conditional, means operator should support this and contribute
-    optional_ref<const memory::StorageLocation> target_; // store result at this target?
+    lexer::Token tstart_; ///< First token of the node's source span.
+    std::optional<lexer::Token> tend_; ///< Last token of the node's source span, if set.
+    optional_ref<const type::Node> type_hint_; ///< Type hint, used for resolving overload sets etc.
+    optional_ref<control_flow::ConditionalContext> cond_ctx_; ///< Set when evaluating a conditional; means the operator should support this and contribute.
+    optional_ref<const memory::StorageLocation> target_; ///< Storage location the result should be placed at, if any.
 
   protected:
-    std::unique_ptr<value::Value> value_; // every node has a value, which is possibly set in ::process
+    std::unique_ptr<value::Value> value_; ///< Every node has a value, which is possibly set in `::process`.
 
   public:
     /**

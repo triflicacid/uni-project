@@ -33,5 +33,5 @@ namespace lang::type {
     bool reference_as_ptr() const override { return false; }
   };
 
-  extern BoolNode boolean;
+  extern BoolNode boolean; ///< The single global instance of the boolean type.
 }

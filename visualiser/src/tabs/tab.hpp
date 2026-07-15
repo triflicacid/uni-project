@@ -11,10 +11,10 @@ namespace visualiser::tabs {
    */
   class Tab {
   protected:
-    std::string title_;
-    bool called_init_ = false;
-    ftxui::Component content_; // main tab content, cannot be null
-    ftxui::Component help_; // help pane, may be null
+    std::string title_; ///< Text shown in the tab navigation bar.
+    bool called_init_ = false; ///< Whether @ref init has already run.
+    ftxui::Component content_; ///< Main tab content; cannot be null.
+    ftxui::Component help_; ///< Help pane; may be null if the tab has no help content.
 
     /** @brief Build `content_` (and optionally `help_`); called once on first access to either. */
     virtual void init() = 0;

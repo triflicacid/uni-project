@@ -22,11 +22,11 @@ namespace lang::ast {
     };
 
   private:
-    lexer::Token name_;
-    std::optional<std::reference_wrapper<const type::Node>> type_; // optional if type deduction required
-    Category category_ = Variable;
-    symbol::SymbolId id_; // ID of created symbol
-    std::optional<std::unique_ptr<Node>> assignment_; // optional assignment
+    lexer::Token name_; ///< Token holding the declared name.
+    std::optional<std::reference_wrapper<const type::Node>> type_; ///< Explicit type, or empty if it must be deduced.
+    Category category_ = Variable; ///< Kind of symbol this declaration introduces.
+    symbol::SymbolId id_; ///< Id of the symbol created for this declaration.
+    std::optional<std::unique_ptr<Node>> assignment_; ///< Initial-value expression, if present.
 
   public:
     /**

@@ -96,9 +96,9 @@ class ScrollerBase : public ComponentBase {
    */
   bool Focusable() const final { return true; }
 
-  int selected_ = 0;
-  int size_ = 0;
-  Box box_;
+  int selected_ = 0; ///< Index of the currently selected/cursor line.
+  int size_ = 0; ///< Total number of lines in the scrolled content.
+  Box box_; ///< Bounding box of the visible frame, used to compute page-up/page-down and clamp scrolling.
 };
 
 Component Scroller(Component child) {

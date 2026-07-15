@@ -22,8 +22,8 @@ namespace message {
    */
   class BasicMessage {
   protected:
-    Level level_;
-    std::stringstream msg_;
+    Level level_; ///< Severity of the message.
+    std::stringstream msg_; ///< Message text, written to via @ref get and read back by @ref print.
 
     /**
      * @brief Print the message's severity label (e.g. "error") and, if present, its code.
@@ -54,7 +54,7 @@ namespace message {
   /** @brief A diagnostic message attributed to a specific source location. */
   class Message : public BasicMessage {
   protected:
-    Location loc_;
+    Location loc_; ///< Source location this message is attributed to.
 
   public:
     /**

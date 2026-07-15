@@ -22,10 +22,10 @@ namespace lang::control_flow {
    * @brief Tracks the in-progress code generation of a conditional construct (if/while guard, logical operator) in terms of its true/false branch targets.
    */
   struct ConditionalContext {
-    optional_ref<assembly::BasicBlock> if_true; // jump here if true, otherwise fall through
-    optional_ref<assembly::BasicBlock> if_false; // jump here if false, otherwise fall through
-    bool inverse_cond = false; // inverse conditional flag? `true` and `false` branches still maintained
-    bool handled = false; // has this conditional been handled? I.e., have branches been handled (conditional vs expr)
+    optional_ref<assembly::BasicBlock> if_true; ///< Block to jump to if the condition is true; falls through if empty.
+    optional_ref<assembly::BasicBlock> if_false; ///< Block to jump to if the condition is false; falls through if empty.
+    bool inverse_cond = false; ///< Whether the condition polarity is inverted; `if_true`/`if_false` still refer to the same (unflipped) targets.
+    bool handled = false; ///< Whether branches have already been generated for this conditional (vs. an expression value).
 
     /**
      * @brief Creates an independent copy of this context with a reset handled flag.

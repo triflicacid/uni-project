@@ -14,11 +14,11 @@
  */
 class named_fstream {
 public:
-    std::fstream &stream;
-    std::filesystem::path path;
+    std::fstream &stream; ///< The wrapped stream. References `*ptr` when owned, or the caller's stream otherwise.
+    std::filesystem::path path; ///< Path `stream` was opened from.
 
 private:
-    std::unique_ptr<std::fstream> ptr; // may be nullptr, in which case we do not have ownership, just a reference
+    std::unique_ptr<std::fstream> ptr; ///< Owned stream, or nullptr if this instance only references one owned elsewhere.
 
 public:
     /**

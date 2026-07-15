@@ -31,13 +31,13 @@
    * that ensures the symbol has a concrete storage location or code-generated body.
    */
   class Symbol {
-    lexer::Token token_; // origin token (top-level name)
-    std::optional<std::reference_wrapper<const Symbol>> parent_; // parent symbol (i.e., namespace)
-    SymbolId id_ = -1;
-    Category category_;
-    const type::Node& type_;
-    bool constant_ = false;
-    bool assigned_ = false; // record if we have been assigned to
+    lexer::Token token_; ///< Origin token (top-level name).
+    std::optional<std::reference_wrapper<const Symbol>> parent_; ///< Parent symbol (i.e. enclosing namespace), if any.
+    SymbolId id_ = -1; ///< Unique id.
+    Category category_; ///< Kind of symbol this is.
+    const type::Node& type_; ///< Static type of the symbol.
+    bool constant_ = false; ///< Whether the symbol was declared constant.
+    bool assigned_ = false; ///< Whether the symbol has been assigned to.
 
   public:
     Symbol(const Symbol&) = delete;

@@ -24,8 +24,8 @@ namespace lang::ast {
   /** @brief Base class for all built-in/overloadable operator expression nodes, storing the operator's symbol token and its operand children. */
   class OperatorNode : public Node {
   protected:
-    lexer::Token op_symbol_; // token of our actual symbol
-    std::deque<std::unique_ptr<Node>> args_;
+    lexer::Token op_symbol_; ///< Token of the operator's actual symbol.
+    std::deque<std::unique_ptr<Node>> args_; ///< Operand nodes.
 
     /**
      * @brief Return the ith operand.
@@ -116,9 +116,9 @@ namespace lang::ast {
 
   /** @brief Represents an operator resolved via user/builtin overload lookup (`operatorX(...)`), caching the matched signature and operator. */
   class OverloadableOperatorNode : public OperatorNode {
-    optional_ref<const type::FunctionNode> signature_; // signature, set in ::process
-    optional_ref<const ops::Operator> op_; // resolves operator, set in ::process
-    bool special_pointer_op_ = false; // track if +/- on a pointer as we need to do something special
+    optional_ref<const type::FunctionNode> signature_; ///< Matched signature, set in `::process`.
+    optional_ref<const ops::Operator> op_; ///< Resolved operator, set in `::process`.
+    bool special_pointer_op_ = false; ///< Whether this is +/- on a pointer, which needs special-cased code generation.
 
   public:
     using OperatorNode::OperatorNode;
@@ -146,8 +146,8 @@ namespace lang::ast {
 
   /** @brief Represents `expr as type`, an optionally unchecked cast to a target type. */
   class CastOperatorNode : public OperatorNode {
-    const type::Node& target_;
-    bool sudo_ = false;
+    const type::Node& target_; ///< Target type being cast to.
+    bool sudo_ = false; ///< Whether to bypass the usual cast compatibility checks.
 
   public:
     /**
@@ -193,7 +193,7 @@ namespace lang::ast {
 
   /** @brief Represents `lhs.rhs` member/property access, resolving the property name against the LHS's type. */
   class DotOperatorNode : public OperatorNode {
-    std::string property_;
+    std::string property_; ///< Property name being accessed.
 
   public:
     /**
@@ -308,9 +308,9 @@ namespace lang::ast {
 
   /** @brief Represents a generalized function call `expr(<args>)`, where the callee is an arbitrary expression rather than a fixed symbol. */
   class FunctionCallOperatorNode : public OperatorNode {
-    std::unique_ptr<Node> subject_; // note, args_ only contains things in (...)
-    optional_ref<const type::FunctionNode> signature_;
-    optional_ref<const symbol::Symbol> symbol_; // populated if calling a symbol
+    std::unique_ptr<Node> subject_; ///< Callee expression; `args_` (inherited from OperatorNode) only contains the arguments inside `(...)`.
+    optional_ref<const type::FunctionNode> signature_; ///< Matched call signature, set in `::process`.
+    optional_ref<const symbol::Symbol> symbol_; ///< Resolved symbol being called, populated if the callee resolves to a symbol.
 
   public:
     /**
@@ -369,7 +369,7 @@ namespace lang::ast {
 
   /** @brief Represents `sizeof expr` or `sizeof <type>`, resolving to the byte size of the operand's type or a directly given type. */
   class SizeOfOperatorNode : public OperatorNode {
-    optional_ref<const type::Node> type_; // expr_ may be nullptr
+    optional_ref<const type::Node> type_; ///< Type whose size is taken; the underlying operand expression may be null when constructed from a directly given type.
 
   public:
     /**
@@ -413,8 +413,8 @@ namespace lang::ast {
 
   /** @brief Represents `lhs[rhs]`, either pointer/array subscripting or an overloaded `operator[]`. */
   class SubscriptOperatorNode : public OperatorNode {
-    optional_ref<const type::FunctionNode> signature_;
-    optional_ref<const ops::Operator> op_; // overloaded operator, in case of non-pointer behaviour
+    optional_ref<const type::FunctionNode> signature_; ///< Matched `operator[]` signature, set in `::process` when overload resolution applies.
+    optional_ref<const ops::Operator> op_; ///< Overloaded operator, used for non-pointer/array subscript behaviour.
 
   public:
     /**
@@ -454,7 +454,7 @@ namespace lang::ast {
 
   /** @brief Represents short-circuiting `&&`/`||`, distinct from ops::LazyLogicalOperator, the corresponding builtin-operator invoked at runtime. */
   class LazyLogicalOperator : public OperatorNode {
-    bool and_; // && or ||
+    bool and_; ///< True for `&&`, false for `||`.
 
   public:
     /**

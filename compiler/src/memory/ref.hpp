@@ -13,8 +13,8 @@ namespace lang::memory {
       Memory
     };
 
-    Type type;
-    uint64_t offset;
+    Type type; ///< Whether this reference names a register or a memory address.
+    uint64_t offset; ///< Register index or memory address, depending on `type`.
 
     /**
      * @brief Compares two references for equality by kind and offset.

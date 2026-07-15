@@ -11,11 +11,11 @@ namespace lang::ast {
    * plus a unique id used to name the generated branch/label blocks.
    */
   class IfStatementNode : public Node {
-    unsigned int id_; // id for creating if-else blocks
-    std::unique_ptr<Node> guard_;
-    std::unique_ptr<Node> then_;
-    std::optional<std::unique_ptr<Node>> else_;
-    std::optional<lexer::Token> else_token_; // `else` token
+    unsigned int id_; ///< Unique id used to name the generated branch/label blocks.
+    std::unique_ptr<Node> guard_; ///< Guard/condition expression.
+    std::unique_ptr<Node> then_; ///< Body executed when the guard is true.
+    std::optional<std::unique_ptr<Node>> else_; ///< Body executed when the guard is false, if present.
+    std::optional<lexer::Token> else_token_; ///< Token of the `else` keyword, if present.
 
   public:
     /**

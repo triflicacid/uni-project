@@ -12,10 +12,10 @@ namespace lang::ast {
    * registry for the body, and the symbol id of the topmost path segment.
    */
   class NamespaceNode : public Node, public ContainerNode {
-    std::deque<lexer::Token> names_; // <name1>.<name2> ...
-    std::deque<std::unique_ptr<Node>> lines_;
-    std::unique_ptr<symbol::Registry> registry_; // local registry
-    std::optional<symbol::SymbolId> id_; // IF of *topmost* namespace
+    std::deque<lexer::Token> names_; ///< Dotted path of name tokens, e.g. `<name1>.<name2>...`.
+    std::deque<std::unique_ptr<Node>> lines_; ///< Body statements, in order.
+    std::unique_ptr<symbol::Registry> registry_; ///< Local registry for the body's scope.
+    std::optional<symbol::SymbolId> id_; ///< Id of the *topmost* path segment's namespace symbol.
 
   public:
     /**

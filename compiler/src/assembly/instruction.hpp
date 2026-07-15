@@ -17,7 +17,7 @@ namespace lang::assembly {
    */
   // base instruction wrapper containing nothing but the mnemonic
   class Instruction : public Line {
-    std::string mnemonic_; // base mnemonic
+    std::string mnemonic_; ///< Base mnemonic text.
 
   protected:
     std::ostream& _print(std::ostream& os) const override
@@ -36,9 +36,9 @@ namespace lang::assembly {
    */
   // a generic instruction which takes any number of arguments, and may have a conditional/datatype flag
   class GenericInstruction : public Instruction {
-    std::optional<condition> cond_;
-    std::optional<datatype> datatype_;
-    std::vector<std::unique_ptr<BaseArg>> args_;
+    std::optional<condition> cond_; ///< Conditional-execution test, if attached via @ref set_conditional.
+    std::optional<datatype> datatype_; ///< Datatype qualifier, if attached via @ref set_datatype.
+    std::vector<std::unique_ptr<BaseArg>> args_; ///< Operands, in append order.
 
   protected:
     std::ostream& _print(std::ostream& os) const override;
@@ -95,8 +95,10 @@ namespace lang::assembly {
    */
   // special instance for `cvt<x>2<y>` instruction
   class ConversionInstruction : public Instruction {
-    datatype from_type_, to_type_;
-    uint8_t from_reg_, to_reg_;
+    datatype from_type_; ///< Source datatype.
+    datatype to_type_; ///< Destination datatype.
+    uint8_t from_reg_; ///< Source register.
+    uint8_t to_reg_; ///< Destination register.
 
   protected:
     std::ostream& _print(std::ostream& os) const override;
@@ -118,8 +120,8 @@ namespace lang::assembly {
    */
   // special instance for the loadi instruction, which accepts a uint64_t immediate argument
   class LoadImmediateInstruction : public Instruction {
-    uint8_t reg_;
-    uint64_t imm_;
+    uint8_t reg_; ///< Destination register.
+    uint64_t imm_; ///< Immediate value to load.
 
   protected:
     std::ostream& _print(std::ostream& os) const override;

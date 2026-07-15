@@ -13,8 +13,8 @@ namespace lang::value {
    */
   // an rvalue is something which has a value
   class RValue {
-    const type::Node& type_;
-    memory::Ref ref_;
+    const type::Node& type_; ///< Static type of the value.
+    memory::Ref ref_; ///< Current physical location holding the value.
 
   public:
     /**

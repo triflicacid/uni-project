@@ -13,9 +13,9 @@ namespace message {
    * @ref print_warning, @ref print_error).
    */
   class MessageWithSource : public Message {
-    int len_; // Length of the error
-    int idx_; // Index to point to
-    std::string src_;
+    int len_; ///< Length of the underlined span.
+    int idx_; ///< Index within `src_` the underlined span starts at.
+    std::string src_; ///< Full text of the source line being underlined.
 
   public:
     /**
@@ -46,14 +46,14 @@ namespace message {
 
   /** @brief A diagnostic message that spans and underlines a range of source covering multiple lines. */
   class MessageWithMultilineSource : public Message {
-    Location end_; // starts at loc_, ends here
-    std::deque<std::string> lines_;
+    Location end_; ///< End of the span; the span starts at `loc_` (inherited from @ref Message).
+    std::deque<std::string> lines_; ///< Source text for every line from `loc_.line()` to `end_.line()`.
 
     /** @brief Pre-formatted text fragments (line-number gutter, primary underline, secondary underline) used when printing. */
     struct FormatInfo {
-      std::string prefix;
-      std::string primary;
-      std::string secondary;
+      std::string prefix; ///< Line-number gutter text.
+      std::string primary; ///< Underline for the message's own span.
+      std::string secondary; ///< Underline for surrounding context, if any.
     };
 
     /**

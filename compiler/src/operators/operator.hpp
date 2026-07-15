@@ -36,17 +36,17 @@ namespace lang::ops {
    * @brief Call-site context passed to Operator::invoke, carrying an optional branch-fusion target and the invocation's source location.
    */
   struct InvocationOptions {
-    optional_ref<control_flow::ConditionalContext> conditional;
-    Location origin;
+    optional_ref<control_flow::ConditionalContext> conditional; ///< Branch-fusion target, if the invocation is happening in a conditional context.
+    Location origin; ///< Source location of the invocation.
   };
 
   /**
    * @brief Abstract base identifying one resolvable operator overload, built-in or user-defined, by a unique id, its textual symbol, and its function signature.
    */
   class Operator {
-    OperatorId id_;
-    std::string op_;
-    const type::FunctionNode& type_;
+    OperatorId id_; ///< Globally-unique id assigned on construction.
+    std::string op_; ///< Textual operator symbol (e.g. "+", "[]").
+    const type::FunctionNode& type_; ///< Function signature this overload matches against.
 
   public:
     /**

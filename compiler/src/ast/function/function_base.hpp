@@ -16,10 +16,10 @@ namespace lang::ast {
    * hooks implemented by subclasses.
    */
   class FunctionBaseNode : public Node {
-    lexer::Token name_;
-    std::deque<std::unique_ptr<SymbolDeclarationNode>> params_; // note, assume that arg types and param types are equivalent
-    symbol::SymbolId id_; // ID of created/referencing function (created in ::collate_registry)
-    bool defined_ = false; // has this function been created/defined
+    lexer::Token name_; ///< Token holding the function's name.
+    std::deque<std::unique_ptr<SymbolDeclarationNode>> params_; ///< Parameter declarations; assumed to match the signature's parameter types 1:1.
+    symbol::SymbolId id_; ///< Id of the created/referencing function symbol, created in `::collate_registry`.
+    bool defined_ = false; ///< Whether this function has been created/defined.
 
     /**
      * @brief Check that no two parameters share the same name (ignoring the discard symbol `_`).
@@ -29,9 +29,9 @@ namespace lang::ast {
     bool validate_params(message::List& messages);
 
   protected:
-    const type::FunctionNode& type_;
-    bool generate_code_ = true; // `false` tells us to skip code generation
-    bool define_function_ = true; // define ourself as a `function` symbol? If false, don't define ourself.
+    const type::FunctionNode& type_; ///< This function's signature.
+    bool generate_code_ = true; ///< `false` tells us to skip code generation.
+    bool define_function_ = true; ///< Whether to define ourself as a `function` symbol; if false, don't define ourself.
 
     /**
      * @brief Process the function's specific contents, called between the function's frame push/pop.

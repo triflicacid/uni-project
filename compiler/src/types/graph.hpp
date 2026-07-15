@@ -13,8 +13,8 @@ namespace lang::type {
    * built-in numeric/boolean subtype hierarchy.
    */
   class TypeGraph {
-    std::deque<std::unique_ptr<Node>> store_; // used to store Types with no home :(
-    Graph<TypeId, std::reference_wrapper<Node>> graph_;
+    std::deque<std::unique_ptr<Node>> store_; ///< Owns heap-allocated types that have no other owner.
+    Graph<TypeId, std::reference_wrapper<Node>> graph_; ///< Subtype-relationship graph over every inserted type.
 
   public:
     /**
@@ -101,5 +101,5 @@ namespace lang::type {
     auto end() const { return graph_.end(); }
   };
 
-  extern TypeGraph graph;
+  extern TypeGraph graph; ///< The single global type-dependency graph, initialised via @ref TypeGraph::init.
 }

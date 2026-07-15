@@ -6,8 +6,8 @@
 namespace lang::ast {
   /** @brief Represents an unconditional `loop { body }` statement, which must evaluate to unit and exits only via `break`. */
   class LoopStatementNode : public Node {
-    unsigned int id_; // id for creating blocks
-    std::unique_ptr<Node> body_;
+    unsigned int id_; ///< Unique id used to name the generated blocks.
+    std::unique_ptr<Node> body_; ///< Loop body.
 
   public:
     /**

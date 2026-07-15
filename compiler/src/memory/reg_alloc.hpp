@@ -11,10 +11,10 @@
 #include "value/value.hpp"
 
 namespace lang::memory {
-  // store total number of registers we may use
+  /** @brief Total number of registers the allocator may use. */
   constexpr int total_registers = constants::registers::count - constants::registers::r1;
 
-  // register at which the offset starts
+  /** @brief Register at which the allocator's register-offset indexing starts. */
   constexpr constants::registers::reg initial_register = constants::registers::r1;
 
   /**
@@ -22,9 +22,9 @@ namespace lang::memory {
    */
   // an object is a wrapped Value with additional metadata
   struct Object {
-    std::shared_ptr<value::Value> value;
-    uint32_t occupied_ticks = 0;
-    bool required = true; // if not required, we may be evicted at any time without consequence
+    std::shared_ptr<value::Value> value; ///< The wrapped value.
+    uint32_t occupied_ticks = 0; ///< LRU age counter, used to pick an eviction candidate.
+    bool required = true; ///< If not required, this object may be evicted at any time without consequence.
 
     /**
      * @brief Wraps a value in a freshly-initialized object (age zero, required).
@@ -45,11 +45,11 @@ namespace lang::memory {
    * Pure data, manipulated entirely by RegisterAllocationManager.
    */
   struct Store {
-    std::array<std::optional<Object>, total_registers> regs; // Objects stored in registers, may be null
-    std::optional<Object> ret; // $ret register. this is only accessible by a subset of functions, and is generally read-only
-    std::deque<Ref> history; // history of allocations; front = [0] = most recent
-    uint64_t stack_offset; // point to stack offset when store was saved
-    uint64_t spill_addr; // current address for memory spill
+    std::array<std::optional<Object>, total_registers> regs; ///< Objects stored in registers; entries may be empty.
+    std::optional<Object> ret; ///< $ret register's tracked object; only accessible by a subset of functions and generally read-only.
+    std::deque<Ref> history; ///< History of allocations; front (`[0]`) is the most recent.
+    uint64_t stack_offset; ///< Stack offset at the point this store was saved.
+    uint64_t spill_addr; ///< Current address for memory spilling.
   };
 
   /**
@@ -61,10 +61,10 @@ namespace lang::memory {
    */
   // class for managing register allocation and register spills
   class RegisterAllocationManager {
-    std::deque<Store> instances_; // front = most recent
-    std::map<uint64_t, Object> memory_; // Objects stored in memory from memory spill, may not be null
-    assembly::Program& program_;
-    symbol::SymbolTable& symbols_;
+    std::deque<Store> instances_; ///< Stack of nested scopes; front is the most recent (innermost).
+    std::map<uint64_t, Object> memory_; ///< Objects spilled to memory, keyed by address.
+    assembly::Program& program_; ///< Output program instructions are emitted into.
+    symbol::SymbolTable& symbols_; ///< Symbol table used for stack offsets and storage lookups.
 
   public:
     /**

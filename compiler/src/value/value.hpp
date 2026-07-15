@@ -30,9 +30,9 @@ namespace lang::value {
    * literal, or computed temporary.
    */
   class Value {
-    std::unique_ptr<LValue> lvalue_; // store lvalue, if applicable
-    std::unique_ptr<RValue> rvalue_; // store rvalue, if applicable
-    std::reference_wrapper<const type::Node> type_;
+    std::unique_ptr<LValue> lvalue_; ///< Addressable-storage component, if applicable.
+    std::unique_ptr<RValue> rvalue_; ///< Concrete-location component, if applicable.
+    std::reference_wrapper<const type::Node> type_; ///< Static type of the value.
 
   public:
     /**
@@ -169,6 +169,5 @@ namespace lang::value {
   // create a unit value
   std::unique_ptr<Value> unit_value();
 
-  // value with unit type, used to signify "empty" or "none"
-  extern const std::unique_ptr<Value> unit_value_instance;
+  extern const std::unique_ptr<Value> unit_value_instance; ///< Shared value with unit type, used to signify "empty" or "none".
 }

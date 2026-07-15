@@ -18,8 +18,8 @@ namespace lang::memory {
    */
   // describe a literal - a word of memory + a type
   class Literal {
-    const type::Node& type_;
-    uint64_t data_;
+    const type::Node& type_; ///< This literal's type.
+    uint64_t data_; ///< Raw 64-bit data word.
 
     Literal(const Literal&) = delete;
 

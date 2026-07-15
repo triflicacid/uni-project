@@ -15,8 +15,8 @@ namespace lang::type {
    * factory (`create`) that interns signatures in the global TypeGraph.
    */
   class FunctionNode : public Node {
-    std::deque<std::reference_wrapper<const Node>> parameters_;
-    const Node& returns_;
+    std::deque<std::reference_wrapper<const Node>> parameters_; ///< Parameter types, in order.
+    const Node& returns_; ///< Return type.
 
   public:
     /**

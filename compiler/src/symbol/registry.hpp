@@ -25,8 +25,8 @@ namespace lang::symbol {
   class Registry {
     friend class SymbolTable; // allow the symbol table to access us -- it will contain us
 
-    std::unordered_map<SymbolId, std::unique_ptr<Symbol>> symbols_;
-    std::unordered_map<std::string, std::deque<SymbolId>> names_;
+    std::unordered_map<SymbolId, std::unique_ptr<Symbol>> symbols_; ///< Symbols, keyed by id.
+    std::unordered_map<std::string, std::deque<SymbolId>> names_; ///< Symbol ids, keyed by name; multiple ids support overloading.
 
     /**
      * @brief Records a symbol's id under its fully-qualified name, supporting multiple overloads per name.
@@ -102,11 +102,11 @@ namespace lang::symbol {
    * @brief Bundles the inputs needed to construct and validate a new variable, argument, or function symbol.
    */
   struct VariableOptions {
-    lexer::Token token;
-    const type::Node& type;
-    Category category;
-    bool is_constant = false;
-    optional_ref<ast::FunctionBaseNode> func_origin; // AST node backing a function-category symbol; required when category == Function
+    lexer::Token token; ///< Origin token providing the symbol's name.
+    const type::Node& type; ///< Symbol's type.
+    Category category; ///< Kind of symbol to create (variable, argument, function, ...).
+    bool is_constant = false; ///< Whether the symbol is a constant (cannot be reassigned).
+    optional_ref<ast::FunctionBaseNode> func_origin; ///< AST node backing a function-category symbol; required when `category == Function`.
   };
 
   /**

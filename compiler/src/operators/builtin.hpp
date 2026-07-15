@@ -17,10 +17,7 @@ namespace lang::ops {
     using GeneratorFn = std::function<uint8_t(Context&, const std::deque<std::reference_wrapper<const value::Value>>&)>;
 
   protected:
-    // function to generate appropriate code
-    // provided array of arguments -- left to right
-    // returns result
-    GeneratorFn generator_;
+    GeneratorFn generator_; ///< Callback that generates the operator's code given its arguments (left to right) and returns the result register.
 
   public:
     /**
@@ -54,8 +51,8 @@ namespace lang::ops {
    */
   // define a built-in relational operator which is capable of conditional branching
   class RelationalBuiltinOperator : public BuiltinOperator {
-    constants::cmp::flag flag_;
-    const type::Node& datatype_;
+    constants::cmp::flag flag_; ///< Comparison flag this operator tests when fusing into a branch.
+    const type::Node& datatype_; ///< Common datatype both operands are coerced to before comparing.
 
   public:
     /**
@@ -104,7 +101,7 @@ namespace lang::ops {
    */
   // lazy logical && or || operator
   class LazyLogicalOperator : public BuiltinOperator {
-    bool and_; // && or || ?
+    bool and_; ///< True for `&&`, false for `||`.
 
   public:
     /**

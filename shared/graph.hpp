@@ -18,9 +18,9 @@
  */
 template<typename _Key, typename _Node, typename _Hash = std::hash<_Key>>
 class Graph {
-  std::unordered_map<_Key, _Node, _Hash> nodes_;
-  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> edges_; // key connected to values, outgoing connections
-  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> inv_edges_; // inverse edges, incoming connections
+  std::unordered_map<_Key, _Node, _Hash> nodes_; ///< Node values, keyed by `_Key`.
+  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> edges_; ///< Key connected to values, outgoing connections.
+  std::unordered_map<_Key, std::unordered_set<_Key, _Hash>, _Hash> inv_edges_; ///< Inverse edges, incoming connections.
 
 public:
   /** @brief Check whether the graph has no nodes. @return True if empty. */

@@ -18,8 +18,8 @@ namespace lang::lexer {
    * of that type; this is what lets expected-token sets be built without images.
    */
   struct BasicToken {
-    TokenType type; // type of the token
-    std::string image; // the image which created us (source)
+    TokenType type; ///< Type of the token.
+    std::string image; ///< Source text that produced this token.
 
     /**
      * @brief Construct a token with no source image.
@@ -86,8 +86,8 @@ namespace lang::lexer {
 
   /** @brief A token as produced by the lexer: a `BasicToken` plus its originating stream and source location, able to generate diagnostic messages about itself. */
   struct Token : BasicToken, message::MessageGenerator {
-    std::reference_wrapper<IStreamWrapper> origin;
-    Location loc; // the location in which we were created
+    std::reference_wrapper<IStreamWrapper> origin; ///< Stream this token was lexed from.
+    Location loc; ///< Source location this token was created at.
 
     /**
      * @brief Construct a token with full source provenance.

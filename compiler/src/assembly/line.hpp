@@ -14,8 +14,8 @@ namespace lang::assembly {
    * the content-rendering hook _print().
    */
   class Line {
-    std::stringstream comment_;
-    std::optional<Location> origin_;
+    std::stringstream comment_; ///< Trailing human-readable comment, written to via @ref comment.
+    std::optional<Location> origin_; ///< Source-code location this line was generated from, if recorded via @ref origin.
 
   protected:
     /**

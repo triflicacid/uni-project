@@ -8,14 +8,14 @@
 namespace assembler {
   /** @brief Accumulated state of the assembly pass: source lines, discovered labels, and the resulting compiled chunks. */
   struct Data {
-    CliArguments &cli_args;
-    std::filesystem::path file_path; // Name of source file
-    std::vector<pre_processor::Line> lines; // List of source file lines
-    std::map<std::string, Label> labels;
-    uint16_t offset; // byte offset into source
-    std::string main_label; // Contain "main" label name
-    std::string interrupt_label; // Contains "interrupt_handler" label name
-    std::deque<std::unique_ptr<Chunk>> buffer; // List of compiled chunks
+    CliArguments &cli_args; ///< Parsed command-line arguments.
+    std::filesystem::path file_path; ///< Path of the source file being assembled.
+    std::vector<pre_processor::Line> lines; ///< Pre-processed source file lines.
+    std::map<std::string, Label> labels; ///< Discovered labels, keyed by name.
+    uint16_t offset; ///< Current byte offset into the compiled output.
+    std::string main_label; ///< Name of the label marking the program's entry point (default "main").
+    std::string interrupt_label; ///< Name of the label marking the interrupt handler (default "interrupt_handler").
+    std::deque<std::unique_ptr<Chunk>> buffer; ///< Compiled chunks, in emission order.
 
     /** @brief Construct empty assembly data. @param cli_args Parsed command-line arguments. */
     explicit Data(CliArguments &cli_args) : cli_args(cli_args), offset(0) {

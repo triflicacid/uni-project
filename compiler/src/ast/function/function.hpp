@@ -12,8 +12,8 @@ namespace lang::ast {
    * not implemented" function) and its own local registry for the body's scope.
    */
   class FunctionNode : public FunctionBaseNode {
-    std::optional<std::unique_ptr<BlockNode>> body_; // body is optional, empty = 'not implemented'
-    std::unique_ptr<symbol::Registry> registry_;
+    std::optional<std::unique_ptr<BlockNode>> body_; ///< Function body; empty means "declared but not implemented".
+    std::unique_ptr<symbol::Registry> registry_; ///< Local registry for the body's scope.
 
   protected:
     /**

@@ -31,9 +31,9 @@ namespace lang::assembly {
    */
   // an argument which references a label
   class LabelArg : public BaseArg {
-    const std::string label_;
-    int offset_;
-    bool addr_;
+    const std::string label_; ///< Name of the referenced label.
+    int offset_; ///< Constant offset added to the label.
+    bool addr_; ///< True for address-of/indirect form ("offset(label)"), false for plain value form.
 
   public:
     /**
@@ -57,9 +57,9 @@ namespace lang::assembly {
   // a special form of `LabelArg` which references a BasicBlock
   // error is BasicBlock does not have a label
   class BlockReferenceArg : public BaseArg {
-    const BasicBlock& block_;
-    int offset_;
-    bool addr_;
+    const BasicBlock& block_; ///< Block this operand refers to.
+    int offset_; ///< Constant offset added to the block's label.
+    bool addr_; ///< True for address-of/indirect form, false for plain value form.
 
   public:
     /**
@@ -80,8 +80,8 @@ namespace lang::assembly {
    */
   // a generic assembly argument: imm, mem, reg, reg_indirect
   class Arg : public BaseArg {
-    constants::inst::arg type_;
-    uint32_t value_;
+    constants::inst::arg type_; ///< Addressing mode this argument represents.
+    uint32_t value_; ///< Mode-specific encoded payload.
 
   public:
     /**
@@ -154,7 +154,7 @@ namespace lang::assembly {
    */
   // an argument representing a character
   class CharArg : public BaseArg {
-    char ch_;
+    char ch_; ///< The wrapped character.
 
   public:
     /**
@@ -173,7 +173,7 @@ namespace lang::assembly {
    */
   // an argument representing a string (null-terminated)
   class StringArg : public BaseArg {
-    std::stringstream stream_;
+    std::stringstream stream_; ///< Accumulated string content, written to via @ref get.
 
   public:
     StringArg() = default;

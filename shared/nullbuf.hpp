@@ -2,7 +2,7 @@
 
 /** @brief A stream buffer that discards everything written to it, backing @ref nullstream. */
 class nullbuf : public std::streambuf {
-    char buffer[100];
+    char buffer[100]; ///< Scratch put-area reused on every overflow; its contents are never read back.
 
     /**
      * @brief Discard an overflowed character by resetting the put area, without ever flushing it anywhere.

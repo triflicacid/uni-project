@@ -12,11 +12,11 @@
  * @brief State of one of the three source-view panes (source/assembly/language): which file it shows, its scroll position, and its selected lines.
  */
 struct PaneStateData {
-  visualiser::sources::Type type;
-  ftxui::Component component;
-  const visualiser::sources::File* file; // file which we are viewing
-  int *pos_ptr; // pointer top ScrollerBase::selected_
-  std::unordered_set<int> selected_lines; // store selected lines in each pane
+  visualiser::sources::Type type; ///< Kind of source this pane displays.
+  ftxui::Component component; ///< The pane's UI component.
+  const visualiser::sources::File* file; ///< File currently being viewed.
+  int *pos_ptr; ///< Pointer to the pane's scroller's `ScrollerBase::selected_`.
+  std::unordered_set<int> selected_lines; ///< Line numbers currently selected in this pane.
 
   /**
    * @brief Construct pane state for the given source type.

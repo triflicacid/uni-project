@@ -30,5 +30,5 @@ namespace lang::type {
     bool reference_as_ptr() const override { return false; }
   };
 
-  extern NamespaceNode name_space;
+  extern NamespaceNode name_space; ///< The single global instance of the namespace pseudo-type.
 }

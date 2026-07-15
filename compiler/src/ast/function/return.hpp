@@ -5,7 +5,7 @@
 namespace lang::ast {
   /** @brief Represents a `return [expr];` statement, unconditionally exiting the enclosing function with the given (or unit) value. */
   class ReturnNode : public Node {
-    std::optional<std::unique_ptr<Node>> expr_;
+    std::optional<std::unique_ptr<Node>> expr_; ///< Returned expression, if present.
 
   public:
     /**

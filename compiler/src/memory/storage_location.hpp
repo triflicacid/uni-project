@@ -22,12 +22,12 @@ namespace lang::memory {
       Stack, // offset `-n($fp)`
     };
 
-    Type type;
+    Type type; ///< Which union member below is valid: a block-tied global, or a stack-relative offset.
     union {
       int base_offset;
       std::reference_wrapper<assembly::BasicBlock> block;
     };
-    int offset; // offset from base
+    int offset; ///< Offset from the base (block or stack offset).
 
     /**
      * @brief Converts this storage description into a concrete assembly operand.

@@ -9,7 +9,7 @@ namespace lang::ops {
    * @brief Operator implemented by a user-written operator function, invoked as an ordinary function call rather than inline codegen.
    */
   class UserDefinedOperator : public Operator {
-    const symbol::Symbol& symbol_; // tied symbol ID
+    const symbol::Symbol& symbol_; ///< Function symbol implementing this operator.
 
   public:
     /**

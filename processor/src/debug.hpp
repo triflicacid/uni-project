@@ -49,7 +49,7 @@ namespace processor::debug {
       Error,
     };
 
-    Type type;
+    Type type; ///< Kind of event this message describes.
 
     /** @brief Construct a message of a given type. @param type Event kind. */
     explicit Message(Type type) : type(type) {}
@@ -57,9 +57,9 @@ namespace processor::debug {
 
   /** @brief Trace event emitted at the start of each CPU cycle. */
   struct CycleMessage : Message {
-    int n = 0;
-    uint64_t pc;
-    uint64_t inst;
+    int n = 0; ///< Cycle number.
+    uint64_t pc; ///< Program counter for this cycle.
+    uint64_t inst; ///< Raw instruction word fetched, or 0 if not yet fetched.
 
     /**
      * @brief Construct a cycle event.
@@ -72,8 +72,8 @@ namespace processor::debug {
 
   /** @brief Trace event describing the instruction being executed and its decoded mnemonic/details. */
   struct InstructionMessage : Message {
-    std::string instruction;
-    std::stringstream message;
+    std::string instruction; ///< Instruction mnemonic.
+    std::stringstream message; ///< Detail text describing the decoded instruction, written via @ref stream.
 
     /** @brief Construct an instruction event. @param mnemonic Instruction mnemonic. */
     explicit InstructionMessage(std::string mnemonic) : Message(Type::Instruction), instruction(std::move(mnemonic)) {}
@@ -84,10 +84,10 @@ namespace processor::debug {
 
   /** @brief Trace event describing a single decoded instruction argument. */
   struct ArgumentMessage : Message {
-    constants::inst::arg arg_type;
-    int n;
-    std::stringstream message;
-    uint64_t value = 0;
+    constants::inst::arg arg_type; ///< Kind of argument decoded.
+    int n; ///< Index of this argument within the instruction.
+    std::stringstream message; ///< Detail text describing the decoded argument, written via @ref stream.
+    uint64_t value = 0; ///< Decoded value of the argument.
 
     /**
      * @brief Construct an argument event.
@@ -102,10 +102,10 @@ namespace processor::debug {
 
   /** @brief Trace event describing a single memory read or write. */
   struct MemoryMessage : Message {
-    bool is_write = false;
-    uint64_t address;
-    uint8_t bytes;
-    uint64_t value = 0;
+    bool is_write = false; ///< True if this event is a write, false if a read.
+    uint64_t address; ///< Address accessed.
+    uint8_t bytes; ///< Number of bytes accessed.
+    uint64_t value = 0; ///< Value read or written.
 
     /**
      * @brief Construct a memory-access event.
@@ -122,9 +122,9 @@ namespace processor::debug {
 
   /** @brief Trace event describing a single register read or write. */
   struct RegisterMessage : Message {
-    bool is_write = false;
-    constants::registers::reg reg;
-    uint64_t value = 0;
+    bool is_write = false; ///< True if this event is a write, false if a read.
+    constants::registers::reg reg; ///< Register accessed.
+    uint64_t value = 0; ///< Value read or written.
 
     /** @brief Construct a register-access event. @param reg Register accessed. */
     explicit RegisterMessage(constants::registers::reg reg): Message(Type::Register), reg(reg) {}
@@ -138,8 +138,8 @@ namespace processor::debug {
 
   /** @brief Trace event describing an update to the zero flag. */
   struct ZeroFlagMessage : Message {
-    constants::registers::reg reg;
-    bool state;
+    constants::registers::reg reg; ///< Register the zero test was performed on.
+    bool state; ///< New state of the zero flag.
 
     /**
      * @brief Construct a zero-flag event.
@@ -151,9 +151,9 @@ namespace processor::debug {
 
   /** @brief Trace event describing the outcome of a conditional (test) instruction. */
   struct ConditionalMessage : Message {
-    constants::cmp::flag test_bits;
-    bool passed = true;
-    std::optional<constants::cmp::flag> flag_bits;
+    constants::cmp::flag test_bits; ///< Condition being tested.
+    bool passed = true; ///< Whether the condition passed.
+    std::optional<constants::cmp::flag> flag_bits; ///< Actual comparison flag bits the test was checked against, set on failure via @ref fail.
 
     /** @brief Construct a conditional event. @param test_bits Condition being tested. */
     explicit ConditionalMessage(constants::cmp::flag test_bits) : Message(Type::Conditional), test_bits(test_bits) {}
@@ -173,7 +173,9 @@ namespace processor::debug {
 
   /** @brief Trace event recording that an interrupt was triggered. */
   struct InterruptMessage : Message {
-    uint64_t isr, imr, ipc;
+    uint64_t isr; ///< Interrupt status register value at the time of the interrupt.
+    uint64_t imr; ///< Interrupt mask register value at the time of the interrupt.
+    uint64_t ipc; ///< Saved program counter to resume at after the interrupt handler returns.
 
     /**
      * @brief Construct an interrupt event.
@@ -186,7 +188,7 @@ namespace processor::debug {
 
   /** @brief Trace event recording an error condition. */
   struct ErrorMessage : Message {
-    std::string message;
+    std::string message; ///< Description of the error.
 
     /** @brief Construct an error event. @param message Description of the error. */
     explicit ErrorMessage(std::string message) : Message(Type::Error), message(std::move(message)) {}

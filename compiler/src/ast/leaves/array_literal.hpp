@@ -5,7 +5,7 @@
 namespace lang::ast {
   /** @brief Represents an array literal `[e1, e2, ...]`, holding its element expressions appended incrementally via `add`. */
   class ArrayLiteralNode : public Node {
-    std::deque<std::unique_ptr<Node>> elements_;
+    std::deque<std::unique_ptr<Node>> elements_; ///< Element expressions, in order.
 
   public:
     using Node::Node;

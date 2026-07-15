@@ -19,15 +19,15 @@ namespace assembler::instruction {
 
   /** @brief An indirect-register argument: a register plus a byte offset. */
   struct ArgumentRegisterIndirect {
-    uint8_t reg;
-    int32_t offset;
+    uint8_t reg; ///< Register index.
+    int32_t offset; ///< Byte offset applied to the register's value.
   };
 
   /** @brief An as-yet-unresolved label reference, to be substituted with an address once the label's location is known. */
   struct ArgumentLabel {
-    std::string label;
-    int offset;
-    bool is_addr = false; // address if surrounded by brackets `()'
+    std::string label; ///< Label name.
+    int offset; ///< Byte offset to apply once the label is resolved.
+    bool is_addr = false; ///< Whether the label was written as an address (surrounded by brackets).
   };
 
   /**
@@ -39,8 +39,8 @@ namespace assembler::instruction {
    */
   class Argument {
   private:
-    ArgumentType m_type;
-    uint64_t m_data;
+    ArgumentType m_type; ///< Type tag determining how `m_data` is interpreted.
+    uint64_t m_data; ///< Immediate/register value, or a type-erased pointer to a heap payload, depending on `m_type`.
 
     /** @brief Free any heap-allocated payload referenced by `m_data`, based on the current `m_type`. */
     void destroy();

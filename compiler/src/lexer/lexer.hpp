@@ -10,7 +10,7 @@
 namespace lang::lexer {
   /** @brief Tokenizer that reads a source stream one token at a time, turning raw characters into `Token`s for the `parser::Parser` to consume. */
   class Lexer {
-    IStreamWrapper& stream_;
+    IStreamWrapper& stream_; ///< Source stream characters are read from.
 
     /**
      * @brief Build a token located at the stream's current position.

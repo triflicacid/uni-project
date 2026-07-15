@@ -7,7 +7,7 @@
 namespace lang::ast {
   /** @brief Leaf node representing a bare identifier reference, resolved (phase 3) against possibly multiple candidate symbols sharing that name. */
   class SymbolReferenceNode : public Node {
-    std::string symbol_;
+    std::string symbol_; ///< Referenced symbol name.
 
   public:
     /**

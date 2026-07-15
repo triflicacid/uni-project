@@ -12,11 +12,11 @@ namespace lang {
    * @brief Aggregate of the compiler's shared mutable state, threaded by reference through every phase of the compilation pipeline (process, resolve, generate_code) after parsing.
    */
   struct Context {
-    message::List& messages;
-    assembly::Program& program;
-    memory::StackManager& stack_manager;
-    memory::RegisterAllocationManager& reg_alloc_manager;
-    symbol::SymbolTable& symbols;
-    std::stack<control_flow::LoopContext> loops; // track which loops we are in
+    message::List& messages; ///< Diagnostic messages accumulated during compilation.
+    assembly::Program& program; ///< Output program instructions are emitted into.
+    memory::StackManager& stack_manager; ///< Tracks the runtime stack layout during code generation.
+    memory::RegisterAllocationManager& reg_alloc_manager; ///< Manages register allocation and spilling during code generation.
+    symbol::SymbolTable& symbols; ///< Declared symbols and their storage locations.
+    std::stack<control_flow::LoopContext> loops; ///< Stack of enclosing loop contexts, innermost on top.
   };
 }

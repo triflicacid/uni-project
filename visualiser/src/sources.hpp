@@ -21,11 +21,11 @@ namespace visualiser::sources {
    * @brief One instruction slot in the reconstructed `.s` listing, tracing back to its `.asm` and (if known) `.edel` origin.
    */
   struct PCLine {
-    uint64_t pc;
-    std::string line; // line in reconstructed source
-    int line_no; // line number in reconstructed source
-    Location asm_origin; // source in .asm file
-    std::optional<Location> lang_origin; // source in .edel file
+    uint64_t pc; ///< Program counter value this slot occupies.
+    std::string line; ///< Line text in the reconstructed source.
+    int line_no; ///< Line number in the reconstructed source.
+    Location asm_origin; ///< Source location in the `.asm` file.
+    std::optional<Location> lang_origin; ///< Source location in the `.edel` file, if known.
 
     /**
      * @brief Check whether a breakpoint is set at this `$pc`.
@@ -49,10 +49,10 @@ namespace visualiser::sources {
    * @brief A source, assembly, or language file loaded into the visualiser, holding its lines and load state.
    */
   struct File {
-    std::filesystem::path path;
-    Type type;
-    std::vector<FileLine> lines;
-    bool loaded = false;
+    std::filesystem::path path; ///< Path of the file on disk.
+    Type type; ///< Kind of file this represents (source, assembly, or language).
+    std::vector<FileLine> lines; ///< Loaded lines, empty until @ref loaded is true.
+    bool loaded = false; ///< Whether the file's lines have been read from disk yet.
 
     /**
      * @brief Reconstruct the file's full text by joining its lines.
@@ -71,10 +71,10 @@ namespace visualiser::sources {
    * @brief A single line of a `File`, with a trace back to the `$pc` value(s) it produced (via the `.s` reconstruction).
    */
   struct FileLine {
-    File* parent;
-    int n;
-    std::string line;
-    std::vector<PCLine*> pc_trace; // trace back to $pc (.s file)
+    File* parent; ///< File this line belongs to.
+    int n; ///< Line number within `parent`.
+    std::string line; ///< Line text.
+    std::vector<PCLine*> pc_trace; ///< `$pc` slots (in the `.s` reconstruction) that trace back to this line.
 
     /**
      * @brief Check whether this line produced the given `$pc`.
@@ -96,11 +96,11 @@ namespace visualiser::sources {
     std::optional<uint64_t> pc() const;
   };
 
-  extern std::unique_ptr<named_fstream> edel_source; // source edel file
-  extern std::unique_ptr<named_fstream> asm_source; // source assembly file (output)
-  extern std::unique_ptr<named_fstream> s_source; // source assembly file (reconstruction)
-  extern std::map<uint32_t, PCLine> pc_to_line; // map byte offset ($pc) to location
-  extern std::map<std::filesystem::path, File> files; // map file paths to contents (used for source storing sources)
+  extern std::unique_ptr<named_fstream> edel_source; ///< Source `.edel` (language) file.
+  extern std::unique_ptr<named_fstream> asm_source; ///< Source assembly (`.asm`) file, the compiler's output.
+  extern std::unique_ptr<named_fstream> s_source; ///< Reconstructed assembly (`.s`) file.
+  extern std::map<uint32_t, PCLine> pc_to_line; ///< Maps byte offset (`$pc`) to its `PCLine`.
+  extern std::map<std::filesystem::path, File> files; ///< Maps file paths to their loaded `File`, used for storing and retrieving source files.
 
   /** Graph tracing each file:line to its corresponding line(s) in the other representations (lang <-> asm <-> reconstructed). */
   extern Graph<std::pair<std::filesystem::path, int>, FileLine*, pair_hash> trace;

@@ -16,8 +16,8 @@ namespace lang::value {
   // we are not computable, either - if we were, return a Symbol
   // therefore, this is generally used when we have multiple options to pick from
   class SymbolRef : public Value {
-    std::string name_;
-    std::deque<std::reference_wrapper<symbol::Symbol>> overload_set_;
+    std::string name_; ///< Name this reference was built from.
+    std::deque<std::reference_wrapper<symbol::Symbol>> overload_set_; ///< Candidate symbols the name may refer to, narrowed by @ref resolve.
 
   public:
     /**
@@ -86,7 +86,7 @@ namespace lang::value {
   // we will resolve into a literal of the given type
   // this is for word-sized literals only (non-reference types)
   class Literal : public Value {
-    const memory::Literal& lit_;
+    const memory::Literal& lit_; ///< Wrapped raw interned literal.
 
   public:
     /**
@@ -149,8 +149,8 @@ namespace lang::value {
     using Elements = std::deque<std::reference_wrapper<value::Value>>;
 
   private:
-    Elements elements_;
-    bool global_; // define globally or locally?
+    Elements elements_; ///< Element values laid out contiguously, in order.
+    bool global_; ///< Whether the aggregate's backing storage is a global data block rather than stack-allocated.
 
   public:
     /**

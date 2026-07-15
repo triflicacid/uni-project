@@ -29,13 +29,13 @@ namespace lang::parser {
    * attached `message::List`.
    */
   class Parser {
-    lexer::Lexer& lexer_;
-    std::deque<lexer::Token> buffer_; // store upcoming Tokens
-    lexer::Token prev_; // store previous token
-    message::List* messages_;
+    lexer::Lexer& lexer_; ///< Lexer tokens are read from.
+    std::deque<lexer::Token> buffer_; ///< Buffered lookahead tokens, not yet consumed.
+    lexer::Token prev_; ///< Most recently consumed token.
+    message::List* messages_; ///< Message list errors are reported into, if attached.
 
-    bool expect_block_end; // tracks if we're at the last expression in a block
-    const lexer::Token* expr_last_; // points to the last token of an expression
+    bool expect_block_end; ///< Whether the parser is at the last expression in a block.
+    const lexer::Token* expr_last_; ///< Last token of the expression currently being parsed.
 
     /**
      * @brief Read up to `n` further tokens from the lexer into the lookahead buffer, stopping early at eof.
@@ -58,11 +58,11 @@ namespace lang::parser {
 
     /** @brief Bundle of everything parsed after a function's name, handed to a caller-supplied factory to build the concrete function/operator node. */
     struct FunctionTailContent {
-      lexer::Token token;
-      lexer::Token name;
-      const type::FunctionNode& type;
-      std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params;
-      std::optional<std::unique_ptr<ast::BlockNode>> body;
+      lexer::Token token; ///< Start token of the function declaration.
+      lexer::Token name; ///< Token holding the function's name.
+      const type::FunctionNode& type; ///< Parsed function signature.
+      std::deque<std::unique_ptr<ast::SymbolDeclarationNode>> params; ///< Parsed parameter declarations.
+      std::optional<std::unique_ptr<ast::BlockNode>> body; ///< Parsed body block, or empty for an unimplemented declaration.
     };
 
     /**

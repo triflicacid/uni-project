@@ -14,13 +14,13 @@ namespace assembler::pre_processor {
 
   /** @brief Accumulated state of the pre-processing pass: source lines plus the constants/macros/includes discovered so far. */
   struct Data {
-    CliArguments &cli_args; // CLI options to program
-    std::filesystem::path executable; // Path to executable
-    std::filesystem::path file_path; // Name of source file (may be different to base.input_filename if parsing an include)
-    std::vector<Line> lines; // List of source file lines
-    std::map<std::string, Constant> constants; // Map of constant values (%define)
-    std::map<std::string, Macro> macros; // Map of macros
-    std::map<std::filesystem::path, Location> included_files; // Maps included files to where they were included
+    CliArguments &cli_args; ///< Parsed command-line arguments.
+    std::filesystem::path executable; ///< Path to the assembler executable, used to resolve relative include/library paths.
+    std::filesystem::path file_path; ///< Path of the source file being pre-processed (may differ from the base input filename if parsing an include).
+    std::vector<Line> lines; ///< Source file lines accumulated so far.
+    std::map<std::string, Constant> constants; ///< `%define`d constants, keyed by name.
+    std::map<std::string, Macro> macros; ///< Defined macros, keyed by name.
+    std::map<std::filesystem::path, Location> included_files; ///< Included files, mapped to the location of their `%include` directive.
 
     /** @brief Construct empty pre-processor data. @param args Parsed command-line arguments. */
     explicit Data(CliArguments &args) : cli_args(args) {}

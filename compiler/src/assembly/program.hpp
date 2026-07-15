@@ -29,11 +29,11 @@ namespace lang::assembly {
    */
   // a program is a navigable sequence of basic blocks
   class Program {
-    std::string start_label;
-    std::deque<std::unique_ptr<BasicBlock>> blocks_;
-    std::map<std::string, std::reference_wrapper<BasicBlock>> labels_; // map labels to the index of the BasicBlock
-    int current_; // 'pointer' to current BasicBlock
-    std::stack<Location> locations_; // track source locations
+    std::string start_label; ///< Label of the entry-point block.
+    std::deque<std::unique_ptr<BasicBlock>> blocks_; ///< Every block in the program, in order.
+    std::map<std::string, std::reference_wrapper<BasicBlock>> labels_; ///< Maps a block's label to the block itself.
+    int current_; ///< Index into `blocks_` of the block the cursor currently points at.
+    std::stack<Location> locations_; ///< Source-location context stack, tracking nested locations for line origin back-filling.
 
     /**
      * @brief Physically inserts a block at an absolute index, and repositions the cursor and label map accordingly.

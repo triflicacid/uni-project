@@ -6,8 +6,8 @@
 namespace lang::type {
   /** @brief Integer type parameterized by byte width and signedness. Global instances (`uint8`, `int8`, ..., `uint64`, `int64`) are the canonical integer types. */
   class IntNode : public Node {
-    bool signed_;
-    uint8_t width_; // width of integer in bytes
+    bool signed_; ///< Whether the type is signed.
+    uint8_t width_; ///< Width of the integer, in bytes.
 
   public:
     /**
@@ -62,9 +62,12 @@ namespace lang::type {
     bool reference_as_ptr() const override { return false; }
   };
 
-  extern IntNode uint8, int8;
-  extern IntNode uint16, int16;
-  extern IntNode uint32, int32;
-  extern IntNode uint64, int64;
-  extern IntNode uint64, int64;
+  extern IntNode uint8; ///< The single global instance of the unsigned 8-bit integer type.
+  extern IntNode int8; ///< The single global instance of the signed 8-bit integer type.
+  extern IntNode uint16; ///< The single global instance of the unsigned 16-bit integer type.
+  extern IntNode int16; ///< The single global instance of the signed 16-bit integer type.
+  extern IntNode uint32; ///< The single global instance of the unsigned 32-bit integer type.
+  extern IntNode int32; ///< The single global instance of the signed 32-bit integer type.
+  extern IntNode uint64; ///< The single global instance of the unsigned 64-bit integer type.
+  extern IntNode int64; ///< The single global instance of the signed 64-bit integer type.
 }

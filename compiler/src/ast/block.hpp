@@ -13,10 +13,10 @@ namespace lang::ast {
    * that of its last line.
    */
   class BlockNode : public Node, public ContainerNode {
-    std::deque<std::unique_ptr<Node>> lines_;
-    bool scope_ = true; // add a new scope
-    std::unique_ptr<symbol::Registry> registry_; // local registry, NULL if !scope_
-    bool returns_ = false; // does this block return a value?
+    std::deque<std::unique_ptr<Node>> lines_; ///< Statements making up the block, in order.
+    bool scope_ = true; ///< Whether this block introduces a new lexical scope.
+    std::unique_ptr<symbol::Registry> registry_; ///< Local registry for this block's scope; null if `!scope_`.
+    bool returns_ = false; ///< Whether this block behaves as an expression whose value is its last line's.
 
   public:
     using Node::Node;

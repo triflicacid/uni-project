@@ -19,14 +19,14 @@ namespace processor {
    * Ideally, these would be marked `protected` but are not as they are needed elsewhere.
    */
   class Core {
-    std::array<uint64_t, constants::registers::count> m_regs{}; // register store
-    bus m_bus{}; // connected bus to access memory
-    std::deque<std::unique_ptr<debug::Message>> debug_message;
+    std::array<uint64_t, constants::registers::count> m_regs{}; ///< Register store, indexed by register offset.
+    bus m_bus{}; ///< Connected bus used to access memory.
+    std::deque<std::unique_ptr<debug::Message>> debug_message; ///< Recorded debug messages, oldest first; see @ref add_debug_message.
 
   public:
-    std::ostream *os; // output stream
-    std::istream *is; // input stream
-    std::optional<std::function<void(const debug::Message&)>> on_add_debug_message;
+    std::ostream *os; ///< Output stream used by @ref write_string and the `print_*` methods.
+    std::istream *is; ///< Input stream used by @ref read_string and @ref read.
+    std::optional<std::function<void(const debug::Message&)>> on_add_debug_message; ///< Called with each message as it's recorded via @ref add_debug_message, if set.
 
     /** @brief Get every recorded debug message. @return The recorded messages, oldest first. */
     [[nodiscard]] const std::deque<std::unique_ptr<debug::Message>> &get_debug_messages() const { return debug_message; }

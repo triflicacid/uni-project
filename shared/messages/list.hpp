@@ -8,7 +8,7 @@
 namespace message {
   /** @brief An ordered collection of diagnostic messages, accumulated during a compilation stage and printed together. */
   class List {
-    std::vector<std::unique_ptr<BasicMessage>> messages;
+    std::vector<std::unique_ptr<BasicMessage>> messages; ///< Accumulated messages, in insertion order.
 
   public:
     /** @brief Get the number of messages in the list. @return Message count. */

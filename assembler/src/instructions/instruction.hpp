@@ -22,16 +22,13 @@ namespace assembler::instruction {
   /** @brief A single parsed instruction: its matched signature, selected overload, arguments, and optional test/datatype specifiers. */
   class Instruction {
   public:
-    const Signature *signature; // signature of instruction we are representing
-    uint8_t overload = 0; // selected signature overload index, default 0
-    std::deque<Argument> args; // list of supplied arguments
+    const Signature *signature; ///< Signature of the instruction being represented.
+    uint8_t overload = 0; ///< Selected signature overload index.
+    std::deque<Argument> args; ///< Supplied arguments, in signature order.
 
   private:
-    // conditional test bits, only included if signature.expect_test
-    // MSB - perform test, or skip?
-    uint8_t test;
-    // datatype specifier(s), only included if signature.expect_datatype
-    std::vector<constants::inst::datatype::dt> datatypes;
+    uint8_t test; ///< Conditional test bits (MSB: perform test, or skip?); only meaningful if `signature->expect_test`.
+    std::vector<constants::inst::datatype::dt> datatypes; ///< Datatype specifier(s); only meaningful if `signature->expect_datatype`.
 
   public:
     /**
@@ -96,9 +93,9 @@ namespace assembler::instruction {
       AsAddress
     };
 
-    uint64_t m_word;
-    uint8_t m_pos; // current bit
-    NextArgument m_next;
+    uint64_t m_word; ///< Instruction word built so far.
+    uint8_t m_pos; ///< Current bit position to write the next field at.
+    NextArgument m_next; ///< How the next @ref write call should be interpreted, if at all.
 
   public:
     /** @brief Construct an empty instruction word builder. */

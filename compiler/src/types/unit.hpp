@@ -30,5 +30,5 @@ namespace lang::type {
     bool reference_as_ptr() const override { return false; }
   };
 
-  extern UnitNode unit;
+  extern UnitNode unit; ///< The single global instance of the unit/void type.
 }

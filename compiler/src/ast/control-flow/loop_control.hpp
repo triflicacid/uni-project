@@ -13,8 +13,8 @@ namespace lang::ast {
       Continue,
     };
 
-    Variant variant_; // jump to start (continue) or end (break)?
-    optional_ref<const control_flow::LoopContext> loop_; // populated in ::process
+    Variant variant_; ///< Whether this jumps to the loop's start (continue) or end (break).
+    optional_ref<const control_flow::LoopContext> loop_; ///< Resolved enclosing loop context, populated in `::process`.
 
   public:
     /**

@@ -6,8 +6,8 @@
 namespace lang::type {
   /** @brief Base class for types that wrap another type (arrays, pointers), storing a name and a reference to the wrapped inner type. */
   class WrapperNode : public Node {
-    std::string name_;
-    const Node& inner_;
+    std::string name_; ///< Wrapper kind name, e.g. "pointer" or "array".
+    const Node& inner_; ///< Wrapped inner type.
 
   public:
     /**

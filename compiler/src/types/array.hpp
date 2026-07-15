@@ -7,7 +7,7 @@ namespace lang::type {
 
   /** @brief Fixed-size array type `[T; N]`. `reference_as_ptr()` is true, since arrays decay to a pointer when referenced. */
   class ArrayNode : public WrapperNode {
-    size_t size_;
+    size_t size_; ///< Number of elements.
 
   public:
     /**

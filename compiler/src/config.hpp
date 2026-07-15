@@ -24,7 +24,7 @@ namespace lang::conf {
 
   /** @brief String representations used for boolean literals in generated/printed output. */
   namespace bools {
-    extern std::string true_string;
-    extern std::string false_string;
+    extern std::string true_string; ///< Text printed for a `true` boolean literal.
+    extern std::string false_string; ///< Text printed for a `false` boolean literal.
   }
 }

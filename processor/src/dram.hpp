@@ -11,7 +11,7 @@ namespace processor {
     static constexpr uint64_t size = 1024 * 1024;
 
   private:
-    std::array<uint8_t, size> mem;
+    std::array<uint8_t, size> mem; ///< Backing storage, one entry per byte of address space.
 
   public:
     /** @brief Construct memory, zero-initialised. */

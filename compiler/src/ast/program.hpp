@@ -6,7 +6,7 @@
 namespace lang::ast {
   /** @brief Root AST node for an entire compiled unit, holding the ordered sequence of top-level statements. */
   class ProgramNode : public Node, public ContainerNode {
-    std::deque<std::unique_ptr<Node>> lines_;
+    std::deque<std::unique_ptr<Node>> lines_; ///< Top-level statements, in order.
 
   public:
     using Node::Node;

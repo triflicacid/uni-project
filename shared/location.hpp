@@ -10,9 +10,9 @@
  * A line/column of -1 represents "not known"/"not applicable" rather than a real position.
  */
 class Location {
-    std::filesystem::path m_path;
-    int m_line;
-    int m_col;
+    std::filesystem::path m_path; ///< Source file path.
+    int m_line; ///< 1-based line number, or -1 if not known.
+    int m_col; ///< 1-based column number, or -1 if not known.
 
 public:
     /**

@@ -19,7 +19,7 @@ namespace lang::value {
    */
   // an lvalue is something with storage
   class LValue {
-    const type::Node& type_;
+    const type::Node& type_; ///< Static type of the lvalue.
 
   public:
     /**
@@ -58,7 +58,7 @@ namespace lang::value {
    */
   // this lvalue refers to a symbol
   class Symbol : public LValue {
-    const symbol::Symbol& symbol_;
+    const symbol::Symbol& symbol_; ///< Symbol-table entry this lvalue refers to.
 
   public:
     /**
@@ -91,7 +91,7 @@ namespace lang::value {
    */
   // this lvalue refers to a location
   class Reference : public LValue {
-    memory::Ref ref_;
+    memory::Ref ref_; ///< Physical location this lvalue refers to.
 
   public:
     /**

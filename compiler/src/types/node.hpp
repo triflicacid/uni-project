@@ -28,7 +28,7 @@ namespace lang::type {
    * `get_func`, `get_wrapper`, `get_pointer`, `get_array`) that default to null.
    */
   class Node : public PrintableEntity {
-    TypeId id_;
+    TypeId id_; ///< This type's unique id, assigned on construction and tracked by the global TypeGraph.
 
   public:
     /** @brief Construct a type node, assigning it the next global TypeId. */

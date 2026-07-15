@@ -10,7 +10,7 @@ namespace processor {
    * inserted between the CPU and memory in future without changing the CPU's interface.
    */
   struct bus {
-    dram mem;
+    dram mem; ///< The backing memory this bus reads from and writes to.
 
     /**
      * @brief Load a word from memory.

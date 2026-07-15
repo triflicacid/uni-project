@@ -6,9 +6,9 @@
 namespace lang::ast {
   /** @brief Represents `while guard { body }`, a pre-checked loop whose body must evaluate to unit. */
   class WhileStatementNode : public Node {
-    unsigned int id_; // id for creating while blocks
-    std::unique_ptr<Node> guard_;
-    std::unique_ptr<Node> body_;
+    unsigned int id_; ///< Unique id used to name the generated blocks.
+    std::unique_ptr<Node> guard_; ///< Guard/condition expression.
+    std::unique_ptr<Node> body_; ///< Loop body.
 
   public:
     /**

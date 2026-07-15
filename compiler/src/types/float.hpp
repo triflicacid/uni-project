@@ -6,7 +6,7 @@
 namespace lang::type {
   /** @brief Floating-point type parameterized by width (32-bit `float` vs. 64-bit `double`). Global instances `float32`/`float64` are the canonical float types. */
   class FloatNode : public Node {
-    bool double_;
+    bool double_; ///< Whether this is the 64-bit double-precision type (false for 32-bit).
 
   public:
     /**
@@ -54,5 +54,6 @@ namespace lang::type {
     bool reference_as_ptr() const override { return false; }
   };
 
-  extern FloatNode float32, float64;
+  extern FloatNode float32; ///< The single global instance of the 32-bit single-precision float type.
+  extern FloatNode float64; ///< The single global instance of the 64-bit double-precision float type.
 }

@@ -31,12 +31,12 @@ namespace lang::symbol {
    * to look them up by id.
    */
   class SymbolTable {
-    std::deque<std::unordered_map<std::string, std::unordered_set<SymbolId>>> scopes_; // variable stack, most recent = front, stores fully-qualified names
-    std::unordered_map<SymbolId, memory::StorageLocation> storage_; // record where each symbol is physically stored, populated by ::locate()
-    std::unordered_map<SymbolId, std::unique_ptr<Symbol>> symbols_;
-    std::deque<std::reference_wrapper<const ast::FunctionBaseNode>> trace_; // track which function we are in, front = most recent
-    std::deque<std::reference_wrapper<const Symbol>> path_; // track namespace nesting (i.e., path), front = most recent
-    memory::StackManager& stack_;
+    std::deque<std::unordered_map<std::string, std::unordered_set<SymbolId>>> scopes_; ///< Scope stack of fully-qualified names to symbol ids; front is the most recent (innermost) scope.
+    std::unordered_map<SymbolId, memory::StorageLocation> storage_; ///< Physical storage location of each allocated symbol, populated by @ref locate.
+    std::unordered_map<SymbolId, std::unique_ptr<Symbol>> symbols_; ///< Every symbol ever inserted, keyed by id; never erased on scope pop.
+    std::deque<std::reference_wrapper<const ast::FunctionBaseNode>> trace_; ///< Stack of enclosing functions being processed/generated; front is the most recent.
+    std::deque<std::reference_wrapper<const Symbol>> path_; ///< Stack of enclosing namespace path segments; front is the most recent.
+    memory::StackManager& stack_; ///< Stack manager used for stack-based symbol allocation.
 
   public:
     SymbolTable(const SymbolTable&) = delete;
