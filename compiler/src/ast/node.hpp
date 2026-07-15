@@ -48,10 +48,10 @@ namespace lang::ast {
      */
     explicit Node(lexer::Token token) : PrintableEntity(), tstart_(token) {}
 
-    /** @brief Return the first token of this node's source span. */
+    /** @brief Return the first token of this node's source span. @return The start token. */
     const lexer::Token& token_start() const override final { return tstart_; }
 
-    /** @brief Return the last token of this node's source span, or the start token if none was set. */
+    /** @brief Return the last token of this node's source span, or the start token if none was set. @return The end token. */
     const lexer::Token& token_end() const override final { return tend_ ? *tend_ : tstart_; }
 
     /**
@@ -66,7 +66,7 @@ namespace lang::ast {
      */
     void token_end(const lexer::Token& token) { tend_ = token; }
 
-    /** @brief Return the type hint attached to this node, if any. */
+    /** @brief Return the type hint attached to this node, if any. @return The type hint, or empty if none is set. */
     const optional_ref<const type::Node>& type_hint() const { return type_hint_; }
 
     /**
@@ -81,7 +81,7 @@ namespace lang::ast {
      */
     void type_hint(optional_ref<const type::Node> hint) { type_hint_ = std::move(hint); }
 
-    /** @brief Return the conditional context this node is being evaluated under, if any. */
+    /** @brief Return the conditional context this node is being evaluated under, if any. @return The conditional context, or empty if none is set. */
     const optional_ref<control_flow::ConditionalContext>& conditional_context() const { return cond_ctx_; }
 
     /**
@@ -90,7 +90,7 @@ namespace lang::ast {
      */
     void conditional_context(control_flow::ConditionalContext& ctx) { cond_ctx_ = std::ref(ctx); }
 
-    /** @brief Return the storage location this node's result should be placed at, if any. */
+    /** @brief Return the storage location this node's result should be placed at, if any. @return The target storage location, or empty if none is set. */
     const optional_ref<const memory::StorageLocation>& target() const { return target_; }
 
     /**
@@ -99,13 +99,13 @@ namespace lang::ast {
      */
     void target(const memory::StorageLocation& t) { target_ = std::cref(t); }
 
-    /** @brief Test whether this node unconditionally returns from the enclosing function, used to check that control reaches the end of a function correctly. */
+    /** @brief Test whether this node unconditionally returns from the enclosing function, used to check that control reaches the end of a function correctly. @return True if this node always returns. */
     virtual bool always_returns() const { return false; }
 
-    /** @brief Test whether this node may leave its result in `$ret` rather than requiring it to be moved elsewhere. */
+    /** @brief Test whether this node may leave its result in `$ret` rather than requiring it to be moved elsewhere. @return True if this node may write directly to `$ret`. */
     virtual bool writes_to_ret() const { return false; }
 
-    /** @brief Return the value representing the result of this node. */
+    /** @brief Return the value representing the result of this node. @return The node's value. */
     virtual value::Value& value() const;
 
     /**

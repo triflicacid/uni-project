@@ -9,7 +9,7 @@ namespace lang::ast {
   public:
     using Node::Node;
 
-    /** @brief Return the node kind name, "unit". */
+    /** @brief Return the node kind name, "unit". @return The string "unit". */
     std::string node_name() const override { return "unit"; }
 
     /**
@@ -27,7 +27,7 @@ namespace lang::ast {
      */
     bool process(Context &ctx) override;
 
-    /** @brief Return the shared unit value. */
+    /** @brief Return the shared unit value. @return The unit value. */
     value::Value& value() const override;
   };
 }

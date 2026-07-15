@@ -17,10 +17,10 @@ namespace lang::type {
      */
     ArrayNode(const Node& inner, size_t size);
 
-    /** @brief Return this node, since it is already an ArrayNode. */
+    /** @brief Return this node, since it is already an ArrayNode. @return This node, as an ArrayNode. */
     const ArrayNode* get_array() const override { return this; }
 
-    /** @brief Always true: arrays decay to a pointer to their first element when referenced. */
+    /** @brief Always true: arrays decay to a pointer to their first element when referenced. @return Always true. */
     bool reference_as_ptr() const override { return true; }
 
     /**
@@ -38,7 +38,7 @@ namespace lang::type {
      */
     std::unique_ptr<value::Value> get_property(Context &ctx, const std::string &property) const override;
 
-    /** @brief Return the total size in bytes, i.e. the element type's size times the element count. */
+    /** @brief Return the total size in bytes, i.e. the element type's size times the element count. @return The total size in bytes. */
     size_t size() const override;
 
     /**
@@ -49,11 +49,11 @@ namespace lang::type {
      */
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Always the unsigned 64-bit assembly datatype (arrays are handled as pointers). */
+    /** @brief Always the unsigned 64-bit assembly datatype (arrays are handled as pointers). @return The unsigned 64-bit datatype tag. */
     constants::inst::datatype::dt get_asm_datatype() const override
     { return constants::inst::datatype::u64; } // pointer type
 
-    /** @brief Return the pointer type this array decays into when referenced. */
+    /** @brief Return the pointer type this array decays into when referenced. @return The decayed pointer type. */
     const PointerNode& decay_into_pointer() const;
 
     /**

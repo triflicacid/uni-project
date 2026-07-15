@@ -21,7 +21,7 @@ namespace lang::ast {
   public:
     using Node::Node;
 
-    /** @brief Return the node kind name, "block". */
+    /** @brief Return the node kind name, "block". @return The string "block". */
     std::string node_name() const override { return "block"; }
 
     /**
@@ -45,13 +45,13 @@ namespace lang::ast {
     /** @brief Mark this block as returning a value, i.e. behaving as an expression whose value is its last line's. */
     void make_expr() { returns_ = true; }
 
-    /** @brief Test whether any statement in this block unconditionally returns from the enclosing function. */
+    /** @brief Test whether any statement in this block unconditionally returns from the enclosing function. @return True if the block always returns. */
     bool always_returns() const override;
 
-    /** @brief Test whether any statement in this block may write to `$ret`. */
+    /** @brief Test whether any statement in this block may write to `$ret`. @return True if the block may write to `$ret`. */
     bool writes_to_ret() const override;
 
-    /** @brief Return this block's value: its last line's value if marked as an expression, else the default unit value. */
+    /** @brief Return this block's value: its last line's value if marked as an expression, else the default unit value. @return The block's value. */
     value::Value& value() const override;
 
     /**

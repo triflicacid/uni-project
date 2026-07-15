@@ -88,16 +88,16 @@ namespace lang::type {
     /** @brief Initialize the global type dependency graph (`type::graph`) with the built-in numeric/boolean types and their subtype relationships. */
     static void init();
 
-    /** @brief Return an iterator to the first (id, type) pair. */
+    /** @brief Return an iterator to the first (id, type) pair. @return Iterator to the first element. */
     auto begin() { return graph_.begin(); }
 
-    /** @brief Return a const iterator to the first (id, type) pair. */
+    /** @brief Return a const iterator to the first (id, type) pair. @return Const iterator to the first element. */
     auto begin() const { return graph_.begin(); }
 
-    /** @brief Return an iterator past the last (id, type) pair. */
+    /** @brief Return an iterator past the last (id, type) pair. @return Iterator to one-past-last element. */
     auto end() { return graph_.end(); }
 
-    /** @brief Return a const iterator past the last (id, type) pair. */
+    /** @brief Return a const iterator past the last (id, type) pair. @return Const iterator to one-past-last element. */
     auto end() const { return graph_.end(); }
   };
 

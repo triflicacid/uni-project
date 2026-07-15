@@ -97,5 +97,12 @@ DIRECTORY_GRAPH = YES
 # Use SVG images for better quality and scalability in HTML output.
 DOT_IMAGE_FORMAT = svg
 
+# Drop the opaque white canvas Graphviz paints behind every graph so
+# diagrams blend into the page background in both light and dark mode.
+DOT_COMMON_ATTR = "fontname=\"Comic Sans\",fontsize=10,bgcolor=\"transparent\""
+
+# Remove .dot files after generation
+DOT_CLEANUP = YES
+
 # Produce cleaner diagrams by hiding details from external libraries.
 HIDE_UNDOC_RELATIONS = YES

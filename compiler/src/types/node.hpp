@@ -35,7 +35,7 @@ namespace lang::type {
     Node();
     Node(const Node&) = delete;
 
-    /** @brief Return this type's unique id. */
+    /** @brief Return this type's unique id. @return This type's unique id. */
     TypeId id() const { return id_; }
 
     /**
@@ -63,31 +63,31 @@ namespace lang::type {
      */
     virtual bool reference_as_ptr() const = 0;
 
-    /** @brief Return this as an IntNode if it is an integer type, else nullptr. */
+    /** @brief Return this as an IntNode if it is an integer type, else nullptr. @return This as an IntNode, or nullptr if not an integer type. */
     virtual const IntNode* get_int() const { return nullptr; }
 
-    /** @brief Return this as a FloatNode if it is a floating-point type, else nullptr. */
+    /** @brief Return this as a FloatNode if it is a floating-point type, else nullptr. @return This as a FloatNode, or nullptr if not a floating-point type. */
     virtual const FloatNode* get_float() const { return nullptr; }
 
-    /** @brief Return this as a FunctionNode if it is a function type, else nullptr. */
+    /** @brief Return this as a FunctionNode if it is a function type, else nullptr. @return This as a FunctionNode, or nullptr if not a function type. */
     virtual const FunctionNode* get_func() const { return nullptr; }
 
-    /** @brief Return this as a WrapperNode if it wraps another type, else nullptr. */
+    /** @brief Return this as a WrapperNode if it wraps another type, else nullptr. @return This as a WrapperNode, or nullptr if it doesn't wrap another type. */
     virtual const WrapperNode* get_wrapper() const { return nullptr; }
 
-    /** @brief Return this as a PointerNode if it is a pointer type, else nullptr. */
+    /** @brief Return this as a PointerNode if it is a pointer type, else nullptr. @return This as a PointerNode, or nullptr if not a pointer type. */
     virtual const PointerNode* get_pointer() const { return nullptr; }
 
-    /** @brief Return this as an ArrayNode if it is an array type, else nullptr. */
+    /** @brief Return this as an ArrayNode if it is an array type, else nullptr. @return This as an ArrayNode, or nullptr if not an array type. */
     virtual const ArrayNode* get_array() const { return nullptr; }
 
-    /** @brief Return the size, in bytes, an instance of this type occupies. */
+    /** @brief Return the size, in bytes, an instance of this type occupies. @return The size in bytes. */
     virtual size_t size() const = 0;
 
-    /** @brief Return the label representation of this type, used in generated assembly comments/output. */
+    /** @brief Return the label representation of this type, used in generated assembly comments/output. @return The label representation. */
     virtual std::string to_label() const = 0;
 
-    /** @brief Return the assembly-level datatype tag representing this type. */
+    /** @brief Return the assembly-level datatype tag representing this type. @return The assembly-level datatype tag. */
     virtual constants::inst::datatype::dt get_asm_datatype() const = 0;
 
     /**

@@ -6,7 +6,7 @@ namespace lang::type {
   /** @brief Marker type representing "namespace" as a pseudo-type, distinct from ast::NamespaceNode (the AST declaration node). Zero-sized; single global instance (`name_space`), letting namespace symbols fit into the normal symbol/type machinery. */
   class NamespaceNode : public Node {
   public:
-    /** @brief Return the node kind name, "namespace". */
+    /** @brief Return the node kind name, "namespace". @return "namespace". */
     std::string node_name() const override { return "namespace"; }
 
     /**
@@ -17,16 +17,16 @@ namespace lang::type {
      */
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Always 0: namespaces occupy no storage. */
+    /** @brief Always 0: namespaces occupy no storage. @return Always 0. */
     size_t size() const override { return 0; }
 
-    /** @brief Return the label representation of this type, "ns". */
+    /** @brief Return the label representation of this type, "ns". @return "ns". */
     std::string to_label() const override { return "ns"; }
 
-    /** @brief Never returns: namespaces have no representable assembly datatype. */
+    /** @brief Never returns: namespaces have no representable assembly datatype. @return Never returns; throws instead. */
     constants::inst::datatype::dt get_asm_datatype() const override;
 
-    /** @brief Always false: namespaces carry no data to reference. */
+    /** @brief Always false: namespaces carry no data to reference. @return Always false. */
     bool reference_as_ptr() const override { return false; }
   };
 

@@ -28,7 +28,7 @@ namespace lang::ast {
      */
     IfStatementNode(lexer::Token token, std::unique_ptr<Node> guard, std::unique_ptr<Node> then_body, std::optional<lexer::Token> else_token, std::optional<std::unique_ptr<Node>> else_body);
 
-    /** @brief Return the node kind name, "if statement". */
+    /** @brief Return the node kind name, "if statement". @return The string "if statement". */
     std::string node_name() const override { return "if statement"; }
 
     /**
@@ -47,10 +47,10 @@ namespace lang::ast {
      */
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Test whether the guard, or both branches (else defaulting to not returning if absent), unconditionally return. */
+    /** @brief Test whether the guard, or both branches (else defaulting to not returning if absent), unconditionally return. @return True if the statement always returns. */
     bool always_returns() const override;
 
-    /** @brief Always true: an if statement may write its result to `$ret`. */
+    /** @brief Always true: an if statement may write its result to `$ret`. @return True. */
     bool writes_to_ret() const override;
 
     /**

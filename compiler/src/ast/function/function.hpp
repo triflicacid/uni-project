@@ -30,7 +30,7 @@ namespace lang::ast {
      */
     bool _generate_code(Context &ctx) override;
 
-    /** @brief Return the prefix "func <name>" preceding the parameter list. */
+    /** @brief Return the prefix "func <name>" preceding the parameter list. @return The block prefix. */
     std::string block_prefix() const override { return "func " + name().image; }
 
   public:
@@ -44,7 +44,7 @@ namespace lang::ast {
      */
     FunctionNode(lexer::Token token, lexer::Token, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params, std::optional<std::unique_ptr<BlockNode>> body);
 
-    /** @brief Return the node kind name, "function". */
+    /** @brief Return the node kind name, "function". @return The string "function". */
     std::string node_name() const override { return "function"; }
 
     /**
@@ -63,10 +63,10 @@ namespace lang::ast {
      */
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Test whether this function has a body. */
+    /** @brief Test whether this function has a body. @return True if the function has a body. */
     bool is_implemented() const override { return body_.has_value(); }
 
-    /** @brief Test whether the body, if present, unconditionally returns. */
+    /** @brief Test whether the body, if present, unconditionally returns. @return True if the function always returns. */
     bool always_returns() const override;
 
     /**

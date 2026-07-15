@@ -81,10 +81,10 @@ namespace lang::parser {
      */
     explicit Parser(lexer::Lexer& lexer) : lexer_(lexer), prev_(lexer::Token::invalid(lexer.stream())) {}
 
-    /** @brief Return the underlying lexer. */
+    /** @brief Return the underlying lexer. @return The underlying lexer. */
     const lexer::Lexer& lexer() const { return lexer_; }
 
-    /** @brief Return the attached message list, or nullptr if none is set. */
+    /** @brief Return the attached message list, or nullptr if none is set. @return The attached message list, or nullptr. */
     message::List* messages() { return messages_; }
 
     /**
@@ -93,10 +93,10 @@ namespace lang::parser {
      */
     void messages(message::List* messages) { messages_ = messages; }
 
-    /** @brief Test whether any error-level message has been reported so far. */
+    /** @brief Test whether any error-level message has been reported so far. @return True if an error-level message has been reported. */
     bool is_error() const;
 
-    /** @brief Return the most recently consumed token. */
+    /** @brief Return the most recently consumed token. @return The previous token. */
     const lexer::Token& previous() const { return prev_; }
 
     /**
@@ -166,16 +166,16 @@ namespace lang::parser {
      */
     bool expect_or_error(const lexer::BasicToken& token);
 
-    /** @brief Consume and return the current token, which becomes the new "previous" token. */
+    /** @brief Consume and return the current token, which becomes the new "previous" token. @return The consumed token. */
     lexer::Token consume();
 
-    /** @brief Parse a numeric or boolean literal. */
+    /** @brief Parse a numeric or boolean literal. @return Parsed literal node. */
     std::unique_ptr<ast::LiteralNode> parse_literal();
 
-    /** @brief Parse an array literal `[e1, e2, ...]`. */
+    /** @brief Parse an array literal `[e1, e2, ...]`. @return Parsed array-literal node. */
     std::unique_ptr<ast::ArrayLiteralNode> parse_array_literal();
 
-    /** @brief Parse a term: a number, symbol reference, bracketed expression, or similar atomic expression component. */
+    /** @brief Parse a term: a number, symbol reference, bracketed expression, or similar atomic expression component. @return Parsed term node. */
     std::unique_ptr<ast::Node> parse_term();
 
     /** @brief Parse a type expression. @return Pointer to the resolved type, or nullptr if invalid. */
@@ -226,25 +226,25 @@ namespace lang::parser {
      */
     std::unique_ptr<ast::FunctionCallOperatorNode> parse_function_call(std::unique_ptr<ast::Node> subject);
 
-    /** @brief Parse a `func` statement (name, parameters, return type, and optional body). */
+    /** @brief Parse a `func` statement (name, parameters, return type, and optional body). @return Parsed function node. */
     std::unique_ptr<ast::FunctionBaseNode> parse_func();
 
-    /** @brief Parse an `operator` definition statement. */
+    /** @brief Parse an `operator` definition statement. @return Parsed operator-definition node. */
     std::unique_ptr<ast::FunctionBaseNode> parse_operator_definition();
 
-    /** @brief Parse a `return` statement. */
+    /** @brief Parse a `return` statement. @return Parsed return-statement node. */
     std::unique_ptr<ast::ReturnNode> parse_return();
 
-    /** @brief Parse an `if ... else ...` statement. */
+    /** @brief Parse an `if ... else ...` statement. @return Parsed if-statement node. */
     std::unique_ptr<ast::IfStatementNode> parse_if_statement();
 
-    /** @brief Parse a `while` statement. */
+    /** @brief Parse a `while` statement. @return Parsed while-statement node. */
     std::unique_ptr<ast::WhileStatementNode> parse_while_statement();
 
-    /** @brief Parse a `loop` statement. */
+    /** @brief Parse a `loop` statement. @return Parsed loop-statement node. */
     std::unique_ptr<ast::LoopStatementNode> parse_loop_statement();
 
-    /** @brief Parse a `break` or `continue` statement. */
+    /** @brief Parse a `break` or `continue` statement. @return Parsed loop-control node. */
     std::unique_ptr<ast::LoopControlNode> parse_loop_control_statement();
 
     /**
@@ -270,13 +270,13 @@ namespace lang::parser {
      */
     bool parse_line(ast::BlockNode& block, bool top_level);
 
-    /** @brief Parse a `{ ... }` code block. */
+    /** @brief Parse a `{ ... }` code block. @return Parsed block node. */
     std::unique_ptr<ast::BlockNode> parse_block();
 
-    /** @brief Parse a `namespace a.b.c { ... }` declaration. */
+    /** @brief Parse a `namespace a.b.c { ... }` declaration. @return Parsed namespace node. */
     std::unique_ptr<ast::NamespaceNode> parse_namespace();
 
-    /** @brief Parse a `struct` declaration. */
+    /** @brief Parse a `struct` declaration. @return Parsed struct node. */
     // TODO
     std::unique_ptr<ast::Node> parse_struct();
 
@@ -286,7 +286,7 @@ namespace lang::parser {
      */
     void parse_top_level_line(ast::ContainerNode& container);
 
-    /** @brief Parse an entire program from the start of the token stream. */
+    /** @brief Parse an entire program from the start of the token stream. @return Parsed program node. */
     std::unique_ptr<ast::ProgramNode> parse();
   };
 

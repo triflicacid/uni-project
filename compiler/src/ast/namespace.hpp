@@ -34,10 +34,10 @@ namespace lang::ast {
     NamespaceNode(lexer::Token token, std::deque<lexer::Token> names, std::deque<std::unique_ptr<Node>> lines)
         : Node(std::move(token)), names_(std::move(names)), lines_(std::move(lines)) {}
 
-    /** @brief Return the node kind name, "namespace". */
+    /** @brief Return the node kind name, "namespace". @return The string "namespace". */
     std::string node_name() const override { return "namespace"; }
 
-    /** @brief Return the dotted path as a single string, e.g. "a.b.c". */
+    /** @brief Return the dotted path as a single string, e.g. "a.b.c". @return The dotted path string. */
     std::string name() const;
 
     /**

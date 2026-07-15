@@ -27,7 +27,7 @@ namespace lang::lexer {
      */
     explicit Lexer(IStreamWrapper& stream) : stream_(stream) {}
 
-    /** @brief Return the underlying source stream. */
+    /** @brief Return the underlying source stream. @return The source stream. */
     IStreamWrapper& stream() const { return stream_; }
 
     /**
@@ -37,10 +37,10 @@ namespace lang::lexer {
      */
     std::string get_line(unsigned int line) const { return stream_.get_line(line); }
 
-    /** @brief Return the name of the source being lexed (e.g. filename), or "<file>" if unnamed. */
+    /** @brief Return the name of the source being lexed (e.g. filename), or "<file>" if unnamed. @return The source name. */
     std::string get_source_name() const { return stream_.get_name("<file>"); }
 
-    /** @brief Test whether the underlying stream has been fully consumed. */
+    /** @brief Test whether the underlying stream has been fully consumed. @return True if the stream is fully consumed. */
     bool is_eof() const { return stream_.is_eof(); }
 
     /**

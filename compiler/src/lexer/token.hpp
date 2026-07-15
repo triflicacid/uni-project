@@ -34,16 +34,16 @@ namespace lang::lexer {
      */
     BasicToken(TokenType type, std::string image) : type(type), image(std::move(image)) {}
 
-    /** @brief Return the length, in characters, of the source image. */
+    /** @brief Return the length, in characters, of the source image. @return The image length. */
     size_t length() const { return image.size(); }
 
-    /** @brief Test whether this token marks end-of-file. */
+    /** @brief Test whether this token marks end-of-file. @return True if this token is the end-of-file token. */
     bool is_eof() const;
 
-    /** @brief Test whether this token is not the `invalid` sentinel type. */
+    /** @brief Test whether this token is not the `invalid` sentinel type. @return True if this token is valid. */
     bool is_valid() const;
 
-    /** @brief Render this token as a human-readable string, including its image if distinct from the type name. */
+    /** @brief Render this token as a human-readable string, including its image if distinct from the type name. @return The rendered string. */
     std::string to_string() const;
 
     /**
@@ -129,10 +129,10 @@ namespace lang::lexer {
 
   /** @brief Abstract mixin for anything spanning a start and end token, letting any source range generate a diagnostic message covering it. */
   struct TokenSpan : message::MessageGenerator {
-    /** @brief Return the first token of this span. */
+    /** @brief Return the first token of this span. @return The start token. */
     virtual const Token& token_start() const = 0;
 
-    /** @brief Return the last token of this span. */
+    /** @brief Return the last token of this span. @return The end token. */
     virtual const Token& token_end() const = 0;
 
     /**

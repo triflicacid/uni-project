@@ -48,10 +48,10 @@ namespace lang::ast {
     SymbolDeclarationNode(lexer::Token token, lexer::Token name, std::optional<std::reference_wrapper<const type::Node>> type, std::optional<std::unique_ptr<Node>> assignment)
       : Node(std::move(token)), name_(std::move(name)), type_(std::move(type)), assignment_(std::move(assignment)) {}
 
-    /** @brief Return the node kind name, depending on the declaration's category. */
+    /** @brief Return the node kind name, depending on the declaration's category. @return The node kind name. */
     std::string node_name() const override;
 
-    /** @brief Return the token holding the declared name. */
+    /** @brief Return the token holding the declared name. @return The name token. */
     const lexer::Token& name() const { return name_; }
 
     /**
@@ -60,7 +60,7 @@ namespace lang::ast {
      */
     void assign_to(std::unique_ptr<Node> expr) { assignment_ = std::move(expr); }
 
-    /** @brief Return this declaration's category (variable, argument, or constant). */
+    /** @brief Return this declaration's category (variable, argument, or constant). @return The declaration's category. */
     Category category() const { return category_; }
 
     /**
@@ -69,13 +69,13 @@ namespace lang::ast {
      */
     void set_category(Category c) { category_ = c; }
 
-    /** @brief Return the declared symbol's type. Assumes it has been resolved (explicitly or by deduction). */
+    /** @brief Return the declared symbol's type. Assumes it has been resolved (explicitly or by deduction). @return The declared type. */
     const type::Node& type() const;
 
-    /** @brief Return the id of the symbol created for this declaration. */
+    /** @brief Return the id of the symbol created for this declaration. @return The declaration's symbol id. */
     symbol::SymbolId id() const { return id_; }
 
-    /** @brief Test whether the assignment expression, if present, may write to `$ret`. */
+    /** @brief Test whether the assignment expression, if present, may write to `$ret`. @return True if the assignment may write to `$ret`. */
     bool writes_to_ret() const override;
 
     /**

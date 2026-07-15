@@ -10,7 +10,7 @@ namespace lang::ast {
   public:
     using Node::Node;
 
-    /** @brief Return the node kind name, "array literal". */
+    /** @brief Return the node kind name, "array literal". @return The string "array literal". */
     std::string node_name() const override { return "array literal"; }
 
     /**

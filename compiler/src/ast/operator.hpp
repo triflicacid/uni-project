@@ -55,13 +55,13 @@ namespace lang::ast {
       if (!args_.empty()) token_end(args_.back()->token_end());
     }
 
-    /** @brief Return the operator's symbol text (e.g. "+", "&&"). */
+    /** @brief Return the operator's symbol text (e.g. "+", "&&"). @return The operator's symbol text. */
     virtual const std::string& symbol() const { return op_symbol_.image; }
 
-    /** @brief Return the node kind name, "unary operator" or "binary operator" depending on arity. */
+    /** @brief Return the node kind name, "unary operator" or "binary operator" depending on arity. @return The node kind name. */
     std::string node_name() const override;
 
-    /** @brief Test whether any operand may write to `$ret`. */
+    /** @brief Test whether any operand may write to `$ret`. @return True if any operand may write to `$ret`. */
     bool writes_to_ret() const override;
 
     /**
@@ -123,10 +123,10 @@ namespace lang::ast {
   public:
     using OperatorNode::OperatorNode;
 
-    /** @brief Render this operator invocation as "operatorX(...)" text, using its resolved signature if known. */
+    /** @brief Render this operator invocation as "operatorX(...)" text, using its resolved signature if known. @return The rendered invocation text. */
     std::string to_string() const;
 
-    /** @brief Test whether the resolved operator is user-defined (and so may write to `$ret`), or any operand may. */
+    /** @brief Test whether the resolved operator is user-defined (and so may write to `$ret`), or any operand may. @return True if the operator may write to `$ret`. */
     bool writes_to_ret() const override;
 
     /**
@@ -322,7 +322,7 @@ namespace lang::ast {
      */
     FunctionCallOperatorNode(lexer::Token token, lexer::Token symbol, std::unique_ptr<Node> subject, std::deque<std::unique_ptr<Node>> args);
 
-    /** @brief Return the node kind name, "function call". */
+    /** @brief Return the node kind name, "function call". @return The string "function call". */
     std::string node_name() const override { return "function call"; }
 
     /**
@@ -341,7 +341,7 @@ namespace lang::ast {
      */
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Always true: a function call may write its result to `$ret`. */
+    /** @brief Always true: a function call may write its result to `$ret`. @return True. */
     bool writes_to_ret() const override { return true; }
 
     /**
@@ -434,7 +434,7 @@ namespace lang::ast {
      */
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Test whether the resolved operator is user-defined (and so may write to `$ret`), or any operand may. */
+    /** @brief Test whether the resolved operator is user-defined (and so may write to `$ret`), or any operand may. @return True if the subscript may write to `$ret`. */
     bool writes_to_ret() const override;
 
     /**

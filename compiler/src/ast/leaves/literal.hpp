@@ -9,7 +9,7 @@ namespace lang::ast {
     optional_ref<const memory::Literal> lit_; ///< Resolved literal value, set once `process` has run.
     optional_ref<const type::Node> suffix_; ///< Explicit type suffix, if set; overrides type-hint-based inference.
 
-    /** @brief Determine the numeric type this literal should be cast to, based on any type suffix/hint or the literal's own float/int form. */
+    /** @brief Determine the numeric type this literal should be cast to, based on any type suffix/hint or the literal's own float/int form. @return The target numeric type. */
     const type::Node& get_target_numeric_type() const;
 
   public:
@@ -32,10 +32,10 @@ namespace lang::ast {
      */
     void suffix(const type::Node& type) { suffix_ = type; }
 
-    /** @brief Return the node kind name, "literal". */
+    /** @brief Return the node kind name, "literal". @return The string "literal". */
     std::string node_name() const override { return "literal"; }
 
-    /** @brief Return the resolved literal value. Assumes `process` has run. */
+    /** @brief Return the resolved literal value. Assumes `process` has run. @return The resolved literal value. */
     const memory::Literal& get() const;
 
     /**

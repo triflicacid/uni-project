@@ -11,7 +11,7 @@ namespace lang::ast {
   public:
     using Node::Node;
 
-    /** @brief Return the node kind name, "program". */
+    /** @brief Return the node kind name, "program". @return The string "program". */
     std::string node_name() const override { return "program"; }
 
     /**
@@ -26,7 +26,7 @@ namespace lang::ast {
      */
     void add(std::deque<std::unique_ptr<Node>> ast_nodes) override;
 
-    /** @brief Return the last top-level statement. */
+    /** @brief Return the last top-level statement. @return The last statement. */
     const Node& back() const { return *lines_.back(); }
 
     /**

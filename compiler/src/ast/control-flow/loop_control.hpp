@@ -30,7 +30,7 @@ namespace lang::ast {
      */
     LoopControlNode(lexer::Token token, Variant variant) : Node(std::move(token)), variant_(variant) {}
 
-    /** @brief Return the node kind name, the token's own text ("break" or "continue"). */
+    /** @brief Return the node kind name, the token's own text ("break" or "continue"). @return The node kind name. */
     std::string node_name() const override;
 
     /**

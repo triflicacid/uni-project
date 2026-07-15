@@ -17,7 +17,7 @@ namespace lang::ast {
      */
     LoopStatementNode(lexer::Token token, std::unique_ptr<Node> body);
 
-    /** @brief Return the node kind name, "loop statement". */
+    /** @brief Return the node kind name, "loop statement". @return The string "loop statement". */
     std::string node_name() const override { return "loop statement"; }
 
     /**
@@ -36,7 +36,7 @@ namespace lang::ast {
      */
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Test whether the loop body unconditionally returns from the enclosing function. */
+    /** @brief Test whether the loop body unconditionally returns from the enclosing function. @return True if the loop always returns. */
     bool always_returns() const override;
 
     /**
@@ -61,10 +61,10 @@ namespace lang::ast {
      */
     bool generate_code(Context &ctx) override;
 
-    /** @brief Return the label for the loop body's block. */
+    /** @brief Return the label for the loop body's block. @return The body block's label. */
     std::string body_label() const;
 
-    /** @brief Return the label for the block following the loop. */
+    /** @brief Return the label for the block following the loop. @return The end block's label. */
     std::string end_label() const;
   };
 }

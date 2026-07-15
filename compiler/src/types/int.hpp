@@ -17,10 +17,10 @@ namespace lang::type {
      */
     IntNode(uint8_t width, bool is_signed) : signed_(is_signed), width_(width) {}
 
-    /** @brief Return this node, since it is already an IntNode. */
+    /** @brief Return this node, since it is already an IntNode. @return This node, as an IntNode. */
     const IntNode* get_int() const override { return this; }
 
-    /** @brief Return the node kind name, e.g. "u8", "i32". */
+    /** @brief Return the node kind name, e.g. "u8", "i32". @return The node kind name, e.g. "u8", "i32". */
     std::string node_name() const override;
 
     /**
@@ -31,7 +31,7 @@ namespace lang::type {
      */
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Return the width, in bytes, of this integer type. */
+    /** @brief Return the width, in bytes, of this integer type. @return The width in bytes. */
     size_t size() const override { return width_; }
 
     /**
@@ -46,19 +46,19 @@ namespace lang::type {
       return width_ <=> other.width_;
     }
 
-    /** @brief Return the width, in bytes, of this integer type. */
+    /** @brief Return the width, in bytes, of this integer type. @return The width in bytes. */
     uint8_t width() const { return width_; }
 
-    /** @brief Test whether this integer type is signed. */
+    /** @brief Test whether this integer type is signed. @return True if this integer type is signed. */
     bool is_signed() const { return signed_; }
 
-    /** @brief Return the label representation of this type, same as `node_name`. */
+    /** @brief Return the label representation of this type, same as `node_name`. @return The label, same as `node_name()`. */
     std::string to_label() const override;
 
-    /** @brief Return the assembly datatype tag matching this type's width and signedness. */
+    /** @brief Return the assembly datatype tag matching this type's width and signedness. @return The datatype tag matching this type's width and signedness. */
     constants::inst::datatype::dt get_asm_datatype() const override;
 
-    /** @brief Always false: integers are stored by value, not referenced like a pointer. */
+    /** @brief Always false: integers are stored by value, not referenced like a pointer. @return Always false. */
     bool reference_as_ptr() const override { return false; }
   };
 

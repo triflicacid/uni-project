@@ -17,13 +17,13 @@ namespace lang::type {
      */
     WrapperNode(std::string name, const Node& inner) : name_(std::move(name)), inner_(inner) {}
 
-    /** @brief Return the wrapper kind name. */
+    /** @brief Return the wrapper kind name. @return The wrapper kind name. */
     std::string node_name() const override { return name_; }
 
-    /** @brief Return this node, since it is already a WrapperNode. */
+    /** @brief Return this node, since it is already a WrapperNode. @return This node, as a WrapperNode. */
     const WrapperNode* get_wrapper() const override { return this; }
 
-    /** @brief Return the wrapped inner type. */
+    /** @brief Return the wrapped inner type. @return The wrapped inner type. */
     const Node& unwrap() const { return inner_; }
 
     /**
@@ -34,7 +34,7 @@ namespace lang::type {
      */
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Return the label representation, concatenating the wrapper's name and the inner type's label. */
+    /** @brief Return the label representation, concatenating the wrapper's name and the inner type's label. @return The concatenated wrapper-name and inner-type label. */
     std::string to_label() const override;
 
     /**

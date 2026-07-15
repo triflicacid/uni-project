@@ -7,16 +7,16 @@ namespace lang::ast {
 
   /** @brief Represents a user-defined `operator<sym>(...)` overload definition, a `FunctionNode` that also registers itself as an `ops::UserDefinedOperator`. */
   class OperatorDefinitionNode : public FunctionNode {
-    /** @brief Return the prefix "operator<sym>" preceding the parameter list. */
+    /** @brief Return the prefix "operator<sym>" preceding the parameter list. @return The block prefix. */
     std::string block_prefix() const override { return "operator" + name().image; }
 
   public:
     using FunctionNode::FunctionNode;
 
-    /** @brief Return the node kind name, "operator overload". */
+    /** @brief Return the node kind name, "operator overload". @return The string "operator overload". */
     std::string node_name() const override { return "operator overload"; }
 
-    /** @brief Return the precedence/associativity/overloadability info for this operator's symbol, given the number of parameters. */
+    /** @brief Return the precedence/associativity/overloadability info for this operator's symbol, given the number of parameters. @return The operator's info. */
     const ops::OperatorInfo& info() const;
 
     /**

@@ -17,7 +17,7 @@ namespace lang::ast {
      */
     SymbolReferenceNode(lexer::Token token, std::string symbol) : Node(std::move(token)), symbol_(std::move(symbol)) {}
 
-    /** @brief Return the node kind name, "symbol". */
+    /** @brief Return the node kind name, "symbol". @return The string "symbol". */
     std::string node_name() const override { return "symbol"; }
 
     /**

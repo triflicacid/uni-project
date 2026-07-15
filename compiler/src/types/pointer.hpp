@@ -20,16 +20,16 @@ namespace lang::type {
      */
     std::ostream& print_code(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Return this node, since it is already a PointerNode. */
+    /** @brief Return this node, since it is already a PointerNode. @return This node, as a PointerNode. */
     const PointerNode* get_pointer() const override { return this; }
 
-    /** @brief Always 8: pointers are 64-bit addresses. */
+    /** @brief Always 8: pointers are 64-bit addresses. @return Always 8. */
     size_t size() const override { return 8; }
 
-    /** @brief Always false: a pointer is itself the stored address, not decayed reference data. */
+    /** @brief Always false: a pointer is itself the stored address, not decayed reference data. @return Always false. */
     bool reference_as_ptr() const override { return false; }
 
-    /** @brief Always the unsigned 64-bit assembly datatype. */
+    /** @brief Always the unsigned 64-bit assembly datatype. @return The unsigned 64-bit datatype tag. */
     constants::inst::datatype::dt get_asm_datatype() const override
     { return constants::inst::datatype::u64; }
 

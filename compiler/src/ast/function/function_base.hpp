@@ -47,7 +47,7 @@ namespace lang::ast {
      */
     virtual bool _generate_code(Context& ctx) = 0;
 
-    /** @brief Return the text preceding the parameter list in `print_code`, e.g. `"func <name>"`. */
+    /** @brief Return the text preceding the parameter list in `print_code`, e.g. `"func <name>"`. @return The block prefix. */
     virtual std::string block_prefix() const = 0;
 
   public:
@@ -60,13 +60,13 @@ namespace lang::ast {
      */
     FunctionBaseNode(lexer::Token token, lexer::Token name, const type::FunctionNode& type, std::deque<std::unique_ptr<SymbolDeclarationNode>> params);
 
-    /** @brief Return the number of parameters. */
+    /** @brief Return the number of parameters. @return The parameter count. */
     size_t params() const { return params_.size(); }
 
-    /** @brief Test whether this function has a body (false means an extern-style declaration). */
+    /** @brief Test whether this function has a body (false means an extern-style declaration). @return True if the function has a body. */
     virtual bool is_implemented() const = 0;
 
-    /** @brief Return the token holding the function's name. */
+    /** @brief Return the token holding the function's name. @return The name token. */
     const lexer::Token& name() const { return name_; }
 
     /**
@@ -76,16 +76,16 @@ namespace lang::ast {
      */
     const SymbolDeclarationNode& param(unsigned int i) const { return *params_[i]; }
 
-    /** @brief Return the id of the symbol created for this function. */
+    /** @brief Return the id of the symbol created for this function. @return The function symbol's id. */
     symbol::SymbolId id() const { return id_; }
 
-    /** @brief Return this function's signature. */
+    /** @brief Return this function's signature. @return The function's signature. */
     const type::FunctionNode& type() const { return type_; }
 
-    /** @brief Always true: calling into this function may write its result to `$ret`. */
+    /** @brief Always true: calling into this function may write its result to `$ret`. @return True. */
     bool writes_to_ret() const override;
 
-    /** @brief Return the 0-indexed positions of parameters named `_` (discarded), for `ops::call_function` to skip. */
+    /** @brief Return the 0-indexed positions of parameters named `_` (discarded), for `ops::call_function` to skip. @return The set of ignored parameter positions. */
     std::unordered_set<int> get_args_to_ignore() const;
 
     /**

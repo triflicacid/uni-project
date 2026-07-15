@@ -32,10 +32,10 @@ namespace lang::type {
      */
     FunctionNode(std::deque<std::reference_wrapper<const Node>> parameters, const Node& returns) : parameters_(std::move(parameters)), returns_(returns) {}
 
-    /** @brief Return the node kind name, "function". */
+    /** @brief Return the node kind name, "function". @return "function". */
     std::string node_name() const override { return "function"; }
 
-    /** @brief Return the number of parameters. */
+    /** @brief Return the number of parameters. @return The number of parameters. */
     size_t args() const { return parameters_.size(); }
 
     /**
@@ -45,10 +45,10 @@ namespace lang::type {
      */
     const Node& arg(int i) const { return parameters_[i]; }
 
-    /** @brief Return the return type. */
+    /** @brief Return the return type. @return The return type. */
     const Node& returns() const { return returns_; }
 
-    /** @brief Return this node, since it is already a FunctionNode. */
+    /** @brief Return this node, since it is already a FunctionNode. @return This node, as a FunctionNode. */
     const FunctionNode* get_func() const override { return this; }
 
     /**
@@ -68,16 +68,16 @@ namespace lang::type {
      */
     std::ostream& print_code(std::ostream &os, bool print_return, unsigned int indent_level = 0) const;
 
-    /** @brief Always 8: functions are referenced via an address. */
+    /** @brief Always 8: functions are referenced via an address. @return Always 8. */
     size_t size() const override { return 8; } // size of an address
 
-    /** @brief Always the unsigned 64-bit assembly datatype (functions are handled as addresses). */
+    /** @brief Always the unsigned 64-bit assembly datatype (functions are handled as addresses). @return The unsigned 64-bit datatype tag. */
     constants::inst::datatype::dt get_asm_datatype() const override;
 
-    /** @brief Always false in the general case (the global-label edge case is handled elsewhere). */
+    /** @brief Always false in the general case (the global-label edge case is handled elsewhere). @return Always false. */
     bool reference_as_ptr() const override { return false; }
 
-    /** @brief Return the label representation, concatenating each parameter type's label. */
+    /** @brief Return the label representation, concatenating each parameter type's label. @return The concatenated parameter-type labels. */
     std::string to_label() const override;
 
     /**

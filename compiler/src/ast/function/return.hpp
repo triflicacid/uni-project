@@ -21,7 +21,7 @@ namespace lang::ast {
      */
     ReturnNode(lexer::Token token, std::optional<std::unique_ptr<Node>> expr) : Node(std::move(token)), expr_(std::move(expr)) {}
 
-    /** @brief Return the node kind name, "return". */
+    /** @brief Return the node kind name, "return". @return The string "return". */
     std::string node_name() const override { return "return"; }
 
     /**
@@ -40,10 +40,10 @@ namespace lang::ast {
      */
     std::ostream& print_tree(std::ostream &os, unsigned int indent_level = 0) const override;
 
-    /** @brief Always true: a return statement unconditionally exits the enclosing function. */
+    /** @brief Always true: a return statement unconditionally exits the enclosing function. @return True. */
     bool always_returns() const override { return true; }
 
-    /** @brief Return the returned expression's value, or the unit value if none was given. */
+    /** @brief Return the returned expression's value, or the unit value if none was given. @return The returned value. */
     value::Value& value() const override;
 
     /**
