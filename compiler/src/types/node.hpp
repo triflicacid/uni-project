@@ -7,6 +7,7 @@
 #include <deque>
 #include <memory>
 
+/** @brief The compiler's type system: primitive, pointer, function, and wrapper types, and the subtyping/identity rules used to check them. */
 namespace lang::type {
   class IntNode;
   class FloatNode;

@@ -6,6 +6,7 @@ namespace lang::assembly {
   class BasicBlock;
 }
 
+/** @brief Value storage and register allocation: where a value lives during compilation, and how it's committed to a permanent location. */
 namespace lang::memory {
   /**
    * @brief Describes the durable, permanent storage location of a symbol: either a global tied to a basic block, or a stack-relative offset from $fp.

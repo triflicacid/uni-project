@@ -16,6 +16,7 @@ namespace lang::value {
   class Value;
 }
 
+/** @brief Helper functions building common diagnostic messages (errors, notes) for the compiler's type-checking and resolution passes. */
 namespace lang::util {
   /**
    * @brief Builds an error message reporting that a named symbol could not be resolved.

@@ -12,6 +12,7 @@
 
 #include "argument.hpp"
 
+/** @brief Instruction representation: signatures, argument encoding/decoding, and the encoded Instruction objects the parser produces. */
 namespace assembler::instruction {
   struct Signature;
 

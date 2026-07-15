@@ -7,6 +7,7 @@
 #include "cli_arguments.hpp"
 #include "location.hpp"
 
+/** @brief The pre-processing pass: expands `%define`d constants and macros and resolves `%include` directives before the real parser runs. */
 namespace assembler::pre_processor {
   /** @brief A single source line paired with the location it came from. */
   typedef std::pair<Location, std::string> Line;

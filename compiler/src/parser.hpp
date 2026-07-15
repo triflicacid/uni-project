@@ -18,6 +18,7 @@
 #include "ast/control-flow/loop_statement.hpp"
 #include "ast/leaves/array_literal.hpp"
 
+/** @brief Recursive-descent parser turning a lexer's token stream into an AST. */
 namespace lang::parser {
   /**
    * @brief Hand-written recursive-descent, precedence-climbing parser that consumes tokens from a `lexer::Lexer` and builds the AST.

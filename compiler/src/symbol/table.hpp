@@ -21,6 +21,7 @@ namespace lang {
   }
 }
 
+/** @brief Symbol table and scoping: declared symbols, their storage locations, and lexical/function/namespace nesting. */
 namespace lang::symbol {
   /**
    * @brief The compilation's global symbol table: owns every declared symbol, tracks lexical scoping, physical storage locations, and enclosing function/namespace nesting.

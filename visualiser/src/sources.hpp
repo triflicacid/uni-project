@@ -8,6 +8,7 @@
 #include "graph.hpp"
 #include "pair_hash.hpp"
 
+/** @brief Source/assembly/language file tracking, linking each traced line back to its original file and position. */
 namespace visualiser::sources {
   /** @brief Kind of source file a `File` represents in the source/assembly/language trace chain. */
   enum class Type {

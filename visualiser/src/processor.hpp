@@ -5,6 +5,7 @@
 #include "named_fstream.hpp"
 #include "sources.hpp"
 
+/** @brief The CPU instance and loaded-program state backing the visualiser session. */
 namespace visualiser::processor {
   /** The emulated CPU instance backing the visualiser session. */
   extern ::processor::CPU cpu;

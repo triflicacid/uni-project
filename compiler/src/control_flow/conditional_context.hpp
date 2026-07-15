@@ -16,6 +16,7 @@ namespace lang {
   }
 }
 
+/** @brief Context objects tracking the compiler's current conditional and loop nesting, used to fuse branches and resolve break/continue targets during code generation. */
 namespace lang::control_flow {
   /**
    * @brief Tracks the in-progress code generation of a conditional construct (if/while guard, logical operator) in terms of its true/false branch targets.

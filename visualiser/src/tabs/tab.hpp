@@ -4,6 +4,7 @@
 #include <utility>
 #include <map>
 
+/** @brief The visualiser's top-level UI tabs (execution, memory, registers, sources, settings) and their shared Tab base class. */
 namespace visualiser::tabs {
   /**
    * @brief Base class for a top-level UI tab, lazily building its content and optional help pane on first access.

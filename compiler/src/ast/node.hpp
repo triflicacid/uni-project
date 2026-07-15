@@ -18,6 +18,7 @@ namespace lang {
   }
 }
 
+/** @brief Abstract syntax tree: the parsed representation of Edel source, processed through the process/resolve/generate_code compilation phases. */
 namespace lang::ast {
   /**
    * @brief Abstract base of every AST node, the type-checking/codegen counterpart of type::Node's type-system hierarchy.

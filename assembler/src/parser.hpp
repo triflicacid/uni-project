@@ -5,6 +5,7 @@
 #include <instructions/argument.hpp>
 #include <instructions/instruction.hpp>
 
+/** @brief Recursive-descent parser turning pre-processed assembly source lines into a list of Instructions. */
 namespace assembler::parser {
   /**
    * @brief Write a character to a stream, substituting a placeholder at end-of-line.

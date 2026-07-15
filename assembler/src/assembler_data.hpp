@@ -4,6 +4,7 @@
 #include "pre-process/data.hpp"
 #include "label.hpp"
 
+/** @brief The assembler: turns pre-processed Edel assembly source into an encoded binary Chunk, via parsing, instruction resolution, and label linking. */
 namespace assembler {
   /** @brief Accumulated state of the assembly pass: source lines, discovered labels, and the resulting compiled chunks. */
   struct Data {

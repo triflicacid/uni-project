@@ -6,6 +6,7 @@
 #include "istream_wrapper.hpp"
 #include "messages/MessageWithSource.hpp"
 
+/** @brief Tokenizer: turns raw source text into the token stream the parser consumes. */
 namespace lang::lexer {
   /** @brief Tokenizer that reads a source stream one token at a time, turning raw characters into `Token`s for the `parser::Parser` to consume. */
   class Lexer {

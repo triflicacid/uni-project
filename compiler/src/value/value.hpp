@@ -16,6 +16,7 @@ namespace lang::type {
   class Node;
 }
 
+/** @brief Compile-time representation of values produced by evaluating an expression: lvalues, rvalues, and their eventual materialisation into a concrete storage location. */
 namespace lang::value {
   class SymbolRef;
   class Literal;

@@ -2,6 +2,7 @@
 
 #include <ftxui/component/component.hpp>
 
+/** @brief Shared FTXUI text decorators used to style the visualiser's UI elements consistently. */
 namespace visualiser::style {
   extern ftxui::Decorator highlight; // general highlight
   extern ftxui::Decorator highlight_execution; // highlight used for current line we're executing

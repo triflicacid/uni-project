@@ -6,6 +6,7 @@
 #include "basic_block.hpp"
 #include "optional_ref.hpp"
 
+/** @brief Generated-assembly intermediate representation: programs, basic blocks, instructions, and directives emitted by code generation. */
 namespace lang::assembly {
   /**
    * @brief Position, relative to the current block, used both for inserting new blocks and for moving the navigation cursor.

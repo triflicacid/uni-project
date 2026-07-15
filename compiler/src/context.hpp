@@ -6,6 +6,7 @@
 #include "memory/reg_alloc.hpp"
 #include "control_flow/loop_context.hpp"
 
+/** @brief The Edel compiler: lexing, parsing, type-checking, and assembly code generation. */
 namespace lang {
   /**
    * @brief Aggregate of the compiler's shared mutable state, threaded by reference through every phase of the compilation pipeline (process, resolve, generate_code) after parsing.

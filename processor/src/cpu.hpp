@@ -7,6 +7,7 @@
 #include "debug.hpp"
 #include "core.hpp"
 
+/** @brief The virtual CPU: registers, memory bus, instruction execution, and debug tracing. */
 namespace processor {
   /** @brief The processor: fetch-decode-execute cycle, instruction argument decoding, flags, and interrupt handling, built on top of @ref Core. */
   class CPU : public Core {
