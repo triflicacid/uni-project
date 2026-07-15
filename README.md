@@ -80,3 +80,17 @@ For more information, see provided documentation, especially `out/visualiser.pdf
 
 All code has been extensively commented in-line with Doxygen comments.
 Run the `./doxygen.sh` script to generate an HTML Doxygen website at `docs/doxygen`.
+
+Alternatively, using CMake (this is slower):
+```bash
+mkdir -p build && cd build
+cmake ..
+cmake --build . --target doxygen
+```
+
+### Installation
+
+```bash
+sudo apt update
+sudo apt install -y doxygen cmake graphviz build-essential
+```
