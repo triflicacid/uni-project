@@ -75,3 +75,8 @@ Two script files have been written to aid with using the application:
 3. Run `visualise.sh` to run the visualiser on the Edel program.
 
 For more information, see provided documentation, especially `out/visualiser.pdf` which has a section explaining how to run the visualiser application.
+
+## Documentation
+
+All code has been extensively commented in-line with Doxygen comments.
+Run the `./doxygen.sh` script to generate an HTML Doxygen website at `docs/doxygen`.
