@@ -2,7 +2,7 @@
 
 GitHub repository: <https://github.com/triflicacid/uni-project>
 
-This repository holds the source code to my third year project.
+This repository holds the source code to my third year project, completed as part of my degree at the University of Warwick.
 The title of my project is `A code execution toolchain targeted at learners: from compilation to emulating a custom RISC processor`.
 
 As a brief overview, this project is an educational tool for exploring the code execution toolchain.
@@ -96,3 +96,7 @@ cmake --build . --target doxygen
 sudo apt update
 sudo apt install -y doxygen cmake graphviz build-essential
 ```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
