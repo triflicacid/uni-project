@@ -91,7 +91,7 @@ namespace lang::assembly {
   std::unique_ptr<GenericInstruction> set_datatype(std::unique_ptr<GenericInstruction>, constants::inst::datatype::dt dt);
 
   /**
-   * @brief Special-cased instruction for the cvt<from>2<to> family of datatype-conversion opcodes.
+   * @brief Special-cased instruction for the cvt\<from\>2\<to\> family of datatype-conversion opcodes.
    */
   // special instance for `cvt<x>2<y>` instruction
   class ConversionInstruction : public Instruction {

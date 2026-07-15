@@ -68,7 +68,7 @@ namespace lang::assembly {
   std::unique_ptr<GenericInstruction> create_comparison(uint8_t reg, std::unique_ptr<BaseArg> value);
 
   /**
-   * @brief Constructs a cvt<from>2<to> datatype-conversion instruction.
+   * @brief Constructs a cvt\<from\>2\<to\> datatype-conversion instruction.
    * @param from_type Source datatype.
    * @param from_reg Source register.
    * @param to_type Destination datatype.
