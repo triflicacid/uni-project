@@ -19,11 +19,13 @@ CREATE_SUBDIRS = NO
 
 # Directories that Doxygen should scan for source files.
 # README.md is included so it can be used as the main page (see
-# USE_MDFILE_AS_MAINPAGE below). docs/additional_documentation.md is included
-# so it shows up as its own "Related Pages" entry linking to the compiled
-# PDF documentation (see HTML_EXTRA_FILES below).
+# USE_MDFILE_AS_MAINPAGE below). docs/additional_documentation.md and
+# docs/architecture_overview.md are included so they show up as their own
+# "Related Pages" entries (linking to the compiled PDF documentation, and a
+# high-level architecture tour with diagrams, respectively).
 INPUT = README.md \
         docs/additional_documentation.md \
+        docs/architecture_overview.md \
         shared \
         processor/src \
         assembler/src \
