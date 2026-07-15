@@ -23,7 +23,11 @@ namespace lang::type {
     /** @brief Return the label representation of this type, "ns". @return "ns". */
     std::string to_label() const override { return "ns"; }
 
-    /** @brief Never returns: namespaces have no representable assembly datatype. @return Never returns; throws instead. */
+    /**
+     * @brief Never returns: namespaces have no representable assembly datatype.
+     * @return Never returns; throws instead.
+     * @warning Always throws `std::runtime_error`. Namespaces are a pseudo-type that never reaches code generation, so this should never actually be called.
+     */
     constants::inst::datatype::dt get_asm_datatype() const override;
 
     /** @brief Always false: namespaces carry no data to reference. @return Always false. */

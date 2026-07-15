@@ -23,7 +23,11 @@ namespace lang::type {
     /** @brief Return the label representation of this type, "unit". @return "unit". */
     std::string to_label() const override { return "unit"; }
 
-    /** @brief Never returns: unit has no representable assembly datatype. @return Never returns; throws instead. */
+    /**
+     * @brief Never returns: unit has no representable assembly datatype.
+     * @return Never returns; throws instead.
+     * @warning Always throws `std::runtime_error`. The unit type carries no assembly-level datatype, so this should never actually be called.
+     */
     constants::inst::datatype::dt get_asm_datatype() const override;
 
     /** @brief Always false: unit values carry no data to reference. @return Always false. */

@@ -106,6 +106,7 @@ namespace lang::symbol {
     /**
      * @brief Gives a previously-inserted symbol a concrete physical storage location, emitting whatever assembly scaffolding its category requires.
      * @param symbol Id of the symbol to allocate storage for.
+     * @warning Throws `std::runtime_error` if the symbol's category is `Argument` - arguments are allocated by the caller via the `allocate(SymbolId, memory::StorageLocation)` overload instead, not through this category-driven path.
      */
     // allocate space for this symbol (e.g., push to stack, ...)
     // note, be careful not to allocate scope's in a different order

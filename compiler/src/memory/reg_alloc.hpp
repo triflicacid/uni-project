@@ -223,6 +223,7 @@ namespace lang::memory {
      * @brief Places an object at an exact location, evicting any prior occupant and emitting the load instruction needed to materialize its value.
      * @param location Location to place the object at.
      * @param object Object to place.
+     * @warning Register spilling to memory is not yet implemented: if `location` refers to a memory slot rather than a register, this throws `std::runtime_error` instead of degrading gracefully. A program with more simultaneously-live values than physical registers at one point will therefore fail to compile.
      */
     // same as insert(), but put in a specific position - location is evicted if full
     void insert(const Ref& location, Object object);

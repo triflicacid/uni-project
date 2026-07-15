@@ -196,7 +196,11 @@ namespace processor {
     /** @brief Execute a jump-and-link instruction. @param inst Instruction word. */
     void exec_jal(uint64_t inst);
 
-    /** @brief Execute a (deprecated) push instruction. @param inst Instruction word. */
+    /**
+     * @brief Execute a (deprecated) push instruction.
+     * @param inst Instruction word.
+     * @warning Deprecated: a remnant of an earlier, abandoned explicit-push calling convention. Current code uses plain load/store against `$sp` instead.
+     */
     void exec_push(uint64_t inst);
 
     /** @brief Execute a syscall instruction, dispatching to the requested syscall handler. @param inst Instruction word. */

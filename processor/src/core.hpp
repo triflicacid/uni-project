@@ -109,6 +109,7 @@ namespace processor {
      * @param source_addr Address to copy from.
      * @param dest_addr Address to copy to.
      * @param length Number of bytes to copy.
+     * @warning Unlike every other memory-touching syscall, this performs a raw, unchecked copy with no bounds checking against DRAM size: a real out-of-bounds-write risk from user code.
      */
     void mem_copy(uint64_t source_addr, uint64_t dest_addr, uint32_t length);
 
