@@ -8,6 +8,7 @@
 #include <ftxui/component/event.hpp>
 #include <ftxui/dom/table.hpp>
 
+/** @brief Which of the register value editor's input fields last changed and should be parsed and written back. */
 enum class Field {
   Hex,
   Int,
@@ -35,22 +36,32 @@ namespace state {
   }
 }// namespace state
 
-// read the given register
+/**
+ * @brief Read the value of a register by index.
+ * @param i Index of the register to read.
+ * @return The register's value.
+ */
 static uint64_t read(int i) {
   return visualiser::processor::cpu.reg($reg(i), true);
 }
 
-// read the current register
+/**
+ * @brief Read the value of the currently selected register.
+ * @return The selected register's value.
+ */
 static uint64_t read() {
   return read(state::current_reg);
 }
 
-// write to the current register
+/**
+ * @brief Write a value to the currently selected register.
+ * @param v Value to write.
+ */
 static void write(uint64_t v) {
   visualiser::processor::cpu.reg_set($reg(state::current_reg), v, true);
 }
 
-// ensure all inputs read the correct values
+/** @brief Refresh all of the value editor's input fields from the currently selected register's value. */
 static void sync_inputs() {
   uint64_t val = read();
   state::inputs::s_hex = to_hex_string(val, 8);
@@ -60,13 +71,19 @@ static void sync_inputs() {
   state::inputs::s_double = std::to_string(*(double *) &val);
 }
 
-// same as sync_inputs(), but update register's value first
+/**
+ * @brief Write a value to the currently selected register, then refresh all input fields to match.
+ * @param value Value to write.
+ */
 static void sync_inputs(uint64_t value) {
   write(value);
   sync_inputs();
 }
 
-// update register value from the given input field
+/**
+ * @brief Parse the given input field's text per its format and write the result to the currently selected register.
+ * @param update Which input field to read from.
+ */
 static void update_reg_from_input(Field update) {
   uint64_t buffer;
 
@@ -110,6 +127,7 @@ static void update_reg_from_input(Field update) {
   sync_inputs(buffer);
 }
 
+/** @brief Construct the register value editor's input fields (hex/int/long/float/double), wiring each to `update_reg_from_input` on submission. */
 static void init_inputs() {
   using namespace state::inputs;
 
@@ -132,7 +150,11 @@ static void init_inputs() {
                               .on_enter = [] { update_reg_from_input(Field::Double); }});
 }
 
-// event handler for intercepted event in register_list
+/**
+ * @brief Handle key events on the register list: sync/copy/paste register contents, digit-select a register, or clear the current register.
+ * @param e Event to handle.
+ * @return True if the event was handled.
+ */
 static bool register_list_on_event(ftxui::Event &e) {
   if (e.is_character()) {
     if (e == ftxui::Event::Character('r')) { // sync input fields
@@ -174,7 +196,10 @@ static bool register_list_on_event(ftxui::Event &e) {
   return false;
 }
 
-// generate info for the $flag register, add to children (will be placed in a VBox)
+/**
+ * @brief Build the `$flag` register's bit-field breakdown table (comparison, zero, running, error, interrupt bits) and append it to the given element list.
+ * @param elements Element list to append the rendered table to.
+ */
 static void flag_register_info(std::vector<ftxui::Element> &elements) {
   using namespace ftxui;
 
@@ -234,7 +259,7 @@ static void flag_register_info(std::vector<ftxui::Element> &elements) {
   elements.push_back(table.Render());
 }
 
-// change selection inside state::flag::cmp_dropdown
+/** @brief Apply the newly selected comparison flag entry to the `$flag` register and refresh the input fields. */
 static void cmp_dropdown_on_change() {
   std::string& selected = state::flag::cmp_entries[state::flag::cmp_dropdown_select];
   if (auto flag = constants::cmp::map.find(selected); flag != constants::cmp::map.end()) {

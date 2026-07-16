@@ -15,7 +15,13 @@
 
 using Args = const std::deque<std::reference_wrapper<const lang::value::Value>>&;
 
-// fetch the given argument, return assembly argument to resolve it
+/**
+ * @brief Resolves an argument's value to an assembly operand, marking its register free as it is consumed.
+ * @param ctx Compiler context.
+ * @param args Argument values.
+ * @param arg Index of the argument to fetch.
+ * @return The resolved operand.
+ */
 static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args, int arg) {
   // determine argument offset based on selection
   auto& value = args[arg];
@@ -23,9 +29,14 @@ static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args,
   return ctx.reg_alloc_manager.resolve_ref(ref, true);
 }
 
-// fetch the given argument, return assembly argument to resolve it
-// returns the register location, as we guarantee register placement
-// optionally, also guarantee the datatype
+/**
+ * @brief Resolves an argument's value into a register, optionally coercing it to a given datatype first.
+ * @param ctx Compiler context.
+ * @param args Argument values.
+ * @param arg_select Index of the argument to fetch.
+ * @param cast_to Optional datatype to coerce the value to.
+ * @return Register offset holding the value.
+ */
 static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional_ref<const lang::type::Node> cast_to = std::nullopt) {
   // determine argument offset based on selection
   auto& value = args[arg_select];
@@ -36,9 +47,13 @@ static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional
   return ref.offset;
 }
 
-// fetch LHS and RHS argument pair, enforcing at least one is in a register
-// return <register argument, other argument>
-// argument: cast arguments to this type?
+/**
+ * @brief Resolves a binary operator's LHS/RHS argument pair, ensuring at least one operand sits in a register, optionally coercing both to a given datatype first.
+ * @param ctx Compiler context.
+ * @param args Argument values (must have exactly two elements).
+ * @param cast_to Optional datatype to coerce both operands to.
+ * @return Pair of the register-resident operand's offset and the resolved operand for the other side.
+ */
 static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx, Args args, optional_ref<const lang::type::Node> cast_to = std::nullopt) {
   // fetch references to lhs and rhs
   const auto& lhs = args[0].get();
@@ -117,100 +132,175 @@ const lang::ops::OperatorInfo lang::ops::generic_unary{18, true};
 namespace generators {
   using namespace lang;
 
-  // generate an addition instruction for the given asm datatype
-  // assume values stored in LHS and RHS are compatible with the asm datatype
-  // return which register the result is in
+  /**
+   * @brief Generates an addition instruction for two operands of a given datatype.
+   * @param ctx Compiler context.
+   * @param args Operand values (assumed already compatible with datatype).
+   * @param datatype Assembly datatype the operands are stored as.
+   * @return Register holding the result.
+   */
   static uint8_t generate_add(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_add(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for subtraction
+  /**
+   * @brief Generates a subtraction instruction for two operands of a given datatype.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @param datatype Assembly datatype the operands are stored as.
+   * @return Register holding the result.
+   */
   static uint8_t generate_sub(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_sub(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for multiplication
+  /**
+   * @brief Generates a multiplication instruction for two operands of a given datatype.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @param datatype Assembly datatype the operands are stored as.
+   * @return Register holding the result.
+   */
   static uint8_t generate_mul(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_mul(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for multiplication
+  /**
+   * @brief Generates a division instruction for two operands of a given datatype.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @param datatype Assembly datatype the operands are stored as.
+   * @return Register holding the result.
+   */
   static uint8_t generate_div(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_div(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for <<
+  /**
+   * @brief Generates a left-shift instruction for two u64/i64 operands.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @return Register holding the result.
+   */
   static uint8_t generate_shl(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_shift_left(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for >>
+  /**
+   * @brief Generates a right-shift instruction for two u64/i64 operands.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @return Register holding the result.
+   */
   static uint8_t generate_shr(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_shift_right(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for modulus
+  /**
+   * @brief Generates a modulus instruction for two operands.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @return Register holding the result.
+   */
   static uint8_t generate_mod(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_mod(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for bitwise AND
+  /**
+   * @brief Generates a bitwise AND instruction for two operands.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @return Register holding the result.
+   */
   static uint8_t generate_and(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_and(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for bitwise OR
+  /**
+   * @brief Generates a bitwise OR instruction for two operands.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @return Register holding the result.
+   */
   static uint8_t generate_or(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_or(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for bitwise XOR
+  /**
+   * @brief Generates a bitwise XOR instruction for two operands.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @return Register holding the result.
+   */
   static uint8_t generate_xor(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_xor(reg_arg, reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // like generate_add, but for bitwise NOT
+  /**
+   * @brief Generates a bitwise NOT instruction for one operand.
+   * @param ctx Compiler context.
+   * @param args Operand values (must have exactly one element).
+   * @return Register holding the result.
+   */
   static uint8_t generate_bitwise_not(Context& ctx, Args args) {
     uint8_t reg = fetch_reg(ctx, args, 0);
     ctx.program.current().add(assembly::create_not(reg, reg));
     return reg;
   }
 
-  // like generate_add, but for Boolean NOT
+  /**
+   * @brief Generates a boolean NOT (bit-flip against 1) instruction for one operand.
+   * @param ctx Compiler context.
+   * @param args Operand values (must have exactly one element).
+   * @return Register holding the result.
+   */
   static uint8_t generate_boolean_not(Context& ctx, Args args) {
     uint8_t reg = fetch_reg(ctx, args, 0);
     ctx.program.current().add(assembly::create_xor(reg, reg, assembly::Arg::imm(1)));
     return reg;
   }
 
-  // like generate_add, but for a comparison
+  /**
+   * @brief Generates a comparison instruction between two operands of a given datatype.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @param datatype Assembly datatype the operands are stored as.
+   * @return Register holding the LHS operand, against which the comparison was made.
+   */
   static uint8_t generate_cmp(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_comparison(datatype.get_asm_datatype(), reg_arg, std::move(other_arg)));
     return reg_arg;
   }
 
-  // generate a comparison, setting a Boolean result if equal to a test flag
+  /**
+   * @brief Generates a comparison followed by materialising a boolean result register based on a test flag.
+   * @param ctx Compiler context.
+   * @param args Operand values.
+   * @param datatype Assembly datatype the operands are stored as.
+   * @param cmp Comparison flag that must hold for the result to be true.
+   * @return Register holding the boolean result.
+   */
   static uint8_t generate_cmp_bool(Context& ctx, Args args, std::reference_wrapper<const type::Node> datatype, constants::cmp::flag cmp) {
     uint8_t reg = generate_cmp(ctx, args, datatype);
     // zero-out the register
@@ -220,7 +310,13 @@ namespace generators {
     return reg;
   }
 
-  // like generate_add, but for negation
+  /**
+   * @brief Generates unary negation (0 minus operand) for one operand of a given datatype.
+   * @param ctx Compiler context.
+   * @param args Operand values (must have exactly one element).
+   * @param datatype Assembly datatype the operand is stored as.
+   * @return Register holding the result.
+   */
   static uint8_t generate_neg(Context& ctx, Args args, const type::Node& datatype) {
     uint8_t reg_arg = fetch_reg(ctx, args, 0, datatype);
 
@@ -240,6 +336,9 @@ namespace init_builtin {
   using namespace lang::ops;
   using namespace type;
 
+  /**
+   * @brief Registers operator+ overloads for every numerical type of at least 4 bytes.
+   */
   static void addition() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
@@ -252,6 +351,9 @@ namespace init_builtin {
     }
   }
 
+  /**
+   * @brief Registers operator- overloads for every numerical type of at least 4 bytes.
+   */
   static void subtraction() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
@@ -264,6 +366,9 @@ namespace init_builtin {
     }
   }
 
+  /**
+   * @brief Registers operator* overloads for every numerical type of at least 4 bytes.
+   */
   static void multiplication() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
@@ -276,6 +381,9 @@ namespace init_builtin {
     }
   }
 
+  /**
+   * @brief Registers operator/ overloads for every numerical type of at least 4 bytes.
+   */
   static void division() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
@@ -288,6 +396,9 @@ namespace init_builtin {
     }
   }
 
+  /**
+   * @brief Registers operator<< and operator>> overloads for u64 and i64 operands.
+   */
   static void shift() {
     // operator<<(u64, u64)
     store_operator(std::make_unique<BuiltinOperator>(
@@ -318,6 +429,9 @@ namespace init_builtin {
     ));
   }
 
+  /**
+   * @brief Registers the operator% overload for u64/i32 operands.
+   */
   static void modulo() {
     // operator%(u64, i32)
     store_operator(std::make_unique<BuiltinOperator>(
@@ -330,6 +444,9 @@ namespace init_builtin {
     // either make the ISA instruction more flexible (unlikely), os implement a software polyfill
   }
 
+  /**
+   * @brief Registers operator& overloads for u64 and i64 operands.
+   */
   static void bitwise_and() {
     // operator&(u64, u64)
     store_operator(std::make_unique<BuiltinOperator>(
@@ -346,6 +463,9 @@ namespace init_builtin {
     ));
   }
 
+  /**
+   * @brief Registers operator| overloads for u64 and i64 operands.
+   */
   static void bitwise_or() {
     // operator|(u64, u64)
     store_operator(std::make_unique<BuiltinOperator>(
@@ -362,6 +482,9 @@ namespace init_builtin {
     ));
   }
 
+  /**
+   * @brief Registers operator^ overloads for u64 and i64 operands.
+   */
   static void bitwise_xor() {
     // operator^(u64, u64)
     store_operator(std::make_unique<BuiltinOperator>(
@@ -378,6 +501,9 @@ namespace init_builtin {
     ));
   }
 
+  /**
+   * @brief Registers RelationalBuiltinOperator overloads for every ordering/equality comparison across all numerical types, plus boolean == and !=.
+   */
   static void relational() {
     static const std::unordered_map<std::string, constants::cmp::flag> ops = {
         {"==", constants::cmp::eq},
@@ -424,6 +550,9 @@ namespace init_builtin {
     ));
   }
 
+  /**
+   * @brief Registers operator~ overloads for u64 and i64 operands.
+   */
   static void bitwise_not() {
     // operator~(u64)
     store_operator(std::make_unique<BuiltinOperator>(
@@ -440,6 +569,9 @@ namespace init_builtin {
     ));
   }
 
+  /**
+   * @brief Registers the operator! (boolean not) overload as a BooleanNotBuiltinOperator.
+   */
   static void boolean_not() {
     // operator!(bool)
     store_operator(std::make_unique<BooleanNotBuiltinOperator>(
@@ -449,6 +581,9 @@ namespace init_builtin {
     ));
   }
 
+  /**
+   * @brief Registers unary operator- (negation) overloads for every numerical type of at least 4 bytes.
+   */
   static void negation() {
     for (const auto& type : numerical) {
       if (type.get().size() < 4) continue; // skip smaller sizes
@@ -461,7 +596,9 @@ namespace init_builtin {
     }
   }
 
-  // create logical && and ||
+  /**
+   * @brief Registers the operator&& and operator|| overloads as LazyLogicalOperator instances.
+   */
   static void logical_ops() {
     // operator&&(bool, bool)
     store_operator(std::make_unique<LazyLogicalOperator>(

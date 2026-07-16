@@ -46,7 +46,7 @@ const lang::lexer::Token &lang::parser::Parser::peek(unsigned int n) {
   return buffer_[n];
 }
 
-bool lang::parser::Parser::expect(const std::set<lexer::TokenType> &types, unsigned int n) {
+bool lang::parser::Parser::expect(const lexer::TokenTypeSet &types, unsigned int n) {
   return types.find(peek(n).type) != types.end();
 }
 
@@ -66,7 +66,7 @@ bool lang::parser::Parser::expect(const lang::lexer::BasicToken& token, unsigned
   return peek(n) == token;
 }
 
-bool lang::parser::Parser::expect_or_error(const std::set<lexer::TokenType> &types) {
+bool lang::parser::Parser::expect_or_error(const lexer::TokenTypeSet &types) {
   if (expect(types)) {
     return true;
   }

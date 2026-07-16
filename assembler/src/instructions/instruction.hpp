@@ -12,98 +12,155 @@
 
 #include "argument.hpp"
 
+/** @brief Instruction representation: signatures, argument encoding/decoding, and the encoded Instruction objects the parser produces. */
 namespace assembler::instruction {
   struct Signature;
 
-  /** List of all instruction signatures. Use list over map to preserve insertion order. */
+  /** @brief Every known instruction signature. A list (not a map) is used to preserve insertion order. */
   extern std::vector<Signature> signature_list;
 
+  /** @brief A single parsed instruction: its matched signature, selected overload, arguments, and optional test/datatype specifiers. */
   class Instruction {
   public:
-    const Signature *signature; // signature of instruction we are representing
-    uint8_t overload = 0; // selected signature overload index, default 0
-    std::deque<Argument> args; // list of supplied arguments
+    const Signature *signature; ///< Signature of the instruction being represented.
+    uint8_t overload = 0; ///< Selected signature overload index.
+    std::deque<Argument> args; ///< Supplied arguments, in signature order.
 
   private:
-    // conditional test bits, only included if signature.expect_test
-    // MSB - perform test, or skip?
-    uint8_t test;
-    // datatype specifier(s), only included if signature.expect_datatype
-    std::vector<constants::inst::datatype::dt> datatypes;
+    uint8_t test; ///< Conditional test bits (MSB: perform test, or skip?); only meaningful if `signature->expect_test`.
+    std::vector<constants::inst::datatype::dt> datatypes; ///< Datatype specifier(s); only meaningful if `signature->expect_datatype`.
 
   public:
+    /**
+     * @brief Construct an instruction.
+     * @param signature Matched signature this instruction represents.
+     * @param arguments Parsed arguments supplied for this instruction.
+     */
     Instruction(const Signature *signature, std::deque<Argument> arguments);
 
+    /**
+     * @brief Set the conditional test bits for this instruction.
+     * @param mask Comparison condition to test before executing.
+     */
     void set_conditional_test(constants::cmp::flag mask);
 
+    /**
+     * @brief Append a datatype specifier for this instruction.
+     * @param mask Datatype this instruction operates on.
+     */
     void add_datatype_specifier(constants::inst::datatype::dt mask);
 
-    /** Offset addresses by the given amount. */
+    /**
+     * @brief Shift every address-valued argument by a fixed offset.
+     * @param offset Amount to add to each address.
+     */
     void offset_addresses(uint16_t offset);
 
-    /** Return set of all labels referenced in arguments. */
+    /** @brief Get every label name referenced by this instruction's arguments. @return Set of referenced label names. */
     std::set<std::string> get_referenced_labels() const;
 
-    /** Replace given label with its address */
+    /**
+     * @brief Replace every reference to a label within this instruction's arguments with its resolved address.
+     * @param label Label name to replace.
+     * @param address Address to replace it with.
+     * @param debug If true, print debug information about the replacement.
+     */
     void replace_label(const std::string& label, uint32_t address, bool debug = false);
 
+    /** @brief Encode this instruction into its final instruction word. @return The compiled instruction word. */
     [[nodiscard]] uint64_t compile() const;
 
+    /**
+     * @brief Print a verbose, debug-oriented description of this instruction.
+     * @param os Stream to print to.
+     */
     void debug_print(std::ostream &os) const;
 
+    /**
+     * @brief Print this instruction in assembly syntax.
+     * @param os Stream to print to.
+     */
     void print(std::ostream &os) const;
   };
 
-  /** Builder class to construct an instruction word. */
+  /** @brief Incrementally builds a single 64-bit instruction word, bit field by bit field. */
   class InstructionBuilder {
   private:
+    /** @brief What kind of argument, if any, the next @ref write call should be interpreted as. */
     enum class NextArgument {
-      None,
-      AsValue,
-      AsAddress
+      None, ///< No special interpretation; write plain bits.
+      AsValue, ///< Interpret the next write as a `<value>` argument.
+      AsAddress ///< Interpret the next write as an `<addr>` argument.
     };
 
-    uint64_t m_word;
-    uint8_t m_pos; // current bit
-    NextArgument m_next;
+    uint64_t m_word; ///< Instruction word built so far.
+    uint8_t m_pos; ///< Current bit position to write the next field at.
+    NextArgument m_next; ///< How the next @ref write call should be interpreted, if at all.
 
   public:
+    /** @brief Construct an empty instruction word builder. */
     InstructionBuilder() : m_word(0), m_pos(0), m_next(NextArgument::None) {};
 
-    /** Write the given data of length bits raw. */
+    /**
+     * @brief Write raw bits into the instruction word at the current position, advancing past them.
+     * @param length Number of bits to write.
+     * @param data Bits to write (only the low `length` bits are used).
+     */
     void write(uint8_t length, uint64_t data);
 
-    /** Write opcode. */
+    /**
+     * @brief Write the opcode field.
+     * @param opcode Opcode to write.
+     */
     void opcode(uint8_t opcode);
 
-    /** Get instruction word. */
+    /** @brief Get the instruction word built so far. @return The instruction word. */
     [[nodiscard]] uint64_t get() const { return m_word; }
 
-    /** Specify next argument as <value>. */
+    /** @brief Mark the next written argument as a `<value>`. */
     void next_as_value();
 
-    /** Specify next argument as <addr>. */
+    /** @brief Mark the next written argument as a `<addr>`. */
     void next_as_addr();
 
-    /** No conditional test. */
+    /** @brief Write the "no conditional test" bits. */
     void no_conditional_test();
 
-    /** Add conditional test given bit mask. */
+    /**
+     * @brief Write the conditional test field.
+     * @param bits Comparison condition bit mask.
+     */
     void conditional_test(uint8_t bits);
 
-    /** Write data-type bits. */
+    /**
+     * @brief Write the datatype field.
+     * @param bits Datatype bit pattern.
+     */
     void data_type(uint8_t bits);
 
-    /** Write argument: `<reg_copy>` */
+    /**
+     * @brief Write a `<reg>` argument.
+     * @param reg Register index.
+     */
     void arg_reg(uint8_t reg);
 
-    /** Write argument: immediate. */
+    /**
+     * @brief Write an immediate-value argument.
+     * @param imm Immediate value.
+     */
     void arg_imm(uint32_t imm);
 
-    /** Write argument: memory address. */
+    /**
+     * @brief Write a memory-address argument.
+     * @param addr Address.
+     */
     void arg_addr(uint32_t addr);
 
-    /** Write argument: register indirect. */
+    /**
+     * @brief Write a register-indirect argument.
+     * @param reg Register index.
+     * @param offset Byte offset.
+     */
     void arg_reg_indirect(uint8_t reg, int16_t offset);
   };
 }

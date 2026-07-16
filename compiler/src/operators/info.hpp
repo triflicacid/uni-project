@@ -5,22 +5,20 @@
 #include <string>
 
 namespace lang::ops {
-  // describes an operator
+  /**
+   * @brief Describes an operator's parse-time syntax: precedence, associativity, and whether it may be user-overloaded.
+   */
   struct OperatorInfo {
-    uint8_t precedence; // operator precedence, 1 is loosest (higher = stronger)
-    bool right_associative;
-    bool overloadable = true;
+    uint8_t precedence; ///< Operator precedence; 1 is loosest (higher binds stronger).
+    bool right_associative; ///< Whether the operator associates right-to-left.
+    bool overloadable = true; ///< Whether user code may overload this operator.
   };
 
-  // map operator to operator info for builtin binary operators
-  extern std::unordered_map<std::string, const OperatorInfo> builtin_binary;
+  extern std::unordered_map<std::string, const OperatorInfo> builtin_binary; ///< Maps operator symbol to info, for builtin binary operators.
 
-  // map operator to operator info for builtin unary operators
-  extern std::unordered_map<std::string, const OperatorInfo> builtin_unary;
+  extern std::unordered_map<std::string, const OperatorInfo> builtin_unary; ///< Maps operator symbol to info, for builtin unary operators.
 
-  // operator infor for a generic binary operator (not built in)
-  extern const OperatorInfo generic_binary;
+  extern const OperatorInfo generic_binary; ///< Operator info for a generic (not built-in) binary operator.
 
-  // operator info for a generic unary operator (not built in)
-  extern const OperatorInfo generic_unary;
+  extern const OperatorInfo generic_unary; ///< Operator info for a generic (not built-in) unary operator.
 }

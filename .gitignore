@@ -1,5 +1,6 @@
 .idea
 cmake-build-debug
+build
 out/*
 !out/*.pdf
 auxil

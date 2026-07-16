@@ -3,6 +3,13 @@
 #include <iostream>
 #include "cli_arguments.hpp"
 
+/**
+ * @brief Parse command-line arguments into a `CliArguments`, opening the referenced files.
+ * @param argc Argument count, as passed to `main`.
+ * @param argv Argument values, as passed to `main`.
+ * @param args Populated with the parsed file arguments.
+ * @return `EXIT_SUCCESS` if the arguments were valid, `EXIT_FAILURE` otherwise (with an error already printed to stderr).
+ */
 int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
   for (int i = 1; i < argc; i++) {
     std::string arg(argv[i]);
@@ -101,6 +108,10 @@ int parse_arguments(int argc, char **argv, processor::CliArguments &args) {
 
 static std::ostream *debug_stream = nullptr;
 
+/**
+ * @brief Format and print a single debug trace message to @ref debug_stream.
+ * @param msg Message to print.
+ */
 static void handle_debug_message(const processor::debug::Message &msg) {
   using namespace processor::debug;
 

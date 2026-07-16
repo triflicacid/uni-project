@@ -1,0 +1,128 @@
+# Doxygen configuration for the Edel toolchain.
+# Generates API documentation for the compiler, assembler, processor emulator,
+# shared library, and visualiser.
+#
+# Documentation will be written to:
+#   docs/doxygen/html/index.html
+
+# The project name displayed throughout the documentation.
+PROJECT_NAME = "Edel Toolchain"
+
+# A short description shown on the documentation home page.
+PROJECT_BRIEF = "Compiler, assembler, and processor emulator for the Edel teaching language"
+
+# Directory where all generated documentation is written.
+OUTPUT_DIRECTORY = docs/doxygen
+
+# Keep the output in a single directory hierarchy.
+CREATE_SUBDIRS = NO
+
+# Directories that Doxygen should scan for source files.
+# README.md is included so it can be used as the main page (see
+# USE_MDFILE_AS_MAINPAGE below). docs/additional_documentation.md and
+# docs/architecture_overview.md are included so they show up as their own
+# "Related Pages" entries (linking to the compiled PDF documentation, and a
+# high-level architecture tour with diagrams, respectively).
+INPUT = README.md \
+        docs/additional_documentation.md \
+        docs/architecture_overview.md \
+        shared \
+        processor/src \
+        assembler/src \
+        compiler/src \
+        visualiser/src
+
+# Use the project README as the documentation's main/landing page.
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# Search all subdirectories recursively.
+RECURSIVE = YES
+
+# Only process C++ header and source files.
+FILE_PATTERNS = *.h *.hpp *.cpp
+
+# Ignore these files when generating documentation.
+EXCLUDE = visualiser/src/components/either.cpp \
+          visualiser/src/components/either.hpp \
+          visualiser/src/components/boolean.cpp \
+          visualiser/src/components/boolean.hpp
+
+# Ignore files inside debug build directories.
+EXCLUDE_PATTERNS = */cmake-build-debug/*
+
+# Only include documented entities by default.
+EXTRACT_ALL = NO
+
+# Include documented private members.
+EXTRACT_PRIVATE = YES
+
+# Include documented private virtual functions.
+EXTRACT_PRIV_VIRTUAL = YES
+
+# Include documented static members and functions.
+EXTRACT_STATIC = YES
+
+# Include classes declared within local scopes.
+EXTRACT_LOCAL_CLASSES = YES
+
+# Warn about undocumented classes, functions, and members.
+WARN_IF_UNDOCUMENTED = YES
+
+# Warn when documentation is present but incomplete.
+WARN_IF_INCOMPLETE_DOC = YES
+
+# Warn when function parameters are missing @param documentation.
+WARN_NO_PARAMDOC = YES
+
+# Generate HTML documentation.
+GENERATE_HTML = YES
+
+# Do not generate LaTeX documentation.
+GENERATE_LATEX = NO
+
+# Enable Graphviz (dot) support to generate diagrams such as inheritance,
+# collaboration, include dependency, and call graphs.
+HAVE_DOT = YES
+
+# Generate inheritance diagrams for classes.
+CLASS_GRAPH = YES
+
+# Generate collaboration diagrams showing class relationships.
+COLLABORATION_GRAPH = YES
+
+# Generate include dependency graphs for files.
+INCLUDE_GRAPH = YES
+
+# Generate reverse include dependency graphs.
+INCLUDED_BY_GRAPH = YES
+
+# Generate call graphs showing which functions are called.
+CALL_GRAPH = YES
+
+# Generate caller graphs showing which functions invoke a function.
+CALLER_GRAPH = YES
+
+# Generate directory dependency graphs.
+DIRECTORY_GRAPH = YES
+
+# Use SVG images for better quality and scalability in HTML output.
+DOT_IMAGE_FORMAT = svg
+
+# Drop the opaque white canvas Graphviz paints behind every graph so
+# diagrams blend into the page background in both light and dark mode.
+DOT_COMMON_ATTR = "fontname=\"Comic Sans\",fontsize=10,bgcolor=\"transparent\""
+
+# Remove .dot files after generation
+DOT_CLEANUP = YES
+
+# Produce cleaner diagrams by hiding details from external libraries.
+HIDE_UNDOC_RELATIONS = YES
+
+# Copy the compiled PDF documentation into the generated HTML output so the
+# "Additional Documentation" page (docs/additional_documentation.md) can link
+# to them directly.
+HTML_EXTRA_FILES = out/compiler.pdf \
+                    out/assembler.pdf \
+                    out/processor.pdf \
+                    out/visualiser.pdf \
+                    out/requirements.pdf

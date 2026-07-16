@@ -10,7 +10,9 @@ std::map<uint32_t, visualiser::sources::PCLine> visualiser::sources::pc_to_line 
 std::map<std::filesystem::path, visualiser::sources::File> visualiser::sources::files = {};
 Graph<std::pair<std::filesystem::path, int>, visualiser::sources::FileLine*, pair_hash> visualiser::sources::trace;
 
-// read .s file, create binary-to-s links
+/**
+ * @brief Read the reconstructed `.s` source, populating `pc_to_line`, registering the assembly files it references, and linking `.s` lines to `.asm` lines in `trace`.
+ */
 static void init_s_source() {
   using namespace visualiser::sources;
 
@@ -75,7 +77,9 @@ static void init_s_source() {
   }
 }
 
-// read .asm file, create links to source file
+/**
+ * @brief Read the `.asm` source, registering it and any referenced language files, and linking `.asm` lines to language-source lines in `trace` via embedded debug comments.
+ */
 static void init_asm_source() {
   using namespace visualiser::sources;
 

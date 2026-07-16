@@ -8,13 +8,20 @@
 #include <ftxui/component/event.hpp>
 #include <unordered_set>
 
+/**
+ * @brief State of one of the three source-view panes (source/assembly/language): which file it shows, its scroll position, and its selected lines.
+ */
 struct PaneStateData {
-  visualiser::sources::Type type;
-  ftxui::Component component;
-  const visualiser::sources::File* file; // file which we are viewing
-  int *pos_ptr; // pointer top ScrollerBase::selected_
-  std::unordered_set<int> selected_lines; // store selected lines in each pane
+  visualiser::sources::Type type; ///< Kind of source this pane displays.
+  ftxui::Component component; ///< The pane's UI component.
+  const visualiser::sources::File* file; ///< File currently being viewed.
+  int *pos_ptr; ///< Pointer to the pane's scroller's `ScrollerBase::selected_`.
+  std::unordered_set<int> selected_lines; ///< Line numbers currently selected in this pane.
 
+  /**
+   * @brief Construct pane state for the given source type.
+   * @param type Kind of source this pane displays.
+   */
   PaneStateData(visualiser::sources::Type type) : type(type) {}
 };
 
@@ -36,7 +43,11 @@ namespace state {
   static int selected_line = 0; // current line which is selected
 }// namespace state
 
-// get pane state given pane type
+/**
+ * @brief Get the pane state for a given source type.
+ * @param type Kind of source to look up.
+ * @return The matching pane state.
+ */
 static PaneStateData& get_pane_by_type(visualiser::sources::Type type) {
   switch (type) {
     case visualiser::sources::Type::Source:
@@ -48,7 +59,7 @@ static PaneStateData& get_pane_by_type(visualiser::sources::Type type) {
   }
 }
 
-// update panes' positions based on state::current_pc
+/** @brief Scroll each source pane so its view is aligned to the CPU's current `$pc` line. */
 static void update_align_pane_pc() {
   if (!visualiser::processor::pc_line) return;
 
@@ -64,7 +75,7 @@ static void update_align_pane_pc() {
   }
 }
 
-// update state::selected_pane
+/** @brief Refresh `state::selected_pane` to whichever of the three panes currently has focus. */
 static void update_selected_pane() {
   state::selected_pane =
     state::source_pane.component->Focused() ? &state::source_pane
@@ -73,7 +84,10 @@ static void update_selected_pane() {
   : nullptr;
 }
 
-// get the first (minimum) selected line
+/**
+ * @brief Get the lowest selected line number in the currently selected pane.
+ * @return The minimum selected line, or 0 if no pane is selected or no lines are selected.
+ */
 static unsigned int get_first_line_selected() {
   if (!state::selected_pane) return 0;
   auto& lines = state::selected_pane->selected_lines;
@@ -82,7 +96,7 @@ static unsigned int get_first_line_selected() {
     : *std::min_element(lines.begin(), lines.end());
 }
 
-// update selected line information - trace lines from current pane to others
+/** @brief Recompute which lines are highlighted as "selected" in each pane, tracing the current pane's selected line to its counterparts in the other two panes. */
 static void update_selected_line() {
   using namespace state;
   update_selected_pane();
@@ -128,7 +142,7 @@ static void update_selected_line() {
   }
 }
 
-// ensure the selected lines in each pane are in view
+/** @brief Scroll each pane so its lowest selected line is visible. */
 static void update_pane_positions_from_selection() {
   for (PaneStateData* pane : state::panes) {
     auto min = std::min_element(pane->selected_lines.begin(), pane->selected_lines.end());
@@ -138,12 +152,21 @@ static void update_pane_positions_from_selection() {
   }
 }
 
-// get the line highlight colour for the given pane
+/**
+ * @brief Get the highlight style to use for a selected/traced line in the given pane.
+ * @param pane Kind of pane the line belongs to.
+ * @return Pointer to the "selected" style if `pane` is the currently selected pane, otherwise the "traced" style.
+ */
 static ftxui::Decorator* get_line_highlight_style(visualiser::sources::Type pane) {
   return state::selected_pane && pane == state::selected_pane->type ? &visualiser::style::highlight_selected : &visualiser::style::highlight_traced;
 }
 
-// get PC's Location
+/**
+ * @brief Get the source location of a `$pc` entry as it should be shown in a given pane.
+ * @param pc_entry Program counter entry to locate.
+ * @param pane Kind of pane the location is being resolved for.
+ * @return The location within the pane's source representation.
+ */
 static Location get_pc_location_in_pane(const visualiser::sources::PCLine* pc_entry, visualiser::sources::Type pane) {
   switch (pane) {
     case visualiser::sources::Type::Assembly:
@@ -156,7 +179,11 @@ static Location get_pc_location_in_pane(const visualiser::sources::PCLine* pc_en
   }
 }
 
-// given debug message, return Element which represents it
+/**
+ * @brief Render a processor debug message as a formatted, colour-coded element.
+ * @param msg Debug message to render.
+ * @return The rendered element.
+ */
 static ftxui::Element format_debug_message(const processor::debug::Message &msg) {
   using namespace ftxui;
   using namespace processor::debug;
@@ -260,7 +287,7 @@ static ftxui::Element format_debug_message(const processor::debug::Message &msg)
   return children.size() == 1 ? children.front() : hbox(children);
 }
 
-// update the state's debug message list
+/** @brief Refresh `state::debug_lines` from the CPU's pending debug messages (and any pending error), then clear the CPU's message queue. */
 static void update_debug_lines() {
   // format CPU's debug messages
   state::debug_lines.clear();
@@ -277,7 +304,7 @@ static void update_debug_lines() {
   }
 }
 
-// execute a single step of the processor, perform necessary state:: updates and mutations
+/** @brief Advance the CPU by one cycle if running, and refresh `$pc`, debug messages, and pane alignment to match. */
 static void step_processor() {
   using namespace visualiser::processor;
   if (cpu.is_running()) {
@@ -293,12 +320,20 @@ static void step_processor() {
 }
 
 namespace events {
+  /**
+   * @brief Handle the reset key: clear the CPU's running flag.
+   * @return Always true.
+   */
   static bool on_reset() {
     visualiser::processor::cpu.reset_flag();
     return true;
   }
 
-  // execute *one* cycle
+  /**
+   * @brief Handle the space key: execute the instructions corresponding to the current line of the focused pane.
+   * @param pane Kind of pane that received the event.
+   * @return True if the event was handled.
+   */
   static bool on_space(visualiser::sources::Type pane) {
     if (!visualiser::processor::pc_line) return false;
 
@@ -349,7 +384,11 @@ namespace events {
     return false;
   }
 
-  // execute until next breakpoint or done
+  /**
+   * @brief Handle the enter key: run the processor until it halts or reaches a breakpoint.
+   * @param pane Kind of pane that received the event (unused, kept for signature consistency with other handlers).
+   * @return Always true.
+   */
   static bool on_enter(visualiser::sources::Type pane) {
     do {
       step_processor();
@@ -358,6 +397,12 @@ namespace events {
     return true;
   }
 
+  /**
+   * @brief Handle an up/down arrow key: move the selected line in the given pane and re-sync trace highlighting.
+   * @param pane Pane that received the event.
+   * @param is_down True if the arrow pressed was down, false if up.
+   * @return True if the new selected line moved out of the pane's bounds.
+   */
   static bool on_vert_arrow(PaneStateData* pane, bool is_down) {
     if (!state::show_selected_line) return false;
 
@@ -367,12 +412,23 @@ namespace events {
     return state::selected_line < 0 || state::selected_line >= state::selected_pane->file->lines.size();
   }
 
+  /**
+   * @brief Handle a left/right arrow key: flag that the selected line needs re-syncing to the newly focused pane.
+   * @param pane Pane that received the event (unused, kept for signature consistency with other handlers).
+   * @param is_right True if the arrow pressed was right, false if left (unused).
+   * @return True if line selection is enabled and the flag was set.
+   */
   static bool on_horiz_arrow(PaneStateData* pane, bool is_right) {
     if (!state::show_selected_line) return false;
     state::do_update_selected_line = true;
     return true;
   }
 
+  /**
+   * @brief Handle the 'b' key: toggle the breakpoint at the currently selected line.
+   * @param pane Pane that received the event (unused; the selected pane is read from `state::selected_pane`).
+   * @return True if a breakpoint was toggled, false if the selected line has no `$pc` trace.
+   */
   static bool on_B(PaneStateData* pane) {
     // lookup our current location in this pane and toggle breakpoint
     auto &lines = state::selected_pane->file->lines[state::selected_line].pc_trace;
@@ -382,11 +438,20 @@ namespace events {
     return true;
   }
 
+  /**
+   * @brief Handle the 'h' key: toggle the CPU's is-running flag bit.
+   * @return Always true.
+   */
   static bool on_H() { // toggle IS_RUNNING bit in $flag
     visualiser::processor::cpu.flag_toggle(constants::flag::is_running, true);
     return true;
   }
 
+  /**
+   * @brief Handle the 'j' key: jump the CPU's `$pc` to the currently selected reconstructed-source line.
+   * @param pane Pane that received the event (unused; requires a selected line in the source pane).
+   * @return True if the jump succeeded.
+   */
   static bool on_J(PaneStateData* pane) {
     if (state::show_selected_line && !state::source_pane.selected_lines.empty()) {
       if (auto entry = visualiser::sources::locate_line(get_first_line_selected())) {
@@ -397,6 +462,10 @@ namespace events {
     return false;
   }
 
+  /**
+   * @brief Handle the 's' key: toggle whether selected/traced lines are highlighted.
+   * @return Always true.
+   */
   static bool on_S() {
     state::show_selected_line = !state::show_selected_line;
     update_selected_line();
@@ -404,7 +473,11 @@ namespace events {
   }
 }// namespace events
 
-// receive an event in this window
+/**
+ * @brief Top-level key handler for the tab, dispatching global (pane-independent) key events.
+ * @param e Event to handle.
+ * @return True if the event was handled.
+ */
 static bool on_event(ftxui::Event e) {
   if (e == ftxui::Event::h) return events::on_H();
   if (e == ftxui::Event::r) return events::on_reset();
@@ -412,7 +485,12 @@ static bool on_event(ftxui::Event e) {
   return false;
 }
 
-// receive an event on the given pane
+/**
+ * @brief Key handler for an individual source pane: dispatches pane-specific commands, forwards unhandled events to the pane's scroller, and keeps sibling panes' scroll positions in sync.
+ * @param pane Pane that received the event.
+ * @param e Event to handle.
+ * @return True if the event was handled.
+ */
 static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   update_selected_pane();
 
@@ -454,7 +532,11 @@ static bool pane_on_event(PaneStateData* pane, ftxui::Event &e) {
   return handled;
 }
 
-// return Element wrapping the current line
+/**
+ * @brief Render a source line, prefixing it with a breakpoint marker if one is set.
+ * @param line Line to render.
+ * @return The rendered element.
+ */
 static ftxui::Element wrap_line(const visualiser::sources::FileLine &line) {
   // test if there is a breakpoint on this line
   if (line.has_breakpoint()) {
@@ -464,7 +546,11 @@ static ftxui::Element wrap_line(const visualiser::sources::FileLine &line) {
   return ftxui::text(line.line);
 }
 
-// create a pane Scroller()
+/**
+ * @brief Build the scrollable renderer component for a source pane, rendering its lines and applying selection/execution highlighting.
+ * @param pane Pane state to render.
+ * @return The constructed scroller component.
+ */
 static ftxui::Component create_pane_component(PaneStateData& pane) {
   using namespace ftxui;
 

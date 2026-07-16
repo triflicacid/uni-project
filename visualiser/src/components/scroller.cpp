@@ -16,16 +16,32 @@
 
 namespace ftxui {
 
+/**
+ * @brief Component that renders a child inside a vertically scrollable, focusable frame with a visible cursor line.
+ */
 class ScrollerBase : public ComponentBase {
  public:
+  /**
+   * @brief Construct a scroller wrapping a child component.
+   * @param child Component to wrap.
+   */
   ScrollerBase(Component child) { Add(child); }
 
+  /**
+   * @brief Construct a scroller wrapping a child component and expose the selected line index.
+   * @param child Component to wrap.
+   * @param selected_ptr Set to point at the scroller's internal selected-line index.
+   */
   ScrollerBase(Component child, int*& selected_ptr) {
     Add(child);
     selected_ptr = &selected_;
   }
 
  private:
+  /**
+   * @brief Render the child content overlaid with the current selection highlight, inside a scrollable frame.
+   * @return The rendered element.
+   */
   Element Render() final {
     auto focused = Focused() ? focus : ftxui::select;
     auto style = Focused() ? inverted : nothing;
@@ -43,6 +59,11 @@ class ScrollerBase : public ComponentBase {
            vscroll_indicator | yframe | yflex | reflect(box_);
   }
 
+  /**
+   * @brief Handle keyboard/mouse navigation events, moving the selected line and clamping it to bounds.
+   * @param event Event to handle.
+   * @return True if the event changed the selected line.
+   */
   bool OnEvent(Event event) final {
     if (event.is_mouse() && box_.Contain(event.mouse().x, event.mouse().y))
       TakeFocus();
@@ -69,11 +90,15 @@ class ScrollerBase : public ComponentBase {
     return selected_old != selected_;
   }
 
+  /**
+   * @brief Report that the scroller can take keyboard focus.
+   * @return Always true.
+   */
   bool Focusable() const final { return true; }
 
-  int selected_ = 0;
-  int size_ = 0;
-  Box box_;
+  int selected_ = 0; ///< Index of the currently selected/cursor line.
+  int size_ = 0; ///< Total number of lines in the scrolled content.
+  Box box_; ///< Bounding box of the visible frame, used to compute page-up/page-down and clamp scrolling.
 };
 
 Component Scroller(Component child) {

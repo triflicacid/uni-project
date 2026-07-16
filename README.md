@@ -1,6 +1,8 @@
 # Uni Project
 
-This repository holds the source code to my third year project.
+GitHub repository: <https://github.com/triflicacid/uni-project>
+
+This repository holds the source code to my third year project, completed as part of my degree at the University of Warwick.
 The title of my project is `A code execution toolchain targeted at learners: from compilation to emulating a custom RISC processor`.
 
 As a brief overview, this project is an educational tool for exploring the code execution toolchain.
@@ -75,3 +77,26 @@ Two script files have been written to aid with using the application:
 3. Run `visualise.sh` to run the visualiser on the Edel program.
 
 For more information, see provided documentation, especially `out/visualiser.pdf` which has a section explaining how to run the visualiser application.
+
+## Documentation
+
+All code has been extensively commented in-line with Doxygen comments.
+Run the `./doxygen.sh` script to generate an HTML Doxygen website at `docs/doxygen`.
+
+Alternatively, using CMake (this is slower):
+```bash
+mkdir -p build && cd build
+cmake ..
+cmake --build . --target doxygen
+```
+
+### Installation
+
+```bash
+sudo apt update
+sudo apt install -y doxygen cmake graphviz build-essential
+```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

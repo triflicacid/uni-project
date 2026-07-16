@@ -9,7 +9,13 @@
 #include "assembler_data.hpp"
 #include "parser.hpp"
 
-/** Parse command-line arguments. */
+/**
+ * @brief Parse command-line arguments into a `CliArguments`, opening the referenced files.
+ * @param argc Argument count, as passed to `main`.
+ * @param argv Argument values, as passed to `main`.
+ * @param opts Populated with the parsed arguments.
+ * @return `EXIT_SUCCESS` if the arguments were valid, `EXIT_FAILURE` otherwise (with an error already printed).
+ */
 int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
   std::string lib_path_suffix = "lib";
 
@@ -119,6 +125,12 @@ int parse_arguments(int argc, char **argv, assembler::CliArguments &opts) {
   return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Run the pre-processing stage, printing debug output and writing the post-processed source if requested.
+ * @param data Pre-processor data to process.
+ * @param messages Message list to report diagnostics to.
+ * @return `EXIT_SUCCESS` on success, `EXIT_FAILURE` if an error occurred during pre-processing.
+ */
 int pre_process_data(assembler::pre_processor::Data &data, message::List &messages) {
   if (data.cli_args.debug)
     std::cout << ANSI_GREEN "=== PRE-PROCESSING ===\n" ANSI_RESET;
@@ -167,6 +179,12 @@ int pre_process_data(assembler::pre_processor::Data &data, message::List &messag
   return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Run the parsing stage over the pre-processed source.
+ * @param data Assembly data to parse into.
+ * @param messages Message list to report diagnostics to.
+ * @return `EXIT_SUCCESS` on success, `EXIT_FAILURE` if an error occurred during parsing.
+ */
 int parse_data(assembler::Data &data, message::List &messages) {
   // Parse pre-processed lines
   if (data.cli_args.debug)
@@ -182,6 +200,11 @@ int parse_data(assembler::Data &data, message::List &messages) {
   return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Write the compiled chunks to the output file, printing debug output if requested.
+ * @param data Assembly data holding the compiled chunks.
+ * @return `EXIT_SUCCESS` on success.
+ */
 int compile_result(assembler::Data &data) {
   if (data.cli_args.debug) {
     // Print chunks

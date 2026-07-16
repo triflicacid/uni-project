@@ -13,7 +13,11 @@ namespace state {
   static int selected_line = 1; // 1-indexed
 }
 
-// return index of given file
+/**
+ * @brief Find the index of a file within `state::files` by path.
+ * @param path Path of the file to find.
+ * @return The file's index, or -1 if not found.
+ */
 static int find_file(const std::filesystem::path& path) {
   for (int i = 0; i < state::files.size(); i++) {
     if (state::files[i]->path == path) {
@@ -24,18 +28,28 @@ static int find_file(const std::filesystem::path& path) {
   return -1;
 }
 
-// get the selected file
+/**
+ * @brief Get the currently selected file, loading its lines if needed.
+ * @return The selected file.
+ */
 inline const visualiser::sources::File* selected() {
   // call ::get_file to ensure it is loaded
   return visualiser::sources::get_file(state::files[state::menu_selected]->path);
 }
 
-// get the selected file's line
+/**
+ * @brief Get the currently selected line of the currently selected file.
+ * @return The selected line.
+ */
 inline const visualiser::sources::FileLine& selected_line() {
   return selected()->lines[state::selected_line - 1];
 }
 
-// given file, generate element
+/**
+ * @brief Render a file's entry in the file menu, prefixing it with a breakpoint count badge and highlighting it if selected and focused.
+ * @param file File to render.
+ * @return The rendered element.
+ */
 static ftxui::Element generate_file_element(const visualiser::sources::File& file) {
   ftxui::Element base = ftxui::text(file.path.string());
 
@@ -53,7 +67,11 @@ static ftxui::Element generate_file_element(const visualiser::sources::File& fil
     : base;
 }
 
-// return Element wrapping the current line
+/**
+ * @brief Render a source line, prefixing it with a breakpoint marker if one is set.
+ * @param line Line to render.
+ * @return The rendered element.
+ */
 static ftxui::Element wrap_line(const visualiser::sources::FileLine &line) {
   // test if there is a breakpoint on this line
   if (line.has_breakpoint()) {
@@ -63,7 +81,7 @@ static ftxui::Element wrap_line(const visualiser::sources::FileLine &line) {
   return ftxui::text(line.line);
 }
 
-// ensure state::selected_line is in bounds
+/** @brief Clamp `state::selected_line` to the currently selected file's line count. */
 static void validate_selected_line() {
   const visualiser::sources::File* file = selected();
   if (!file) return;
@@ -71,18 +89,28 @@ static void validate_selected_line() {
   clamp(state::selected_line, 1, (int)file->lines.size() + 1);
 }
 
-// update file selection in the menu
+/** @brief Handle a change of the selected file in the file menu, re-validating the selected line for the new file. */
 static void on_change_file() {
   validate_selected_line();
 }
 
 namespace events {
+  /**
+   * @brief Handle the up arrow: move the selected line up by one, clamped at the first line.
+   * @param e Event that triggered the handler (unused).
+   * @return Always false, so the event still propagates to the file pane.
+   */
   static bool on_arrow_up(ftxui::Event& e) {
     state::selected_line--;
     if (state::selected_line < 1) state::selected_line = 1;
     return false;
   }
 
+  /**
+   * @brief Handle the down arrow: move the selected line down by one, clamped at the last line.
+   * @param e Event that triggered the handler (unused).
+   * @return Always false, so the event still propagates to the file pane.
+   */
   static bool on_arrow_down(ftxui::Event& e) {
     state::selected_line++;
     size_t limit = selected()->lines.size();
@@ -90,16 +118,31 @@ namespace events {
     return false;
   }
 
+  /**
+   * @brief Handle Home: jump the selected line to the first line of the file.
+   * @param e Event that triggered the handler (unused).
+   * @return Always false, so the event still propagates to the file pane.
+   */
   static bool on_home(ftxui::Event& e) {
     state::selected_line = 1;
     return false;
   }
 
+  /**
+   * @brief Handle End: jump the selected line to the last line of the file.
+   * @param e Event that triggered the handler (unused).
+   * @return Always false, so the event still propagates to the file pane.
+   */
   static bool on_end(ftxui::Event& e) {
     state::selected_line = selected()->lines.size();
     return false;
   }
 
+  /**
+   * @brief Handle ']': trace the selected line forward to the next-lower abstraction level (language -> assembly -> reconstructed source) and select it there.
+   * @param e Event that triggered the handler (unused).
+   * @return True (event always consumed).
+   */
   static bool on_right_bracket(ftxui::Event& e) { // ']'
     // trace the current line
     const visualiser::sources::File* file = selected();
@@ -126,6 +169,11 @@ namespace events {
     return true;
   }
 
+  /**
+   * @brief Handle '[': trace the selected line backward to the next-higher abstraction level (source -> assembly -> language) and select it there.
+   * @param e Event that triggered the handler (unused).
+   * @return True (event always consumed).
+   */
   static bool on_left_bracket(ftxui::Event& e) { // ']'
     const visualiser::sources::File* file = selected();
     const visualiser::sources::FileLine& file_line = selected_line();
@@ -154,12 +202,22 @@ namespace events {
     return true;
   }
 
+  /**
+   * @brief Handle 'b': toggle the breakpoint on the selected line's first traced `$pc`.
+   * @param e Event that triggered the handler (unused).
+   * @return True (event always consumed).
+   */
   static bool on_b(ftxui::Event& e) {
     auto& line = selected_line();
     if (!line.pc_trace.empty()) line.pc_trace.front()->toggle_breakpoint();
     return true;
   }
 
+  /**
+   * @brief Handle 'e': jump the file menu selection and line selection to the reconstructed-source location of the CPU's current `$pc`.
+   * @param e Event that triggered the handler (unused).
+   * @return True (event always consumed).
+   */
   static bool on_e(ftxui::Event& e) {
     // lookup line associated to $pc, jump to its origin (in source)
     if (auto* pc = visualiser::sources::locate_pc(visualiser::processor::pc)) {
@@ -171,6 +229,11 @@ namespace events {
     return true;
   }
 
+  /**
+   * @brief Handle 'j': set the CPU's `$pc` to the `$pc` traced from the selected line, if different from the current one.
+   * @param e Event that triggered the handler (unused).
+   * @return True (event always consumed).
+   */
   static bool on_j(ftxui::Event& e) {
     const visualiser::sources::FileLine& line = selected_line();
     if (std::optional<uint64_t> pc = line.pc(); pc.has_value() && pc.value() != visualiser::processor::pc)
@@ -179,6 +242,11 @@ namespace events {
   }
 }
 
+/**
+ * @brief Key handler for the file viewer pane, dispatching navigation and trace/breakpoint commands.
+ * @param e Event to handle.
+ * @return True if the event was handled.
+ */
 static bool file_pane_on_event(ftxui::Event e) {
   if (e == ftxui::Event::ArrowUp) return events::on_arrow_up(e);
   if (e == ftxui::Event::Home) return events::on_home(e);
@@ -190,6 +258,11 @@ static bool file_pane_on_event(ftxui::Event e) {
   return false;
 }
 
+/**
+ * @brief Top-level key handler for the tab, dispatching global (pane-independent) key events.
+ * @param e Event to handle.
+ * @return True if the event was handled.
+ */
 static bool on_event(ftxui::Event e) {
   if (e == ftxui::Event::e) return events::on_e(e);
   if (e == ftxui::Event::j) return events::on_j(e);

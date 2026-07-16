@@ -38,7 +38,11 @@ ftxui::Element visualiser::tabs::create_key_help_pane(const std::map<std::string
   return hbox(children);
 }
 
-// set current_tab=index & take focus
+/**
+ * @brief Switch to a tab by index and give the tab navigation bar keyboard focus.
+ * @param index Index of the tab to switch to.
+ * @return Always true, so it can be used directly as an event handler result.
+ */
 static bool force_tab_focus(int index) {
   current_tab = index;
   tab_nav->TakeFocus();

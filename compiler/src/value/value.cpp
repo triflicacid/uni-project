@@ -153,7 +153,7 @@ std::unique_ptr<lang::value::SymbolRef> lang::value::symbol_ref(const std::strin
   return std::make_unique<SymbolRef>(name, symbols.find(name));
 }
 
-std::unique_ptr<lang::value::Value> lang::value::value(optional_ref<const lang::type::Node> type) {
+std::unique_ptr<lang::value::Value> lang::value::value(optional_ref<const type::Node> type) {
   if (type.has_value()) {
     return std::make_unique<Value>(type->get());
   } else {

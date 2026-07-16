@@ -29,7 +29,9 @@ namespace assembler::instruction {
     return nullptr;
   }
 
+  /** @brief Shared argument-overload shape: `<reg> <value>`, reused across signatures that take a destination register and a source value. */
   const std::deque reg_val = {ArgumentType::Register, ArgumentType::Value};
+  /** @brief Shared argument-overload shape: `<reg> <reg> <value>`, reused across signatures that take two source registers/values and a destination register. */
   const std::deque reg_reg_val = {ArgumentType::Register, ArgumentType::Register, ArgumentType::Value};
 
   const Signature

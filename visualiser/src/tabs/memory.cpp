@@ -5,6 +5,7 @@
 #include "components/custom_dropdown.hpp"
 #include <ftxui/component/event.hpp>
 
+/** @brief Interpretation applied to the bytes at the selected memory address in the address editor. */
 enum class InputType : int {
   HexInt,
   DecInt,
@@ -30,7 +31,10 @@ namespace state {
   static ftxui::Component input_type_dropdown;
   static InputType input_type_index;
 
-  // return the current selected address
+  /**
+   * @brief Compute the memory address of the currently selected grid cell.
+   * @return The selected address.
+   */
   static uint64_t current_address() {
     return base_address + pos.second * cols + pos.first;
   }
@@ -40,24 +44,41 @@ namespace state {
   ftxui::Decorator fp_colour = ftxui::bgcolor(ftxui::Color::BlueViolet) | ftxui::color(ftxui::Color::White);
 }// namespace state
 
-// read the given address
+/**
+ * @brief Read a value from CPU memory.
+ * @param address Address to read from.
+ * @param bytes Number of bytes to read.
+ * @return The value read.
+ */
 static uint64_t read(uint64_t address, uint8_t bytes) {
   return visualiser::processor::cpu.mem_load(address, bytes);
 }
 
-// write to the given address
+/**
+ * @brief Write a value to CPU memory.
+ * @param address Address to write to.
+ * @param bytes Number of bytes to write.
+ * @param value Value to write.
+ */
 static void write(uint64_t address, uint8_t bytes, uint64_t value) {
   visualiser::processor::cpu.mem_store(address, bytes, value);
 }
 
-// shift and write to lower nibble of address
+/**
+ * @brief Shift the byte at an address left by a nibble and OR in a new lower nibble, used for hex-digit-by-digit entry.
+ * @param address Address of the byte to modify.
+ * @param byte New lower nibble value (0-15).
+ */
 static void shift_and_write_nibble(uint64_t address, uint8_t byte) {
   uint64_t value = read(address, 1);
   value = (value << 4) | (byte & 0xf);
   write(address, 1, value);
 }
 
-// validate and update state::pos, return if anything changed
+/**
+ * @brief Clamp `state::pos` to the grid bounds, scrolling `state::base_address` by a page when the cursor moves above or below the visible rows.
+ * @return True if the position or base address changed.
+ */
 static bool validate_pos() {
   using namespace state;
   bool was_change = false;
@@ -87,14 +108,22 @@ static bool validate_pos() {
   return was_change;
 }
 
-// translate state::pos by delta and validate
+/**
+ * @brief Move the grid cursor by a relative offset and clamp/scroll it into bounds.
+ * @param dx Change in column.
+ * @param dy Change in row.
+ * @return True if the position or base address changed.
+ */
 static bool move_pos(int dx, int dy) {
   state::pos.first += dx;
   state::pos.second += dy;
   return validate_pos();
 }
 
-// return number of bytes we are reading given the InputType
+/**
+ * @brief Get the number of bytes read/written for the currently selected input type.
+ * @return Byte width of the current input type.
+ */
 static int get_number_of_bytes() {
   switch (state::input_type_index) {
     case InputType::HexInt:
@@ -110,7 +139,7 @@ static int get_number_of_bytes() {
   }
 }
 
-// update state::mem_input
+/** @brief Refresh `state::mem_input_content` by re-reading memory at the current address and formatting it per the current input type. */
 static void sync_mem_input() {
   uint64_t value = read(state::current_address(), get_number_of_bytes());
   switch (state::input_type_index) {
@@ -135,7 +164,7 @@ static void sync_mem_input() {
   }
 }
 
-// called when state::mem_input is submitted
+/** @brief Parse `state::mem_input_content` per the current input type and write the resulting value to the current address, on input submission. */
 static void update_mem_input() {
   uint64_t value;
   uint8_t bytes;
@@ -187,7 +216,11 @@ static void update_mem_input() {
   write(state::current_address(), bytes, value);
 }
 
-// catch event in memory grid
+/**
+ * @brief Handle navigation and direct hex-entry key events on the memory grid.
+ * @param e Event to handle.
+ * @return True if the event was handled.
+ */
 static bool memory_grid_on_event(const ftxui::Event& e) {
   using namespace ftxui;
 //  if (!e.is_mouse()) {

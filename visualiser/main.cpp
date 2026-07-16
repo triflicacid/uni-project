@@ -7,6 +7,14 @@
 #include "processor.hpp"
 #include "util.hpp"
 
+/**
+ * @brief Open a named file stream and store it, reporting an error if the file cannot be opened.
+ * @param file_object Destination to store the opened stream in.
+ * @param option_name Name of the command-line option requesting the file, used in the error message.
+ * @param filename Path of the file to open.
+ * @param mode Stream open mode.
+ * @return True if the file was opened successfully.
+ */
 bool read_file(std::unique_ptr<named_fstream>& file_object, const std::string& option_name, const std::string& filename, std::ios::openmode mode) {
   if (auto stream = named_fstream::open(filename, std::ios::in)) {
     file_object = std::move(stream);
@@ -18,6 +26,15 @@ bool read_file(std::unique_ptr<named_fstream>& file_object, const std::string& o
   }
 }
 
+/**
+ * @brief Consume the next command-line argument as a file path and open it as a named file stream.
+ * @param file_object Destination to store the opened stream in.
+ * @param argc Argument count.
+ * @param argv Argument vector.
+ * @param i Index of the current option; advanced past the consumed filename argument.
+ * @param mode Stream open mode.
+ * @return True if the file was opened successfully.
+ */
 bool read_file(std::unique_ptr<named_fstream>& file_object, int argc, char **argv, int& i, std::ios::openmode mode) {
   if (++i == argc) {
     std::cout << argv[i - 1] << ": expected file path\n";
@@ -27,7 +44,13 @@ bool read_file(std::unique_ptr<named_fstream>& file_object, int argc, char **arg
   return read_file(file_object, argv[i - 1], argv[i], mode);
 }
 
-/** Parse command-line arguments. */
+/**
+ * @brief Parse command-line arguments, opening the referenced source/binary files and collecting requested breakpoints.
+ * @param argc Argument count.
+ * @param argv Argument vector.
+ * @param breakpoints Set populated with `$pc` values to break at, from `-b`/`--breakpoint`.
+ * @return `EXIT_SUCCESS` if all required files were resolved, `EXIT_FAILURE` otherwise.
+ */
 int parse_arguments(int argc, char** argv, std::unordered_set<uint64_t>& breakpoints) {
   bool consumed_positional = false;
   for (int i = 1; i < argc; ++i) {
@@ -113,6 +136,12 @@ int parse_arguments(int argc, char** argv, std::unordered_set<uint64_t>& breakpo
   return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Entry point: parse arguments, load and cross-link sources, initialise the processor, apply breakpoints, and launch the UI.
+ * @param argc Argument count.
+ * @param argv Argument vector.
+ * @return Process exit code.
+ */
 int main(int argc, char** argv) {
   std::unordered_set<uint64_t> breakpoints;
   if (int ret = parse_arguments(argc, argv, breakpoints) != EXIT_SUCCESS) {
