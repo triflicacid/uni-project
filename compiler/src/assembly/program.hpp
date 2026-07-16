@@ -27,7 +27,6 @@ namespace lang::assembly {
   /**
    * @brief The generated assembly program: an ordered, navigable sequence of basic blocks with a movable insertion cursor, a label lookup map, and a source-location stack.
    */
-  // a program is a navigable sequence of basic blocks
   class Program {
     std::string start_label; ///< Label of the entry-point block.
     std::deque<std::unique_ptr<BasicBlock>> blocks_; ///< Every block in the program, in order.
@@ -40,7 +39,6 @@ namespace lang::assembly {
      * @param index Absolute index to insert at.
      * @param block Block to insert.
      */
-    // insert BasicBlock at the given index, update current_
     void insert_at(int index, std::unique_ptr<BasicBlock> block);
 
   public:
@@ -54,7 +52,6 @@ namespace lang::assembly {
      * @brief Returns the block the cursor currently points at.
      * @return The current block.
      */
-    // return the currently selected block
     BasicBlock& current() const { return *blocks_[current_]; }
 
     /**
@@ -62,7 +59,6 @@ namespace lang::assembly {
      * @param label Label to look up.
      * @return The matching block. Behaviour is undefined if the label is not registered.
      */
-    // return reference to the given block, errors if fail
     BasicBlock& get(const std::string& label);
 
     /**
@@ -70,8 +66,6 @@ namespace lang::assembly {
      * @param pos Position to insert at, relative to the current block.
      * @param block Block to insert.
      */
-    // insert the given block into the structure at the given position (relative to current_)
-    // sets the inserted block as current_
     void insert(Position pos, std::unique_ptr<BasicBlock> block);
 
     /**
@@ -79,7 +73,6 @@ namespace lang::assembly {
      * @param block Block to select.
      * @return True if found and selected, false otherwise (leaving the cursor unchanged).
      */
-    // select the given block, return success
     bool select(const BasicBlock& block);
 
     /**
@@ -87,41 +80,35 @@ namespace lang::assembly {
      * @param label Label to select.
      * @return True if found and selected, false otherwise (leaving the cursor unchanged).
      */
-    // select the block with the given label
     bool select(const std::string& label);
 
     /**
      * @brief Moves the cursor by a relative navigation step.
      * @param pos Direction/position to move to, relative to the current block.
      */
-    // select the block relative to current_
     void select(Position pos);
 
     /**
      * @brief Pushes a new source-location context onto the location-tracking stack.
      * @param loc Location to push.
      */
-    // add a Location to the trace stack
     void add_location(Location loc);
 
     /**
      * @brief Returns the most recently pushed (innermost) source location.
      * @return The location, or empty if the stack is empty.
      */
-    // get the most recent location
     optional_ref<const Location> location() const;
 
     /**
      * @brief Pops the innermost source-location context, restoring the previous one.
      */
-    // remove the topmost Location
     void remove_location();
 
     /**
      * @brief Overwrites the current innermost location in place, or establishes one if the stack is empty.
      * @param loc Location to set.
      */
-    // set the topmost location to the given value
     void set_location(Location loc);
 
     /**
@@ -130,8 +117,6 @@ namespace lang::assembly {
      * @param start Index of the first line to update; defaults to the most recently added line.
      * @param sudo If true, overwrites every line's origin unconditionally; otherwise only sets origins that are not already set.
      */
-    // set current line's location (or from given index to most recent)
-    // only update's a line's origin if it has not already been set (unless sudo is true)
     void update_line_origins(const Location& origin, int start = -1, bool sudo = false) const;
 
     /**
@@ -139,7 +124,6 @@ namespace lang::assembly {
      * @param start Index of the first line to update; defaults to the most recently added line.
      * @param sudo If true, overwrites every line's origin unconditionally; otherwise only sets origins that are not already set.
      */
-    // same as ::update_line_origins, but use current location
     void update_line_origins(int start = -1, bool sudo = false) const;
 
     /**

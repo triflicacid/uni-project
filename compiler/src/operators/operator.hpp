@@ -94,14 +94,12 @@ namespace lang::ops {
      * @param options Call-site context, including an optional branch-fusion target.
      * @return True on success, false if code generation failed.
      */
-    // invoke the given operator
     virtual bool invoke(Context& ctx, const std::deque<std::unique_ptr<ast::Node>>& args, value::Value& return_value, const InvocationOptions& options) const = 0;
 
     /**
      * @brief Reports whether this is a compiler-builtin operator, as opposed to a user-defined overload.
      * @return True if builtin.
      */
-    // are we built-in or overloaded
     virtual bool builtin() const = 0;
   };
 
@@ -110,7 +108,6 @@ namespace lang::ops {
    * @param symbol Operator symbol to look up.
    * @return Matching operators, or an empty deque if none.
    */
-  // get a list of references of operators with this name
   std::deque<std::reference_wrapper<const Operator>> get(const std::string& symbol);
 
   /**
@@ -119,14 +116,12 @@ namespace lang::ops {
    * @param type Exact function signature to match.
    * @return The matching operator, or nothing if none matches.
    */
-  // get a reference to the given operator, return None if it does not exist
   std::optional<std::reference_wrapper<const Operator>> get(const std::string& symbol, const type::FunctionNode& type);
 
   /**
    * @brief Registers a newly constructed operator into the global registry, taking ownership.
    * @param op Operator to register.
    */
-  // add operator to store
   void store_operator(std::unique_ptr<Operator> op);
 
   /**
@@ -137,6 +132,5 @@ namespace lang::ops {
    * @param messages Message list to append diagnostics to.
    * @return The resolved operator, or empty if no candidate or multiple ambiguous candidates were found.
    */
-  // try to find the given operator, generating an error if not
   optional_ref<const Operator> select_candidate(const std::string& symbol, const type::FunctionNode& signature, const message::MessageGenerator& source, message::List& messages);
 }

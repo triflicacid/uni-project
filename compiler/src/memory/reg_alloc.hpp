@@ -20,7 +20,6 @@ namespace lang::memory {
   /**
    * @brief A Value wrapped with the bookkeeping metadata the register allocator needs: an LRU age counter and a flag guarding against silent eviction.
    */
-  // an object is a wrapped Value with additional metadata
   struct Object {
     std::shared_ptr<value::Value> value; ///< The wrapped value.
     uint32_t occupied_ticks = 0; ///< LRU age counter, used to pick an eviction candidate.
@@ -59,7 +58,6 @@ namespace lang::memory {
    * output program (to emit load/store/cast instructions). Memory spilling is
    * scaffolded but not fully implemented.
    */
-  // class for managing register allocation and register spills
   class RegisterAllocationManager {
     std::deque<Store> instances_; ///< Stack of nested scopes; front is the most recent (innermost).
     std::map<uint64_t, Object> memory_; ///< Objects spilled to memory, keyed by address.
@@ -78,14 +76,12 @@ namespace lang::memory {
      * @brief Counts how many registers are currently unoccupied in the active scope.
      * @return Number of empty registers.
      */
-    // return number of empty registers
     int count_empty() const;
 
     /**
      * @brief Identifies the register holding the least-recently-touched value.
      * @return Reference to the oldest occupied register.
      */
-    // return reference to the oldest register
     Ref get_oldest() const;
 
     /**
@@ -99,14 +95,12 @@ namespace lang::memory {
      * @brief Pushes a new scope, optionally emitting code to physically save every occupied and required register to the stack first.
      * @param save_registers Whether to emit save instructions for occupied, required registers.
      */
-    // creates a copy of the current store, useful when certain registers are cached
     void save_store(bool save_registers);
 
     /**
      * @brief Tears down the current (innermost) scope, optionally restoring the registers saved by a matching save_store.
      * @param restore_registers Whether to emit instructions restoring saved registers; if false, all registers in the new front scope are cleared.
      */
-    // remove the latest store
     void destroy_store(bool restore_registers);
 
     /**
@@ -114,8 +108,6 @@ namespace lang::memory {
      * @param reg Register to save.
      * @return The saved object, or nothing if the register was empty or zero-sized.
      */
-    // save the given register on the stack, return object
-    // return nothing if register is empty
     std::optional<Object> save_register(uint8_t reg) const;
 
     /**
@@ -123,8 +115,6 @@ namespace lang::memory {
      * @param reg Register to restore into.
      * @param object Previously saved object to restore the allocator's bookkeeping to.
      */
-    // restore the given register from the stack
-    // note, must be at the top of the stack
     void restore_register(uint8_t reg, const Object& object);
 
     /**
@@ -132,7 +122,6 @@ namespace lang::memory {
      * @param symbol Symbol to search for.
      * @return Reference to the cached location, or nothing if not cached.
      */
-    // return reference to an item if present
     std::optional<Ref> find(const symbol::Symbol& symbol);
 
     /**
@@ -140,7 +129,6 @@ namespace lang::memory {
      * @param symbol Symbol to load.
      * @return Reference to the loaded location.
      */
-    // return reference to an item, insert if needed
     Ref find_or_insert(const symbol::Symbol& symbol);
 
     /**
@@ -148,7 +136,6 @@ namespace lang::memory {
      * @param literal Literal to search for.
      * @return Reference to the cached location, or nothing if not cached.
      */
-    // return reference to an item if present
     std::optional<Ref> find(const Literal& literal);
 
     /**
@@ -156,7 +143,6 @@ namespace lang::memory {
      * @param literal Literal to find or load.
      * @return Reference to the location holding the literal.
      */
-    // return reference to an item, insert if needed
     Ref find_or_insert(const Literal& literal);
 
     /**
@@ -164,7 +150,6 @@ namespace lang::memory {
      * @param location Reference to check.
      * @return True if occupied.
      */
-    // check if the given reference is in use
     bool in_use(const Ref& location) const;
 
     /**
@@ -172,7 +157,6 @@ namespace lang::memory {
      * @param location Reference to look up.
      * @return The occupying object.
      */
-    // find the given reference, assume it exists
     const lang::memory::Object& find(const Ref& location) const;
 
     /**
@@ -180,35 +164,29 @@ namespace lang::memory {
      * @param location Reference to look up.
      * @return The occupying object.
      */
-    // find the given reference, assume it exists
     lang::memory::Object& find(const Ref& location);
 
     /**
      * @brief Forcibly removes whatever currently occupies a location, without emitting any assembly.
      * @param location Reference to evict.
      */
-    // evict item at the given location
     void evict(const Ref& location);
 
     /**
      * @brief Evicts every cached copy (register or spilled memory) of a symbol's value.
      * @param symbol Symbol whose cached copies should be invalidated.
      */
-    // evict all instances of this symbol
-    // used when symbol has been updated and is now invalid
     void evict(const symbol::Symbol& symbol);
 
     /**
      * @brief Marks whatever occupies a location as no longer required, allowing it to be silently evicted later.
      * @param ref Reference to mark free. Tolerated if it designates nothing.
      */
-    // mark object as not required -- from this point onwards, data is not guaranteed to exist
     void mark_free(const Ref& ref);
 
     /**
      * @brief Marks every register and every current-scope spilled object as free in one call.
      */
-    // mark all objects as free that were allocated in the latest instance
     void mark_all_free();
 
     /**
@@ -216,7 +194,6 @@ namespace lang::memory {
      * @param object Object to place.
      * @return Reference to the chosen location.
      */
-    // insert Object, assume it does not exist, return reference to it
     Ref insert(Object object);
 
     /**
@@ -225,7 +202,6 @@ namespace lang::memory {
      * @param object Object to place.
      * @warning Register spilling to memory is not yet implemented: if `location` refers to a memory slot rather than a register, this throws `std::runtime_error` instead of degrading gracefully. A program with more simultaneously-live values than physical registers at one point will therefore fail to compile.
      */
-    // same as insert(), but put in a specific position - location is evicted if full
     void insert(const Ref& location, Object object);
 
     /**
@@ -233,34 +209,29 @@ namespace lang::memory {
      * @param location Location to update.
      * @param object New object to record.
      */
-    // like insert, but just sets the value without generating any code
     void update(const Ref& location, Object object);
 
     /**
      * @brief Records a new value in the current scope's $ret slot, without emitting any instructions.
      * @param object Object to record as the return value.
      */
-    // update the $ret register
     void update_ret(Object object);
 
     /**
      * @brief Sets $ret's tracked object to a copy of whatever object currently occupies another location.
      * @param ref Location to copy from.
      */
-    // set $ret equal to another location
     void update_ret(const memory::Ref& ref);
 
     /**
      * @brief Copies the current scope's $ret object into the enclosing scope's bookkeeping.
      */
-    // propagate $ret's value to the next store
     void propagate_ret();
 
     /**
      * @brief Physically relocates the current value of $ret into an ordinary allocated register.
      * @return Reference to the new location.
      */
-    // move $ret to another register
     Ref move_ret();
 
     /**
@@ -268,8 +239,6 @@ namespace lang::memory {
      * @param n Depth to look back, where 0 is the most recent allocation.
      * @return The reference, or nothing if out of range.
      */
-    // get the nth most recent allocation
-    // default `n=0` (i.e., most recent)
     std::optional<Ref> get_recent(unsigned int n = 0) const;
 
     /**
@@ -277,8 +246,6 @@ namespace lang::memory {
      * @param ref Reference to guarantee.
      * @return The (possibly new) register reference.
      */
-    // ensure `Ref` is in a register, return new reference (may be equal)
-    // i.e., if in memory, insert into a register
     Ref guarantee_register(const Ref& ref);
 
     /**
@@ -287,8 +254,6 @@ namespace lang::memory {
      * @param target Datatype the value must have afterward.
      * @return Reference to the (now correctly-typed) register location.
      */
-    // ensure `Ref` is of the given datatype - if not, a conversion is emitted
-    // note, this also guarantees the value is in a register
     Ref guarantee_datatype(const Ref& ref, const type::Node& target);
 
     /**
@@ -297,8 +262,6 @@ namespace lang::memory {
      * @param mark_free Whether to mark the reference's slot as no longer required as part of resolving it.
      * @return The resolved assembly argument.
      */
-    // create assembly argument resolving a reference
-    // argument: mark as free?
     std::unique_ptr<assembly::Arg> resolve_ref(const Ref& ref, bool mark_free);
   };
 }

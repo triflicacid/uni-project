@@ -12,9 +12,6 @@ namespace lang::value {
    * or shadowed declarations. resolve() narrows the candidate set down to one,
    * at which point it gains a value::Symbol lvalue.
    */
-  // represents a symbol name (reference)
-  // we are not computable, either - if we were, return a Symbol
-  // therefore, this is generally used when we have multiple options to pick from
   class SymbolRef : public Value {
     std::string name_; ///< Name this reference was built from.
     std::deque<std::reference_wrapper<symbol::Symbol>> overload_set_; ///< Candidate symbols the name may refer to, narrowed by @ref resolve.
@@ -49,7 +46,6 @@ namespace lang::value {
      * @brief Returns the current candidate symbol set.
      * @return The candidates.
      */
-    // return our overload set (possible symbols we may adopt)
     const std::deque<std::reference_wrapper<symbol::Symbol>>& candidates() const { return overload_set_; }
 
     /**
@@ -59,7 +55,6 @@ namespace lang::value {
      * @param type_hint Optional type used to disambiguate between multiple candidates of the same name.
      * @return True if resolution narrowed to exactly one symbol.
      */
-    // attempt to resolve this symbol, populates lvalue with ::Symbol
     bool resolve(const message::MessageGenerator &source, optional_ref<message::List> messages, optional_ref<const type::Node> type_hint = {});
 
     /**
@@ -77,14 +72,11 @@ namespace lang::value {
    * @param symbols Symbol table to search.
    * @return The newly created symbol reference.
    */
-  // create a Value which is a symbol reference, populate overload set from ctx
   std::unique_ptr<SymbolRef> symbol_ref(const std::string name, const symbol::SymbolTable& symbols);
 
   /**
    * @brief A compile-time scalar constant that resolves into a literal of its type, restricted to word-sized (non-reference) types.
    */
-  // we will resolve into a literal of the given type
-  // this is for word-sized literals only (non-reference types)
   class Literal : public Value {
     const memory::Literal& lit_; ///< Wrapped raw interned literal.
 
@@ -127,7 +119,6 @@ namespace lang::value {
    * @param lit Literal to wrap.
    * @return The newly created value.
    */
-  // create a literal
   std::unique_ptr<Value> literal(const memory::Literal& lit);
 
   /**
@@ -136,14 +127,11 @@ namespace lang::value {
    * @param ref Reference identifying the literal's location.
    * @return The newly created value.
    */
-  // create a literal rvalue
   std::unique_ptr<Value> literal(const memory::Literal& lit, const memory::Ref& ref);
 
   /**
    * @brief A sequence of word-sized literal elements laid out contiguously in memory, e.g. the backing data of an array literal.
    */
-  // we represent a sequence of literals which will be placed in contiguous memory
-  // this is for word-sized literals only (non-reference types)
   class ContiguousLiteral : public Value {
   public:
     /**
@@ -186,6 +174,5 @@ namespace lang::value {
    * @param is_global Whether the aggregate's backing storage should be a global data block rather than stack-allocated.
    * @return The newly created value.
    */
-  // create a literal
   std::unique_ptr<Value> contiguous_literal(const type::Node& type, ContiguousLiteral::Elements elements, bool is_global);
 }

@@ -15,7 +15,6 @@ namespace lang::memory {
    * during register allocation. Exactly one of the union members (base_offset,
    * block) is valid to read, matching the active type.
    */
-  // describe the physical storage location of a symbol
   struct StorageLocation {
     /**
      * @brief Which union member below is active.
@@ -37,8 +36,6 @@ namespace lang::memory {
      * @param as_addr If true, suppresses the implicit load/dereference so an address (e.g. a block label) is returned rather than a loaded value.
      * @return The resolved operand.
      */
-    // return assembly argument which gets value at this location
-    // if is_addr, does not get value if possible (e.g., returns block label)
     std::unique_ptr<assembly::BaseArg> resolve(bool as_addr = false) const;
 
     /**
@@ -53,7 +50,6 @@ namespace lang::memory {
      * @param offset Additional offset to add.
      * @return The shifted location.
      */
-    // add an offset to this block
     StorageLocation operator+(int offset) const;
 
     /**
@@ -69,7 +65,6 @@ namespace lang::memory {
      * @param offset Additional offset from the block's start.
      * @return The constructed location.
      */
-    // location is based globally, tied to a block
     static StorageLocation global(assembly::BasicBlock& block, int offset = 0);
 
     /**
@@ -78,7 +73,6 @@ namespace lang::memory {
      * @param offset Additional offset layered on top of the base.
      * @return The constructed location.
      */
-    // location is `offset` on the stack
     static StorageLocation stack(int stack_offset, int offset = 0);
   };
 }

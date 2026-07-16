@@ -37,13 +37,11 @@ namespace lang::control_flow {
      * @brief Returns a copy of this context with the condition polarity inverted.
      * @return The inverted context, with the same target blocks but flipped inverse_cond and a reset handled flag.
      */
-    // return this, but with the inverse conditional
     ConditionalContext inverse() const;
 
     /**
      * @brief Swaps the if_true and if_false target blocks in place.
      */
-    // flip the order of the blocks
     void flip_blocks();
 
     /**
@@ -62,8 +60,6 @@ namespace lang::control_flow {
      * @param block Basic block to append the comparison and branch instructions to.
      * @param reg Register offset holding the value to compare against zero.
      */
-    // optionally, generate branches based of a zero-comparison (or non-zero, if inverse_cond)
-    // that is, go to if_true if != 0, if_false otherwise
     void generate_branches(assembly::BasicBlock& block, uint8_t reg);
 
     /**
@@ -73,7 +69,6 @@ namespace lang::control_flow {
      * @param value Resolved guard value to test.
      * @return True on success, false if the value is not a usable boolean r-value (in which case a diagnostic is added).
      */
-    // handle the context given an input value, return if success
     bool generate_branches(Context& ctx, const message::MessageGenerator& source, const value::Value& value);
   };
 }

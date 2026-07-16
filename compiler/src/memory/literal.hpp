@@ -16,7 +16,6 @@ namespace lang::memory {
    * Instances are uniqued by (type, data) and obtained only through the static
    * factory methods; the constructor is not publicly accessible.
    */
-  // describe a literal - a word of memory + a type
   class Literal {
     const type::Node& type_; ///< This literal's type.
     uint64_t data_; ///< Raw 64-bit data word.
@@ -48,7 +47,6 @@ namespace lang::memory {
      * @brief Renders the numeric literal in the string form appropriate for its type.
      * @return The string representation.
      */
-    // return string format of the numeric literal we represent
     std::string to_string() const;
 
     /**
@@ -56,8 +54,6 @@ namespace lang::memory {
      * @param target Type to convert to.
      * @return The interned literal of the target type holding the converted data.
      */
-    // change literal's type, returns copy (changes internal data to reflect datatype change)
-    // works on basis of internal asm types
     const Literal& change_type(const type::Node& target) const;
 
     /**
@@ -66,7 +62,6 @@ namespace lang::memory {
      * @param data Raw 64-bit data of the literal.
      * @return The interned literal.
      */
-    // get the following Literal object
     static const Literal& get(const type::Node& type, uint64_t data);
 
     /**
@@ -74,7 +69,6 @@ namespace lang::memory {
      * @param type Type of the literal.
      * @return The interned zero literal.
      */
-    // get a zero constant of the given type
     static const Literal& zero(const type::Node& type);
 
     /**
@@ -82,7 +76,6 @@ namespace lang::memory {
      * @param b Boolean value to represent.
      * @return The interned boolean literal.
      */
-    // return a Boolean literal true or false
     static const Literal& get_boolean(bool b);
 
     /**

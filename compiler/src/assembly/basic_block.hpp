@@ -15,8 +15,6 @@ namespace lang::assembly {
    * safely referenced by address elsewhere (e.g. BlockReferenceArg, Program's
    * label map).
    */
-  // a basic block represents a sequence of assembly instructions
-  // it is labelled and can only contain jump instructions at the end
   class BasicBlock {
     std::string label_; ///< The block's label text.
     std::deque<std::unique_ptr<Line>> contents_; ///< Lines (instructions/directives) making up the block, in order.
@@ -95,7 +93,6 @@ namespace lang::assembly {
      * @brief Creates a block with an automatically generated, guaranteed-unique label.
      * @return The newly created block.
      */
-    // return a BasicBlock with a unique label
     static std::unique_ptr<BasicBlock> labelled();
 
     /**
@@ -103,14 +100,12 @@ namespace lang::assembly {
      * @param label Label to assign; caller is responsible for avoiding collisions with existing labels.
      * @return The newly created block.
      */
-    // create a BasicBlock with the given label
     static std::unique_ptr<BasicBlock> labelled(const std::string& label);
 
     /**
      * @brief Creates a block with no label at all.
      * @return The newly created block.
      */
-    // create an unlabelled BasicBlock
     static std::unique_ptr<BasicBlock> unlabelled();
   };
 }

@@ -51,14 +51,12 @@ namespace lang::symbol {
      * @brief Reports whether the table currently represents only the outermost (global) scope.
      * @return True if no additional scope is currently pushed.
      */
-    // return if we are in the global scope or not
     bool in_global_scope() const { return scopes_.size() < 2; }
 
     /**
      * @brief Returns the underlying stack manager.
      * @return The stack manager.
      */
-    // get a reference to the underlying StackManager
     memory::StackManager& stack() { return stack_; }
 
     /**
@@ -66,7 +64,6 @@ namespace lang::symbol {
      * @param name Name to look up.
      * @return Matching symbols found in the first scope (searching innermost-out) that contains the name, or empty if none.
      */
-    // return symbol(s) with the given name
     const std::deque<std::reference_wrapper<Symbol>> find(const std::string& name) const;
 
     /**
@@ -75,7 +72,6 @@ namespace lang::symbol {
      * @param type Exact type to match.
      * @return The matching symbol, or empty if none matches.
      */
-    // return symbol with the given name and type
     optional_ref<Symbol> find(const std::string& name, const type::Node& type) const;
 
     /**
@@ -83,7 +79,6 @@ namespace lang::symbol {
      * @param id Id to look up.
      * @return The matching symbol.
      */
-    // return symbol with the given id
     const Symbol& get(SymbolId id) const;
 
     /**
@@ -117,7 +112,6 @@ namespace lang::symbol {
      * @param symbol Id of the symbol to assign storage for.
      * @param location Storage location to assign.
      */
-    // tell symbol where it is located
     void allocate(SymbolId symbol, memory::StorageLocation location);
 
     /**
@@ -125,8 +119,6 @@ namespace lang::symbol {
      * @param symbol Id of the symbol to look up.
      * @return The storage location, or empty if the symbol has not been allocated or has no physical width.
      */
-    // get the storage location of the given symbol
-    // may be optional if the symbol (1) has not been allocated, or (2) has no physical width (e.g., a namespace)
     optional_ref<const memory::StorageLocation> locate(SymbolId symbol) const;
 
     /**
@@ -142,60 +134,51 @@ namespace lang::symbol {
      * @brief Permanently removes a symbol from every scope's name map and from the id-to-owner cache.
      * @param symbol Id of the symbol to remove.
      */
-    // remove the given symbol
     void erase(SymbolId symbol);
 
     /**
      * @brief Removes every symbol overload registered under a name in the current (innermost) scope.
      * @param name Name to remove.
      */
-    // remove the given symbols from the local scope
     void erase(const std::string& name);
 
     /**
      * @brief Opens a new, empty lexical scope.
      */
-    // create new lexical scope
     void push();
 
     /**
      * @brief Collects every symbol id currently bound in just the innermost scope.
      * @return Set of ids bound directly in the innermost scope.
      */
-    // peek at the latest scope
     std::unordered_set<SymbolId> peek() const;
 
     /**
      * @brief Closes the innermost lexical scope, without removing any underlying symbol data.
      */
-    // remove old lexical scope
     void pop();
 
     /**
      * @brief Records that code generation has descended into a new function body.
      * @param f Function node being entered.
      */
-    // record that we are in a new function
     void enter_function(const ast::FunctionBaseNode& f);
 
     /**
      * @brief Reports which function, if any, is currently being processed or generated.
      * @return The innermost enclosing function, or empty if at global scope.
      */
-    // get the current function (if nothing, we are in global scope)
     std::optional<std::reference_wrapper<const ast::FunctionBaseNode>> current_function() const;
 
     /**
      * @brief Records that code generation has left the current function body.
      */
-    // exit the last function
     void exit_function();
 
     /**
      * @brief Records that processing has descended into a named container (namespace), extending the active qualification path.
      * @param id Id of the namespace symbol being entered.
      */
-    // record that we are in a new named container
     void push_path(SymbolId id);
 
     /**
@@ -203,20 +186,17 @@ namespace lang::symbol {
      * @param n Depth to peek at, where 0 is the innermost/most recent entry.
      * @return The path entry at that depth, or empty if there are fewer than n+1 entries.
      */
-    // get `n`th most recent path item (default n = 0 = most recent)
     optional_ref<const Symbol> peek_path(unsigned int n = 0);
 
     /**
      * @brief Records that processing has left the innermost currently-open named container.
      */
-    // exit the current named container
     void pop_path();
 
     /**
      * @brief Builds the fully dot-qualified name of the current namespace path.
      * @return The qualified path name, or an empty string if the path is empty.
      */
-    // generate full path name
     std::string path_name() const;
 
     /**
@@ -224,7 +204,6 @@ namespace lang::symbol {
      * @param name Name to append after the qualified path.
      * @return The qualified name.
      */
-    // generate full path name with `name` appended on the end
     std::string path_name(const std::string& name) const;
   };
 }

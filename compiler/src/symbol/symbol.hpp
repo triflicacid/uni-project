@@ -97,7 +97,6 @@
      * @brief Builds the fully-qualified, dot-separated name of the symbol by walking up its parent chain.
      * @return The qualified name.
      */
-    // generate fully-qualified name (by tracking parents)
     std::string full_name() const;
 
     /**
@@ -129,8 +128,6 @@
      * @param ctx Compiler context providing the symbol table used to check and perform allocation.
      * @return True on success.
      */
-    // ensure that this symbol is defined
-    // return success
     virtual bool define(Context& ctx) const;
   };
 
@@ -139,6 +136,5 @@
    * @param name Origin token providing the namespace's name.
    * @return The newly created namespace symbol.
    */
-  // create a new namespace
   std::unique_ptr<Symbol> create_namespace(const lexer::Token& name);
 }

@@ -22,7 +22,6 @@ using Args = const std::deque<std::reference_wrapper<const lang::value::Value>>&
  * @param arg Index of the argument to fetch.
  * @return The resolved operand.
  */
-// fetch the given argument, return assembly argument to resolve it
 static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args, int arg) {
   // determine argument offset based on selection
   auto& value = args[arg];
@@ -38,9 +37,6 @@ static std::unique_ptr<lang::assembly::Arg> fetch(lang::Context& ctx, Args args,
  * @param cast_to Optional datatype to coerce the value to.
  * @return Register offset holding the value.
  */
-// fetch the given argument, return assembly argument to resolve it
-// returns the register location, as we guarantee register placement
-// optionally, also guarantee the datatype
 static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional_ref<const lang::type::Node> cast_to = std::nullopt) {
   // determine argument offset based on selection
   auto& value = args[arg_select];
@@ -58,9 +54,6 @@ static uint8_t fetch_reg(lang::Context& ctx, Args args, int arg_select, optional
  * @param cast_to Optional datatype to coerce both operands to.
  * @return Pair of the register-resident operand's offset and the resolved operand for the other side.
  */
-// fetch LHS and RHS argument pair, enforcing at least one is in a register
-// return <register argument, other argument>
-// argument: cast arguments to this type?
 static std::pair<uint8_t, std::unique_ptr<lang::assembly::Arg>> fetch_argument_pair(lang::Context& ctx, Args args, optional_ref<const lang::type::Node> cast_to = std::nullopt) {
   // fetch references to lhs and rhs
   const auto& lhs = args[0].get();
@@ -146,9 +139,6 @@ namespace generators {
    * @param datatype Assembly datatype the operands are stored as.
    * @return Register holding the result.
    */
-  // generate an addition instruction for the given asm datatype
-  // assume values stored in LHS and RHS are compatible with the asm datatype
-  // return which register the result is in
   static uint8_t generate_add(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_add(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
@@ -162,7 +152,6 @@ namespace generators {
    * @param datatype Assembly datatype the operands are stored as.
    * @return Register holding the result.
    */
-  // like generate_add, but for subtraction
   static uint8_t generate_sub(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_sub(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
@@ -176,7 +165,6 @@ namespace generators {
    * @param datatype Assembly datatype the operands are stored as.
    * @return Register holding the result.
    */
-  // like generate_add, but for multiplication
   static uint8_t generate_mul(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_mul(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
@@ -190,7 +178,6 @@ namespace generators {
    * @param datatype Assembly datatype the operands are stored as.
    * @return Register holding the result.
    */
-  // like generate_add, but for multiplication
   static uint8_t generate_div(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_div(datatype.get_asm_datatype(), reg_arg, reg_arg, std::move(other_arg)));
@@ -203,7 +190,6 @@ namespace generators {
    * @param args Operand values.
    * @return Register holding the result.
    */
-  // like generate_add, but for <<
   static uint8_t generate_shl(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_shift_left(reg_arg, reg_arg, std::move(other_arg)));
@@ -216,7 +202,6 @@ namespace generators {
    * @param args Operand values.
    * @return Register holding the result.
    */
-  // like generate_add, but for >>
   static uint8_t generate_shr(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_shift_right(reg_arg, reg_arg, std::move(other_arg)));
@@ -229,7 +214,6 @@ namespace generators {
    * @param args Operand values.
    * @return Register holding the result.
    */
-  // like generate_add, but for modulus
   static uint8_t generate_mod(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_mod(reg_arg, reg_arg, std::move(other_arg)));
@@ -242,7 +226,6 @@ namespace generators {
    * @param args Operand values.
    * @return Register holding the result.
    */
-  // like generate_add, but for bitwise AND
   static uint8_t generate_and(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_and(reg_arg, reg_arg, std::move(other_arg)));
@@ -255,7 +238,6 @@ namespace generators {
    * @param args Operand values.
    * @return Register holding the result.
    */
-  // like generate_add, but for bitwise OR
   static uint8_t generate_or(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_or(reg_arg, reg_arg, std::move(other_arg)));
@@ -268,7 +250,6 @@ namespace generators {
    * @param args Operand values.
    * @return Register holding the result.
    */
-  // like generate_add, but for bitwise XOR
   static uint8_t generate_xor(Context& ctx, Args args) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args);
     ctx.program.current().add(assembly::create_xor(reg_arg, reg_arg, std::move(other_arg)));
@@ -281,7 +262,6 @@ namespace generators {
    * @param args Operand values (must have exactly one element).
    * @return Register holding the result.
    */
-  // like generate_add, but for bitwise NOT
   static uint8_t generate_bitwise_not(Context& ctx, Args args) {
     uint8_t reg = fetch_reg(ctx, args, 0);
     ctx.program.current().add(assembly::create_not(reg, reg));
@@ -294,7 +274,6 @@ namespace generators {
    * @param args Operand values (must have exactly one element).
    * @return Register holding the result.
    */
-  // like generate_add, but for Boolean NOT
   static uint8_t generate_boolean_not(Context& ctx, Args args) {
     uint8_t reg = fetch_reg(ctx, args, 0);
     ctx.program.current().add(assembly::create_xor(reg, reg, assembly::Arg::imm(1)));
@@ -308,7 +287,6 @@ namespace generators {
    * @param datatype Assembly datatype the operands are stored as.
    * @return Register holding the LHS operand, against which the comparison was made.
    */
-  // like generate_add, but for a comparison
   static uint8_t generate_cmp(Context& ctx, Args args, const type::Node& datatype) {
     auto [reg_arg, other_arg] = fetch_argument_pair(ctx, args, datatype);
     ctx.program.current().add(assembly::create_comparison(datatype.get_asm_datatype(), reg_arg, std::move(other_arg)));
@@ -323,7 +301,6 @@ namespace generators {
    * @param cmp Comparison flag that must hold for the result to be true.
    * @return Register holding the boolean result.
    */
-  // generate a comparison, setting a Boolean result if equal to a test flag
   static uint8_t generate_cmp_bool(Context& ctx, Args args, std::reference_wrapper<const type::Node> datatype, constants::cmp::flag cmp) {
     uint8_t reg = generate_cmp(ctx, args, datatype);
     // zero-out the register
@@ -340,7 +317,6 @@ namespace generators {
    * @param datatype Assembly datatype the operand is stored as.
    * @return Register holding the result.
    */
-  // like generate_add, but for negation
   static uint8_t generate_neg(Context& ctx, Args args, const type::Node& datatype) {
     uint8_t reg_arg = fetch_reg(ctx, args, 0, datatype);
 
@@ -623,7 +599,6 @@ namespace init_builtin {
   /**
    * @brief Registers the operator&& and operator|| overloads as LazyLogicalOperator instances.
    */
-  // create logical && and ||
   static void logical_ops() {
     // operator&&(bool, bool)
     store_operator(std::make_unique<LazyLogicalOperator>(

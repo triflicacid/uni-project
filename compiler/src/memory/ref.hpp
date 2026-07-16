@@ -6,7 +6,6 @@ namespace lang::memory {
   /**
    * @brief A reference to a storage location that is either a register or a memory address.
    */
-  // describe reference to an item, either a register or a memory address
   struct Ref {
     /**
      * @brief Which kind of location a Ref names.

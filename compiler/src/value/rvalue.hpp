@@ -11,7 +11,6 @@ namespace lang::value {
   /**
    * @brief Represents a computed value's current physical location: a type paired with a memory/register reference.
    */
-  // an rvalue is something which has a value
   class RValue {
     const type::Node& type_; ///< Static type of the value.
     memory::Ref ref_; ///< Current physical location holding the value.

@@ -52,7 +52,6 @@ namespace lang::ops {
   /**
    * @brief BuiltinOperator specialisation for comparison operators, capable of fusing directly into a conditional branch instead of materialising a boolean.
    */
-  // define a built-in relational operator which is capable of conditional branching
   class RelationalBuiltinOperator : public BuiltinOperator {
     constants::cmp::flag flag_; ///< Comparison flag this operator tests when fusing into a branch.
     const type::Node& datatype_; ///< Common datatype both operands are coerced to before comparing.
@@ -83,7 +82,6 @@ namespace lang::ops {
   /**
    * @brief BuiltinOperator specialisation implementing unary logical negation, capable of propagating an inverted branch condition into its operand instead of computing the negation.
    */
-  // special case for handling the inverse '!' operator
   class BooleanNotBuiltinOperator : public BuiltinOperator {
   public:
     using BuiltinOperator::BuiltinOperator;
@@ -102,7 +100,6 @@ namespace lang::ops {
   /**
    * @brief BuiltinOperator implementing short-circuiting logical && or ||.
    */
-  // lazy logical && or || operator
   class LazyLogicalOperator : public BuiltinOperator {
     bool and_; ///< True for `&&`, false for `||`.
 

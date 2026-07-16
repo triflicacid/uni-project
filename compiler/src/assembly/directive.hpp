@@ -18,7 +18,6 @@ namespace lang::assembly {
    * Also hosts the static factory methods that are the intended way client code
    * constructs directives.
    */
-  // represent a `.<directive> ...` entry
   class Directive : public Line {
     std::string name_; ///< Directive name, without its leading dot.
 
@@ -36,7 +35,6 @@ namespace lang::assembly {
      * @brief Constructs an empty byte-segment directive (.byte).
      * @return The newly created directive.
      */
-    // reserve a segment of bytes (uint8)
     static std::unique_ptr<BytesDirective> bytes();
 
     /**
@@ -44,21 +42,18 @@ namespace lang::assembly {
      * @param str String whose characters populate the directive.
      * @return The newly created directive.
      */
-    // reserve data for a string
     static std::unique_ptr<StringDirective> string(const std::string& str);
 
     /**
      * @brief Constructs an empty 32-bit-word data-segment directive (.data).
      * @return The newly created directive.
      */
-    // reserve a segment of integers (uint32)
     static std::unique_ptr<DataDirective> data();
 
     /**
      * @brief Constructs an empty 64-bit-word data-segment directive (.word).
      * @return The newly created directive.
      */
-    // reserve a segment of words (uint64)
     static std::unique_ptr<WordDirective> words();
 
     /**
@@ -66,7 +61,6 @@ namespace lang::assembly {
      * @param n Number of bytes to reserve.
      * @return The newly created directive.
      */
-    // reserve `n` bytes of empty space
     static std::unique_ptr<Directive> space(uint32_t n);
 
     /**
@@ -74,7 +68,6 @@ namespace lang::assembly {
      * @param n Absolute offset to reposition to.
      * @return The newly created directive.
      */
-    // set insert point to `n`, use with extreme care
     static std::unique_ptr<Directive> offset(uint32_t n);
   };
 

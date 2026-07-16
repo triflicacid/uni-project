@@ -24,7 +24,6 @@ namespace lang {
      * @param indent_level Current indentation depth, in indentation units.
      * @return The same stream, for chaining.
      */
-    // print in code form
     virtual std::ostream& print_code(std::ostream& os, unsigned int indent_level = 0) const = 0;
   };
 }

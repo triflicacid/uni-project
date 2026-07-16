@@ -50,7 +50,6 @@ namespace lang::value {
      * @brief Produces a deep, independent duplicate of this value, including its lvalue and rvalue components if present.
      * @return The copied value.
      */
-    // copy ourself deeply (copies l/rvalue components)
     virtual std::unique_ptr<Value> copy() const;
 
     /**
@@ -119,7 +118,6 @@ namespace lang::value {
      * @param options Materialisation parameters: optional target location, copy-vs-move flag, and source origin.
      * @return Whether data was written into options.target specifically; the base implementation always returns false.
      */
-    // attempt to materialise into an rvalue, return if any value was actually stored
     virtual bool materialise(Context& ctx, const MaterialisationOptions& options = {})
     { return false; }
 
@@ -129,7 +127,6 @@ namespace lang::value {
      * @param origin Source location to attribute generated instructions to.
      * @return Same contract as the full materialise() overload.
      */
-    // materialise with no options, but providing a location
     bool materialise(Context& ctx, const Location& origin);
 
     /**
@@ -150,7 +147,6 @@ namespace lang::value {
    * @param type Optional static type; defaults to unit if omitted.
    * @return The newly created value.
    */
-  // create a generic value
   std::unique_ptr<Value> value(optional_ref<const type::Node> type = std::nullopt);
 
   /**
@@ -159,14 +155,12 @@ namespace lang::value {
    * @param ref Reference identifying the value's location.
    * @return The newly created value.
    */
-  // create an rvalue
   std::unique_ptr<Value> rvalue(const type::Node& type, const memory::Ref& ref);
 
   /**
    * @brief Builds the canonical "no value" placeholder, a unit-typed rvalue with a sentinel register.
    * @return The newly created unit value.
    */
-  // create a unit value
   std::unique_ptr<Value> unit_value();
 
   extern const std::unique_ptr<Value> unit_value_instance; ///< Shared value with unit type, used to signify "empty" or "none".

@@ -8,7 +8,6 @@ namespace lang::ops {
   /**
    * @brief Describes an operator's parse-time syntax: precedence, associativity, and whether it may be user-overloaded.
    */
-  // describes an operator
   struct OperatorInfo {
     uint8_t precedence; ///< Operator precedence; 1 is loosest (higher binds stronger).
     bool right_associative; ///< Whether the operator associates right-to-left.

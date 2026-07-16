@@ -22,7 +22,6 @@ namespace lang::assembly {
    *
    * Common base for every richer instruction variant.
    */
-  // base instruction wrapper containing nothing but the mnemonic
   class Instruction : public Line {
     std::string mnemonic_; ///< Base mnemonic text.
 
@@ -41,7 +40,6 @@ namespace lang::assembly {
   /**
    * @brief Instruction accepting an arbitrary ordered list of operands, plus optional conditional-test and datatype decorations, built up fluently.
    */
-  // a generic instruction which takes any number of arguments, and may have a conditional/datatype flag
   class GenericInstruction : public Instruction {
     std::optional<condition> cond_; ///< Conditional-execution test, if attached via @ref set_conditional.
     std::optional<datatype> datatype_; ///< Datatype qualifier, if attached via @ref set_datatype.
@@ -85,7 +83,6 @@ namespace lang::assembly {
    * @param cmp Comparison flag the instruction is conditioned on.
    * @return The same instruction.
    */
-  // shorthand function for setting the conditional test flag of an instruction
   std::unique_ptr<GenericInstruction> set_conditional(std::unique_ptr<GenericInstruction>, constants::cmp::flag cmp);
 
   /**
@@ -94,13 +91,11 @@ namespace lang::assembly {
    * @param dt Datatype qualifier.
    * @return The same instruction.
    */
-  // shorthand function for setting the datatype of an instruction
   std::unique_ptr<GenericInstruction> set_datatype(std::unique_ptr<GenericInstruction>, constants::inst::datatype::dt dt);
 
   /**
    * @brief Special-cased instruction for the cvt\<from\>2\<to\> family of datatype-conversion opcodes.
    */
-  // special instance for `cvt<x>2<y>` instruction
   class ConversionInstruction : public Instruction {
     datatype from_type_; ///< Source datatype.
     datatype to_type_; ///< Destination datatype.
@@ -125,7 +120,6 @@ namespace lang::assembly {
   /**
    * @brief Special-cased instruction for the loadi opcode, carrying a full 64-bit immediate wider than an ordinary Arg supports.
    */
-  // special instance for the loadi instruction, which accepts a uint64_t immediate argument
   class LoadImmediateInstruction : public Instruction {
     uint8_t reg_; ///< Destination register.
     uint64_t imm_; ///< Immediate value to load.

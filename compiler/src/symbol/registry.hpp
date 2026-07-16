@@ -32,7 +32,6 @@ namespace lang::symbol {
      * @brief Records a symbol's id under its fully-qualified name, supporting multiple overloads per name.
      * @param symbol Symbol to index.
      */
-    // helper - insert name-id into map
     void insert_name(const Symbol& symbol);
 
   public:
@@ -135,8 +134,5 @@ namespace lang::symbol {
    * @param messages Optional message list to append a diagnostic to on failure; if omitted, failure is silent.
    * @return The newly assigned id, or nothing if the declaration collides with an existing overload.
    */
-  // create and insert a variable into the given registry if permitted
-  // return symbol's id, or nothing if error
-  // if messages provided, append error to there, otherwise fail silently
   std::optional<SymbolId> create_variable(lang::symbol::Registry& registry, const VariableOptions& options, optional_ref<message::List> messages = std::nullopt);
 }

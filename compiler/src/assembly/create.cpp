@@ -14,7 +14,6 @@ std::unique_ptr<GenericInstruction> lang::assembly::instruction(const std::strin
  * @param value Second operand.
  * @return The newly created instruction.
  */
-// create reg_value instruction
 static std::unique_ptr<GenericInstruction> create_reg_value(const std::string& mnemonic, uint8_t reg, std::unique_ptr<BaseArg> value) {
   auto inst = std::make_unique<GenericInstruction>(mnemonic);
   inst->add_arg(Arg::reg(reg));
@@ -30,8 +29,6 @@ static std::unique_ptr<GenericInstruction> create_reg_value(const std::string& m
  * @param value Right-hand operand.
  * @return The newly created instruction.
  */
-// create reg_reg_value instruction
-// emit reg_value if reg1 == reg2
 static std::unique_ptr<GenericInstruction> create_reg_reg_value(const std::string& mnemonic, uint8_t reg1, uint8_t reg2, std::unique_ptr<BaseArg> value) {
   auto inst = std::make_unique<GenericInstruction>(mnemonic);
   inst->add_arg(Arg::reg(reg1));

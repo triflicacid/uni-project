@@ -17,7 +17,6 @@ namespace lang::value {
   /**
    * @brief Base class for the lvalue half of a Value: something with addressable storage.
    */
-  // an lvalue is something with storage
   class LValue {
     const type::Node& type_; ///< Static type of the lvalue.
 
@@ -56,7 +55,6 @@ namespace lang::value {
   /**
    * @brief Lvalue whose storage is a named, already-declared symbol.
    */
-  // this lvalue refers to a symbol
   class Symbol : public LValue {
     const symbol::Symbol& symbol_; ///< Symbol-table entry this lvalue refers to.
 
@@ -89,7 +87,6 @@ namespace lang::value {
   /**
    * @brief Lvalue whose storage is a raw memory or register location rather than a named symbol.
    */
-  // this lvalue refers to a location
   class Reference : public LValue {
     memory::Ref ref_; ///< Physical location this lvalue refers to.
 

@@ -29,7 +29,6 @@ namespace lang::assembly {
   /**
    * @brief Operand referencing a named textual label plus a constant offset, with a flag distinguishing address-of form from plain value form.
    */
-  // an argument which references a label
   class LabelArg : public BaseArg {
     const std::string label_; ///< Name of the referenced label.
     int offset_; ///< Constant offset added to the label.
@@ -78,7 +77,6 @@ namespace lang::assembly {
   /**
    * @brief Generic operand covering the four addressing modes: immediate, register, memory address, and register-indirect.
    */
-  // a generic assembly argument: imm, mem, reg, reg_indirect
   class Arg : public BaseArg {
     constants::inst::arg type_; ///< Addressing mode this argument represents.
     uint32_t value_; ///< Mode-specific encoded payload.
@@ -100,7 +98,6 @@ namespace lang::assembly {
      * @param x Immediate value.
      * @return The newly created argument.
      */
-    // create an immediate argument
     static std::unique_ptr<Arg> imm(uint32_t x);
 
     /**
@@ -108,7 +105,6 @@ namespace lang::assembly {
      * @param reg Register index.
      * @return The newly created argument.
      */
-    // create a register argument
     static std::unique_ptr<Arg> reg(uint8_t reg);
 
     /**
@@ -116,7 +112,6 @@ namespace lang::assembly {
      * @param addr Memory address.
      * @return The newly created argument.
      */
-    // create a memory address argument
     static std::unique_ptr<Arg> mem(uint32_t addr);
 
     /**
@@ -125,7 +120,6 @@ namespace lang::assembly {
      * @param offset Signed byte offset from the register.
      * @return The newly created argument.
      */
-    // create a register-indirect argument
     static std::unique_ptr<Arg> reg_indirect(uint8_t reg, int32_t offset = 0);
 
     /**
@@ -135,7 +129,6 @@ namespace lang::assembly {
      * @param is_addr True for address-of/indirect form, false for plain value form.
      * @return The newly created argument.
      */
-    // create an argument to a label
     static std::unique_ptr<LabelArg> label(const std::string& label, int offset = 0, bool is_addr = false);
 
     /**
@@ -145,14 +138,12 @@ namespace lang::assembly {
      * @param is_addr True for address-of/indirect form, false for plain value form.
      * @return The newly created argument.
      */
-    // create an argument referencing a BasicBlock
     static std::unique_ptr<BlockReferenceArg> label(const assembly::BasicBlock& block, int offset = 0, bool is_addr = false);
   };
 
   /**
    * @brief Operand wrapping a single character, printed as a quoted assembly literal.
    */
-  // an argument representing a character
   class CharArg : public BaseArg {
     char ch_; ///< The wrapped character.
 
@@ -171,7 +162,6 @@ namespace lang::assembly {
   /**
    * @brief Operand wrapping an arbitrary accumulated string, printed as a double-quoted assembly literal.
    */
-  // an argument representing a string (null-terminated)
   class StringArg : public BaseArg {
     std::stringstream stream_; ///< Accumulated string content, written to via @ref get.
 
