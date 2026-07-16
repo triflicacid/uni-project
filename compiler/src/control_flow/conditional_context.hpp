@@ -48,11 +48,8 @@ namespace lang::control_flow {
      * @brief Emits the conditional-branch instructions for a comparison flag already established in the given block.
      * @param block Basic block to append the branch instructions to.
      * @param flag Comparison flag to branch on (inverted first if inverse_cond is set).
+     * @note No-op if `handled` is already true. Sets `handled` to true once the branches have been emitted.
      */
-    // generate branching instructions based on conditional flag
-    // branch to `if_true` if flag is met, otherwise `if_false`
-    // does not execute if `handled=true`
-    // updates `handled` on execution
     void generate_branches(assembly::BasicBlock& block, constants::cmp::flag flag);
 
     /**

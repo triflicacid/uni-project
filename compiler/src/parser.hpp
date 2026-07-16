@@ -276,8 +276,10 @@ namespace lang::parser {
     /** @brief Parse a `namespace a.b.c { ... }` declaration. @return Parsed namespace node. */
     std::unique_ptr<ast::NamespaceNode> parse_namespace();
 
-    /** @brief Parse a `struct` declaration. @return Parsed struct node. */
-    // TODO
+    /**
+     * @brief Parse a `struct` declaration. @return Parsed struct node.
+     * @todo Not yet implemented: always emits an error and returns `nullptr`.
+     */
     std::unique_ptr<ast::Node> parse_struct();
 
     /**

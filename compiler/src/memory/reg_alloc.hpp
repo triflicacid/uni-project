@@ -86,9 +86,8 @@ namespace lang::memory {
 
     /**
      * @brief Pushes a brand-new, empty scope onto the allocator's stack, without saving or restoring any registers.
+     * @warning Take care when pairing this with @ref destroy_store: since no state is saved or restored in the generated assembly, an imbalanced push/pop of stores will desync the allocator's bookkeeping from the actual register contents at that point in the emitted code.
      */
-    // create a new store instance
-    // IMPORTANT: take care when adding/removing new Stores, as no state is restored by generated assembly code
     void new_store();
 
     /**

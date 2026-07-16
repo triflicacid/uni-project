@@ -151,9 +151,8 @@ namespace lang::assembly {
    * @param bytes Number of bytes to load (fewer than the register's full width).
    * @param assembly Basic block to append the instructions to.
    * @param is_signed Whether the unused upper bytes should be sign-extended (true) or zero-extended (false).
+   * @warning Does not dispatch to create_load_long: do not call this overload with a `value` that needs a full 64-bit immediate; it will be truncated/mishandled since the argument's width isn't known here.
    */
-  // similar to create_load(), but only loads `n` bytes, the rest is cleared in the register
-  // important note, *does not* call create_load_long as the type of `value` is not known, so *do not* call if providing a long immediate
   void create_load(uint8_t reg, std::unique_ptr<BaseArg> value, uint8_t bytes, BasicBlock& assembly, bool is_signed);
 
   /**

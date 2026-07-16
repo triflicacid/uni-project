@@ -52,9 +52,8 @@ namespace lang::assembly {
 
   /**
    * @brief Operand structurally identical to LabelArg but resolving its label lazily from a live BasicBlock at print time.
+   * @warning `block` must have been created with a real label (i.e. not via BasicBlock::unlabelled()): printing an unlabelled block silently emits an empty label rather than erroring.
    */
-  // a special form of `LabelArg` which references a BasicBlock
-  // error is BasicBlock does not have a label
   class BlockReferenceArg : public BaseArg {
     const BasicBlock& block_; ///< Block this operand refers to.
     int offset_; ///< Constant offset added to the block's label.

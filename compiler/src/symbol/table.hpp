@@ -84,27 +84,24 @@ namespace lang::symbol {
     /**
      * @brief Registers a new symbol into the current (innermost) scope, wiring up its namespace parent if applicable.
      * @param symbol Symbol to take ownership of and register.
+     * @note Only registers the symbol: does not allocate storage or emit any code; call @ref allocate separately.
+     * @note Non-function symbols automatically shadow an existing symbol of the same name in scope.
      */
-    // insert symbol into the local scope
-    // note that this does not allocate space for ths symbol (doesn't emit any code)
-    // also note that non-functional symbols are automatically shadowed
     void insert(std::unique_ptr<Symbol> symbol);
 
     /**
      * @brief Bulk-transfers every symbol owned by a registry into the table, then clears the registry.
      * @param registry Registry to move symbols out of.
+     * @note This moves every symbol out of `registry`, leaving it emptied and unusable afterward.
      */
-    // insert contents of a registry - calls ::insert() on all symbols in registry
-    // note, this moves symbols out of the registry, hence invalidates it
     void insert(Registry& registry);
 
     /**
      * @brief Gives a previously-inserted symbol a concrete physical storage location, emitting whatever assembly scaffolding its category requires.
      * @param symbol Id of the symbol to allocate storage for.
      * @warning Throws `std::runtime_error` if the symbol's category is `Argument` - arguments are allocated by the caller via the `allocate(SymbolId, memory::StorageLocation)` overload instead, not through this category-driven path.
+     * @warning For stack-based symbols, must be called in the same order the corresponding code will execute (normally declaration order within a scope). `offset_` in StackManager is a single running counter shared by the whole frame, and each call both advances it and emits a `sub $sp` at the current program cursor; calling out of order desyncs that counter from the real, emitted stack layout, corrupting every `$fp`-relative offset computed for symbols allocated afterward.
      */
-    // allocate space for this symbol (e.g., push to stack, ...)
-    // note, be careful not to allocate scope's in a different order
     void allocate(SymbolId symbol);
 
     /**
@@ -125,9 +122,8 @@ namespace lang::symbol {
      * @brief Emits a store instruction copying a register's contents into a symbol's resolved physical storage.
      * @param symbol_id Id of the symbol to assign to.
      * @param reg Register holding the value to store.
+     * @warning `symbol_id` must already have a resolved storage location (asserted in debug builds): call @ref allocate first.
      */
-    // assign given symbol to contents of the given register, inserting asm instructions in program
-    // note: errors if symbol has no physical location
     void assign_symbol(SymbolId symbol_id, uint8_t reg) const;
 
     /**
