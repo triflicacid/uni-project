@@ -126,3 +126,19 @@ HTML_EXTRA_FILES = out/compiler.pdf \
                     out/processor.pdf \
                     out/visualiser.pdf \
                     out/requirements.pdf
+
+# Generate HTML pages for the project's source files and add links from
+# documented symbols (classes, functions, etc.) to their definitions.
+SOURCE_BROWSER = YES
+
+# Display the source code on a separate source browser page rather than
+# embedding it directly into each documentation page.
+INLINE_SOURCES = NO
+
+# Add a "Referenced by" section showing which documented functions call
+# this function.
+REFERENCED_BY_RELATION = YES
+
+# Add a "References" section showing which documented functions this
+# function calls.
+REFERS_RELATION = YES
